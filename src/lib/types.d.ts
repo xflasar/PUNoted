@@ -179,3 +179,79 @@ export interface FioPlanetProduction {
   naturalId: string; // PlanetNaturalId
   productionLines: FioProductionLine[];
 }
+
+// --- Storage API Types ---
+
+export interface FioStorageItem {
+  MaterialId: string;
+  MaterialName: string;
+  MaterialTicker: string;
+  MaterialCategory: string; // This might be a GUID or a descriptive string, based on the example it looks like GUID.
+  MaterialWeight: number;
+  MaterialVolume: number;
+  MaterialAmount: number;
+  MaterialValue: number;
+  MaterialValueCurrency: string; // e.g., "ICA"
+  Type: string; // e.g., "INVENTORY"
+  TotalWeight: number;
+  TotalVolume: number;
+}
+
+export interface FioStorageUnit {
+  StorageItems: FioStorageItem[];
+  StorageId: string;
+  AddressableId: string; // This might be the ID of the planet/ship/base
+  Name: string; // Name of the storage location (e.g., "C-CI-060a Cargo Bay")
+  WeightLoad: number;
+  WeightCapacity: number;
+  VolumeLoad: number;
+  VolumeCapacity: number;
+  FixedStore: boolean;
+  Type: string; // e.g., "STL_FUEL_STORE", "STL_WAREHOUSE", "SP_CARGO"
+  UserNameSubmitted: string;
+  Timestamp: string; // ISO 8601 string
+  // Optional properties that might be useful, but not directly in the JSON provided
+  PlanetId?: string; // If the storage is tied to a planet
+  PlanetName?: string;
+  PlanetNaturalId?: string;
+}
+
+export type FioStorageResponse = FioStorageUnit[]; // The endpoint returns an array of storage units
+
+// FioSite interface
+export interface FioSite {
+  SiteId: string;
+  PlanetId: string;
+  PlanetIdentifier: string; // e.g., "FK-794b"
+  PlanetName: string; // e.g., "Boucher"
+  UserNameSubmitted: string;
+  Timestamp: string;
+  Buildings?: any[];
+  InvestedPermits?: number;
+  MaximumPermits?: number;
+}
+
+// FioWarehouse interface
+export interface FioWarehouse {
+  StoreId: string; // This is the ID we'll use for linking to FioStorageUnit.AddressableId
+  WarehouseId: string; // A unique ID for the specific warehouse instance
+  LocationName: string; // e.g., "Nova Honshu" (often the planet/base name where the warehouse is located)
+  LocationNaturalId: string; // e.g., "BS-788c"
+  VolumeCapacity: number;
+  WeightCapacity: number;
+  Units: number; // Number of warehouse units
+  FeeAmount: number;
+  FeeCurrency: string;
+  UserNameSubmitted: string;
+  Timestamp: string;
+  NextPaymentTimestampEpochMs?: number;
+  FeeCollectorCode?: string | null;
+  FeeCollectorId?: string | null;
+  FeeCollectorName?: string | null;
+}
+
+export interface EnhancedFioStorageUnit extends FioStorageUnit {
+  linkedLocationName?: string; // The primary name of the linked site (PlanetName) or warehouse (LocationName)
+  linkedLocationType?: 'PLANET_BASE' | 'WAREHOUSE_BUILDING' | 'UNKNOWN'; // Distinguishes the type of linked entity
+  linkedLocationIdentifier?: string; // PlanetIdentifier for sites, LocationNaturalId for warehouses
+}

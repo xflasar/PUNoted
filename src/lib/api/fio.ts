@@ -1,7 +1,7 @@
 // src/lib/api/fio.ts
 import axios from 'axios';
 import { FIO_API_BASE_URL } from '@/lib/constants';
-import { FioMaterial, FioExchangeData, FioExchangeAllResponse, FioProductionResponse } from '@/lib/types';
+import { FioMaterial, FioExchangeData, FioExchangeAllResponse, FioProductionResponse, FioStorageResponse, FioSite, FioWarehouse } from '@/lib/types';
 
 
 // For non-auth requests
@@ -160,5 +160,65 @@ export async function fetchPlanetProductionDetails(
   } catch (error) {
     console.error(`[FIO API] Error fetching production details for ${userName} on planet ${planetIdentifier}:`, error);
     throw error;
+  }
+}
+
+/**
+ * Fetches all storage units and their contents for a given username.
+ * @param username The username to fetch storage data for.
+ * @returns A promise that resolves to an array of FioStorageUnit.
+ */
+export async function fetchUserStorage(userName: string, apiKey: string): Promise<FioStorageResponse> {
+  if (!apiKey) {
+    throw new Error('FIO API Key is not set. Please go to Settings to configure it.');
+  }
+
+  const endpoint = `/storage/${userName}`;
+  const cacheKey = `fio_storageData-${userName}`;
+  const client = createAuthenticatedApiClient(apiKey);
+  try {
+    const response = await fetchWithCache<FioStorageResponse>(client, endpoint, cacheKey);
+    if (!response) {
+      throw new Error(`Invalid response structure for user storage: ${userName}`);
+    }
+    return response as FioStorageResponse;
+  } catch (error) {
+    console.error(`Error fetching storage data for ${userName} from FIO:`, error);
+    throw new Error(`Failed to fetch storage data for ${userName}.`);
+  }
+}
+
+// Add new API functions for sites and warehouses
+export async function fetchUserSites(userName: string, apiKey: string): Promise<FioSite[]> {
+  if (!apiKey) {
+    throw new Error('FIO API Key is not set. Please go to Settings to configure it.');
+  }
+
+  const endpoint = `/sites/${userName}`;
+  const cacheKey = `fio_storageData-${userName}-sites`;
+  const client = createAuthenticatedApiClient(apiKey);
+  try {
+    const response = await fetchWithCache<FioSite[]>(client, endpoint, cacheKey);
+    return response as FioSite[];
+  } catch (error) {
+    console.error(`Error fetching user sites for ${userName}:`, error);
+    return [];
+  }
+}
+
+export async function fetchUserWarehouses(userName: string, apiKey: string): Promise<FioWarehouse[]> {
+  if (!apiKey) {
+    throw new Error('FIO API Key is not set. Please go to Settings to configure it.');
+  }
+
+  const endpoint = `/sites/warehouses/${userName}`;
+  const cacheKey = `fio_storageData-${userName}-werehouses`;
+  const client = createAuthenticatedApiClient(apiKey);
+  try {
+    const response = await fetchWithCache<FioWarehouse[]>(client, endpoint, cacheKey);
+    return response as FioWarehouse[];
+  } catch (error) {
+    console.error(`Error fetching user warehouses for ${userName}:`, error);
+    return [];
   }
 }

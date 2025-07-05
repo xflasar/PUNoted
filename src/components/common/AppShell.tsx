@@ -17,6 +17,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
+import StorageIcon from '@mui/icons-material/Storage'
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import FactoryIcon from '@mui/icons-material/Factory';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
@@ -46,6 +47,7 @@ export default function AppShell({ children }: AppShellProps) {
     { text: 'Market Data', icon: <ShowChartIcon />, href: '/market' },
     { text: 'Production', icon: <FactoryIcon />, href: '/production' },
     { text: 'Logistics', icon: <LocalShippingIcon />, href: '/logistics' },
+    { text: 'Storage', icon: <StorageIcon />, href: '/storage'},
     { text: 'Settings', icon: <SettingsIcon />, href: '/settings' },
   ];
 
