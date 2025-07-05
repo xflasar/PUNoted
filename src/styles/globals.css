@@ -1,0 +1,42 @@
+/* src/app/globals.css */
+
+/* Custom Scrollbar Styles */
+/* For Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2b2b2b; /* Color of the tracking area */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888; /* Color of the scroll thumb */
+  border-radius: 10px;
+  border: 3px solid #2b2b2b; /* Creates padding around the thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Color of the scroll thumb on hover */
+}
+
+/* For Firefox (requires different properties) */
+html {
+  scrollbar-width: thin; 
+  scrollbar-color: #888 #2b2b2b; /* thumb color track color */
+}
+
+/* Base styles for "fullscreen" layout and consistent background/text */
+html, body, #__next {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+
+body {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}

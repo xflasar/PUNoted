@@ -1,0 +1,164 @@
+// src/lib/api/fio.ts
+import axios from 'axios';
+import { FIO_API_BASE_URL } from '@/lib/constants';
+import { FioMaterial, FioExchangeData, FioExchangeAllResponse, FioProductionResponse } from '@/lib/types';
+
+
+// For non-auth requests
+export const fioApiClient = axios.create({
+  baseURL: FIO_API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 15000,
+});
+
+// For auth requests
+const createAuthenticatedApiClient = (apiKey: string) => {
+  return axios.create({
+    baseURL: FIO_API_BASE_URL,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `${apiKey}`, // auth token from FIO
+    },
+    timeout: 15000,
+  });
+};
+
+// This is a simplified fetchWithCache.
+async function fetchWithCache<T>(client: ReturnType<typeof createAuthenticatedApiClient>, endpoint: string, cacheKey: string): Promise<T> {
+  // TODO: Implement caching
+  console.log(`Fetching from endpoint: ${endpoint} (Cache key: ${cacheKey})`);
+  const response = await client.get<T>(endpoint);
+  return response.data;
+}
+
+
+/**
+ * Fetches all material definitions (tickers, names, etc.) from /material/allmaterials.
+ * Returns an object where keys are tickers for easy lookup.
+ */
+export async function fetchAllMaterials(): Promise<{ [ticker: string]: FioMaterial }> {
+  try {
+    const response = await fioApiClient.get('/material/allmaterials');
+    // FIO's /material/allmaterials returns an array of materials
+    const materialsArray: FioMaterial[] = response.data;
+
+    // Transform array into an object for quicker lookup by ticker
+    const materialsByTicker: { [ticker: string]: FioMaterial } = materialsArray.reduce((acc, material) => {
+      if (material.Ticker) {
+        acc[material.Ticker] = material;
+      }
+      return acc;
+    }, {});
+
+    return materialsByTicker;
+  } catch (error) {
+    console.error('Error fetching all materials from FIO:', error);
+    throw new Error('Failed to fetch all material data from FIO API');
+  }
+}
+
+/**
+ * Fetches the market overview for all exchanges.
+ * Corresponds to /exchange/all endpoint.
+ */
+export async function fetchAllMarketOverview(): Promise<FioExchangeAllResponse> {
+  try {
+    const response = await fioApiClient.get('/exchange/all');
+    if (!response.data || !Array.isArray(response.data)) {
+      throw new Error('Invalid response structure from /exchange/all');
+    }
+    return response.data; // Return the array directly
+  } catch (error) {
+    console.error('Error fetching all market overview from FIO using /exchange/all:', error);
+    throw new Error('Failed to fetch all market overview data from FIO API via /exchange/all');
+  }
+}
+
+/**
+ * Fetches detailed exchange data for a specific material on a specific exchange.
+ * @param ticker Material ticker (e.g., 'H2O')
+ * @param exchangeCode Exchange code (e.g., 'IC1')
+ */
+export async function fetchExchangeData(ticker: string, exchangeCode: string): Promise<FioExchangeData> {
+  try {
+    const response = await fioApiClient.get(`/exchange/${ticker.toUpperCase()}.${exchangeCode.toUpperCase()}`);
+    if (!response.data || !response.data.payload) {
+      throw new Error(`Invalid response structure for ${ticker}.${exchangeCode}`);
+    }
+    return response.data.payload;
+  } catch (error) {
+    console.error(`Error fetching exchange data for ${ticker}.${exchangeCode} from FIO:`, error);
+    throw new Error(`Failed to fetch exchange data for ${ticker}.${exchangeCode} from FIO API`);
+  }
+}
+
+/**
+ * Fetches all production data for a specific user across all their planets.
+ * Corresponds to /production/{username} endpoint.
+ * @param userName The username to fetch production data for.
+ * @param apiKey The FIO API key.
+ * @returns A promise that resolves with an array of FioPlanetProduction.
+ */
+export async function fetchUserProductionOverview(
+  userName: string,
+  apiKey: string
+): Promise<FioProductionResponse> { // FioProductionResponse is FioPlanetProduction[]
+  if (!apiKey) {
+    throw new Error('FIO API Key is not set. Please go to Settings to configure it.');
+  }
+
+  const endpoint = `/production/${userName}`;
+  const cacheKey = `fio_productionData_overview-${userName}`;
+
+  const client = createAuthenticatedApiClient(apiKey);
+
+  try {
+    const data = await fetchWithCache<FioProductionResponse>(client, endpoint, cacheKey);
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid response structure from FIO production overview API: Expected an array.');
+    }
+    return data;
+  } catch (error) {
+    console.error(`[FIO API] Error fetching production overview for ${userName}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches production data for a specific planet of a given user.
+ * Corresponds to /production/{username}/{planet} endpoint.
+ * @param userName The username to fetch production data for.
+ * @param apiKey The FIO API key.
+ * @param planetIdentifier The PlanetId, PlanetNaturalId, or PlanetName of the specific planet.
+ * @returns A promise that resolves with an array of FioPlanetProduction (typically containing a single element for the specified planet).
+ */
+export async function fetchPlanetProductionDetails(
+  userName: string,
+  apiKey: string,
+  planetIdentifier: string // This must be provided
+): Promise<FioProductionResponse> { // FioProductionResponse is FioPlanetProduction[]
+  if (!apiKey) {
+    throw new Error('FIO API Key is not set. Please go to Settings to configure it.');
+  }
+  if (!planetIdentifier) {
+    throw new Error('Planet identifier is required to fetch specific planet production details.');
+  }
+
+  const endpoint = `/production/${userName}/${planetIdentifier}`;
+  const cacheKey = `fio_productionData_details-${userName}-${planetIdentifier}`;
+
+  const client = createAuthenticatedApiClient(apiKey);
+
+  try {
+    const data = await fetchWithCache<FioProductionResponse>(client, endpoint, cacheKey);
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid response structure from FIO planet production details API: Expected an array.');
+    }
+    return data;
+  } catch (error) {
+    console.error(`[FIO API] Error fetching production details for ${userName} on planet ${planetIdentifier}:`, error);
+    throw error;
+  }
+}
