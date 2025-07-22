@@ -1,7 +1,7 @@
 // src/lib/api/fio.ts
 import axios from 'axios';
 import { FIO_API_BASE_URL } from '@/lib/constants';
-import { FioMaterial, FioExchangeData, FioExchangeAllResponse, FioProductionResponse, FioStorageResponse, FioSite, FioWarehouse } from '@/lib/types';
+import { FioMaterial, FioExchangeData, FioExchangeAllResponse, FioProductionResponse, FioStorageResponse, FioSite, FioWarehouse, FioProductionInputResponse, FioProductionOutputResponse, FioWorkforceResponse, BuildingCost, BuildingWorkforce, Building, RecipeOutput, RecipeInput } from '@/lib/types';
 
 
 // For non-auth requests
@@ -219,6 +219,174 @@ export async function fetchUserWarehouses(userName: string, apiKey: string): Pro
     return response as FioWarehouse[];
   } catch (error) {
     console.error(`Error fetching user warehouses for ${userName}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetches user production input data.
+ * Corresponds to /rain/userplanetproductioninput/{username} endpoint.
+ * @param username The username to fetch data for.
+ * @param apiKey The FIO API key.
+ * @returns A promise that resolves with an array of ProductionInputOutputItem.
+ */
+export async function fetchUserProductionInputs(userName: string, apiKey: string): Promise<FioProductionInputResponse> {
+  if (!apiKey) {
+    throw new Error('FIO API Key is not set. Please go to Settings to configure it.');
+  }
+
+  const endpoint = `/rain/userplanetproductioninput/${userName}`;
+  const cacheKey = `fio_dashboardData-${userName}-prodInput`;
+  const client = createAuthenticatedApiClient(apiKey);
+  try {
+    const response = await fetchWithCache<FioProductionInputResponse>(client, endpoint, cacheKey);
+    if (!Array.isArray(response)) {
+      throw new Error('Invalid response structure for production inputs: Expected an array.');
+    }
+    return response as FioProductionInputResponse;
+  } catch (error) {
+    console.error(`Error fetching production inputs for ${userName}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetches user production output data.
+ * Corresponds to /rain/userplanetproductionoutput/{username} endpoint.
+ * @param username The username to fetch data for.
+ * @param apiKey The FIO API key.
+ * @returns A promise that resolves with an array of ProductionInputOutputItem.
+ */
+export async function fetchUserProductionOutputs(userName: string, apiKey: string): Promise<FioProductionOutputResponse> {
+  if (!apiKey) {
+    throw new Error('FIO API Key is not set. Please go to Settings to configure it.');
+  }
+
+  const endpoint = `/rain/userplanetproductionoutput/${userName}`;
+  const cacheKey = `fio_dashboardData-${userName}-prodOutput`;
+  const client = createAuthenticatedApiClient(apiKey);
+  try {
+    const response = await fetchWithCache<FioProductionInputResponse>(client, endpoint, cacheKey);
+    if (!Array.isArray(response)) {
+      throw new Error('Invalid response structure for production inputs: Expected an array.');
+    }
+    return response as FioProductionOutputResponse;
+  } catch (error) {
+    console.error(`Error fetching production outputs for ${userName}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetches user workforce data.
+ * Corresponds to /workforce/{username} endpoint.
+ * @param username The username to fetch data for.
+ * @param apiKey The FIO API key.
+ * @returns A promise that resolves with an array of Workforce.
+ */
+export async function fetchUserWorkforce(userName: string, apiKey: string): Promise<FioWorkforceResponse> {
+  if (!apiKey) {
+    throw new Error('FIO API Key is not set. Please go to Settings to configure it.');
+  }
+
+  const endpoint = `/workforce/${userName}`;
+  const cacheKey = `fio_dashboardData-${userName}-prodOutput`;
+  const client = createAuthenticatedApiClient(apiKey);
+  try {
+    const response = await fetchWithCache<FioWorkforceResponse>(client, endpoint, cacheKey);
+    if (!Array.isArray(response)) {
+      throw new Error('Invalid response structure for workforce data: Expected an array.');
+    }
+    return response as FioWorkforceResponse;
+  } catch (error) {
+    console.error(`Error fetching workforce data for ${userName}:`, error);
+    return [];
+  }
+}
+
+// --- New Static Game Data API Functions ---
+
+/**
+ * Fetches all recipe inputs data.
+ * Endpoint: /rain/recipeinputs
+ */
+export async function fetchRecipeInputs(): Promise<RecipeInput[]> {
+  try {
+    const response = await fioApiClient.get('/rain/recipeinputs');
+    if (!Array.isArray(response.data)) {
+      throw new Error('Invalid response structure for recipe inputs: Expected an array.');
+    }
+    return response.data as RecipeInput[];
+  } catch (error) {
+    console.error('Error fetching recipe inputs:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches all recipe outputs data.
+ * Endpoint: /rain/recipeoutputs
+ */
+export async function fetchRecipeOutputs(): Promise<RecipeOutput[]> {
+  try {
+    const response = await fioApiClient.get('/rain/recipeoutputs');
+    if (!Array.isArray(response.data)) {
+      throw new Error('Invalid response structure for recipe outputs: Expected an array.');
+    }
+    return response.data as RecipeOutput[];
+  } catch (error) {
+    console.error('Error fetching recipe outputs:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches all building data.
+ * Endpoint: /rain/buildings
+ */
+export async function fetchBuildings(): Promise<Building[]> {
+  try {
+    const response = await fioApiClient.get('/rain/buildings');
+    if (!Array.isArray(response.data)) {
+      throw new Error('Invalid response structure for buildings: Expected an array.');
+    }
+    return response.data as Building[];
+  } catch (error) {
+    console.error('Error fetching buildings:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches all building costs data.
+ * Endpoint: /rain/buildingcosts
+ */
+export async function fetchBuildingCosts(): Promise<BuildingCost[]> {
+  try {
+    const response = await fioApiClient.get('/rain/buildingcosts');
+    if (!Array.isArray(response.data)) {
+      throw new Error('Invalid response structure for building costs: Expected an array.');
+    }
+    return response.data as BuildingCost[];
+  } catch (error) {
+    console.error('Error fetching building costs:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches all building workforces data.
+ * Endpoint: /rain/buildingworkforces
+ */
+export async function fetchBuildingWorkforces(): Promise<BuildingWorkforce[]> {
+  try {
+    const response = await fioApiClient.get('/rain/buildingworkforces');
+    if (!Array.isArray(response.data)) {
+      throw new Error('Invalid response structure for building workforces: Expected an array.');
+    }
+    return response.data as BuildingWorkforce[];
+  } catch (error) {
+    console.error('Error fetching building workforces:', error);
     return [];
   }
 }

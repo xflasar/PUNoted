@@ -25,6 +25,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useRouter } from 'next/navigation';
+import { AutoAwesome } from '@mui/icons-material';
 
 const drawerWidth = 240;
 
@@ -44,6 +45,7 @@ export default function AppShell({ children }: AppShellProps) {
 
   const navItems = [
     { text: 'Dashboard', icon: <HomeIcon />, href: '/' },
+    { text: 'AI Page', icon: <AutoAwesome/>, href: '/ml-ai'},
     { text: 'Market Data', icon: <ShowChartIcon />, href: '/market' },
     { text: 'Production', icon: <FactoryIcon />, href: '/production' },
     { text: 'Logistics', icon: <LocalShippingIcon />, href: '/logistics' },

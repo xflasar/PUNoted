@@ -7,11 +7,18 @@ import { useState } from 'react';
 
 export default function SettingsPage() {
   const [fioApiKey, setFioApiKey] = useLocalStorage<string>('fioApiKey', '');
+  const [userName, setUserName] = useLocalStorage<string>('userName', '')
+  const [userNameInput, setUserNameInput] = useState(userName)
   const [apiKeyInput, setApiKeyInput] = useState(fioApiKey);
   const [saveStatus, setSaveStatus] = useState<'none' | 'success' | 'error'>('none');
 
   const handleSave = () => {
+    if(apiKeyInput !== fioApiKey)
     setFioApiKey(apiKeyInput);
+
+    if(userNameInput !== userName)
+    setUserName(userNameInput);
+
     setSaveStatus('success');
     setTimeout(() => setSaveStatus('none'), 3000);
   };
@@ -60,6 +67,41 @@ export default function SettingsPage() {
         {saveStatus === 'error' && (
           <Alert severity="error" sx={{ mt: 2 }}>
             Error saving API Key.
+          </Alert>
+        )}
+      </Box>
+
+      <Box sx={{ maxWidth: 600, width: '100%', mb: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          FIO username
+        </Typography>
+        <TextField
+          label="Your FIO username"
+          type="text" // maybe not for when user types and then when its saved there it will change to password type
+          fullWidth
+          value={userNameInput}
+          onChange={(e) => {
+            setUserNameInput(e.target.value);
+            setSaveStatus('none');
+          }}
+          sx={{ mb: 2 }}
+        />
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSave}
+          disabled={userNameInput === userName}
+        >
+          Save username
+        </Button>
+        {saveStatus === 'success' && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            Username saved successfully!
+          </Alert>
+        )}
+        {saveStatus === 'error' && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            Error saving username.
           </Alert>
         )}
       </Box>
