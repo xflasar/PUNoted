@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Box, Typography, Chip, IconButton, Tooltip } from '@mui/material';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-import { ContractEntry } from '../../app/dashboard/page';
+import { ContractEntry } from '../../../app/dashboard/page';
 import { ContractEntryWithDisplayDate } from './ContractsHistory'
 
 

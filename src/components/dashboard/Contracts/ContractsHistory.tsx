@@ -9,7 +9,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-import { DashboardData, ContractEntry, ContractConditionSummary } from '../../app/dashboard/page';
+import { DashboardData, ContractEntry, ContractConditionSummary } from '../../../app/dashboard/page';
 import ContractCalendarView from './ContractCalendarView';
 
 export interface ContractEntryWithDisplayDate extends ContractEntry {
@@ -141,7 +141,7 @@ const ContractsHistory: React.FC<ContractsHistoryProps> = ({ backendData }) => {
       // Iterate through all contract entries
       Object.values(backendData.history_data.contracts).forEach(contractEntries => {
         contractEntries.forEach(contract => {
-          console.log(contract)
+          //console.log(contract)
           if (contract.localId) {
             if (!contractsMap.has(contract.localId)) {
               contractsMap.set(contract.localId, []);
@@ -192,10 +192,6 @@ const ContractsHistory: React.FC<ContractsHistoryProps> = ({ backendData }) => {
         const statusPriorityB = getStatusPriority(b.status);
         return statusPriorityA - statusPriorityB;
       });
-
-      history.forEach(h => {
-        console.log(h)
-      })
 
       const latestContract = history[0];
 
@@ -295,7 +291,7 @@ const ContractsHistory: React.FC<ContractsHistoryProps> = ({ backendData }) => {
   }, [openModal, latestContractInModal?.dueDate_timestamp]);
 
   return (
-    <Grid item xs={12} sx={{ mb: 3 }}>
+    <Grid item xs={12} sx={{ mb: 0 }}>
       <Card elevation={3} sx={{ borderRadius: '12px', bgcolor: 'background.paper', color: 'text.primary' }}>
         <CardHeader
           title={
@@ -304,6 +300,7 @@ const ContractsHistory: React.FC<ContractsHistoryProps> = ({ backendData }) => {
             </Typography>
           }
           action={
+            // for now disabled until reworked or scrapped
             <FormControlLabel
               control={
                 <Switch
@@ -311,6 +308,7 @@ const ContractsHistory: React.FC<ContractsHistoryProps> = ({ backendData }) => {
                   onChange={(event) => setShowCalendarView(event.target.checked)}
                   name="calendarViewToggle"
                   color="primary"
+                  disabled
                 />
               }
               label={showCalendarView ? "Calendar View" : "Table View"}
@@ -347,7 +345,7 @@ const ContractsHistory: React.FC<ContractsHistoryProps> = ({ backendData }) => {
                         sx={{
                           '&:last-child td, &:last-child th': { border: 0 },
                           cursor: 'pointer',
-                          backgroundColor: getStatusColor(contract.status),
+                          backgroundColor: 'transparent', //getStatusColor(contract.status),
                           '&:hover': {
                             filter: 'brightness(1.2)',
                           }
@@ -356,7 +354,7 @@ const ContractsHistory: React.FC<ContractsHistoryProps> = ({ backendData }) => {
                         <TableCell><Typography variant="body2" color="text.secondary">{contract.localId || 'N/A'}</Typography></TableCell>
                         <TableCell><Typography variant="body2" color="text.secondary">{contract.name || 'N/A'}</Typography></TableCell>
                         <TableCell><Typography variant="body2" color="text.secondary">{contract.partner_name || 'N/A'}</Typography></TableCell>
-                        <TableCell><Typography variant="body2" color="text.secondary">{contract.status || 'N/A'}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" color={getStatusColor(contract.status)}>{contract.status || 'N/A'}</Typography></TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
                             {contract.dueDate_timestamp ? new Date(contract.dueDate_timestamp).toLocaleString() : 'N/A'}

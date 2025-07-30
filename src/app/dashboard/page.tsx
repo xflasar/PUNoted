@@ -28,7 +28,8 @@ import ComexTraderOrdersOverview from '../../components/dashboard/ComexTraderOrd
 import ProductionOrdersOverview from '../../components/dashboard/ProductionOrdersOverview';
 import StorageChangesHistory from '../../components/dashboard/StorageChangesHistory';
 import ShipFlightsHistory from '../../components/dashboard/ShipFlightsHistory';
-import ContractsHistory from '../../components/dashboard/ContractsHistory';
+import ContractsHistory from '../../components/dashboard/Contracts/ContractsHistory';
+import ContractsWidget from '@/components/dashboard/Contracts/ContractsWidget';
 
 // Re-defining FIO types here to ensure compatibility with PUCExt data structure
 // In a real application, these would ideally be in a shared types file and mapped.
@@ -366,7 +367,7 @@ export interface ContractConditionSummary { // Exported
   party: string | null;
   quantity: { amount: number, material: {name: string, ticker: string}}
   index: number | null;
-  amount?: number | null; // For PAYMENT
+  amount?: {amount: number, currency: string} | null; // For PAYMENT
   currency?: string | null; // For PAYMENT
   material_name?: string | null; // For DELIVERY, SHIPMENT, COMEX_PURCHASE_PICKUP
   material_ticker?: string | null; // For DELIVERY, SHIPMENT, COMEX_PURCHASE_PICKUP
@@ -848,7 +849,7 @@ export default function DashboardPage() {
                 <ProductionOrdersOverview backendData={backendData} />
                 <StorageChangesHistory backendData={backendData} />
                 <ShipFlightsHistory backendData={backendData} />
-                <ContractsHistory backendData={backendData} />
+                <ContractsWidget backendData={backendData} />
               </>
             )}
           </Box>
