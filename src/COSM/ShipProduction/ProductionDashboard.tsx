@@ -22,6 +22,7 @@ import { addDays } from "date-fns";
 import { ShipOrders } from "./ShipOrders";
 
 interface Part {
+	isAvailable: boolean;
 	name: string;
 	quantity: number;
 }
@@ -82,19 +83,58 @@ const MOCK_SHIP_TYPES: ShipType[] = [
 		id: "lcbftl",
 		name: "LCB FTL",
 		parts: [
-			{ name: "BR1", quantity: 1 },
-			{ name: "CQM", quantity: 1 },
-			{ name: "FFC", quantity: 1 },
-			{ name: "FSE", quantity: 1 },
-			{ name: "LCB", quantity: 1 },
-			{ name: "LFE", quantity: 2 },
-			{ name: "LFL", quantity: 1 },
-			{ name: "LHP", quantity: 94 },
-			{ name: "MFE", quantity: 2 },
-			{ name: "MSL", quantity: 1 },
-			{ name: "QCR", quantity: 1 },
-			{ name: "SFE", quantity: 1 },
-			{ name: "SSC", quantity: 128 },
+			{
+				name: "BR1", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "CQM", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FFC", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FSE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LCB", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LFE", quantity: 2,
+				isAvailable: false
+			},
+			{
+				name: "LFL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LHP", quantity: 94,
+				isAvailable: false
+			},
+			{
+				name: "MFE", quantity: 2,
+				isAvailable: false
+			},
+			{
+				name: "MSL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "QCR", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SFE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SSC", quantity: 128,
+				isAvailable: false
+			},
 		],
 		price: 4900000,
 		priceCorp: 3049837,
@@ -103,13 +143,34 @@ const MOCK_SHIP_TYPES: ShipType[] = [
 		id: "lcbstl",
 		name: "LCB STL",
 		parts: [
-			{ name: "BRS", quantity: 1 },
-			{ name: "CQM", quantity: 1 },
-			{ name: "FSE", quantity: 1 },
-			{ name: "LCB", quantity: 1 },
-			{ name: "LHP", quantity: 87 },
-			{ name: "SSC", quantity: 115 },
-			{ name: "SSL", quantity: 1 },
+			{
+				name: "BRS", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "CQM", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FSE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LCB", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LHP", quantity: 87,
+				isAvailable: false
+			},
+			{
+				name: "SSC", quantity: 115,
+				isAvailable: false
+			},
+			{
+				name: "SSL", quantity: 1,
+				isAvailable: false
+			},
 		],
 		price: 2800000,
 		priceCorp: 1878140,
@@ -118,19 +179,58 @@ const MOCK_SHIP_TYPES: ShipType[] = [
 		id: "wcbftl",
 		name: "WCB FTL",
 		parts: [
-			{ name: "BR1", quantity: 1 },
-			{ name: "CQS", quantity: 1 },
-			{ name: "FFC", quantity: 1 },
-			{ name: "FSE", quantity: 1 },
-			{ name: "WCB", quantity: 1 },
-			{ name: "LFE", quantity: 1 },
-			{ name: "LFL", quantity: 1 },
-			{ name: "LHP", quantity: 68 },
-			{ name: "MFE", quantity: 2 },
-			{ name: "MSL", quantity: 1 },
-			{ name: "QCR", quantity: 1 },
-			{ name: "SFE", quantity: 1 },
-			{ name: "SSC", quantity: 78 },
+			{
+				name: "BR1", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "CQS", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FFC", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FSE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "WCB", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LFE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LFL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LHP", quantity: 68,
+				isAvailable: false
+			},
+			{
+				name: "MFE", quantity: 2,
+				isAvailable: false
+			},
+			{
+				name: "MSL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "QCR", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SFE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SSC", quantity: 78,
+				isAvailable: false
+			},
 		],
 		price: 4450000,
 		priceCorp: 2763265,
@@ -139,13 +239,34 @@ const MOCK_SHIP_TYPES: ShipType[] = [
 		id: "wcbstl",
 		name: "WCB STL",
 		parts: [
-			{ name: "BRS", quantity: 1 },
-			{ name: "CQS", quantity: 1 },
-			{ name: "FSE", quantity: 1 },
-			{ name: "WCB", quantity: 1 },
-			{ name: "LHP", quantity: 60 },
-			{ name: "SSC", quantity: 65 },
-			{ name: "SSL", quantity: 1 },
+			{
+				name: "BRS", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "CQS", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FSE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "WCB", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LHP", quantity: 60,
+				isAvailable: false
+			},
+			{
+				name: "SSC", quantity: 65,
+				isAvailable: false
+			},
+			{
+				name: "SSL", quantity: 1,
+				isAvailable: false
+			},
 		],
 		price: 2500000,
 		priceCorp: 1667444,
@@ -154,19 +275,58 @@ const MOCK_SHIP_TYPES: ShipType[] = [
 		id: "vcbftl",
 		name: "VCB FTL",
 		parts: [
-			{ name: "BR1", quantity: 1 },
-			{ name: "CQL", quantity: 1 },
-			{ name: "FFC", quantity: 1 },
-			{ name: "FSE", quantity: 1 },
-			{ name: "VCB", quantity: 1 },
-			{ name: "LFE", quantity: 3 },
-			{ name: "LFL", quantity: 1 },
-			{ name: "LHP", quantity: 117 },
-			{ name: "MFE", quantity: 2 },
-			{ name: "MSL", quantity: 1 },
-			{ name: "QCR", quantity: 1 },
-			{ name: "SFE", quantity: 1 },
-			{ name: "SSC", quantity: 178 },
+			{
+				name: "BR1", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "CQL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FFC", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FSE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "VCB", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LFE", quantity: 3,
+				isAvailable: false
+			},
+			{
+				name: "LFL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LHP", quantity: 117,
+				isAvailable: false
+			},
+			{
+				name: "MFE", quantity: 2,
+				isAvailable: false
+			},
+			{
+				name: "MSL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "QCR", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SFE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SSC", quantity: 178,
+				isAvailable: false
+			},
 		],
 		price: 5400000,
 		priceCorp: 3361006,
@@ -175,19 +335,58 @@ const MOCK_SHIP_TYPES: ShipType[] = [
 		id: "hcbftl",
 		name: "HCB FTL",
 		parts: [
-			{ name: "BR1", quantity: 1 },
-			{ name: "CQL", quantity: 1 },
-			{ name: "FFC", quantity: 1 },
-			{ name: "FSE", quantity: 1 },
-			{ name: "HCB", quantity: 1 },
-			{ name: "LFE", quantity: 5 },
-			{ name: "LFL", quantity: 1 },
-			{ name: "LHP", quantity: 157 },
-			{ name: "MFE", quantity: 2 },
-			{ name: "MSL", quantity: 1 },
-			{ name: "QCR", quantity: 1 },
-			{ name: "SFE", quantity: 1 },
-			{ name: "SSC", quantity: 278 },
+			{
+				name: "BR1", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "CQL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FFC", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FSE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "HCB", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LFE", quantity: 5,
+				isAvailable: false
+			},
+			{
+				name: "LFL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LHP", quantity: 157,
+				isAvailable: false
+			},
+			{
+				name: "MFE", quantity: 2,
+				isAvailable: false
+			},
+			{
+				name: "MSL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "QCR", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SFE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SSC", quantity: 278,
+				isAvailable: false
+			},
 		],
 		price: 9000000,
 		priceCorp: 4735092,
@@ -196,17 +395,50 @@ const MOCK_SHIP_TYPES: ShipType[] = [
 		id: "starterupgrade",
 		name: "WCB Starter Upgrade",
 		parts: [
-			{ name: "BR1", quantity: 1 },
-			{ name: "CQS", quantity: 1 },
-			{ name: "FFC", quantity: 1 },
-			{ name: "LFE", quantity: 1 },
-			{ name: "LHP", quantity: 68 },
-			{ name: "MFE", quantity: 2 },
-			{ name: "MSL", quantity: 1 },
-			{ name: "RCT", quantity: 1 },
-			{ name: "SFE", quantity: 1 },
-			{ name: "SSC", quantity: 78 },
-			{ name: "WCB", quantity: 1 },
+			{
+				name: "BR1", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "CQS", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "FFC", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LFE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "LHP", quantity: 68,
+				isAvailable: false
+			},
+			{
+				name: "MFE", quantity: 2,
+				isAvailable: false
+			},
+			{
+				name: "MSL", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "RCT", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SFE", quantity: 1,
+				isAvailable: false
+			},
+			{
+				name: "SSC", quantity: 78,
+				isAvailable: false
+			},
+			{
+				name: "WCB", quantity: 1,
+				isAvailable: false
+			},
 		],
 		price: 950000,
 		priceCorp: 708616,

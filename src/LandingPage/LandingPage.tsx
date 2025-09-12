@@ -4,7 +4,6 @@ import { styled, useTheme } from '@mui/system';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowRight, FaUsers, FaChartLine } from 'react-icons/fa';
 import AuthenticationBox from './AuthenticationBox.tsx';
-import ApiStatus from '../components/common/ApiStatus.tsx';
 
 interface LandingPageProps {
   onLoginSuccess: () => void;
@@ -305,7 +304,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onLogout, isL
           Privacy Policy
         </Link>
       </ContentBox>
-      <ApiStatus />
+      
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

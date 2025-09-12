@@ -79,7 +79,7 @@ function App() {
   };
 
   return (
-    <Box sx={{ position: 'relative', height: '100%', width: '100%' }}>
+    <Box sx={{ maxHeight: '100%', width: '100%' }}>
       <Routes>
         <Route
           path="/"
