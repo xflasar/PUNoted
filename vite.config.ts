@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
-    allowedHosts: ['punoted.ddns.net']
+    allowedHosts: ['punoted.net']
+  },
+  resolve: {
+    dedupe: ["react", "react-dom"]
   }
 })

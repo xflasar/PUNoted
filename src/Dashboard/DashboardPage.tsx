@@ -1,18 +1,12 @@
-// src/DashboardPage.tsx
-import React from 'react';
-import { Typography, Box } from '@mui/material';
+import StarMapDeckGL from "../components/common/StarMap/BaseStarMap";
 
-const DashboardPage: React.FC = () => {
+
+const DashboardPage = () => {
   return (
-    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto', mt: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Welcome to PUNoted Dashboard!
-      </Typography>
-      <Typography variant="body1">
-        This is your main dashboard. You can access various features using the navigation on the left.
-      </Typography>
-    </Box>
-  );
-};
+    <>
+    <StarMapDeckGL mode="dashboard" />
+    </>
+  )
+}
 
 export default DashboardPage;

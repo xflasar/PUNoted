@@ -1,220 +1,44 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, {
+	useState,
+	useMemo,
+	useRef,
+	useEffect,
+	useCallback,
+} from "react";
+import { Masonry } from "@mui/lab";
 import {
-  Typography,
-  Box,
-  Grid,
-  TextField,
-  InputAdornment,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  Divider,
-  useTheme,
-  Paper,
-  //useMediaQuery,
-  keyframes,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  CircularProgress,
-} from '@mui/material';
-import { Search, PlusCircle, CheckCircle } from 'lucide-react';
+	Typography,
+	Box,
+	Grid,
+	TextField,
+	InputAdornment,
+	Card,
+	CardContent,
+	Divider,
+	useTheme,
+	keyframes,
+	Fab,
+	Tooltip,
+	Chip,
+	alpha,
+} from "@mui/material";
+import {
+	Search,
+	PlusCircle,
+	Edit,
+	ShoppingBasket,
+	MapPin,
+	TrendingUp,
+	TrendingDown,
+	Minus,
+} from "lucide-react";
+import VendorCreationModal from "./CreateVendorStoreModal";
+import EditVendorStoreModal from "./EditVendorStoreModal";
+import ShoppingListModal from "./ShoppingListModal";
+import { formatAmount } from "../../utils/formaters";
+import type { VendorStore, OrderItem } from "./types";
 
-interface VendorItem {
-  companyName: string;
-  username: string;
-  companyCode: string;
-  active: boolean;
-  products: number;
-  categories: number;
-  buyList: {
-    material: string;
-    ticker: string;
-    price: string;
-    quantity: number;
-  }[];
-  sellList: {
-    material: string;
-    ticker: string;
-    price: string;
-    quantity: number;
-  }[];
-}
-
-const mockVendors: VendorItem[] = [
-  {
-    companyName: 'Nova Supply Corp - A Very Long Company Name That Might Overflow And Needs Scrolling',
-    username: 'NovaTrader',
-    companyCode: 'NSC-001',
-    active: true,
-    products: 15,
-    categories: 5,
-    buyList: [
-      { material: 'Steel Ingots', ticker: 'STLI', price: 'Negotiable (5000000 ICA)', quantity: 1500 },
-      { material: 'Copper Wire', ticker: 'COP', price: '50.25 ICA', quantity: 200 },
-      { material: 'Hydrocarbon Plant', ticker: 'HYD', price: '$176.39', quantity: 10 },
-    ],
-    sellList: [
-      { material: 'Titanium Plates', ticker: 'TPL', price: '$250.75', quantity: 50 },
-      { material: 'Carbon Fiber', ticker: 'CARF', price: '$1200.00', quantity: 5 },
-      { material: 'Aluminium Sheets', ticker: 'ALUS', price: '$150.00', quantity: 500 },
-      { material: 'Steel Cables', ticker: 'STLC', price: '$85.00', quantity: 700 },
-    ],
-  },
-  {
-    companyName: 'Aero Dynamics Inc. - Global Aerospace Solutions Provider',
-    username: 'AeroParts',
-    companyCode: 'ADI-005',
-    active: false,
-    products: 8,
-    categories: 3,
-    buyList: [
-      { material: 'Polymers', ticker: 'POL', price: 'Range: $20-30', quantity: 5000 },
-      { material: 'Alloys', ticker: 'ALL', price: '$150.00', quantity: 250 },
-    ],
-    sellList: [
-      { material: 'Rocket Fuel', ticker: 'ROCKF', price: 'Negotiable', quantity: 100 },
-      { material: 'Flavored Meal', ticker: 'FLA', price: '$1,273.12', quantity: 50 },
-      { material: 'Sensor Arrays', ticker: 'SENS', price: '$5000.00', quantity: 10 },
-      { material: 'Navigation Systems', ticker: 'NAVS', price: '$9500.00', quantity: 3 },
-      { material: 'Fuel Injectors', ticker: 'FINJ', price: '$350.00', quantity: 25 },
-      { material: 'Rare Earth Elements', ticker: 'REE', price: 'Negotiable', quantity: 50 },
-      { material: 'Microchips', ticker: 'MIC', price: '$15.00', quantity: 10000 },
-    ],
-  },
-  {
-    companyName: 'Quantum Tech Solutions',
-    username: 'QuantumTrader',
-    companyCode: 'QTS-012',
-    active: true,
-    products: 25,
-    categories: 8,
-    buyList: [
-      { material: 'Rare Earth Elements', ticker: 'REE', price: 'Negotiable', quantity: 50 },
-      { material: 'Microchips', ticker: 'MIC', price: '$15.00', quantity: 10000 },
-    ],
-    sellList: [
-      { material: 'Circuit Boards', ticker: 'CB', price: '$50.00', quantity: 500 },
-      { material: 'Nutrient Solution', ticker: 'NTS', price: '$221.52', quantity: 100 },
-    ],
-  },
-  {
-    companyName: 'Global Commodities Hub - International Trading & Logistics',
-    username: 'CommodityKing',
-    companyCode: 'GCH-022',
-    active: true,
-    products: 12,
-    categories: 4,
-    buyList: [
-      { material: 'Crude Oil', ticker: 'CRO', price: '$80.00', quantity: 50000 },
-      { material: 'Iron Ore', ticker: 'IRON', price: '$120.00', quantity: 10000 },
-      { material: 'Natural Gas', ticker: 'NG', price: '$5.00', quantity: 20000 },
-    ],
-    sellList: [
-      { material: 'Wheat', ticker: 'WHT', price: 'Negotiable', quantity: 5000 },
-    ],
-  },
-  {
-    companyName: 'Global Commodities Hub',
-    username: 'CommodityKing',
-    companyCode: 'GCH-022',
-    active: true,
-    products: 12,
-    categories: 4,
-    buyList: [
-      { material: 'Crude Oil', ticker: 'CRO', price: '$80.00', quantity: 50000 },
-      { material: 'Iron Ore', ticker: 'IRON', price: '$120.00', quantity: 10000 },
-      { material: 'Natural Gas', ticker: 'NG', price: '$5.00', quantity: 20000 },
-    ],
-    sellList: [
-      { material: 'Wheat', ticker: 'WHT', price: 'Negotiable', quantity: 5000 },
-    ],
-  },
-  {
-    companyName: 'Global Commodities Hub',
-    username: 'CommodityKing',
-    companyCode: 'GCH-022',
-    active: true,
-    products: 12,
-    categories: 4,
-    buyList: [
-      { material: 'Crude Oil', ticker: 'CRO', price: '$80.00', quantity: 50000 },
-      { material: 'Iron Ore', ticker: 'IRON', price: '$120.00', quantity: 10000 },
-      { material: 'Natural Gas', ticker: 'NG', price: '$5.00', quantity: 20000 },
-    ],
-    sellList: [
-      { material: 'Wheat', ticker: 'WHT', price: 'Negotiable', quantity: 5000 },
-    ],
-  },
-  {
-    companyName: 'Global Commodities Hub',
-    username: 'CommodityKing',
-    companyCode: 'GCH-022',
-    active: true,
-    products: 12,
-    categories: 4,
-    buyList: [
-      { material: 'Crude Oil', ticker: 'CRO', price: '$80.00', quantity: 50000 },
-      { material: 'Iron Ore', ticker: 'IRON', price: '$120.00', quantity: 10000 },
-      { material: 'Natural Gas', ticker: 'NG', price: '$5.00', quantity: 20000 },
-    ],
-    sellList: [
-      { material: 'Wheat', ticker: 'WHT', price: 'Negotiable', quantity: 5000 },
-    ],
-  },
-  {
-    companyName: 'Global Commodities Hub',
-    username: 'CommodityKing',
-    companyCode: 'GCH-022',
-    active: true,
-    products: 12,
-    categories: 4,
-    buyList: [
-      { material: 'Crude Oil', ticker: 'CRO', price: '$80.00', quantity: 50000 },
-      { material: 'Iron Ore', ticker: 'IRON', price: '$120.00', quantity: 10000 },
-      { material: 'Natural Gas', ticker: 'NG', price: '$5.00', quantity: 20000 },
-    ],
-    sellList: [
-      { material: 'Wheat', ticker: 'WHT', price: 'Negotiable', quantity: 5000 },
-    ],
-  },
-  {
-    companyName: 'Global Commodities Hub',
-    username: 'CommodityKing',
-    companyCode: 'GCH-022',
-    active: true,
-    products: 12,
-    categories: 4,
-    buyList: [
-      { material: 'Crude Oil', ticker: 'CRO', price: '$80.00', quantity: 50000 },
-      { material: 'Iron Ore', ticker: 'IRON', price: '$120.00', quantity: 10000 },
-      { material: 'Natural Gas', ticker: 'NG', price: '$5.00', quantity: 20000 },
-    ],
-    sellList: [
-      { material: 'Wheat', ticker: 'WHT', price: 'Negotiable', quantity: 5000 },
-    ],
-  },
-  {
-    companyName: 'Global Commodities Hub',
-    username: 'CommodityKing',
-    companyCode: 'GCH-022',
-    active: true,
-    products: 12,
-    categories: 4,
-    buyList: [
-      { material: 'Crude Oil', ticker: 'CRO', price: '$80.00', quantity: 50000 },
-      { material: 'Iron Ore', ticker: 'IRON', price: '$120.00', quantity: 10000 },
-      { material: 'Natural Gas', ticker: 'NG', price: '$5.00', quantity: 20000 },
-    ],
-    sellList: [
-      { material: 'Wheat', ticker: 'WHT', price: 'Negotiable', quantity: 5000 },
-    ],
-  },
-];
-
+// --- ANIMATIONS ---
 const scroll = keyframes`
   0% { transform: translateX(0); }
   25% { transform: translateX(-100%); }
@@ -222,451 +46,867 @@ const scroll = keyframes`
   100% { transform: translateX(0); }
 `;
 
-const ScrollingText: React.FC<{ text: string; variant: any; sx?: any }> = ({ text, variant, sx }) => {
-  const textRef = useRef<HTMLDivElement>(null);
-  const [overflowing, setOverflowing] = useState(false);
+// --- HELPER COMPONENTS ---
 
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (textRef.current) {
-        setOverflowing(textRef.current.scrollWidth > textRef.current.clientWidth);
-      }
-    };
-    checkOverflow();
-    window.addEventListener('resize', checkOverflow);
-    return () => window.removeEventListener('resize', checkOverflow);
-  }, [text]);
+const ScrollingText: React.FC<{ text: string; variant: any; sx?: any }> =
+	React.memo(({ text, variant, sx }) => {
+		const textRef = useRef<HTMLDivElement>(null);
+		const [overflowing, setOverflowing] = useState(false);
 
-  return (
-    <Box sx={{
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      display: 'inline-block',
-      maxWidth: '100%',
-      verticalAlign: 'middle',
-    }}>
-      <Typography
-        ref={textRef}
-        variant={variant}
-        component="div"
-        sx={{
-          ...sx,
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          pr: overflowing ? '16px' : 0,
-          animation: overflowing ? `${scroll} 10s linear infinite alternate` : 'none',
-        }}
-      >
-        {text}
-      </Typography>
-    </Box>
-  );
+		useEffect(() => {
+			const checkOverflow = () => {
+				if (textRef.current) {
+					setOverflowing(
+						textRef.current.scrollWidth > textRef.current.clientWidth,
+					);
+				}
+			};
+			checkOverflow();
+			window.addEventListener("resize", checkOverflow);
+			return () => window.removeEventListener("resize", checkOverflow);
+		}, [text]);
+
+		return (
+			<Box
+				sx={{
+					overflow: "hidden",
+					whiteSpace: "nowrap",
+					display: "inline-block",
+					maxWidth: "100%",
+					verticalAlign: "middle",
+				}}
+			>
+				<Typography
+					ref={textRef}
+					variant={variant}
+					component="div"
+					sx={{
+						...sx,
+						display: "inline-block",
+						whiteSpace: "nowrap",
+						pr: overflowing ? "16px" : 0,
+						animation: overflowing
+							? `${scroll} 10s linear infinite alternate`
+							: "none",
+					}}
+				>
+					{text}
+				</Typography>
+			</Box>
+		);
+	});
+
+const getDiffStats = (
+	vendorPrice: number,
+	refPrice: number | undefined,
+	type: "buy" | "sell",
+) => {
+	if (!refPrice || refPrice === 0 || !vendorPrice) return null;
+
+	const diff = ((vendorPrice - refPrice) / refPrice) * 100;
+	const formatted = `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`;
+
+	let isGood = false;
+	if (type === "sell") isGood = diff < 0;
+	else isGood = diff > 0;
+
+	return {
+		value: diff,
+		label: formatted,
+		isGood,
+		color: isGood ? "success" : "error",
+	};
 };
 
+// --- MEMOIZED SUB-COMPONENTS ---
 
-const VendorsList: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
-  const [isCheckingStore, setIsCheckingStore] = useState<boolean>(true);
-  const [isCreatingStore, setIsCreatingStore] = useState<boolean>(false);
-  const [vendorData, setVendorData] = useState({
-    company_name: '',
-    game_name: '',
-    company_code: '',
-    corp_name: '',
-  });
-  const [formError, setFormError] = useState<string | null>(null);
+const PriceComparisonBadge = ({
+	label,
+	stats,
+}: {
+	label: string;
+	stats: any;
+}) => {
+	const theme = useTheme();
+	if (!stats) return <Box sx={{ width: 40 }} />;
 
-  const theme = useTheme();
-  //const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+	return (
+		<Tooltip title={`${label} Price Difference`}>
+			<Chip
+				label={`${label} ${stats.label}`}
+				size="small"
+				variant="outlined"
+				icon={
+					stats.value > 0 ? (
+						<TrendingUp size={10} />
+					) : stats.value < 0 ? (
+						<TrendingDown size={10} />
+					) : (
+						<Minus size={10} />
+					)
+				}
+				sx={{
+					height: 18,
+					fontSize: "0.7rem",
+					"& .MuiChip-label": { px: 0.8 },
+					"& .MuiChip-icon": { width: 12, height: 12, color: "inherit" },
+					backdropFilter: "blur(4px)",
+					color: stats.isGood
+						? theme.palette.success.light
+						: theme.palette.error.light,
+					borderColor: stats.isGood
+						? alpha(theme.palette.success.main, 0.3)
+						: alpha(theme.palette.error.main, 0.3),
+					bgcolor: stats.isGood
+						? alpha(theme.palette.success.main, 0.05)
+						: alpha(theme.palette.error.main, 0.05),
+				}}
+			/>
+		</Tooltip>
+	);
+};
 
-  useEffect(() => {
-    const checkVendorStore = async () => {
-      try {
-        // Assume you have an endpoint like this.
-        const response = await fetch('https://punoted.ddns.net/dev/api/user_vendor_store');
-        if (response.ok) {
-          const data = await response.json();
-          setHasVendorStore(data.success);
-        } else {
-          setHasVendorStore(false);
-        }
-      } catch (error) {
-        setHasVendorStore(false);
-        console.error("Failed to check for vendor store:", error);
-      } finally {
-        setIsCheckingStore(false);
-      }
-    };
+// Renders the list of products
+const VendorProductList = React.memo(
+	({ list, title }: { list: OrderItem[]; title: string }) => {
+		const theme = useTheme();
+		const isBuying = title === "Buying";
+		const orderType = isBuying ? "buy" : "sell";
 
-    checkVendorStore();
-  }, []);
+		return (
+			<Box
+				sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
+			>
+				<Typography
+					variant="caption"
+					sx={{
+						mb: 0.5,
+						color: isBuying
+							? theme.palette.info.light
+							: theme.palette.warning.light,
+						fontWeight: "bold",
+						textAlign: "center",
+						letterSpacing: 1,
+						fontSize: "0.7rem",
+						borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+						pb: 0.2,
+					}}
+				>
+					{title.toUpperCase()}
+				</Typography>
 
-  const handleOpenModal = () => {
-    setFormError(null);
-    setIsModalOpen(true);
-  };
-  const handleCloseModal = () => setIsModalOpen(false);
+				<Box
+					sx={{
+						overflowY: "auto",
+						px: 0,
+						maxHeight: "300px",
+						minHeight: "50px",
+						display: "flex",
+						flexDirection: "column",
+						"&::-webkit-scrollbar": {
+							width: "4px",
+						},
+						"&::-webkit-scrollbar-track": {
+							background: "transparent",
+						},
+						"&::-webkit-scrollbar-thumb": {
+							background: alpha(theme.palette.common.white, 0.1),
+							borderRadius: "4px",
+						},
+						"&::-webkit-scrollbar-thumb:hover": {
+							background: alpha(theme.palette.primary.main, 0.5),
+						},
+					}}
+				>
+					{list.length > 0 ? (
+						list.map((item, index) => {
+							const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
+							const cxStats = getDiffStats(
+								fixedPrice,
+								item.price?.cxprice,
+								orderType,
+							);
+							const corpStats = getDiffStats(
+								fixedPrice,
+								item.price?.corpprice,
+								orderType,
+							);
 
-  const handleCreateVendorStore = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsCreatingStore(true);
-    setFormError(null);
+							let locationText = "Unknown";
+							let locationCount = 0;
+							if (item.location && item.location.length > 0) {
+								locationText =
+									item.location[0].location_code ||
+									item.location[0].location_name;
+								locationCount = item.location.length;
+							}
 
-    if (!vendorData.company_name) {
-      setFormError("Company name is required.");
-      setIsCreatingStore(false);
-      return;
-    }
+							return (
+								<Box
+									key={item.frontendId || index}
+									sx={{
+										p: 0,
+										borderBottom:
+											index === list.length - 1
+												? "none"
+												: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+										transition: "background-color 0.2s",
+										display: "flex",
+										flexDirection: "column",
+										gap: 0.3,
+										cursor: "default",
+										"&:hover": {
+											backgroundColor: alpha(theme.palette.common.white, 0.03),
+										},
+									}}
+								>
+									{/* ROW 1: Ticker (Left) -- Location (Right, Max 50%) */}
+									<Box
+										sx={{
+											display: "flex",
+											justifyContent: "space-between",
+											alignItems: "center",
+										}}
+									>
+										<Typography
+											variant="subtitle2"
+											sx={{
+												fontWeight: "bold",
+												color: theme.palette.text.primary,
+												fontSize: "0.85rem",
+												lineHeight: 1,
+											}}
+										>
+											{item.materialticker}
+										</Typography>
 
-    try {
-      const response = await fetch('dev/api/create_vendor_store', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendor: vendorData, orders: [] }),
-      });
+										{item.location && item.location.length > 0 && (
+											<Tooltip
+												title={
+													<Box sx={{ p: 0.5 }}>
+														{item.location.map((l, i) => (
+															<Box
+																key={i}
+																sx={{
+																	display: "flex",
+																	justifyContent: "space-between",
+																	gap: 2,
+																	minWidth: 120,
+																}}
+															>
+																<Typography variant="caption">
+																	{l.location_name}
+																</Typography>
+																<Typography
+																	variant="caption"
+																	color="success.light"
+																>
+																	{formatAmount(l.available)}
+																</Typography>
+															</Box>
+														))}
+													</Box>
+												}
+												slotProps={{
+													tooltip: {
+														sx: {
+															backdropFilter: "blur(8px)",
+															background: alpha(
+																theme.palette.background.default,
+																0.95,
+															),
+															border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+														},
+													},
+												}}
+											>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 0.5,
+														opacity: 0.8,
+														cursor: "help",
+														maxWidth: "50%",
+														justifyContent: "flex-end",
+													}}
+												>
+													<MapPin
+														size={10}
+														color={theme.palette.text.secondary}
+														style={{ flexShrink: 0 }}
+													/>
+													<Typography
+														variant="caption"
+														noWrap
+														sx={{
+															fontSize: "0.75rem",
+															color: theme.palette.text.secondary,
+														}}
+													>
+														{locationText}
+													</Typography>
+													{locationCount > 1 && (
+														<span
+															style={{
+																fontSize: "0.75rem",
+																fontWeight: "bold",
+																color: theme.palette.primary.main,
+																flexShrink: 0,
+															}}
+														>
+															+{locationCount - 1}
+														</span>
+													)}
+												</Box>
+											</Tooltip>
+										)}
+									</Box>
 
-      const data = await response.json();
-      if (response.ok) {
-        setHasVendorStore(true);
-        handleCloseModal();
-      } else {
-        setFormError(data.message || "An unexpected error occurred.");
-      }
-    } catch (error) {
-      setFormError("Failed to connect to the server.");
-      console.error("Vendor creation failed:", error);
-    } finally {
-      setIsCreatingStore(false);
-    }
-  };
+									{/* ROW 2: Badges (Middle - Comparisons) */}
+									{cxStats || corpStats ? (
+										<Box
+											sx={{
+												display: "flex",
+												gap: 0.5,
+												flexWrap: "wrap",
+												mt: 0.2,
+												minHeight: "25px",
+												justifyContent: "space-between",
+											}}
+										>
+											<Box>
+												{cxStats && (
+													<PriceComparisonBadge label="CX" stats={cxStats} />
+												)}
+											</Box>
+											<Box>
+												{corpStats && (
+													<PriceComparisonBadge
+														label="COSM"
+														stats={corpStats}
+													/>
+												)}
+											</Box>
+										</Box>
+									) : (
+										<Box sx={{ minHeight: "25px" }} />
+									)}
 
-  const filteredVendors = useMemo(() => {
-    if (!searchQuery) {
-      return mockVendors;
-    }
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    return mockVendors.filter(
-      (vendor) =>
-        vendor.companyName.toLowerCase().includes(lowerCaseQuery) ||
-        vendor.username.toLowerCase().includes(lowerCaseQuery) ||
-        vendor.companyCode.toLowerCase().includes(lowerCaseQuery) ||
-        vendor.buyList.find((buy) => buy.ticker.toLowerCase().includes(lowerCaseQuery)) !== undefined ||
-        vendor.sellList.find((sell) => sell.ticker.toLowerCase().includes(lowerCaseQuery)) !== undefined
-    );
-  }, [searchQuery]);
+									{/* ROW 3: Quantity & Price (Bottom) */}
+									<Box
+										sx={{
+											display: "flex",
+											justifyContent: "space-between",
+											alignItems: "flex-end",
+											mt: 0.2,
+										}}
+									>
+										<Box
+											sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}
+										>
+											<Typography
+												variant="caption"
+												sx={{
+													color: theme.palette.text.secondary,
+													fontSize: "0.75rem",
+												}}
+											>
+												Qty:
+											</Typography>
+											<Typography
+												variant="body2"
+												sx={{
+													fontWeight: "bold",
+													color: theme.palette.primary.light,
+												}}
+											>
+												{formatAmount(item.available || item.quantity)}
+											</Typography>
+										</Box>
 
-  const renderProductList = (list: { material: string; ticker: string; price: string; quantity: number }[], title: string) => (
-    <Box sx={{ my: 1, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="body2" sx={{ mb: 1, color: theme.palette.primary.light, fontWeight: 'bold', textAlign: 'center' }}>
-        {title.toUpperCase()}
-      </Typography>
-      <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
-        {list.length > 0 ? (
-          <List dense disablePadding sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-            {list.map((item, index) => (
-              <ListItem
-                key={index}
-                sx={{
-                  py: 0.5,
-                  px: 0,
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold' }}>
-                  {item.ticker}
-                </Typography>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                    Qty: {item.quantity}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: theme.palette.success.main }}>
-                    {item.price}
-                  </Typography>
-                </Box>
-              </ListItem>
-            ))}
-          </List>
-        ) : (
-          <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'rgba(255, 255, 255, 0.6)' }}>
-            No items listed.
-          </Typography>
-        )}
-      </Box>
-    </Box>
-  );
+										<Box
+											sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}
+										>
+											<Typography
+												variant="body2"
+												sx={{
+													fontWeight: "bold",
+													color: isBuying
+														? theme.palette.info.main
+														: theme.palette.warning.main,
+												}}
+											>
+												{fixedPrice}
+											</Typography>
+											<Typography
+												variant="caption"
+												sx={{
+													color: theme.palette.text.secondary,
+													fontSize: "0.75rem",
+												}}
+											>
+												ICA
+											</Typography>
+										</Box>
+									</Box>
+								</Box>
+							);
+						})
+					) : (
+						<Box
+							sx={{
+								height: "100%",
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								opacity: 0.2,
+								py: 3,
+								flexDirection: "column",
+							}}
+						>
+							<Minus size={20} />
+						</Box>
+					)}
+				</Box>
+			</Box>
+		);
+	},
+);
 
-  return (
-    <Box sx={{
-      boxSizing: 'border-box',
-      width: '95%',
-      margin: '0 auto',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
-        <Paper sx={{ width: '100%' }}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Search by Company Name, Code, Username or Material Ticker"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255, 255, 255, 0.05)',
-                '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                '&:hover fieldset': { borderColor: theme.palette.primary.main },
-                '&.Mui-focused fieldset': { borderColor: theme.palette.primary.main, borderWidth: '2px' },
-                color: 'white',
-              },
-              '& .MuiInputBase-input::placeholder': {
-                color: 'rgba(255, 255, 255, 0.7)',
-                opacity: 1,
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search style={{ color: 'rgba(123, 104, 238, 1)' }} />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Paper>
-        <Paper>
-          <Box sx={{ textAlign: 'center' }}>
-            {isCheckingStore ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', gap: 1 }}>
-                <CircularProgress size={20} color="inherit" />
-                <Typography>Checking for your vendor store...</Typography>
-              </Box>
-            ) : hasVendorStore ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.palette.success.main, gap: 1 }}>
-                <CheckCircle />
-                <Typography>You already have a vendor store.</Typography>
-              </Box>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={handleOpenModal}
-                sx={{
-                  bgcolor: theme.palette.primary.main,
-                  '&:hover': {
-                    bgcolor: theme.palette.primary.dark,
-                  },
-                }}
-                startIcon={<PlusCircle />}
-              >
-                Create New Vendor Store
-              </Button>
-            )}
-          </Box>
-        </Paper>
-      </Grid>
+// The Main Card Component
+const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
+	const theme = useTheme();
 
-      <Box
-        sx={{
-          flexGrow: 1,
-          overflowY: 'auto',
-          padding: '20px',
-          overflowX: 'visible',
-        }}
-      >
-        {filteredVendors.length > 0 ? (
-          <Grid container
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: theme.spacing(4),
-              margin: 0,
-              width: '100%',
-              padding: '20px 0 60px 0',
-              alignItems: 'stretch',
-            }}
-          >
-            {filteredVendors.map((vendor) => (
-              <Paper key={vendor.companyCode}
-                sx={{
-                  flexGrow: 1,
-                  flexBasis: 'min(350px, 100%)',
-                  maxWidth: 'calc(50% - 16px)',
-                  [theme.breakpoints.down('sm')]: {
-                    maxWidth: '100%',
-                  },
-                  overflow: 'visible',
-                  position: 'relative',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <Card sx={{
-                  background: 'linear-gradient(135deg, rgba(20, 20, 50, 0.8), rgba(10, 10, 30, 0.8))',
-                  color: 'white',
-                  borderRadius: '16px',
-                  height: '100%',
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
-                  boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2)',
-                  transition: 'transform 0.3s, box-shadow 0.3s',
-                  position: 'relative',
-                  '&:hover': {
-                    transform: 'translateY(-10px)',
-                    boxShadow: '0 0 16px rgba(123, 104, 238, 0.8)',
-                    zIndex: 10,
-                  }
-                }}>
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <ScrollingText
-                        text={vendor.companyName}
-                        variant="h5"
-                        sx={{ fontWeight: 'bold' }}
-                      />
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        Username: {vendor.username}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        Code: {vendor.companyCode}
-                      </Typography>
-                    </Box>
+	const buyOrders = useMemo(
+		() =>
+			vendor.orders
+				? vendor.orders.filter((mat) => mat.ordertype === "buy")
+				: [],
+		[vendor.orders],
+	);
+	const sellOrders = useMemo(
+		() =>
+			vendor.orders
+				? vendor.orders.filter((mat) => mat.ordertype === "sell")
+				: [],
+		[vendor.orders],
+	);
 
-                    <Divider sx={{ my: 2, bgcolor: theme.palette.primary.main, height: '2px' }} />
+	return (
+		<Card
+			sx={{
+				bgcolor: alpha(theme.palette.background.default, 0.7),
+				backgroundImage: "none",
+				color: theme.palette.text.primary,
+				borderRadius: "16px",
+				display: "flex",
+				flexDirection: "column",
+				border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+				backdropFilter: "blur(12px)",
+				WebkitBackdropFilter: "blur(12px)",
+				boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
+				transition: "box-shadow 0.2s, border-color 0.2s",
+				"&:hover": {
+					boxShadow: "0 8px 25px rgba(0, 0, 0, 0.5)",
+					borderColor: alpha(theme.palette.primary.main, 0.5),
+				},
+			}}
+		>
+			<CardContent
+				sx={{
+					p: "12px !important",
+					display: "flex",
+					flexDirection: "column",
+					height: "100%",
+				}}
+			>
+				<Box sx={{ textAlign: "center", mb: 1.5 }}>
+					<ScrollingText
+						text={vendor.vendor.companyname}
+						variant="subtitle1"
+						sx={{ fontWeight: 600, letterSpacing: "0.5px", mb: 1 }}
+					/>
 
-                    <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                      <Grid container spacing={2} sx={{ flexGrow: 1, width: '100%' }}>
-                        <Paper  sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column'}}>
-                          {renderProductList(vendor.buyList, 'Buying')}
-                        </Paper>
-                        <Paper sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column'}}>
-                          {renderProductList(vendor.sellList, 'Selling')}
-                        </Paper>
-                      </Grid>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Paper>
-            ))}
-          </Grid>
-        ) : (
-          <Box sx={{ textAlign: 'center', py: 4, flexGrow: 1, overflowY: 'auto'}}>
-            <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-              No vendors found matching your search.
-            </Typography>
-          </Box>
-        )}
-      </Box>
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							gap: 1.5,
+							flexWrap: "wrap",
+						}}
+					>
+						{/* Game Name Badge: Soft, pill-shaped background for standard metadata */}
+						<Typography
+							variant="caption"
+							sx={{
+								color: theme.palette.text.secondary,
+								bgcolor: alpha(theme.palette.background.default, 0.6),
+								px: 1.5,
+								py: 0.5,
+								borderRadius: "12px",
+								fontWeight: 500,
+							}}
+						>
+							{vendor.vendor.gamename}
+						</Typography>
 
-      {/* Vendor Creation Modal */}
-      <Dialog open={isModalOpen} onClose={handleCloseModal}>
-        <DialogTitle sx={{ bgcolor: theme.palette.grey[900], color: 'white' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PlusCircle />
-            Create Vendor Store
-          </Box>
-        </DialogTitle>
-        <DialogContent sx={{ bgcolor: theme.palette.grey[900], color: 'white', py: 2 }}>
-          <form onSubmit={handleCreateVendorStore}>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Paper>
-                <TextField
-                  fullWidth
-                  required
-                  label="Company Name"
-                  name="company_name"
-                  value={vendorData.company_name}
-                  onChange={(e) => setVendorData({ ...vendorData, company_name: e.target.value })}
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': { color: 'white' },
-                    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                  }}
-                />
-              </Paper>
-              <Paper>
-                <TextField
-                  fullWidth
-                  label="Game Name (Optional)"
-                  name="game_name"
-                  value={vendorData.game_name}
-                  onChange={(e) => setVendorData({ ...vendorData, game_name: e.target.value })}
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': { color: 'white' },
-                    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                  }}
-                />
-              </Paper>
-              <Paper>
-                <TextField
-                  fullWidth
-                  label="Company Code (Optional)"
-                  name="company_code"
-                  value={vendorData.company_code}
-                  onChange={(e) => setVendorData({ ...vendorData, company_code: e.target.value })}
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': { color: 'white' },
-                    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                  }}
-                />
-              </Paper>
-              <Paper>
-                <TextField
-                  fullWidth
-                  label="Corp Name (Optional)"
-                  name="corp_name"
-                  value={vendorData.corp_name}
-                  onChange={(e) => setVendorData({ ...vendorData, corp_name: e.target.value })}
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': { color: 'white' },
-                    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                  }}
-                />
-              </Paper>
-            </Grid>
-            {formError && (
-              <Box sx={{ color: theme.palette.error.main, mt: 2, textAlign: 'center' }}>
-                <Typography variant="body2">{formError}</Typography>
-              </Box>
-            )}
-            <DialogActions sx={{ bgcolor: theme.palette.grey[900], mt: 2, justifyContent: 'center' }}>
-              <Button onClick={handleCloseModal} disabled={isCreatingStore} color="inherit" sx={{ color: 'white' }}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={isCreatingStore}
-                sx={{
-                  bgcolor: theme.palette.primary.main,
-                  '&:hover': { bgcolor: theme.palette.primary.dark },
-                }}
-              >
-                {isCreatingStore ? <CircularProgress size={24} color="inherit" /> : 'Create'}
-              </Button>
-            </DialogActions>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </Box>
-  );
+						{/* Company Code Badge: Ticker style, primary colors, sharp radius */}
+						<Typography
+							variant="caption"
+							sx={{
+								color: theme.palette.primary.light,
+								bgcolor: alpha(theme.palette.primary.main, 0.1),
+								border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+								px: 1.5,
+								py: 0.5,
+								borderRadius: "4px",
+								fontWeight: "bold",
+								letterSpacing: "0.5px",
+							}}
+						>
+							{vendor.vendor.companycode}
+						</Typography>
+
+						{/* Activity Status: Flex container to hold the text and the status dot */}
+						<Typography
+							variant="caption"
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 0.75,
+								color: theme.palette.text.secondary,
+								bgcolor: alpha(theme.palette.background.default, 0.6),
+								px: 1.5,
+								py: 0.5,
+								borderRadius: "12px",
+								fontWeight: 500,
+							}}
+						>
+							{/* Status Indicator Dot */}
+							<Box
+								component="span"
+								sx={{
+									width: 6,
+									height: 6,
+									borderRadius: "50%",
+									bgcolor: theme.palette.success.main,
+									boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
+								}}
+							/>
+							Active {vendor.vendor.activity} ago
+						</Typography>
+					</Box>
+				</Box>
+
+				<Divider
+					sx={{ my: 1, bgcolor: alpha(theme.palette.common.white, 0.08) }}
+				/>
+
+				{/* Product Columns - Responsive Layout: Row on Desktop, Column on Mobile */}
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: { xs: "column", sm: "row" },
+						gap: 1,
+					}}
+				>
+					<VendorProductList list={buyOrders} title="Buying" />
+
+					{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
+					<Divider
+						orientation="vertical"
+						flexItem
+						sx={{
+							bgcolor: alpha(theme.palette.common.white, 0.08),
+							display: { xs: "none", sm: "block" },
+						}}
+					/>
+					<Divider
+						orientation="horizontal"
+						flexItem
+						sx={{
+							bgcolor: alpha(theme.palette.common.white, 0.08),
+							display: { xs: "block", sm: "none" },
+							width: "100%",
+						}}
+					/>
+
+					<VendorProductList list={sellOrders} title="Selling" />
+				</Box>
+			</CardContent>
+		</Card>
+	);
+});
+
+// --- MAIN LIST COMPONENT ---
+
+/**
+ * The main view for listing all available vendor stores.
+ * Allows searching, filtering, and opening creation/editing modals.
+ *
+ * @param {object} props - Component props.
+ * @param {boolean} props.loggedIn - Indicates if the user is currently logged in.
+ * @returns {React.ReactElement} The vendors list component.
+ */
+const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
+	const theme = useTheme();
+	const [searchQuery, setSearchQuery] = useState<string>("");
+
+	// Modal States
+	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+	const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+	const [isShoppingListModalOpen, setIsShoppingListModalOpen] = useState(false);
+
+	// Data States
+	const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
+	const [isCheckingStore, setIsCheckingStore] = useState<boolean>(true);
+	const [vendorStores, setVendorStores] = useState<VendorStore[]>([]);
+	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
+		null,
+	);
+
+	// Initial Data Fetch
+	useEffect(() => {
+		if (!loggedIn) return;
+		const checkVendorStore = async () => {
+			try {
+				const response = await fetch(
+					"https://api.punoted.net/user_vendor_store",
+					{
+						method: "GET",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+						},
+					},
+				);
+				if (response.ok) {
+					const data = await response.json();
+					if (data.data) setHasVendorStore(true);
+					setUserVendorStore(data.data);
+				} else {
+					setHasVendorStore(false);
+					setUserVendorStore(null);
+				}
+			} catch (error) {
+				setHasVendorStore(false);
+				setUserVendorStore(null);
+			} finally {
+				setIsCheckingStore(false);
+			}
+		};
+		checkVendorStore();
+	}, [loggedIn]);
+
+	useEffect(() => {
+		const getVendorStores = async () => {
+			try {
+				const response = await fetch(
+					"https://punoted.ddns.net/dev/api/vendor_stores",
+				);
+				if (response.ok) {
+					const data = await response.json();
+					setVendorStores(data.vendors);
+				} else {
+					setVendorStores([]);
+				}
+			} catch (error) {
+				console.error("Failed to get vendor stores:", error);
+				setVendorStores([]);
+			}
+		};
+		getVendorStores();
+	}, []);
+
+	// Handlers (Memoized to stay stable)
+	const handleOpenCreateModal = useCallback(
+		() => setIsCreateModalOpen(true),
+		[],
+	);
+	const handleCloseCreateModal = useCallback(
+		() => setIsCreateModalOpen(false),
+		[],
+	);
+	const handleOpenEditModal = useCallback(() => setIsEditModalOpen(true), []);
+	const handleCloseEditModal = useCallback(() => setIsEditModalOpen(false), []);
+	const handleOpenShoppingListModal = useCallback(
+		() => setIsShoppingListModalOpen(true),
+		[],
+	);
+	const handleCloseShoppingListModal = useCallback(
+		() => setIsShoppingListModalOpen(false),
+		[],
+	);
+
+	const handleOnVendorChanged = useCallback(
+		(updatedVendorStore: VendorStore) => {
+			setVendorStores((prevStores) =>
+				prevStores.map((store) =>
+					store.vendor.vendorid === updatedVendorStore.vendor.vendorid
+						? updatedVendorStore
+						: store,
+				),
+			);
+			setUserVendorStore(updatedVendorStore);
+		},
+		[],
+	);
+
+	const handleOnVendorCreated = useCallback((newVendorStore: VendorStore) => {
+		setVendorStores((prevStores) => [newVendorStore, ...prevStores]);
+		setUserVendorStore(newVendorStore);
+		setHasVendorStore(true);
+	}, []);
+
+	const handleOnStoreDeleted = useCallback((deletedVendorId: string) => {
+		setVendorStores((prevStores) =>
+			prevStores.filter((store) => store.vendor.vendorid !== deletedVendorId),
+		);
+		setUserVendorStore(null);
+		setHasVendorStore(false);
+	}, []);
+
+	// Filter Logic
+	const filteredVendors = useMemo(() => {
+		if (!searchQuery) return vendorStores;
+		const lowerCaseQuery = searchQuery.toLowerCase();
+		return vendorStores.filter(
+			(vendor) =>
+				vendor.vendor.companyname.toLowerCase().includes(lowerCaseQuery) ||
+				vendor.vendor.gamename.toLowerCase().includes(lowerCaseQuery) ||
+				vendor.vendor.companycode.toLowerCase().includes(lowerCaseQuery) ||
+				vendor.orders.some((material) =>
+					material.materialticker.toLowerCase().includes(lowerCaseQuery),
+				),
+		);
+	}, [searchQuery, vendorStores]);
+
+	return (
+		<Box
+			sx={{
+				boxSizing: "border-box",
+				margin: { xs: 0, sm: "0 1rem" },
+				height: "100%",
+				width: "100%",
+				display: "flex",
+				flexDirection: "column",
+			}}
+		>
+			{/* Search and Action Bar */}
+			<Grid container spacing={2} alignItems="center" sx={{ mb: 2, pt: 1 }}>
+				<Box
+					sx={{
+						width: "100%",
+						display: "flex",
+						flexDirection: "row",
+						gap: 2,
+						px: 1,
+					}}
+				>
+					<TextField
+						fullWidth
+						variant="outlined"
+						size="small"
+						placeholder="Search Vendors..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						sx={{
+							"& .MuiOutlinedInput-root": {
+								bgcolor: alpha(theme.palette.background.default, 0.5),
+								backdropFilter: "blur(5px)",
+								borderRadius: "12px",
+								"& fieldset": {
+									borderColor: alpha(theme.palette.common.white, 0.1),
+								},
+								"&:hover fieldset": { borderColor: theme.palette.primary.main },
+								"&.Mui-focused fieldset": {
+									borderColor: theme.palette.primary.main,
+								},
+								color: theme.palette.text.primary,
+							},
+						}}
+						InputProps={{
+							startAdornment: (
+								<InputAdornment position="start">
+									<Search size={20} color={theme.palette.primary.main} />
+								</InputAdornment>
+							),
+						}}
+					/>
+					<Box sx={{ display: "flex", gap: 1 }}>
+						<Fab
+							color="primary"
+							size="medium"
+							onClick={handleOpenShoppingListModal}
+							sx={{ color: "white", boxShadow: "0 4px 10px rgba(0,0,0,0.5)" }}
+						>
+							<ShoppingBasket size={24} />
+						</Fab>
+						{loggedIn && (
+							<Fab
+								color="primary"
+								size="medium"
+								onClick={
+									hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
+								}
+								disabled={isCheckingStore}
+								sx={{ color: "white", boxShadow: "0 4px 10px rgba(0,0,0,0.5)" }}
+							>
+								{hasVendorStore ? <Edit size={24} /> : <PlusCircle size={24} />}
+							</Fab>
+						)}
+					</Box>
+				</Box>
+			</Grid>
+
+			{/* Vendor List Area */}
+			<Box
+				id="vendors"
+				sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 1, pb: 2 }}
+			>
+				{filteredVendors.length > 0 ? (
+					<Masonry
+						columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xll: 5 }}
+						spacing={2}
+					>
+						{filteredVendors.map((vendor) => (
+							<VendorCard key={vendor.vendor.companycode} vendor={vendor} />
+						))}
+					</Masonry>
+				) : (
+					<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
+						<Typography variant="h6">
+							No vendors found matching your search.
+						</Typography>
+					</Box>
+				)}
+			</Box>
+
+			<VendorCreationModal
+				open={isCreateModalOpen}
+				handleClose={handleCloseCreateModal}
+				onVendorCreated={handleOnVendorCreated}
+				// @ts-ignore
+				vendorStore={null}
+			/>
+			<EditVendorStoreModal
+				open={isEditModalOpen}
+				handleClose={handleCloseEditModal}
+				vendorStore={userVendorStore}
+				setVendorStore={setUserVendorStore}
+				onStoreDeleted={handleOnStoreDeleted}
+				onVendorChanged={handleOnVendorChanged}
+			/>
+			<ShoppingListModal
+				open={isShoppingListModalOpen}
+				handleClose={handleCloseShoppingListModal}
+				vendors={vendorStores}
+				isLoggedIn={loggedIn}
+			/>
+		</Box>
+	);
 };
 
 export default VendorsList;

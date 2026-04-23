@@ -238,13 +238,13 @@ const ShippingBoard = () => {
       try {
         // Mock fetch for shipments
         // In a real application, you would replace this with a real API call.
-        const shipmentResponse = await fetch(`https://punoted.ddns.net/api/shipments?planetId=${selectedPlanet.id}`);
+        const shipmentResponse = await fetch(`https://api.punoted.net/shipments?planetId=${selectedPlanet.id}`);
         const shipmentsData = mockShipments; // Using mock data for now
         setShipments(shipmentsData.filter(s => s.planetId === selectedPlanet.id));
 
         // Mock fetch for rentals
         // In a real application, you would replace this with a real API call.
-        const rentalResponse = await fetch(`https://punoted.ddns.net/api/planets_shipment_data?planetId=${selectedPlanet.id}`);
+        const rentalResponse = await fetch(`https://api.punoted.net/planets_shipment_data?planetId=${selectedPlanet.id}`);
         const rentalsData = mockRentalSpaces; // Using mock data for now
         setRentals(rentalsData.filter(r => r.planetId === selectedPlanet.id));
 

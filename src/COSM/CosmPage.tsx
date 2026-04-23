@@ -2,30 +2,29 @@ import React from 'react';
 import {
   Typography, Box, Paper, Button, Tabs, Tab, Container, useMediaQuery
 } from '@mui/material';
-import { useTheme } from '@mui/system';
+import { maxHeight, minHeight, useTheme, width } from '@mui/system';
 import ProductionDashboard from './ShipProduction/ProductionDashboard';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import VendorsList from './Vendors/VendorList';
 import { DollarSign, Rocket, Store, Truck } from 'lucide-react';
 import MainDashboard from './PriceList/MainDashboard';
+import ShippingMap from './Shipping/ShippingMap';
+import { minutesInHour } from 'date-fns/constants';
 //import ShippingBoard from './Shipping/ShippingBoard';
 
 const TabPanel = (props: any) => {
   const { children, value, index, ...other } = props;
   return (
-    <div role="tabpanel" style={{ height: '100%'}} hidden={value !== index} id={`tabpanel-${index}`} aria-labelledby={`tab-${index}`} {...other}>
+    <Box role="tabpanel" hidden={value !== index} id={`tabpanel-${index}`} aria-labelledby={`tab-${index}`} sx={{ height: '100%', maxHeight: '100%'}} {...other} >
       {value === index && <Box sx={{ height: '100%'}}>{children}</Box>}
-    </div>
+    </Box>
   );
 };
 
 const VendorsTab = ({ isLoggedIn }: { isLoggedIn: boolean }) => {
-  if (!isLoggedIn) {
-    return <Typography sx={{ color: 'text.secondary', textAlign: 'center' }}>Please log in to view the vendors.</Typography>;
-  }
   return (
-    <VendorsList />
+    <VendorsList loggedIn={isLoggedIn}/>
   );
 };
 
@@ -37,7 +36,7 @@ const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
   );
 };
 
-const CosmPage = ({ isLoggedIn = true }: { isLoggedIn?: boolean }) => {
+const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -88,27 +87,33 @@ const CosmPage = ({ isLoggedIn = true }: { isLoggedIn?: boolean }) => {
       }}>
         COSM Corporation
       </Typography>
-      <Paper square sx={{ bgcolor: 'rgba(25, 25, 50, 0.8)', border: 'none', boxShadow: 'none' }}>
+      <Paper square sx={{ bgcolor: 'rgba(25, 25, 50, 0.8)', border: 'none', boxShadow: 'none'}}>
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
-          centered
           textColor="primary"
           indicatorColor="primary"
           variant={isMobile ? 'scrollable' : 'fullWidth'}
-          scrollButtons="auto"
+          scrollButtons
+          allowScrollButtonsMobile /* <--- Forces arrows on mobile */
           aria-label="cosm page tabs"
+          sx={{
+            // Optional: Customizes the arrow buttons
+            '& .MuiTabs-scrollButtons': {
+              color: 'primary.main', 
+              width: 'auto',
+            }
+          }}
         >
-          {/* Back to Homepage tab - Mobile Only */}
           {isMobile && <Tab label="Homepage" icon={<FaArrowLeft />} value="homepage" />}
-          {isLoggedIn && <Tab label="Vendors" icon={<Store />} iconPosition="start" value="vendors" />}
+          <Tab label="Vendors" icon={<Store />} iconPosition="start" value="vendors" />
           <Tab label="Price List" icon={<DollarSign />} iconPosition="start" value="priceList" />
-          <Tab label="Shipping" icon={<Truck />} iconPosition="start" value="shipping" />
+          {/* <Tab label="Shipping" icon={<Truck />} iconPosition="start" value="shipping" /> */}
           <Tab label="Ship Production" icon={<Rocket />} iconPosition="start" value="production" />
         </Tabs>
       </Paper>
-      <Box id="Table" sx={{ flexGrow: 1, background: 'rgba(123, 104, 238, 0.03)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)', backdropFilter: 'blur(5px)', p: 2, overflowY: 'hidden' }}>
-        <TabPanel value={tabValue} index="vendors">
+      <Box id="Table" sx={{ flexGrow: 1, background: 'rgba(123, 104, 238, 0.03)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)', backdropFilter: 'blur(5px)', pt: 2, p: { sm:2 }, overflow: 'hidden', width: { xs: '100%', sm: '100%'}}}>
+        <TabPanel value={tabValue} index="vendors" >
           <VendorsTab isLoggedIn={isLoggedIn} />
         </TabPanel>
         <TabPanel value={tabValue} index="priceList">
@@ -118,9 +123,7 @@ const CosmPage = ({ isLoggedIn = true }: { isLoggedIn?: boolean }) => {
           <ShipProductionTab isMobile={isMobile} />
         </TabPanel>
         <TabPanel value={tabValue} index="shipping">
-            <>
-              <Typography>WIP</Typography>
-            </>
+            <ShippingMap/>
         </TabPanel>
       </Box>
     </Container>

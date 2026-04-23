@@ -1,140 +1,198 @@
-import { useState } from 'react';
-import MuiAppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import MuiDrawer from '@mui/material/Drawer';
-import IconButton from '@mui/material/IconButton';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import MenuIcon from '@mui/icons-material/Menu';
-import HomeIcon from '@mui/icons-material/Home';
-import StorageIcon from '@mui/icons-material/Storage'
-import ShowChartIcon from '@mui/icons-material/ShowChart';
-import FactoryIcon from '@mui/icons-material/Factory';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import SettingsIcon from '@mui/icons-material/Settings';
-import { useTheme } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useNavigate, Outlet } from 'react-router-dom';
-import { AutoAwesome, PrivacyTip } from '@mui/icons-material';
-
+import { useState, useCallback, useEffect } from "react";
+import Box from "@mui/material/Box";
+import MuiDrawer from "@mui/material/Drawer";
+import IconButton from "@mui/material/IconButton";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useNavigate, Outlet, useLocation } from "react-router-dom";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import { GlobalWsProvider } from "./Dashboard/websocket/GlobalWsContext";
+import { navItems } from "./navItems.tsx";
+import TopNavbar from "./components/common/TopNavbar/TopNavbar";
+import WsReconnectionOverlay from "./Dashboard/websocket/WebsocketReconnectOverlay.tsx";
+import { GlobalDataProvider } from "./context/GlobalDataContext.tsx";
 
 const drawerWidth = 240;
 
 export default function AppShell() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const navigate = useNavigate();
+	const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+	const navigate = useNavigate();
+	const location = useLocation();
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
+	useEffect(() => {
+		const handleResize = () => {
+			document.documentElement.style.setProperty(
+				"--vh",
+				`${window.innerHeight * 0.01}px`,
+			);
+		};
 
-  const navItems = [
-    { text: 'Dashboard', icon: <HomeIcon />, href: '/app/dashboard' },
-    { text: 'AI Page', icon: <AutoAwesome />, href: '/app/ml-ai' },
-    { text: 'Market Data', icon: <ShowChartIcon />, href: '/app/market' },
-    { text: 'Production', icon: <FactoryIcon />, href: '/app/production' },
-    { text: 'Logistics', icon: <LocalShippingIcon />, href: '/app/logistics' },
-    { text: 'Storage', icon: <StorageIcon />, href: '/app/storage' },
-    { text: 'Settings', icon: <SettingsIcon />, href: '/app/settings' },
-    { text: 'Privacy Policy', icon: <PrivacyTip />, href: '/privacy-policy' },
-  ];
+		window.addEventListener("resize", handleResize);
+		handleResize();
 
-  const drawer = (
-    <div>
-      <Toolbar>
-        <Box sx={{ flexGrow: 1, textAlign: 'center' }}>
-          <Typography variant="h6" noWrap>
-            PUNoted
-          </Typography>
-        </Box>
-      </Toolbar>
-      <Divider />
-      <List>
-        {navItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton onClick={() => navigate(item.href)}>
-              <ListItemIcon>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-      <Divider />
-    </div>
-  );
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
 
-  return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', width: '100vw' }}>
-      <MuiAppBar
-        position="fixed"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            FIO Dashboard
-          </Typography>
-          <Box sx={{ flexGrow: 1 }} />
-        </Toolbar>
-      </MuiAppBar>
+	const handleDrawerToggle = useCallback(() => {
+		setIsDrawerOpen((prev) => !prev);
+	}, []);
 
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="main navigation"
-      >
-        <MuiDrawer
-          variant={isMobile ? 'temporary' : 'permanent'}
-          open={isMobile ? mobileOpen : true}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}
-        >
-          {drawer}
-        </MuiDrawer>
-      </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
-        <Toolbar />
-        <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3 }}>
-          <Outlet />
-        </Box>
-      </Box>
-    </Box>
-  );
+	const handleNavigation = (path: string) => {
+		navigate(path);
+	};
+
+	const currentDrawerWidth = isMobile ? 0 : isDrawerOpen ? drawerWidth : 80;
+
+	const drawerContent = (
+		<Box
+			sx={{
+				width: "100%",
+				height: "100%",
+				display: "flex",
+				flexDirection: "column",
+			}}
+		>
+			<Toolbar
+				sx={{
+					justifyContent: isDrawerOpen ? "space-between" : "center",
+					alignItems: "center",
+					px: isDrawerOpen ? 2 : 1,
+				}}
+			>
+				{isDrawerOpen && (
+					<Typography
+						variant="h6"
+						noWrap
+						sx={{
+							color: theme.palette.primary.main,
+							cursor: "pointer",
+						}}
+						onClick={() => navigate("/")}
+					>
+						PUNoted
+					</Typography>
+				)}
+				<IconButton onClick={handleDrawerToggle} sx={{ color: "white" }}>
+					<ChevronLeftIcon
+						sx={{
+							transform: isDrawerOpen ? "rotate(0deg)" : "rotate(180deg)",
+							transition: "transform 0.3s",
+						}}
+					/>
+				</IconButton>
+			</Toolbar>
+			<List sx={{ flexGrow: 1, overflowY: "auto" }}>
+				{navItems.map((item) => {
+					const isActive =
+						location.pathname.startsWith(item.href) && item.href !== "/";
+					const isDashboardActive =
+						location.pathname === "/" || location.pathname === "/dashboard";
+					const finalIsActive =
+						item.href === "/dashboard" ? isDashboardActive : isActive;
+
+					return (
+						<ListItem key={item.text} disablePadding>
+							<ListItemButton
+								onClick={() => handleNavigation(item.href)}
+								title={item.text}
+								sx={{
+									bgcolor: finalIsActive
+										? theme.palette.primary.main + "33"
+										: "transparent",
+									"&:hover": {
+										bgcolor: theme.palette.primary.main + "4D",
+									},
+									color: finalIsActive ? theme.palette.primary.main : "inherit",
+									justifyContent: isDrawerOpen ? "initial" : "center",
+									px: 2.5,
+								}}
+							>
+								<ListItemIcon
+									sx={{
+										minWidth: 0,
+										mr: isDrawerOpen ? 3 : "auto",
+										justifyContent: "center",
+										color: "inherit",
+									}}
+								>
+									{item.icon}
+								</ListItemIcon>
+								{isDrawerOpen && <ListItemText primary={item.text} />}
+							</ListItemButton>
+						</ListItem>
+					);
+				})}
+			</List>
+		</Box>
+	);
+
+	return (
+		<Box
+			sx={{
+				display: "flex",
+				minHeight: "calc(var(--vh, 1vh) * 100)",
+				width: "100vw",
+			}}
+		>
+			{isMobile ? (
+				<TopNavbar />
+			) : (
+				<MuiDrawer
+					variant="permanent"
+					open={isDrawerOpen}
+					PaperProps={{
+						sx: {
+							width: currentDrawerWidth,
+							transition: theme.transitions.create("width", {
+								easing: theme.transitions.easing.sharp,
+								duration: theme.transitions.duration.enteringScreen,
+							}),
+							background: "rgba(10, 10, 20, 0.9)",
+							color: "white",
+							boxShadow: "0px 0px 20px rgba(123, 104, 238, 0.2)",
+							overflowX: "hidden",
+						},
+					}}
+				>
+					{drawerContent}
+				</MuiDrawer>
+			)}
+
+			<GlobalWsProvider>
+				<GlobalDataProvider>
+					<WsReconnectionOverlay />
+					<Box
+						component="main"
+						sx={{
+							flexGrow: 1,
+							boxSizing: "border-box",
+							display: "flex",
+							flexDirection: "column",
+							width: { md: `calc(100% - ${currentDrawerWidth}px)` },
+							height: "calc(var(--vh, 1vh) * 100)",
+							ml: { md: `${currentDrawerWidth}px` },
+							transition: theme.transitions.create(["width", "margin"], {
+								easing: theme.transitions.easing.sharp,
+								duration: theme.transitions.duration.enteringScreen,
+							}),
+							p: 1,
+							paddingTop: { xs: "72px", md: 1 },
+							overflow: "hidden",
+						}}
+					>
+						<Outlet />
+					</Box>
+				</GlobalDataProvider>
+			</GlobalWsProvider>
+		</Box>
+	);
 }

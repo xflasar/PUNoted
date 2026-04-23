@@ -1,69 +1,61 @@
-# React + TypeScript + Vite
+# PUNoted Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive web application frontend for managing and analyzing game data, shipments, market prices, and corporate bases. Built with React, TypeScript, and Vite.
 
-Currently, two official plugins are available:
+> **Note on Testing and Code Style:** This project is currently in early development and does not have any automated testing (Unit or E2E) set up yet. The codebase is actively evolving, and you may encounter relaxed TypeScript typings (e.g., `any`) and varying code styles as features are being prototyped and built.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Fast Start
 
-## Expanding the ESLint configuration
+### Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Node.js (v18 or higher recommended)
+- npm (v9 or higher recommended)
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Installation
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/xflasar/PUNoted.git
+   cd punoted
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Running the Project
+
+To start the development server with Hot Module Replacement (HMR):
+
+```bash
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The application will be available at `http://localhost:5173` by default.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Building for Production
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+To build the application for production:
+
+```bash
+npm run build
 ```
+
+To preview the production build locally:
+
+```bash
+npm run preview
+```
+
+## 🛠️ Development & Tech Stack
+
+- **Framework:** React 19
+- **Language:** TypeScript
+- **Build Tool:** Vite + SWC
+- **UI/Styling:** Material UI (MUI), Emotion, Lucide React
+- **Data Visualization:** Deck.gl, Recharts, React Flow
+- **State/Data Management:** React Query, React Router DOM
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
