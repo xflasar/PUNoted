@@ -1,3 +1,6 @@
+/**
+ * Represents an individual producer or consumer in a production chain.
+ */
 export interface ProducerConsumerItem {
     loc: string;
     player: string;
@@ -5,6 +8,9 @@ export interface ProducerConsumerItem {
     isAccurate: boolean;
 }
 
+/**
+ * Aggregated production and consumption statistics for a specific material ticker.
+ */
 export interface ProductionSummaryItem {
     ticker: string;
     production: number;
@@ -21,6 +27,9 @@ export interface ProductionSummaryItem {
     name: string;
 }
 
+/**
+ * Information about a member of the corporation.
+ */
 export interface CorpMember {
     joinedDate: string | null;
     companyCode: string;
@@ -29,6 +38,9 @@ export interface CorpMember {
     lastActive?: string;
 }
 
+/**
+ * Core overview data for the entire corporation, including members and production summaries.
+ */
 export interface CorpOverviewData {
     name: string;
     code: string;
@@ -38,6 +50,9 @@ export interface CorpOverviewData {
     members?: CorpMember[];
 }
 
+/**
+ * Defines a custom grouping category for production items.
+ */
 export interface CustomCategory {
     id: string;
     title: string;

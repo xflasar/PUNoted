@@ -148,10 +148,12 @@ export default function AppShell() {
 			) : (
 				<MuiDrawer
 					variant="permanent"
-					open={isDrawerOpen}
-					PaperProps={{
-						sx: {
+					sx={{
+						width: currentDrawerWidth,
+						flexShrink: 0,
+						"& .MuiDrawer-paper": {
 							width: currentDrawerWidth,
+							boxSizing: "border-box",
 							transition: theme.transitions.create("width", {
 								easing: theme.transitions.easing.sharp,
 								duration: theme.transitions.duration.enteringScreen,
@@ -179,7 +181,6 @@ export default function AppShell() {
 							flexDirection: "column",
 							width: { md: `calc(100% - ${currentDrawerWidth}px)` },
 							height: "calc(var(--vh, 1vh) * 100)",
-							ml: { md: `${currentDrawerWidth}px` },
 							transition: theme.transitions.create(["width", "margin"], {
 								easing: theme.transitions.easing.sharp,
 								duration: theme.transitions.duration.enteringScreen,
