@@ -56,6 +56,10 @@ npm run preview
 - **Data Visualization:** Deck.gl, Recharts, React Flow
 - **State/Data Management:** React Query, React Router DOM
 
+## Contributions
+
+Before any PRs do make sure to run the code wih **Prettier formater** -> Default settings + ESLint. Thank you.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
