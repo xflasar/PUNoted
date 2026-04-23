@@ -243,7 +243,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				fullScreen
 				PaperProps={{
 					sx: {
-						background: theme.palette.background.paper,
 						display: "flex",
 						flexDirection: "column",
 					},
@@ -254,7 +253,9 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						position: "absolute",
 						width: "100%",
 						height: "100%",
-						background: "rgba(0,0,0,0.4)",
+						background: "rgba(0,0,0,0.8)", // Tweak this opacity if it's too dark
+						backdropFilter: "blur(1px)", // This is the magic property!
+						WebkitBackdropFilter: "blur(1px)", // For Safari compatibility
 					}}
 				/>
 
@@ -268,6 +269,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						borderBottom: `1px solid ${theme.palette.divider}`,
 						flexShrink: 0,
 						zIndex: 2,
+						background: theme.palette.background.default,
 					}}
 				>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -288,6 +290,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						overflow: "hidden",
 						gap: 1,
 						zIndex: 2,
+						background: "transparent",
 					}}
 				>
 					{/* Top: Vendor Form */}
@@ -328,6 +331,8 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								flexDirection: "column",
 								gap: 1,
 								width: { xs: "100%", sm: "auto" },
+								px: 1,
+								pb: 1,
 							}}
 						>
 							{/* Buy Orders */}
@@ -336,7 +341,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									flex: 1,
 									display: "flex",
 									flexDirection: "column",
-									background: "rgba(255,255,255, 0.03)",
+									background: theme.palette.background.default,
 									overflow: "hidden",
 									border: `1px solid ${theme.palette.divider}`,
 									borderRadius: 2,
@@ -360,7 +365,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									flex: 1,
 									display: "flex",
 									flexDirection: "column",
-									background: "rgba(255,255,255, 0.03)",
+									background: theme.palette.background.default,
 									overflow: "hidden",
 									border: `1px solid ${theme.palette.divider}`,
 									borderRadius: 2,
@@ -393,7 +398,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									flex: 1,
 									display: "flex",
 									flexDirection: "column",
-									background: "rgba(255,255,255, 0.03)",
+									background: theme.palette.background.default,
 									overflow: "hidden",
 									border: `1px solid ${theme.palette.divider}`,
 									borderRadius: 2,
@@ -414,7 +419,9 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 					sx={{
 						p: 1.5,
 						borderTop: `1px solid ${theme.palette.divider}`,
+						background: theme.palette.background.default,
 						flexShrink: 0,
+						zIndex: 2,
 					}}
 				>
 					{error && (

@@ -13,11 +13,12 @@ import {
 	ListItemText,
 } from "@mui/material";
 import {
-	HelpOutline,
+	HelpOutlineOutlined,
 	Bolt,
 	AutoFixHigh,
 	InfoOutlined,
 	SettingsSuggest,
+	HelpOutlineRounded,
 } from "@mui/icons-material";
 
 export interface GuideStep {
@@ -61,7 +62,7 @@ export const SectionGuide = ({ title, steps = [] }: SectionGuideProps) => {
 				onClick={(e) => setAnchorEl(e.currentTarget)}
 				sx={{ opacity: 0.6, ml: 0.5, p: 0.3 }}
 			>
-				<HelpOutline sx={{ fontSize: 16 }} />
+				<HelpOutlineOutlined sx={{ fontSize: 16 }} />
 			</IconButton>
 			<Popover
 				open={Boolean(anchorEl)}

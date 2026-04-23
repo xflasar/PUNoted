@@ -105,12 +105,17 @@ const VendorDetailsForm: React.FC<VendorDetailsFormProps> = ({
 	);
 
 	return (
-		<Box sx={{ width: "100%", maxWidth: "80%" }}>
+		<Box
+			sx={{
+				width: "100%",
+				maxWidth: "80%",
+			}}
+		>
 			<Paper
 				elevation={0}
 				sx={{
 					p: 2,
-					background: "transparent",
+					background: theme.palette.background.default,
 					border: `1px solid ${theme.palette.divider}`,
 					borderRadius: 2,
 				}}

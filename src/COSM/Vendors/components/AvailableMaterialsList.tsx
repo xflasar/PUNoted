@@ -261,6 +261,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 						display: "flex",
 						justifyContent: "center",
 						pt: 1,
+						pb: 1,
 						mt: "auto",
 						borderTop: `1px solid ${theme.palette.divider}`,
 					}}
