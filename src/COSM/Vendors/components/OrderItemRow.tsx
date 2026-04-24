@@ -1,5 +1,13 @@
-import React, { memo, useState, useEffect, useCallback, useRef } from "react";
+import React, {
+	memo,
+	useState,
+	useEffect,
+	useCallback,
+	useRef,
+	useMemo,
+} from "react";
 import {
+	TextFieldProps,
 	Box,
 	Typography,
 	TextField,
@@ -37,7 +45,7 @@ const DebouncedInput = ({
 	value: string | number;
 	onChange: (val: number) => void;
 	delay?: number;
-} & React.ComponentProps<typeof TextField>) => {
+} & Omit<TextFieldProps, "onChange" | "value" | "InputProps">) => {
 	const [localValue, setLocalValue] = useState<string | number>(value);
 	const handlerRef = useRef<NodeJS.Timeout>();
 
@@ -169,9 +177,10 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		const theme = useTheme();
 		const [open, setOpen] = useState(false);
 
-		const currentLocations = Array.isArray(material.location)
-			? material.location
-			: [];
+		const currentLocations = useMemo(() => {
+			return Array.isArray(material.location) ? material.location : [];
+		}, [material.location]);
+
 		const labelText = material.ordertype === "buy" ? "Demand" : "Reserve";
 		const totalAmount = currentLocations.reduce(
 			(sum: number, l: any) => sum + (l.amount || 0),
@@ -338,11 +347,12 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 						{/* 5. Total (Label text varies) */}
 						<Cell label={labelText}>
 							<Tooltip title={`Total ${labelText}. Expand location to edit.`}>
-								<TextField
+								<DebouncedInput
 									size="small"
 									variant="outlined"
-									value={totalAmount}
-									disabled
+									value={totalAmount || 0}
+									onChange={() => {}}
+									disabled={true}
 									InputProps={{
 										inputProps: { style: { textAlign: "center" } },
 									}}
@@ -463,7 +473,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									<DebouncedInput
 										size="small"
 										placeholder="0"
-										type="number"
+										type="text"
 										value={loc.amount || ""}
 										onChange={(val) => handleUpdateLocationAmount(loc.id, val)}
 										InputProps={{

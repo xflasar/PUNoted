@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	Dialog,
 	DialogTitle,
@@ -12,9 +12,7 @@ import {
 	useTheme,
 	Paper,
 } from "@mui/material";
-import { PlusCircle, X } from "lucide-react";
-
-import VendorDetailsForm from "./VendorDetailsForm";
+import { DeleteIcon, PlusCircle, X } from "lucide-react";
 import AvailableMaterialsList from "./components/AvailableMaterialsList";
 import MaterialTable from "./components/MaterialTable";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
@@ -70,7 +68,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 		sellOrders,
 		allOrders,
 		ordersToDelete,
-		handleDetailChange,
 		handleAddMaterial,
 		handleEditMaterial,
 		handleRemoveMaterial,
@@ -126,12 +123,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 			isMounted = false;
 		};
 	}, [open]);
-
-	// Derived state: checks if the vendor is synchronized to disable certain fields
-	// TODO: Get this from the vendorStore data instead of localStorage for better reliability
-	const isSynchronized = useMemo(() => {
-		return localStorage.getItem("isSynchronized") === "true";
-	}, []);
 
 	/**
 	 * Saves the modified vendor details and orders to the backend.
@@ -241,10 +232,9 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				onClose={handleClose}
 				maxWidth={false}
 				fullScreen
-				PaperProps={{
-					sx: {
-						display: "flex",
-						flexDirection: "column",
+				slotProps={{
+					paper: {
+						sx: { display: "flex", flexDirection: "column" },
 					},
 				}}
 			>
@@ -253,9 +243,9 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						position: "absolute",
 						width: "100%",
 						height: "100%",
-						background: "rgba(0,0,0,0.8)", // Tweak this opacity if it's too dark
-						backdropFilter: "blur(1px)", // This is the magic property!
-						WebkitBackdropFilter: "blur(1px)", // For Safari compatibility
+						background: "rgba(0,0,0,0.8)",
+						backdropFilter: "blur(1px)",
+						WebkitBackdropFilter: "blur(1px)",
 					}}
 				/>
 
@@ -285,6 +275,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				<DialogContent
 					sx={{
 						p: 0,
+						m: 1,
 						display: "flex",
 						flexDirection: "column",
 						overflow: "hidden",
@@ -293,25 +284,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						background: "transparent",
 					}}
 				>
-					{/* Top: Vendor Form */}
-					<Box
-						sx={{
-							p: 1,
-							flexShrink: 0,
-							display: "flex",
-							justifyContent: "center",
-						}}
-					>
-						<VendorDetailsForm
-							vendorDetails={localVendorDetails}
-							isSynchronized={isSynchronized}
-							isSaving={isSaving}
-							isDeleting={isDeleting}
-							onDetailChange={handleDetailChange}
-							onDelete={() => setDeleteConfirmOpen(true)}
-						/>
-					</Box>
-
 					{/* Middle: Buy & Sell Orders */}
 					<Box
 						sx={{
@@ -433,6 +405,27 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 							{error}
 						</Typography>
 					)}
+					<Box sx={{ flexGrow: 1 }}>
+						<Button
+							fullWidth
+							variant="outlined"
+							color="error"
+							size="small"
+							onClick={handleDeleteVendorStore}
+							disabled={isSaving || isDeleting}
+							startIcon={
+								isDeleting ? (
+									<CircularProgress size={16} color="inherit" />
+								) : (
+									<DeleteIcon fontSize="small" />
+								)
+							}
+							sx={{ height: "40px", whiteSpace: "nowrap" }}
+						>
+							Delete Store
+						</Button>
+					</Box>
+
 					<Button
 						onClick={handleClose}
 						disabled={isSaving || isDeleting}

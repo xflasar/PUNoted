@@ -10,15 +10,62 @@ import type { VendorStore, OrderItem, Location } from "../types";
  * @returns {object} An object containing the managed state and updater functions.
  */
 export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
-	const [localVendorDetails, setLocalVendorDetails] = useState({
+	const mapOrders = (orders: OrderItem[]) =>
+		orders.map((o) => ({ ...o, frontendId: o.orderid || uuidv4() }));
+
+	const [prevStore, setPrevStore] = useState(initialVendorStore);
+
+	const [localVendorDetails, setLocalVendorDetails] = useState(() => ({
 		companyName: "",
 		gameName: "",
 		companyCode: "",
 		corpName: "",
 		cx: "IC1",
-	});
-	const [buyOrders, setBuyOrders] = useState<OrderItem[]>([]);
-	const [sellOrders, setSellOrders] = useState<OrderItem[]>([]);
+	}));
+
+	const [buyOrders, setBuyOrders] = useState<OrderItem[]>(() =>
+		initialVendorStore
+			? mapOrders(
+					initialVendorStore.orders.filter((o) => o.ordertype === "buy"),
+				)
+			: [],
+	);
+
+	const [sellOrders, setSellOrders] = useState<OrderItem[]>(() =>
+		initialVendorStore
+			? mapOrders(
+					initialVendorStore.orders.filter((o) => o.ordertype === "sell"),
+				)
+			: [],
+	);
+
+	if (initialVendorStore !== prevStore) {
+		setPrevStore(initialVendorStore);
+
+		setLocalVendorDetails({
+			companyName: initialVendorStore?.vendor.companyname || "",
+			gameName: initialVendorStore?.vendor.gamename || "",
+			companyCode: initialVendorStore?.vendor.companycode || "",
+			corpName: initialVendorStore?.vendor.corpname || "",
+			cx: initialVendorStore?.vendor.cx || "IC1",
+		});
+
+		setBuyOrders(
+			initialVendorStore
+				? mapOrders(
+						initialVendorStore.orders.filter((o) => o.ordertype === "buy"),
+					)
+				: [],
+		);
+		setSellOrders(
+			initialVendorStore
+				? mapOrders(
+						initialVendorStore.orders.filter((o) => o.ordertype === "sell"),
+					)
+				: [],
+		);
+	}
+
 	const [ordersToDelete, setOrdersToDelete] = useState<string[]>([]);
 
 	const CX_DEFAULT_LOCATIONS: Record<string, Location> = {
@@ -66,40 +113,9 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 		},
 	};
 
-	useEffect(() => {
-		if (!initialVendorStore) return;
-
-		const mapOrders = (orders: OrderItem[]) =>
-			orders.map((o) => ({ ...o, frontendId: o.orderid || uuidv4() }));
-
-		setBuyOrders(
-			mapOrders(initialVendorStore.orders.filter((o) => o.ordertype === "buy")),
-		);
-		setSellOrders(
-			mapOrders(
-				initialVendorStore.orders.filter((o) => o.ordertype === "sell"),
-			),
-		);
-
-		setLocalVendorDetails({
-			companyName: initialVendorStore.vendor.companyname || "",
-			companyCode: initialVendorStore.vendor.companycode || "",
-			corpName: initialVendorStore.vendor.corpname || "",
-			gameName: initialVendorStore.vendor.gamename || "",
-			cx: initialVendorStore.vendor.cx || "IC1",
-		});
-	}, [initialVendorStore]);
-
 	const allOrders = useMemo(
 		() => [...buyOrders, ...sellOrders],
 		[buyOrders, sellOrders],
-	);
-
-	const handleDetailChange = useCallback(
-		(field: keyof typeof localVendorDetails, value: string) => {
-			setLocalVendorDetails((prev) => ({ ...prev, [field]: value }));
-		},
-		[],
 	);
 
 	const handleAddMaterial = useCallback(
@@ -120,7 +136,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 				ordertype: type,
 				frontendId: uuidv4(),
 				price: {
-					fixedprice: material.fixedprice || 0,
+					fixedprice: material.price.fixedprice || 0,
 					corpprice: material.price?.corpprice || 0,
 					cxprice: material.price?.cxprice || 0,
 				},
@@ -237,7 +253,6 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 		sellOrders,
 		allOrders,
 		ordersToDelete,
-		handleDetailChange,
 		handleAddMaterial,
 		handleEditMaterial,
 		handleRemoveMaterial,

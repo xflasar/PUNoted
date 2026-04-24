@@ -7,12 +7,9 @@ import {
 	InputLabel,
 	Select,
 	MenuItem,
-	Button,
-	CircularProgress,
 	useTheme,
 	Box,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
 
 /**
  * Props for the VendorDetailsForm component.
@@ -52,10 +49,7 @@ const CX_OPTIONS = ["AI1", "CI2", "CI1", "IC1", "NC2", "NC1"];
 const VendorDetailsForm: React.FC<VendorDetailsFormProps> = ({
 	vendorDetails,
 	isSynchronized,
-	isSaving,
-	isDeleting,
 	onDetailChange,
-	onDelete,
 }) => {
 	const theme = useTheme();
 
@@ -203,27 +197,6 @@ const VendorDetailsForm: React.FC<VendorDetailsFormProps> = ({
 								))}
 							</Select>
 						</FormControl>
-					</Grid>
-
-					<Grid item xs={6} sm={6} md={1.2}>
-						<Button
-							fullWidth
-							variant="outlined"
-							color="error"
-							size="small"
-							onClick={onDelete}
-							disabled={isSaving || isDeleting}
-							startIcon={
-								isDeleting ? (
-									<CircularProgress size={16} color="inherit" />
-								) : (
-									<DeleteIcon fontSize="small" />
-								)
-							}
-							sx={{ height: "40px", whiteSpace: "nowrap" }}
-						>
-							Delete
-						</Button>
 					</Grid>
 				</Grid>
 			</Paper>
