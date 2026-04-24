@@ -118,6 +118,17 @@ const getDiffStats = (
 	};
 };
 
+const activityToMinutes = (activity: unknown) => {
+	if (typeof activity !== "string") return Number.POSITIVE_INFINITY;
+	const match = activity.trim().match(/^(\d+)\s*([mhd])$/i);
+	if (!match) return Number.POSITIVE_INFINITY;
+	const value = Number(match[1]);
+	const unit = match[2].toLowerCase();
+	if (unit === "m") return value;
+	if (unit === "h") return value * 60;
+	return value * 1440;
+};
+
 // --- MEMOIZED SUB-COMPONENTS ---
 
 const PriceComparisonBadge = ({
@@ -768,11 +779,23 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		setHasVendorStore(false);
 	}, []);
 
+	const sortedVendors = useMemo(() => {
+		return [...vendorStores].sort((a, b) => {
+			const aMinutes = activityToMinutes(
+				(a.vendor as VendorStore["vendor"] & { activity?: unknown }).activity,
+			);
+			const bMinutes = activityToMinutes(
+				(b.vendor as VendorStore["vendor"] & { activity?: unknown }).activity,
+			);
+			return aMinutes - bMinutes;
+		});
+	}, [vendorStores]);
+
 	// Filter Logic
 	const filteredVendors = useMemo(() => {
-		if (!searchQuery) return vendorStores;
+		if (!searchQuery) return sortedVendors;
 		const lowerCaseQuery = searchQuery.toLowerCase();
-		return vendorStores.filter(
+		return sortedVendors.filter(
 			(vendor) =>
 				vendor.vendor.companyname.toLowerCase().includes(lowerCaseQuery) ||
 				vendor.vendor.gamename.toLowerCase().includes(lowerCaseQuery) ||
@@ -781,7 +804,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					material.materialticker.toLowerCase().includes(lowerCaseQuery),
 				),
 		);
-	}, [searchQuery, vendorStores]);
+	}, [searchQuery, sortedVendors]);
 
 	return (
 		<Box
