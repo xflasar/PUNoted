@@ -183,6 +183,15 @@ const VendorProductList = React.memo(
 		const theme = useTheme();
 		const isBuying = title === "Buying";
 		const orderType = isBuying ? "buy" : "sell";
+		const sortedList = useMemo(
+			() =>
+				[...list].sort((a, b) =>
+					a.materialticker.localeCompare(b.materialticker, undefined, {
+						sensitivity: "base",
+					}),
+				),
+			[list],
+		);
 
 		return (
 			<Box
@@ -229,8 +238,8 @@ const VendorProductList = React.memo(
 						},
 					}}
 				>
-					{list.length > 0 ? (
-						list.map((item, index) => {
+					{sortedList.length > 0 ? (
+						sortedList.map((item, index) => {
 							const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
 							const cxStats = getDiffStats(
 								fixedPrice,
@@ -258,7 +267,7 @@ const VendorProductList = React.memo(
 									sx={{
 										p: 0,
 										borderBottom:
-											index === list.length - 1
+												index === sortedList.length - 1
 												? "none"
 												: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
 										transition: "background-color 0.2s",
