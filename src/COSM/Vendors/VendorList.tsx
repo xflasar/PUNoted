@@ -264,11 +264,11 @@ const VendorProductList = React.memo(
 										borderBottom:
 												index === sortedList.length - 1
 												? "none"
-												: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+												: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
+										padding: ".5em 0",
 										transition: "background-color 0.2s",
 										display: "flex",
 										flexDirection: "column",
-										gap: 0.3,
 										cursor: "default",
 										"&:hover": {
 											backgroundColor: alpha(theme.palette.common.white, 0.03),
