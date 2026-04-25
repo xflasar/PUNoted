@@ -24,6 +24,7 @@ import {
 	FaFirefoxBrowser,
 	FaDiscord,
 	FaMap,
+	FaStore,
 } from "react-icons/fa";
 import AuthenticationBox from "./AuthenticationBox.tsx";
 import DiscordWidget from "./DiscordWidget.tsx";
@@ -132,6 +133,10 @@ const LandingPage: React.FC<LandingPageProps> = ({
 
 	const handleMapButton = () => {
 		navigate("/galaxy-map");
+	};
+
+	const handleCXButton = () => {
+		navigate("/cx");
 	};
 
 	const handleLogout = () => {
@@ -256,6 +261,37 @@ const LandingPage: React.FC<LandingPageProps> = ({
 					>
 						<FaArrowRight style={{ marginRight: "0.75rem" }} /> COSM
 					</ActionButton>
+
+					<ActionButton
+						variant="outlined"
+						onClick={() => handleCXButton()}
+						sx={{
+							color: "#a0a0a0",
+							borderColor: "#555",
+							"&:hover": {
+								backgroundColor: "rgba(255,255,255,0.1)",
+								color: "white",
+								borderColor: "#7b68ee",
+							},
+						}}
+					>
+						<FaStore style={{ marginRight: "0.75rem" }} /> CX
+					</ActionButton>
+				</Box>
+
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: isMobile ? "column" : "row",
+						gap: isMobile ? 2 : 3,
+						mb: 4,
+						alignItems: "center",
+						justifyContent: "center",
+						width: "100%",
+						maxWidth: "600px",
+						flexWrap: "wrap",
+					}}
+				>
 
 					{isLoggedIn ? (
 						<>

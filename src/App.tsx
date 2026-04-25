@@ -11,6 +11,7 @@ import { getApiStatus } from "./components/common/ApiStatusService";
 import StoragePage from "./Dashboard/StoragePage";
 import DashboardPage from "./Dashboard/DashboardPage";
 import GalaxyMap from "./GalaxyMap/GalaxyMap";
+import CX from "./CX/CX";
 import Settings from "./Dashboard/Settings/Settings";
 import CXDashboard from "./Dashboard/CX/CXDashboard";
 import "react-grid-layout/css/styles.css";
@@ -186,6 +187,8 @@ function App() {
 				<Route path="/cosm" element={<CosmPage isLoggedIn={isLoggedIn} />} />
 
 				<Route path="/galaxy-map" element={<GalaxyMap />} />
+
+				<Route path="/cx" element={<CX />} />
 
 				{/* Protected Routes - These are nested under a protected layout */}
 				<Route
