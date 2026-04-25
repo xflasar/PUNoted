@@ -37,6 +37,7 @@ const CX = () => {
 
 	return (
 		<Container
+			maxWidth={false}
 			sx={{
 				width: '100%',
 				py: 2,
@@ -48,14 +49,14 @@ const CX = () => {
 		>
 			<Box sx={{ mb: { xs: 4, sm: 6 }, position: 'relative' }}>
 				<Box sx={{ display: { xs: 'none', sm: 'flex' }, position: 'absolute', left: 0, top: 0 }}>
-					<Button
-						variant="outlined"
-						startIcon={<FaArrowLeft style={{ color: '#7B68EE' }} />}
-						onClick={() => navigate('/')}
-						sx={{ color: 'white', borderColor: '#7B68EE' }}
-					>
-						Back to Homepage
-					</Button>
+						<Button
+							variant="outlined"
+							startIcon={<FaArrowLeft style={{ color: '#7B68EE' }} />}
+							onClick={() => navigate('/')}
+							sx={{ color: 'white', borderColor: '#7B68EE', fontSize: { xs: '0.75rem', sm: '1rem' } }}
+						>
+							Back to Homepage
+						</Button>
 				</Box>
 
 				<Typography
