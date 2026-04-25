@@ -1,12 +1,51 @@
-import { Box, Button, Container, Typography } from '@mui/material';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Box, Button, CircularProgress, Container, Typography } from '@mui/material';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import MarketPricesTab from '../COSM/PriceList/PriceList';
+
+type MarketDataRecord = Record<string, any>;
 
 const CX = () => {
 	const navigate = useNavigate();
+	const [marketData, setMarketData] = useState<MarketDataRecord[]>([]);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+	const fetchMarketData = useCallback(async () => {
+		try {
+			const response = await fetch('https://api.punoted.net/market_price_all');
+			if (!response.ok) {
+				throw new Error('Network response was not ok');
+			}
+			const json = await response.json();
+			const data = Array.isArray(json) ? json : json.data || [];
+			setMarketData(data);
+			setLastUpdated(new Date());
+		} catch (err) {
+			console.error('Failed to fetch', err);
+		} finally {
+			setLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		fetchMarketData();
+		const interval = setInterval(fetchMarketData, 60000);
+		return () => clearInterval(interval);
+	}, [fetchMarketData]);
 
 	return (
-		<Container sx={{ width: '100%', py: 2 }}>
+		<Container
+			sx={{
+				width: '100%',
+				py: 2,
+				display: 'flex',
+				flexDirection: 'column',
+				height: '100vh',
+				overflow: 'hidden',
+			}}
+		>
 			<Box sx={{ mb: { xs: 4, sm: 6 }, position: 'relative' }}>
 				<Box sx={{ display: { xs: 'none', sm: 'flex' }, position: 'absolute', left: 0, top: 0 }}>
 					<Button
@@ -38,8 +77,34 @@ const CX = () => {
 				</Typography>
 			</Box>
 
-			<Box>
-				<h1>Hello, World!</h1>
+			<Box
+				sx={{
+					flex: 1,
+					overflow: 'hidden',
+					position: 'relative',
+					display: 'flex',
+					flexDirection: 'column',
+					minHeight: 0,
+				}}
+			>
+				{loading && marketData.length === 0 ? (
+					<Box
+						sx={{
+							display: 'flex',
+							height: '100%',
+							alignItems: 'center',
+							justifyContent: 'center',
+						}}
+					>
+						<CircularProgress color="primary" />
+					</Box>
+				) : (
+					<MarketPricesTab
+						isLoggedIn={false}
+						marketData={marketData}
+						lastUpdated={lastUpdated}
+					/>
+				)}
 			</Box>
 		</Container>
 	);
