@@ -279,8 +279,8 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									disabled={hasOtherOrderType}
 									sx={{ fontSize: "0.875rem" }}
 								>
-									<MenuItem value="buy">Buy</MenuItem>
-									<MenuItem value="sell">Sell</MenuItem>
+									<MenuItem value="sell">Ask</MenuItem>
+									<MenuItem value="buy">Bid</MenuItem>
 								</Select>
 							</FormControl>
 						</Cell>
@@ -571,7 +571,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 					<Cell label="Add">
 						<IconButton
 							edge="end"
-							onClick={() => onAddMaterial?.(material, "buy")}
+							onClick={() => onAddMaterial?.(material, "sell")}
 							disabled={material.isDisabled}
 						>
 							<AddCircleIcon

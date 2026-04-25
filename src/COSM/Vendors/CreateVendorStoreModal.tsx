@@ -1252,7 +1252,7 @@ const VendorCreationModal: React.FC<{
 								onEditMaterial={handleEditMaterial}
 								onAddMaterial={handleAddMaterial}
 								isAvailableMaterials={false}
-								title="Buy Orders"
+								title="Bid Orders"
 							/>
 
 							{/* Sell Orders */}
@@ -1263,7 +1263,7 @@ const VendorCreationModal: React.FC<{
 								onEditMaterial={handleEditMaterial}
 								onAddMaterial={handleAddMaterial}
 								isAvailableMaterials={false}
-								title="Sell Orders"
+								title="Ask Orders"
 							/>
 						</Box>
 
