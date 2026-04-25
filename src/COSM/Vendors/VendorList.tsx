@@ -181,7 +181,7 @@ const PriceComparisonBadge = ({
 const VendorProductList = React.memo(
 	({ list, title }: { list: OrderItem[]; title: string }) => {
 		const theme = useTheme();
-		const isBuying = title === "Buying";
+		const isBuying = title === "Bid";
 		const orderType = isBuying ? "buy" : "sell";
 		const sortedList = useMemo(
 			() =>
@@ -622,7 +622,7 @@ const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
 						gap: 1,
 					}}
 				>
-					<VendorProductList list={buyOrders} title="Buying" />
+					<VendorProductList list={sellOrders} title="Ask" />
 
 					{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
 					<Divider
@@ -643,7 +643,7 @@ const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
 						}}
 					/>
 
-					<VendorProductList list={sellOrders} title="Selling" />
+					<VendorProductList list={buyOrders} title="Bid" />
 				</Box>
 			</CardContent>
 		</Card>
