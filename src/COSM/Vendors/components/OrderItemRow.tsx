@@ -18,6 +18,8 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlineOutlined";
 import type { OrderItem, Location } from "../types";
+import { formatCurrency } from "../../../Dashboard/Financial/utils/financeUtils";
+import { formatAmount } from "../../../utils/formaters";
 
 /**
  * A debounced text field component used to prevent rapid state updates and potential focus loss.
@@ -545,20 +547,25 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 								sx={{
 									display: { xs: "block", sm: "none" },
 									color: theme.palette.text.secondary,
+									textAlign: "right",
 								}}
 							>
-								{material.fixedprice} ICA
+								{formatCurrency(material.fixedprice ?? 0)} ICA
 							</Typography>
 						</Box>
 					</Cell>
 
 					{/* Desktop Price Cell (Hidden on mobile) */}
 					<Cell label="Price" sx={{ display: { xs: "none", sm: "block" } }}>
-						<Typography variant="body2">{material.fixedprice}</Typography>
+						<Typography variant="body2" sx={{ textAlign: "right" }}>
+							{formatCurrency(material.fixedprice ?? 0)}
+						</Typography>
 					</Cell>
 
 					<Cell label="In Store">
-						<Typography variant="body2">{material.instore}</Typography>
+						<Typography variant="body2" sx={{ textAlign: "right" }}>
+							{formatAmount(material.instore)}
+						</Typography>
 					</Cell>
 
 					<Cell label="Add">
