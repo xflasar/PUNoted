@@ -117,7 +117,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
           <VendorsTab isLoggedIn={isLoggedIn} />
         </TabPanel>
         <TabPanel value={tabValue} index="priceList">
-          <MainDashboard isLoggedIn={isLoggedIn} />
+          <MainDashboard />
         </TabPanel>
         <TabPanel value={tabValue} index="production">
           <ShipProductionTab isMobile={isMobile} />

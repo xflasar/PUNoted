@@ -1,33 +1,9 @@
 import React, { useState, useEffect, useCallback, memo } from "react";
-import {
-	Box,
-	Tabs,
-	Tab,
-	useMediaQuery,
-	useTheme,
-	Paper,
-	CircularProgress,
-} from "@mui/material";
-import { useSearchParams } from "react-router-dom";
-import MarketPricesTab from "./PriceList";
+import { Box, CircularProgress } from "@mui/material";
 import CorpPricesTab from "./CorpPricesTab";
-import { glassStyle } from "./CustomComponents/glassStyle";
-
-const MemoizedMarketTab = memo(MarketPricesTab);
-MemoizedMarketTab.displayName = "MemoizedMarketTab";
 
 const MemoizedCorpTab = memo(CorpPricesTab);
 MemoizedCorpTab.displayName = "MemoizedCorpTab";
-
-/**
- * Properties for the MainDashboard component.
- */
-interface MainDashboardProps {
-	/**
-	 * Indicates whether the current user is authenticated.
-	 */
-	isLoggedIn: boolean;
-}
 
 /**
  * Represents the structure of generic market data received from the API.
@@ -35,37 +11,16 @@ interface MainDashboardProps {
 type MarketDataRecord = Record<string, any>;
 
 /**
- * The primary dashboard component for market and corporate pricing.
- * Manages the fetching of market data and the navigation state between different pricing views.
+ * The primary dashboard component for corporation pricing.
+ * Manages fetching market data used by the corporation store.
  */
-const MainDashboard: React.FC<MainDashboardProps> = ({ isLoggedIn }) => {
-	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-	const [searchParams, setSearchParams] = useSearchParams();
-
+const MainDashboard: React.FC = () => {
 	const [marketData, setMarketData] = useState<MarketDataRecord[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
-	const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-	// The active sub-tab derived from the URL search parameters, defaulting to the market view.
-	const subtabValue = searchParams.get("subtab") || "market-prices";
-
-	/**
-	 * Updates the URL search parameters to reflect the newly selected tab.
-	 *
-	 * @param _event - The synthetic event from the tab selection.
-	 * @param newValue - The identifier of the selected tab.
-	 */
-	const handleChange = useCallback(
-		(_event: React.SyntheticEvent, newValue: string) => {
-			setSearchParams({ tab: "priceList", subtab: newValue });
-		},
-		[setSearchParams],
-	);
 
 	/**
 	 * Asynchronously retrieves the latest market pricing data from the external API.
-	 * Updates local state with the fetched data and the current timestamp upon success.
+	 * Updates local state with the fetched data upon success.
 	 */
 	const fetchMarketData = useCallback(async () => {
 		try {
@@ -76,7 +31,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ isLoggedIn }) => {
 			const json = await response.json();
 			const data = Array.isArray(json) ? json : json.data || [];
 			setMarketData(data);
-			setLastUpdated(new Date());
 		} catch (err) {
 			console.error("Failed to fetch", err);
 		} finally {
@@ -104,39 +58,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ isLoggedIn }) => {
 				overflow: "hidden",
 			}}
 		>
-			<Paper
-				square
-				elevation={0}
-				sx={{
-					...glassStyle,
-					zIndex: 10,
-					flexShrink: 0,
-					borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
-				}}
-			>
-				<Tabs
-					value={subtabValue}
-					onChange={handleChange}
-					centered={!isMobile}
-					variant={isMobile ? "fullWidth" : "standard"}
-					textColor="inherit"
-					sx={{
-						minHeight: "48px",
-						"& .MuiTabs-indicator": { backgroundColor: "#7b68ee", height: 3 },
-						"& .MuiTab-root": {
-							textTransform: "none",
-							fontWeight: 600,
-							fontSize: "1rem",
-							color: "rgba(255, 255, 255, 0.5)",
-							"&.Mui-selected": { color: "#fff" },
-						},
-					}}
-				>
-					<Tab label="ComEx Market (CX)" value="market-prices" />
-					<Tab label="Corporation Store" value="corp-prices" />
-				</Tabs>
-			</Paper>
-
 			<Box
 				id="content"
 				sx={{
@@ -160,29 +81,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ isLoggedIn }) => {
 						<CircularProgress color="primary" />
 					</Box>
 				) : (
-					<>
-						<div
-							style={{
-								display: subtabValue === "market-prices" ? "block" : "none",
-								height: "100%",
-							}}
-						>
-							<MemoizedMarketTab
-								isLoggedIn={isLoggedIn}
-								marketData={marketData}
-								lastUpdated={lastUpdated}
-							/>
-						</div>
-
-						<div
-							style={{
-								display: subtabValue === "corp-prices" ? "block" : "none",
-								height: "100%",
-							}}
-						>
-							<MemoizedCorpTab marketData={marketData} />
-						</div>
-					</>
+					<MemoizedCorpTab marketData={marketData} />
 				)}
 			</Box>
 		</Box>
