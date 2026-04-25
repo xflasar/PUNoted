@@ -241,11 +241,6 @@ const VendorProductList = React.memo(
 					{sortedList.length > 0 ? (
 						sortedList.map((item, index) => {
 							const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
-							const cxStats = getDiffStats(
-								fixedPrice,
-								item.price?.cxprice,
-								orderType,
-							);
 							const corpStats = getDiffStats(
 								fixedPrice,
 								item.price?.corpprice,
@@ -384,7 +379,7 @@ const VendorProductList = React.memo(
 									</Box>
 
 									{/* ROW 2: Badges (Middle - Comparisons) */}
-									{cxStats || corpStats ? (
+									{corpStats ? (
 										<Box
 											sx={{
 												display: "flex",
@@ -395,11 +390,6 @@ const VendorProductList = React.memo(
 												justifyContent: "space-between",
 											}}
 										>
-											<Box>
-												{cxStats && (
-													<PriceComparisonBadge label="CX" stats={cxStats} />
-												)}
-											</Box>
 											<Box>
 												{corpStats && (
 													<PriceComparisonBadge
