@@ -762,13 +762,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	const handleOnVendorChanged = useCallback(
 		(updatedVendorStore: VendorStore) => {
-			setVendorStores((prevStores) =>
-				prevStores.map((store) =>
-					store.vendor.vendorid === updatedVendorStore.vendor.vendorid
-						? updatedVendorStore
-						: store,
-				),
-			);
+			setVendorStores((prevStores) => {
+				const withoutStore = prevStores.filter(
+					(store) =>
+						store.vendor.vendorid !== updatedVendorStore.vendor.vendorid,
+				);
+				return updatedVendorStore.orders?.length
+					? [updatedVendorStore, ...withoutStore]
+					: withoutStore;
+			});
 			setUserVendorStore(updatedVendorStore);
 		},
 		[],
