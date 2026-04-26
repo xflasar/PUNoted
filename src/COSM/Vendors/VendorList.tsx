@@ -36,6 +36,8 @@ import ShoppingListModal from "./ShoppingListModal";
 import { formatAmount } from "../../utils/formaters";
 import type { VendorStore, OrderItem } from "./types";
 
+type CxPriceLookup = Record<string, Record<string, unknown>>;
+
 // --- ANIMATIONS ---
 const scroll = keyframes`
   0% { transform: translateX(0); }
@@ -167,10 +169,20 @@ const PriceComparisonBadge = ({
 
 // Renders the list of products
 const VendorProductList = React.memo(
-	({ list, title }: { list: OrderItem[]; title: string }) => {
+	({
+		list,
+		title,
+		vendorCx,
+		cxPriceLookup,
+	}: {
+		list: OrderItem[];
+		title: string;
+		vendorCx: string | undefined;
+		cxPriceLookup: CxPriceLookup;
+	}) => {
 		const theme = useTheme();
 		const isBuying = title === "Bid";
-		const orderType = isBuying ? "buy" : "sell";
+		const normalizedExchange = (vendorCx || "IC1").trim().toUpperCase() || "IC1";
 		const sortedList = useMemo(
 			() =>
 				[...list].sort((a, b) =>
@@ -229,9 +241,16 @@ const VendorProductList = React.memo(
 					{sortedList.length > 0 ? (
 						sortedList.map((item, index) => {
 							const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
+							const orderType = item.ordertype || (isBuying ? "buy" : "sell");
+							const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
+							const rawCxValue =
+								cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[
+									sideKey
+								];
+							const cxReferencePrice = Number(rawCxValue);
 							const cxStats = getDiffStats(
 								fixedPrice,
-								item.price?.cxprice,
+								Number.isFinite(cxReferencePrice) ? cxReferencePrice : undefined,
 								orderType,
 							);
 							const corpStats = getDiffStats(
@@ -443,7 +462,7 @@ const VendorProductList = React.memo(
 												variant="body2"
 												sx={{
 													fontWeight: "bold",
-													color: isBuying
+													color: orderType === "buy"
 														? theme.palette.info.main
 														: theme.palette.warning.main,
 												}}
@@ -486,7 +505,8 @@ const VendorProductList = React.memo(
 );
 
 // The Main Card Component
-const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
+const VendorCard = React.memo(
+	({ vendor, cxPriceLookup }: { vendor: VendorStore; cxPriceLookup: CxPriceLookup }) => {
 	const theme = useTheme();
 
 	const buyOrders = useMemo(
@@ -623,7 +643,12 @@ const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
 						gap: 1,
 					}}
 				>
-					<VendorProductList list={sellOrders} title="Ask" />
+					<VendorProductList
+						list={sellOrders}
+						title="Ask"
+						vendorCx={vendor.vendor.cx}
+						cxPriceLookup={cxPriceLookup}
+					/>
 
 					{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
 					<Divider
@@ -644,12 +669,18 @@ const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
 						}}
 					/>
 
-					<VendorProductList list={buyOrders} title="Bid" />
+					<VendorProductList
+						list={buyOrders}
+						title="Bid"
+						vendorCx={vendor.vendor.cx}
+						cxPriceLookup={cxPriceLookup}
+					/>
 				</Box>
 			</CardContent>
 		</Card>
 	);
-});
+	},
+);
 
 // --- MAIN LIST COMPONENT ---
 
@@ -674,6 +705,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
 	const [isCheckingStore, setIsCheckingStore] = useState<boolean>(true);
 	const [vendorStores, setVendorStores] = useState<VendorStore[]>([]);
+	const [cxPriceLookup, setCxPriceLookup] = useState<CxPriceLookup>({});
 	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
 		null,
 	);
@@ -701,7 +733,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					setHasVendorStore(false);
 					setUserVendorStore(null);
 				}
-			} catch (error) {
+			} catch {
 				setHasVendorStore(false);
 				setUserVendorStore(null);
 			} finally {
@@ -714,18 +746,33 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	useEffect(() => {
 		const getVendorStores = async () => {
 			try {
-				const response = await fetch(
-					"https://punoted.ddns.net/dev/api/vendor_stores",
-				);
-				if (response.ok) {
-					const data = await response.json();
+				const [storesResponse, pricesResponse] = await Promise.all([
+					fetch("https://punoted.ddns.net/dev/api/vendor_stores"),
+					fetch("https://api.punoted.net/market_price_all"),
+				]);
+				if (storesResponse.ok) {
+					const data = await storesResponse.json();
 					setVendorStores(data.vendors);
 				} else {
 					setVendorStores([]);
 				}
+				if (pricesResponse.ok) {
+					const payload = await pricesResponse.json();
+					const rows = Array.isArray(payload) ? payload : payload?.data || [];
+					const lookup: CxPriceLookup = {};
+					rows.forEach((row) => {
+						const ticker =
+							typeof row.ticker === "string" ? row.ticker.trim().toUpperCase() : "";
+						if (ticker) lookup[ticker] = row;
+					});
+					setCxPriceLookup(lookup);
+				} else {
+					setCxPriceLookup({});
+				}
 			} catch (error) {
 				console.error("Failed to get vendor stores:", error);
 				setVendorStores([]);
+				setCxPriceLookup({});
 			}
 		};
 		getVendorStores();
@@ -897,7 +944,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						spacing={2}
 					>
 						{filteredVendors.map((vendor) => (
-							<VendorCard key={vendor.vendor.companycode} vendor={vendor} />
+							<VendorCard
+								key={vendor.vendor.companycode}
+								vendor={vendor}
+								cxPriceLookup={cxPriceLookup}
+							/>
 						))}
 					</Masonry>
 				) : (
