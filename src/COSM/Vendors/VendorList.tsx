@@ -104,17 +104,22 @@ const getDiffStats = (
 	if (!refPrice || refPrice === 0 || !vendorPrice) return null;
 
 	const diff = ((vendorPrice - refPrice) / refPrice) * 100;
-	const formatted = `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`;
+	const roundedDiff = Number(diff.toFixed(1));
+	const normalizedDiff = Object.is(roundedDiff, -0) ? 0 : roundedDiff;
+	const formatted = `${normalizedDiff > 0 ? "+" : ""}${normalizedDiff.toFixed(1)}%`;
 
+	const isNeutral = normalizedDiff === 0;
 	let isGood = false;
-	if (type === "sell") isGood = diff < 0;
-	else isGood = diff > 0;
+	if (!isNeutral) {
+		if (type === "sell") isGood = normalizedDiff < 0;
+		else isGood = normalizedDiff > 0;
+	}
 
 	return {
-		value: diff,
+		value: normalizedDiff,
 		label: formatted,
 		isGood,
-		color: isGood ? "success" : "error",
+		color: isNeutral ? "neutral" : isGood ? "success" : "error",
 	};
 };
 
@@ -142,25 +147,34 @@ const PriceComparisonBadge = ({
 	if (!stats) return <Box sx={{ width: 40 }} />;
 
 	return (
-		<Tooltip title={`${label} Price Difference`}>
-			<Chip
-				label={`${label} ${stats.label}`}
-				size="small"
-				variant="outlined"
-				sx={{
+			<Tooltip title={`${label} Price Difference`}>
+				<Chip
+					label={stats.color === "neutral" ? `✓ ${label}` : `${label} ${stats.label}`}
+					size="small"
+					variant="outlined"
+					sx={{
 					height: 18,
 					fontSize: "0.7rem",
 					"& .MuiChip-label": { px: 0.8 },
 					backdropFilter: "blur(4px)",
-					color: stats.isGood
-						? theme.palette.success.light
-						: theme.palette.error.light,
-					borderColor: stats.isGood
-						? alpha(theme.palette.success.main, 0.3)
-						: alpha(theme.palette.error.main, 0.3),
-					bgcolor: stats.isGood
-						? alpha(theme.palette.success.main, 0.05)
-						: alpha(theme.palette.error.main, 0.05),
+						color:
+							stats.color === "neutral"
+								? theme.palette.primary.light
+								: stats.isGood
+									? theme.palette.success.light
+									: theme.palette.error.light,
+						borderColor:
+							stats.color === "neutral"
+								? alpha(theme.palette.primary.main, 0.3)
+								: stats.isGood
+									? alpha(theme.palette.success.main, 0.3)
+									: alpha(theme.palette.error.main, 0.3),
+						bgcolor:
+							stats.color === "neutral"
+								? alpha(theme.palette.primary.main, 0.06)
+								: stats.isGood
+									? alpha(theme.palette.success.main, 0.05)
+									: alpha(theme.palette.error.main, 0.05),
 				}}
 			/>
 		</Tooltip>
