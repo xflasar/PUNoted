@@ -842,9 +842,14 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	// Filter Logic
 	const filteredVendors = useMemo(() => {
-		if (!searchQuery) return sortedVendors;
+		const vendorsWithOrders = sortedVendors.filter((vendor) =>
+			vendor.orders?.some(
+				(order) => order.ordertype === "buy" || order.ordertype === "sell",
+			),
+		);
+		if (!searchQuery) return vendorsWithOrders;
 		const lowerCaseQuery = searchQuery.toLowerCase();
-		return sortedVendors.filter(
+		return vendorsWithOrders.filter(
 			(vendor) =>
 				vendor.vendor.companyname.toLowerCase().includes(lowerCaseQuery) ||
 				vendor.vendor.gamename.toLowerCase().includes(lowerCaseQuery) ||
