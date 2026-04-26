@@ -28,8 +28,6 @@ import {
 	Edit,
 	ShoppingBasket,
 	MapPin,
-	TrendingUp,
-	TrendingDown,
 	Minus,
 } from "lucide-react";
 import VendorCreationModal from "./CreateVendorStoreModal";
@@ -147,20 +145,10 @@ const PriceComparisonBadge = ({
 				label={`${label} ${stats.label}`}
 				size="small"
 				variant="outlined"
-				icon={
-					stats.value > 0 ? (
-						<TrendingUp size={10} />
-					) : stats.value < 0 ? (
-						<TrendingDown size={10} />
-					) : (
-						<Minus size={10} />
-					)
-				}
 				sx={{
 					height: 18,
 					fontSize: "0.7rem",
 					"& .MuiChip-label": { px: 0.8 },
-					"& .MuiChip-icon": { width: 12, height: 12, color: "inherit" },
 					backdropFilter: "blur(4px)",
 					color: stats.isGood
 						? theme.palette.success.light
@@ -241,6 +229,11 @@ const VendorProductList = React.memo(
 					{sortedList.length > 0 ? (
 						sortedList.map((item, index) => {
 							const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
+							const cxStats = getDiffStats(
+								fixedPrice,
+								item.price?.cxprice,
+								orderType,
+							);
 							const corpStats = getDiffStats(
 								fixedPrice,
 								item.price?.corpprice,
@@ -379,23 +372,31 @@ const VendorProductList = React.memo(
 									</Box>
 
 									{/* ROW 2: Badges (Middle - Comparisons) */}
-									{corpStats ? (
+									{cxStats || corpStats ? (
 										<Box
 											sx={{
 												display: "flex",
-												gap: 0.5,
-												flexWrap: "wrap",
+												gap: 1,
+												flexWrap: "nowrap",
 												mt: 0.2,
 												minHeight: "25px",
 												justifyContent: "space-between",
+												alignItems: "center",
 											}}
 										>
-											<Box>
+											<Box sx={{ flex: 1, display: "flex" }}>
 												{corpStats && (
 													<PriceComparisonBadge
 														label="COSM"
 														stats={corpStats}
 													/>
+												)}
+											</Box>
+											<Box
+												sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
+											>
+												{cxStats && (
+													<PriceComparisonBadge label="CX" stats={cxStats} />
 												)}
 											</Box>
 										</Box>
