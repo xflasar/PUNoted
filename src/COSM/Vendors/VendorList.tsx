@@ -451,47 +451,10 @@ const VendorProductList = React.memo(
 										)}
 									</Box>
 
-									{/* ROW 2: Badges (Middle - Comparisons) */}
-									{cxStats || corpStats ? (
+										{/* ROW 2: Quantity & Price (Middle) */}
 										<Box
 											sx={{
 												display: "flex",
-												gap: 1,
-												flexWrap: "nowrap",
-												mt: 0.2,
-												minHeight: "25px",
-												justifyContent: "space-between",
-												alignItems: "center",
-											}}
-										>
-											<Box sx={{ flex: 1, display: "flex" }}>
-												{corpStats && (
-													<PriceComparisonBadge
-														label="COSM"
-														stats={corpStats}
-													/>
-												)}
-											</Box>
-											<Box
-												sx={{
-													flex: 1,
-													display: "flex",
-													justifyContent: "flex-end",
-												}}
-											>
-												{cxStats && (
-													<PriceComparisonBadge label="CX" stats={cxStats} />
-												)}
-											</Box>
-										</Box>
-									) : (
-										<Box sx={{ minHeight: "25px" }} />
-									)}
-
-									{/* ROW 3: Quantity & Price (Bottom) */}
-									<Box
-										sx={{
-											display: "flex",
 											justifyContent: "space-between",
 											alignItems: "flex-end",
 											mt: 0.2,
@@ -543,11 +506,48 @@ const VendorProductList = React.memo(
 												}}
 											>
 												ICA
-											</Typography>
+												</Typography>
+											</Box>
 										</Box>
+
+										{/* ROW 3: Badges (Bottom - Comparisons) */}
+										{cxStats || corpStats ? (
+											<Box
+												sx={{
+													display: "flex",
+													gap: 1,
+													flexWrap: "nowrap",
+													mt: 0.2,
+													minHeight: "25px",
+													justifyContent: "space-between",
+													alignItems: "center",
+												}}
+											>
+												<Box sx={{ flex: 1, display: "flex" }}>
+													{cxStats && (
+														<PriceComparisonBadge label="CX" stats={cxStats} />
+													)}
+												</Box>
+												<Box
+													sx={{
+														flex: 1,
+														display: "flex",
+														justifyContent: "flex-end",
+													}}
+												>
+													{corpStats && (
+														<PriceComparisonBadge
+															label="COSM"
+															stats={corpStats}
+														/>
+													)}
+												</Box>
+											</Box>
+										) : (
+											<Box sx={{ minHeight: "25px" }} />
+										)}
 									</Box>
-								</Box>
-							);
+								);
 						})
 					) : (
 						<Box
