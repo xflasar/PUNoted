@@ -12,12 +12,14 @@ import {
 	Grid,
 	TextField,
 	InputAdornment,
+	ToggleButton,
+	ToggleButtonGroup,
 	Card,
 	CardContent,
 	Divider,
 	useTheme,
 	keyframes,
-	Fab,
+	IconButton,
 	Tooltip,
 	Chip,
 	alpha,
@@ -31,6 +33,7 @@ import {
 	Minus,
 	Target,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./CreateVendorStoreModal";
 import EditVendorStoreModal from "./EditVendorStoreModal";
 import ShoppingListModal from "./ShoppingListModal";
@@ -38,6 +41,15 @@ import { formatAmount } from "../../utils/formaters";
 import type { VendorStore, OrderItem } from "./types";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
+const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
+
+const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
+	value === "grid" || value === "table";
+
+const getStoredVendorViewMode = (): "grid" | "table" | null => {
+	const storedValue = localStorage.getItem(VENDORS_VIEW_MODE_STORAGE_KEY);
+	return isVendorViewMode(storedValue) ? storedValue : null;
+};
 
 // --- ANIMATIONS ---
 const scroll = keyframes`
@@ -723,7 +735,13 @@ const VendorCard = React.memo(
  */
 const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState<string>("");
+	const querySubtab = searchParams.get("subtab");
+	const vendorViewMode: "grid" | "table" =
+		(isVendorViewMode(querySubtab) ? querySubtab : null) ||
+		getStoredVendorViewMode() ||
+		"grid";
 
 	// Modal States
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -739,6 +757,22 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
 		null,
 	);
+
+	useEffect(() => {
+		if (querySubtab === vendorViewMode) {
+			return;
+		}
+		const nextParams = new URLSearchParams(searchParams);
+		nextParams.set("subtab", vendorViewMode);
+		setSearchParams(nextParams, { replace: true });
+	}, [querySubtab, searchParams, setSearchParams, vendorViewMode]);
+
+	useEffect(() => {
+		if (getStoredVendorViewMode() === vendorViewMode) {
+			return;
+		}
+		localStorage.setItem(VENDORS_VIEW_MODE_STORAGE_KEY, vendorViewMode);
+	}, [vendorViewMode]);
 
 	// Initial Data Fetch
 	useEffect(() => {
@@ -832,6 +866,14 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		() => setIsShoppingListModalOpen(false),
 		[],
 	);
+	const handleViewModeChange = useCallback(
+		(newValue: "grid" | "table") => {
+			const nextParams = new URLSearchParams(searchParams);
+			nextParams.set("subtab", newValue);
+			setSearchParams(nextParams);
+		},
+		[searchParams, setSearchParams],
+	);
 
 	const handleOnVendorChanged = useCallback(
 		(updatedVendorStore: VendorStore) => {
@@ -913,10 +955,43 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						width: "100%",
 						display: "flex",
 						flexDirection: "row",
+						alignItems: "center",
 						gap: 2,
 						px: 1,
 					}}
 				>
+					<ToggleButtonGroup
+						value={vendorViewMode}
+						exclusive
+						onChange={(_event, newValue: "grid" | "table" | null) => {
+							if (newValue) {
+								handleViewModeChange(newValue);
+							}
+						}}
+						size="small"
+						aria-label="Vendor view mode"
+						sx={{
+							height: 40,
+							borderRadius: "12px",
+						}}
+					>
+						<ToggleButton
+							value="grid"
+							size="small"
+							aria-label="Grid view"
+							sx={{ px: 1.5, textTransform: "none" }}
+						>
+							Grid
+						</ToggleButton>
+						<ToggleButton
+							value="table"
+							size="small"
+							aria-label="Table view"
+							sx={{ px: 1.5, textTransform: "none" }}
+						>
+							Table
+						</ToggleButton>
+					</ToggleButtonGroup>
 					<TextField
 						fullWidth
 						variant="outlined"
@@ -926,6 +1001,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						onChange={(e) => setSearchQuery(e.target.value)}
 						sx={{
 							"& .MuiOutlinedInput-root": {
+								height: 40,
 								bgcolor: alpha(theme.palette.background.default, 0.5),
 								backdropFilter: "blur(5px)",
 								borderRadius: "12px",
@@ -947,27 +1023,51 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							),
 						}}
 					/>
-					<Box sx={{ display: "flex", gap: 1 }}>
-						<Fab
-							color="primary"
-							size="medium"
+					<Box
+						sx={{
+							display: "flex",
+							gap: 1,
+						}}
+					>
+						<IconButton
 							onClick={handleOpenShoppingListModal}
-							sx={{ color: "white", boxShadow: "0 4px 10px rgba(0,0,0,0.5)" }}
+							sx={{
+								height: 40,
+								width: 40,
+								borderRadius: "50%",
+								color: "white",
+								bgcolor: "primary.main",
+								boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+								"&:hover": {
+									bgcolor: "primary.dark",
+								},
+							}}
 						>
 							<ShoppingBasket size={24} />
-						</Fab>
+						</IconButton>
 						{loggedIn && (
-							<Fab
-								color="primary"
-								size="medium"
+							<IconButton
 								onClick={
 									hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
 								}
 								disabled={isCheckingStore}
-								sx={{ color: "white", boxShadow: "0 4px 10px rgba(0,0,0,0.5)" }}
+								sx={{
+									height: 40,
+									width: 40,
+									borderRadius: "50%",
+									color: "white",
+									bgcolor: "primary.main",
+									boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+									"&:hover": {
+										bgcolor: "primary.dark",
+									},
+									"&.Mui-disabled": {
+										bgcolor: alpha(theme.palette.primary.main, 0.5),
+									},
+								}}
 							>
 								{hasVendorStore ? <Edit size={24} /> : <PlusCircle size={24} />}
-							</Fab>
+							</IconButton>
 						)}
 					</Box>
 				</Box>
@@ -978,27 +1078,38 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				id="vendors"
 				sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 1, pb: 2 }}
 			>
-				{filteredVendors.length > 0 ? (
-					<Masonry
-						columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xll: 5 }}
-						spacing={2}
-					>
-						{filteredVendors.map((vendor) => (
-							<VendorCard
-								key={vendor.vendor.companycode}
-								vendor={vendor}
-								cxPriceLookup={cxPriceLookup}
-							/>
-						))}
-					</Masonry>
-				) : (
-					<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
-						<Typography variant="h6">
-							{isLoadingVendors
-								? "Loading…"
-								: "No vendors found matching your search."}
+				{vendorViewMode === "table" ? (
+					<Box sx={{ textAlign: "center", py: 8, opacity: 0.8 }}>
+						<Typography variant="h6">Table view placeholder</Typography>
+						<Typography variant="body2" sx={{ mt: 1, opacity: 0.7 }}>
+							Table layout coming soon.
 						</Typography>
 					</Box>
+				) : (
+					<>
+						{filteredVendors.length > 0 ? (
+							<Masonry
+								columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xll: 5 }}
+								spacing={2}
+							>
+								{filteredVendors.map((vendor) => (
+									<VendorCard
+										key={vendor.vendor.companycode}
+										vendor={vendor}
+										cxPriceLookup={cxPriceLookup}
+									/>
+								))}
+							</Masonry>
+						) : (
+							<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
+								<Typography variant="h6">
+									{isLoadingVendors
+										? "Loading…"
+										: "No vendors found matching your search."}
+								</Typography>
+							</Box>
+						)}
+					</>
 				)}
 			</Box>
 
