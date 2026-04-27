@@ -6,7 +6,6 @@ import {
 	Box,
 	useTheme,
 	Pagination,
-	Button,
 } from "@mui/material";
 import { Search } from "@mui/icons-material";
 import OrderItemRow from "./OrderItemRow";
@@ -30,7 +29,7 @@ const ESTIMATED_ROW_HEIGHT = 50;
 
 /**
  * A component displaying a paginated list of available materials to add to a store.
- * Allows filtering by ticker and toggling between CX and COSM pricing modes.
+ * Allows filtering by ticker.
  *
  * @param {AvailableMaterialsListProps} props - The component props.
  * @returns {React.ReactElement} The available materials list component.
@@ -45,7 +44,6 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 	const [searchQuery, setSearchQuery] = useState("");
 	const [itemsPerPage, setItemsPerPage] = useState(10); // Default start
 	const listRef = useRef<HTMLDivElement>(null); // Ref for the container
-	const [pricingMode, setPricingMode] = useState<"CX" | "COSM">("CX"); // pricing state
 
 	const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
@@ -154,41 +152,9 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					size="small"
 					InputProps={{
 						startAdornment: <Search sx={{ mr: 1, color: "text.secondary" }} />,
-						sx: { mb: 1, borderRadius: "24px" },
+						sx: { borderRadius: "24px" },
 					}}
 				/>
-				<Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
-					<Button
-						fullWidth
-						size="small"
-						variant={pricingMode === "CX" ? "contained" : "outlined"}
-						onClick={() => setPricingMode("CX")}
-						sx={{
-							borderRadius: "16px",
-							textTransform: "none",
-							color:
-								pricingMode === "CX" ? "white" : theme.palette.text.secondary,
-							borderColor: theme.palette.divider,
-						}}
-					>
-						CX Price
-					</Button>
-					<Button
-						fullWidth
-						size="small"
-						variant={pricingMode === "COSM" ? "contained" : "outlined"}
-						onClick={() => setPricingMode("COSM")}
-						sx={{
-							borderRadius: "16px",
-							textTransform: "none",
-							color:
-								pricingMode === "COSM" ? "white" : theme.palette.text.secondary,
-							borderColor: theme.palette.divider,
-						}}
-					>
-						COSM Price
-					</Button>
-				</Box>
 			</Box>
 
 			{/* Header Row */}
@@ -232,13 +198,9 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					</Box>
 				) : (
 					paginatedMaterials.map((material) => {
-						// Create a display material with the correct price based on the selected mode
 						const displayMaterial = {
 							...material,
-							fixedprice:
-								pricingMode === "CX"
-									? (material.price?.cxprice ?? material.fixedprice)
-									: (material.price?.corpprice ?? 0),
+							fixedprice: material.price?.corpprice ?? 0,
 						};
 
 						return (

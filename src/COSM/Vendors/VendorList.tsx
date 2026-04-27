@@ -28,15 +28,16 @@ import {
 	Edit,
 	ShoppingBasket,
 	MapPin,
-	TrendingUp,
-	TrendingDown,
 	Minus,
+	Target,
 } from "lucide-react";
 import VendorCreationModal from "./CreateVendorStoreModal";
 import EditVendorStoreModal from "./EditVendorStoreModal";
 import ShoppingListModal from "./ShoppingListModal";
 import { formatAmount } from "../../utils/formaters";
 import type { VendorStore, OrderItem } from "./types";
+
+type CxPriceLookup = Record<string, Record<string, unknown>>;
 
 // --- ANIMATIONS ---
 const scroll = keyframes`
@@ -104,18 +105,34 @@ const getDiffStats = (
 	if (!refPrice || refPrice === 0 || !vendorPrice) return null;
 
 	const diff = ((vendorPrice - refPrice) / refPrice) * 100;
-	const formatted = `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`;
+	const roundedDiff = Number(diff.toFixed(1));
+	const normalizedDiff = Object.is(roundedDiff, -0) ? 0 : roundedDiff;
+	const formatted = `${normalizedDiff > 0 ? "+" : ""}${normalizedDiff.toFixed(1)}%`;
 
+	const isNeutral = normalizedDiff === 0;
 	let isGood = false;
-	if (type === "sell") isGood = diff < 0;
-	else isGood = diff > 0;
+	if (!isNeutral) {
+		if (type === "sell") isGood = normalizedDiff < 0;
+		else isGood = normalizedDiff > 0;
+	}
 
 	return {
-		value: diff,
+		value: normalizedDiff,
 		label: formatted,
 		isGood,
-		color: isGood ? "success" : "error",
+		color: isNeutral ? "neutral" : isGood ? "success" : "error",
 	};
+};
+
+const activityToMinutes = (activity: unknown) => {
+	if (typeof activity !== "string") return Number.POSITIVE_INFINITY;
+	const match = activity.trim().match(/^(\d+)\s*([mhd])$/i);
+	if (!match) return Number.POSITIVE_INFINITY;
+	const value = Number(match[1]);
+	const unit = match[2].toLowerCase();
+	if (unit === "m") return value;
+	if (unit === "h") return value * 60;
+	return value * 1440;
 };
 
 // --- MEMOIZED SUB-COMPONENTS ---
@@ -131,35 +148,34 @@ const PriceComparisonBadge = ({
 	if (!stats) return <Box sx={{ width: 40 }} />;
 
 	return (
-		<Tooltip title={`${label} Price Difference`}>
-			<Chip
-				label={`${label} ${stats.label}`}
-				size="small"
-				variant="outlined"
-				icon={
-					stats.value > 0 ? (
-						<TrendingUp size={10} />
-					) : stats.value < 0 ? (
-						<TrendingDown size={10} />
-					) : (
-						<Minus size={10} />
-					)
-				}
-				sx={{
-					height: 18,
-					fontSize: "0.7rem",
-					"& .MuiChip-label": { px: 0.8 },
-					"& .MuiChip-icon": { width: 12, height: 12, color: "inherit" },
-					backdropFilter: "blur(4px)",
-					color: stats.isGood
-						? theme.palette.success.light
-						: theme.palette.error.light,
-					borderColor: stats.isGood
-						? alpha(theme.palette.success.main, 0.3)
-						: alpha(theme.palette.error.main, 0.3),
-					bgcolor: stats.isGood
-						? alpha(theme.palette.success.main, 0.05)
-						: alpha(theme.palette.error.main, 0.05),
+			<Tooltip title={`${label} Price Difference`}>
+				<Chip
+					// icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+					icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+					label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
+					size="small"
+					variant="outlined"
+					sx={{
+						fontSize: "0.7rem",
+						"& .MuiChip-icon": { color: "inherit" },
+						color:
+							stats.color === "neutral"
+							? theme.palette.primary.light
+							: stats.isGood
+								? theme.palette.success.light
+								: theme.palette.error.light,
+						borderColor:
+							stats.color === "neutral"
+								? alpha(theme.palette.primary.main, 0.3)
+								: stats.isGood
+									? alpha(theme.palette.success.main, 0.3)
+									: alpha(theme.palette.error.main, 0.3),
+						bgcolor:
+							stats.color === "neutral"
+								? alpha(theme.palette.primary.main, 0.06)
+								: stats.isGood
+									? alpha(theme.palette.success.main, 0.05)
+									: alpha(theme.palette.error.main, 0.05),
 				}}
 			/>
 		</Tooltip>
@@ -168,10 +184,29 @@ const PriceComparisonBadge = ({
 
 // Renders the list of products
 const VendorProductList = React.memo(
-	({ list, title }: { list: OrderItem[]; title: string }) => {
+	({
+		list,
+		title,
+		vendorCx,
+		cxPriceLookup,
+	}: {
+		list: OrderItem[];
+		title: string;
+		vendorCx: string | undefined;
+		cxPriceLookup: CxPriceLookup;
+	}) => {
 		const theme = useTheme();
-		const isBuying = title === "Buying";
-		const orderType = isBuying ? "buy" : "sell";
+		const isBuying = title === "Bid";
+		const normalizedExchange = (vendorCx || "IC1").trim().toUpperCase() || "IC1";
+		const sortedList = useMemo(
+			() =>
+				[...list].sort((a, b) =>
+					a.materialticker.localeCompare(b.materialticker, undefined, {
+						sensitivity: "base",
+					}),
+				),
+			[list],
+		);
 
 		return (
 			<Box
@@ -218,12 +253,19 @@ const VendorProductList = React.memo(
 						},
 					}}
 				>
-					{list.length > 0 ? (
-						list.map((item, index) => {
+					{sortedList.length > 0 ? (
+						sortedList.map((item, index) => {
 							const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
+							const orderType = item.ordertype || (isBuying ? "buy" : "sell");
+							const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
+							const rawCxValue =
+								cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[
+									sideKey
+								];
+							const cxReferencePrice = Number(rawCxValue);
 							const cxStats = getDiffStats(
 								fixedPrice,
-								item.price?.cxprice,
+								Number.isFinite(cxReferencePrice) ? cxReferencePrice : undefined,
 								orderType,
 							);
 							const corpStats = getDiffStats(
@@ -247,13 +289,13 @@ const VendorProductList = React.memo(
 									sx={{
 										p: 0,
 										borderBottom:
-											index === list.length - 1
+												index === sortedList.length - 1
 												? "none"
-												: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+												: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
+										padding: ".5em 0",
 										transition: "background-color 0.2s",
 										display: "flex",
 										flexDirection: "column",
-										gap: 0.3,
 										cursor: "default",
 										"&:hover": {
 											backgroundColor: alpha(theme.palette.common.white, 0.03),
@@ -368,24 +410,27 @@ const VendorProductList = React.memo(
 										<Box
 											sx={{
 												display: "flex",
-												gap: 0.5,
-												flexWrap: "wrap",
+												gap: 1,
+												flexWrap: "nowrap",
 												mt: 0.2,
 												minHeight: "25px",
 												justifyContent: "space-between",
+												alignItems: "center",
 											}}
 										>
-											<Box>
-												{cxStats && (
-													<PriceComparisonBadge label="CX" stats={cxStats} />
-												)}
-											</Box>
-											<Box>
+											<Box sx={{ flex: 1, display: "flex" }}>
 												{corpStats && (
 													<PriceComparisonBadge
 														label="COSM"
 														stats={corpStats}
 													/>
+												)}
+											</Box>
+											<Box
+												sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
+											>
+												{cxStats && (
+													<PriceComparisonBadge label="CX" stats={cxStats} />
 												)}
 											</Box>
 										</Box>
@@ -432,7 +477,7 @@ const VendorProductList = React.memo(
 												variant="body2"
 												sx={{
 													fontWeight: "bold",
-													color: isBuying
+													color: orderType === "buy"
 														? theme.palette.info.main
 														: theme.palette.warning.main,
 												}}
@@ -475,7 +520,8 @@ const VendorProductList = React.memo(
 );
 
 // The Main Card Component
-const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
+const VendorCard = React.memo(
+	({ vendor, cxPriceLookup }: { vendor: VendorStore; cxPriceLookup: CxPriceLookup }) => {
 	const theme = useTheme();
 
 	const buyOrders = useMemo(
@@ -595,7 +641,7 @@ const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
 									boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
 								}}
 							/>
-							Active {vendor.vendor.activity} ago
+							Updated {vendor.vendor.activity} ago
 						</Typography>
 					</Box>
 				</Box>
@@ -612,7 +658,12 @@ const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
 						gap: 1,
 					}}
 				>
-					<VendorProductList list={buyOrders} title="Buying" />
+					<VendorProductList
+						list={sellOrders}
+						title="Ask"
+						vendorCx={vendor.vendor.cx}
+						cxPriceLookup={cxPriceLookup}
+					/>
 
 					{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
 					<Divider
@@ -633,12 +684,18 @@ const VendorCard = React.memo(({ vendor }: { vendor: VendorStore }) => {
 						}}
 					/>
 
-					<VendorProductList list={sellOrders} title="Selling" />
+					<VendorProductList
+						list={buyOrders}
+						title="Bid"
+						vendorCx={vendor.vendor.cx}
+						cxPriceLookup={cxPriceLookup}
+					/>
 				</Box>
 			</CardContent>
 		</Card>
 	);
-});
+	},
+);
 
 // --- MAIN LIST COMPONENT ---
 
@@ -663,6 +720,8 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
 	const [isCheckingStore, setIsCheckingStore] = useState<boolean>(true);
 	const [vendorStores, setVendorStores] = useState<VendorStore[]>([]);
+	const [isLoadingVendors, setIsLoadingVendors] = useState<boolean>(true);
+	const [cxPriceLookup, setCxPriceLookup] = useState<CxPriceLookup>({});
 	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
 		null,
 	);
@@ -690,7 +749,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					setHasVendorStore(false);
 					setUserVendorStore(null);
 				}
-			} catch (error) {
+			} catch {
 				setHasVendorStore(false);
 				setUserVendorStore(null);
 			} finally {
@@ -702,19 +761,37 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	useEffect(() => {
 		const getVendorStores = async () => {
+			setIsLoadingVendors(true);
 			try {
-				const response = await fetch(
-					"https://punoted.ddns.net/dev/api/vendor_stores",
-				);
-				if (response.ok) {
-					const data = await response.json();
+				const [storesResponse, pricesResponse] = await Promise.all([
+					fetch("https://punoted.ddns.net/dev/api/vendor_stores"),
+					fetch("https://api.punoted.net/market_price_all"),
+				]);
+				if (storesResponse.ok) {
+					const data = await storesResponse.json();
 					setVendorStores(data.vendors);
 				} else {
 					setVendorStores([]);
 				}
+				if (pricesResponse.ok) {
+					const payload = await pricesResponse.json();
+					const rows = Array.isArray(payload) ? payload : payload?.data || [];
+					const lookup: CxPriceLookup = {};
+					rows.forEach((row) => {
+						const ticker =
+							typeof row.ticker === "string" ? row.ticker.trim().toUpperCase() : "";
+						if (ticker) lookup[ticker] = row;
+					});
+					setCxPriceLookup(lookup);
+				} else {
+					setCxPriceLookup({});
+				}
 			} catch (error) {
 				console.error("Failed to get vendor stores:", error);
 				setVendorStores([]);
+				setCxPriceLookup({});
+			} finally {
+				setIsLoadingVendors(false);
 			}
 		};
 		getVendorStores();
@@ -742,13 +819,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	const handleOnVendorChanged = useCallback(
 		(updatedVendorStore: VendorStore) => {
-			setVendorStores((prevStores) =>
-				prevStores.map((store) =>
-					store.vendor.vendorid === updatedVendorStore.vendor.vendorid
-						? updatedVendorStore
-						: store,
-				),
-			);
+			setVendorStores((prevStores) => {
+				const withoutStore = prevStores.filter(
+					(store) =>
+						store.vendor.vendorid !== updatedVendorStore.vendor.vendorid,
+				);
+				return updatedVendorStore.orders?.length
+					? [updatedVendorStore, ...withoutStore]
+					: withoutStore;
+			});
 			setUserVendorStore(updatedVendorStore);
 		},
 		[],
@@ -768,11 +847,28 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		setHasVendorStore(false);
 	}, []);
 
+	const sortedVendors = useMemo(() => {
+		return [...vendorStores].sort((a, b) => {
+			const aMinutes = activityToMinutes(
+				(a.vendor as VendorStore["vendor"] & { activity?: unknown }).activity,
+			);
+			const bMinutes = activityToMinutes(
+				(b.vendor as VendorStore["vendor"] & { activity?: unknown }).activity,
+			);
+			return aMinutes - bMinutes;
+		});
+	}, [vendorStores]);
+
 	// Filter Logic
 	const filteredVendors = useMemo(() => {
-		if (!searchQuery) return vendorStores;
+		const vendorsWithOrders = sortedVendors.filter((vendor) =>
+			vendor.orders?.some(
+				(order) => order.ordertype === "buy" || order.ordertype === "sell",
+			),
+		);
+		if (!searchQuery) return vendorsWithOrders;
 		const lowerCaseQuery = searchQuery.toLowerCase();
-		return vendorStores.filter(
+		return vendorsWithOrders.filter(
 			(vendor) =>
 				vendor.vendor.companyname.toLowerCase().includes(lowerCaseQuery) ||
 				vendor.vendor.gamename.toLowerCase().includes(lowerCaseQuery) ||
@@ -781,7 +877,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					material.materialticker.toLowerCase().includes(lowerCaseQuery),
 				),
 		);
-	}, [searchQuery, vendorStores]);
+	}, [searchQuery, sortedVendors]);
 
 	return (
 		<Box
@@ -872,13 +968,19 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						spacing={2}
 					>
 						{filteredVendors.map((vendor) => (
-							<VendorCard key={vendor.vendor.companycode} vendor={vendor} />
+							<VendorCard
+								key={vendor.vendor.companycode}
+								vendor={vendor}
+								cxPriceLookup={cxPriceLookup}
+							/>
 						))}
 					</Masonry>
 				) : (
 					<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
 						<Typography variant="h6">
-							No vendors found matching your search.
+							{isLoadingVendors
+								? "Loading…"
+								: "No vendors found matching your search."}
 						</Typography>
 					</Box>
 				)}

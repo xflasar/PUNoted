@@ -307,30 +307,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								pb: 1,
 							}}
 						>
-							{/* Buy Orders */}
-							<Paper
-								sx={{
-									flex: 1,
-									display: "flex",
-									flexDirection: "column",
-									background: theme.palette.background.default,
-									overflow: "hidden",
-									border: `1px solid ${theme.palette.divider}`,
-									borderRadius: 2,
-								}}
-							>
-								<MaterialTable
-									title="Buy Orders"
-									materials={buyOrders}
-									allOrders={allOrders}
-									locations={locations}
-									onAddMaterial={handleAddMaterial}
-									onEditMaterial={handleEditMaterial}
-									onRemoveMaterial={handleRemoveMaterial}
-									isBuyOrders={true}
-								/>
-							</Paper>
-
 							{/* Sell Orders */}
 							<Paper
 								sx={{
@@ -344,7 +320,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								}}
 							>
 								<MaterialTable
-									title="Sell Orders"
+									title="Ask Orders"
 									materials={sellOrders}
 									allOrders={allOrders}
 									locations={locations}
@@ -352,6 +328,30 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									onEditMaterial={handleEditMaterial}
 									onRemoveMaterial={handleRemoveMaterial}
 									isBuyOrders={false}
+								/>
+							</Paper>
+
+							{/* Buy Orders */}
+							<Paper
+								sx={{
+									flex: 1,
+									display: "flex",
+									flexDirection: "column",
+									background: theme.palette.background.default,
+									overflow: "hidden",
+									border: `1px solid ${theme.palette.divider}`,
+									borderRadius: 2,
+								}}
+							>
+								<MaterialTable
+									title="Bid Orders"
+									materials={buyOrders}
+									allOrders={allOrders}
+									locations={locations}
+									onAddMaterial={handleAddMaterial}
+									onEditMaterial={handleEditMaterial}
+									onRemoveMaterial={handleRemoveMaterial}
+									isBuyOrders={true}
 								/>
 							</Paper>
 						</Box>
