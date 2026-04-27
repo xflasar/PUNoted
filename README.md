@@ -56,9 +56,9 @@ npm run preview
 - **Data Visualization:** Deck.gl, Recharts, React Flow
 - **State/Data Management:** React Query, React Router DOM
 
-## Contributions
+## Contributing
 
-Before any PRs do make sure to run the code wih **Prettier formater** -> Default settings + ESLint. Thank you.
+Before submitting a PR, please format the code with `npm run fmt`.
 
 ## 📄 License
 
