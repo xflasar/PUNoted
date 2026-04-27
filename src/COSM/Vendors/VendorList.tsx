@@ -720,6 +720,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
 	const [isCheckingStore, setIsCheckingStore] = useState<boolean>(true);
 	const [vendorStores, setVendorStores] = useState<VendorStore[]>([]);
+	const [isLoadingVendors, setIsLoadingVendors] = useState<boolean>(true);
 	const [cxPriceLookup, setCxPriceLookup] = useState<CxPriceLookup>({});
 	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
 		null,
@@ -760,6 +761,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	useEffect(() => {
 		const getVendorStores = async () => {
+			setIsLoadingVendors(true);
 			try {
 				const [storesResponse, pricesResponse] = await Promise.all([
 					fetch("https://punoted.ddns.net/dev/api/vendor_stores"),
@@ -788,6 +790,8 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				console.error("Failed to get vendor stores:", error);
 				setVendorStores([]);
 				setCxPriceLookup({});
+			} finally {
+				setIsLoadingVendors(false);
 			}
 		};
 		getVendorStores();
@@ -974,7 +978,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				) : (
 					<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
 						<Typography variant="h6">
-							No vendors found matching your search.
+							{isLoadingVendors
+								? "Loading…"
+								: "No vendors found matching your search."}
 						</Typography>
 					</Box>
 				)}
