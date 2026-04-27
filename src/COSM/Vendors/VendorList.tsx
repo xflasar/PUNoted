@@ -6,6 +6,7 @@ import React, {
 	useCallback,
 } from "react";
 import { Masonry } from "@mui/lab";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
 	Typography,
 	Box,
@@ -38,7 +39,7 @@ import VendorCreationModal from "./CreateVendorStoreModal";
 import EditVendorStoreModal from "./EditVendorStoreModal";
 import ShoppingListModal from "./ShoppingListModal";
 import { formatAmount } from "../../utils/formaters";
-import type { VendorStore, OrderItem } from "./types";
+import type { VendorStore } from "./types";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
 const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
@@ -451,10 +452,10 @@ const VendorProductList = React.memo(
 										)}
 									</Box>
 
-										{/* ROW 2: Quantity & Price (Middle) */}
-										<Box
-											sx={{
-												display: "flex",
+									{/* ROW 2: Quantity & Price (Middle) */}
+									<Box
+										sx={{
+											display: "flex",
 											justifyContent: "space-between",
 											alignItems: "flex-end",
 											mt: 0.2,
@@ -506,48 +507,48 @@ const VendorProductList = React.memo(
 												}}
 											>
 												ICA
-												</Typography>
-											</Box>
+											</Typography>
 										</Box>
+									</Box>
 
-										{/* ROW 3: Badges (Bottom - Comparisons) */}
-										{cxStats || corpStats ? (
+									{/* ROW 3: Badges (Bottom - Comparisons) */}
+									{cxStats || corpStats ? (
+										<Box
+											sx={{
+												display: "flex",
+												gap: 1,
+												flexWrap: "nowrap",
+												mt: 0.2,
+												minHeight: "25px",
+												justifyContent: "space-between",
+												alignItems: "center",
+											}}
+										>
+											<Box sx={{ flex: 1, display: "flex" }}>
+												{cxStats && (
+													<PriceComparisonBadge label="CX" stats={cxStats} />
+												)}
+											</Box>
 											<Box
 												sx={{
+													flex: 1,
 													display: "flex",
-													gap: 1,
-													flexWrap: "nowrap",
-													mt: 0.2,
-													minHeight: "25px",
-													justifyContent: "space-between",
-													alignItems: "center",
+													justifyContent: "flex-end",
 												}}
 											>
-												<Box sx={{ flex: 1, display: "flex" }}>
-													{cxStats && (
-														<PriceComparisonBadge label="CX" stats={cxStats} />
-													)}
-												</Box>
-												<Box
-													sx={{
-														flex: 1,
-														display: "flex",
-														justifyContent: "flex-end",
-													}}
-												>
-													{corpStats && (
-														<PriceComparisonBadge
-															label="COSM"
-															stats={corpStats}
-														/>
-													)}
-												</Box>
+												{corpStats && (
+													<PriceComparisonBadge
+														label="COSM"
+														stats={corpStats}
+													/>
+												)}
 											</Box>
-										) : (
-											<Box sx={{ minHeight: "25px" }} />
-										)}
-									</Box>
-								);
+										</Box>
+									) : (
+										<Box sx={{ minHeight: "25px" }} />
+									)}
+								</Box>
+							);
 						})
 					) : (
 						<Box
@@ -933,25 +934,59 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		});
 	}, [vendorStores]);
 
+	const normalizeSearchQuery = useCallback(
+		(query: string) => query.trim().toLowerCase(),
+		[],
+	);
+
+	type SearchScope = "vendor" | "row";
+
+	const matchesVendorSearch = useCallback(
+		(vendor: VendorStore["vendor"], query: string) =>
+			vendor.companyname.toLowerCase().includes(query) ||
+			vendor.companycode.toLowerCase().includes(query) ||
+			vendor.gamename.toLowerCase().includes(query),
+		[],
+	);
+
+	const matchesMaterialSearch = useCallback(
+		(materialTicker: string, query: string) =>
+			materialTicker.toLowerCase().includes(query),
+		[],
+	);
+
+	const vendorStoreMatchesSearch = useCallback(
+		(vendorStore: VendorStore, query: string) =>
+			matchesVendorSearch(vendorStore.vendor, query) ||
+			vendorStore.orders.some((order) =>
+				matchesMaterialSearch(order.materialticker, query),
+			),
+		[matchesVendorSearch, matchesMaterialSearch],
+	);
+
+	const vendorsWithOrders = useMemo(
+		() =>
+			sortedVendors.filter((vendor) =>
+				vendor.orders?.some(
+					(order) => order.ordertype === "buy" || order.ordertype === "sell",
+				),
+			),
+		[sortedVendors],
+	);
+
 	// Filter Logic
 	const filteredVendors = useMemo(() => {
-		const vendorsWithOrders = sortedVendors.filter((vendor) =>
-			vendor.orders?.some(
-				(order) => order.ordertype === "buy" || order.ordertype === "sell",
-			),
-		);
 		if (!searchQuery) return vendorsWithOrders;
-		const lowerCaseQuery = searchQuery.toLowerCase();
-		return vendorsWithOrders.filter(
-			(vendor) =>
-				vendor.vendor.companyname.toLowerCase().includes(lowerCaseQuery) ||
-				vendor.vendor.gamename.toLowerCase().includes(lowerCaseQuery) ||
-				vendor.vendor.companycode.toLowerCase().includes(lowerCaseQuery) ||
-				vendor.orders.some((material) =>
-					material.materialticker.toLowerCase().includes(lowerCaseQuery),
-				),
+		const lowerCaseQuery = normalizeSearchQuery(searchQuery);
+		return vendorsWithOrders.filter((vendor) =>
+			vendorStoreMatchesSearch(vendor, lowerCaseQuery),
 		);
-	}, [searchQuery, sortedVendors]);
+	}, [
+		searchQuery,
+		vendorsWithOrders,
+		normalizeSearchQuery,
+		vendorStoreMatchesSearch,
+	]);
 
 	const preparedFilteredVendors = useMemo(
 		() =>
@@ -959,6 +994,245 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				prepareVendorStore(vendorStore, cxPriceLookup),
 			),
 		[filteredVendors, cxPriceLookup],
+	);
+
+	const preparedVendorsWithOrders = useMemo(
+		() =>
+			vendorsWithOrders.map((vendorStore) =>
+				prepareVendorStore(vendorStore, cxPriceLookup),
+			),
+		[vendorsWithOrders, cxPriceLookup],
+	);
+
+	const tableRows = useMemo(() => {
+		const lowerCaseQuery = normalizeSearchQuery(searchQuery);
+		const searchScope: SearchScope = "row";
+		return preparedVendorsWithOrders.flatMap((preparedVendor) => {
+			const { vendorStore, buyOrders, sellOrders } = preparedVendor;
+			const vendor = vendorStore.vendor;
+			const vendorMatches =
+				!lowerCaseQuery || matchesVendorSearch(vendor, lowerCaseQuery);
+			const updated = String(
+				(vendor as typeof vendor & { activity?: unknown }).activity || "-",
+			);
+			const user = `${vendor.gamename} (${vendor.companycode}) ${vendor.companyname}`;
+			const buildRows = (
+				preparedOrder: (typeof buyOrders)[number],
+				typeLabel: "Ask" | "Bid",
+			) => {
+				const locations =
+					preparedOrder.item.location?.length > 0
+						? preparedOrder.item.location
+						: [null];
+				return locations.map((location, index) => {
+					const locationQuantity =
+						location &&
+						typeof Reflect.get(location as object, "available") === "number"
+							? Number(Reflect.get(location as object, "available"))
+							: (location?.amount ?? preparedOrder.displayQuantity);
+					const locationLabel = (() => {
+						if (!location) return "Unknown";
+						const code = location.location_code?.trim();
+						const name = location.location_name?.trim();
+						if (code && name) {
+							const sameLabel =
+								code.localeCompare(name, undefined, {
+									sensitivity: "base",
+								}) === 0;
+							return sameLabel ? name : `${name} (${code})`;
+						}
+						return code || name || "Unknown";
+					})();
+					return {
+						id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
+						typeLabel,
+						orderType: preparedOrder.orderType,
+						material: preparedOrder.item.materialticker,
+						user,
+						ica: preparedOrder.fixedPrice,
+						location: locationLabel,
+						quantity: locationQuantity,
+						cxStats: preparedOrder.cxStats,
+						corpStats: preparedOrder.corpStats,
+						updated,
+					};
+				});
+			};
+			return [
+				...sellOrders.flatMap((order) => buildRows(order, "Ask")),
+				...buyOrders.flatMap((order) => buildRows(order, "Bid")),
+			].filter((row) => {
+				if (row.quantity <= 0) return false;
+				if (!lowerCaseQuery) return true;
+				if (searchScope === "vendor") {
+					return vendorMatches;
+				}
+				return (
+					vendorMatches || matchesMaterialSearch(row.material, lowerCaseQuery)
+				);
+			});
+		});
+	}, [
+		preparedVendorsWithOrders,
+		searchQuery,
+		normalizeSearchQuery,
+		matchesVendorSearch,
+		matchesMaterialSearch,
+	]);
+
+	const tableColumns = useMemo<GridColDef[]>(
+		() => [
+			{
+				field: "material",
+				headerName: "Material",
+				flex: 1,
+				headerAlign: "center",
+				align: "center",
+			},
+			{
+				field: "quantity",
+				headerName: "Quantity",
+				type: "number",
+				flex: 1,
+				headerAlign: "right",
+				align: "right",
+				renderCell: ({ value }) => (
+					<Typography
+						variant="body2"
+						sx={{
+							color: theme.palette.primary.light,
+							fontWeight: "bold",
+						}}
+					>
+						{formatAmount(Number(value))}
+					</Typography>
+				),
+			},
+			{
+				field: "typeLabel",
+				headerName: "Type",
+				flex: 1,
+				align: "right",
+				headerAlign: "right",
+				renderCell: ({ row }) => (
+					<Typography
+						variant="body2"
+						sx={{
+							fontWeight: "bold",
+							color:
+								row.orderType === "sell"
+									? theme.palette.warning.main
+									: theme.palette.info.main,
+						}}
+					>
+						{row.typeLabel}
+					</Typography>
+				),
+			},
+			{
+				field: "ica",
+				headerName: "ICA",
+				type: "number",
+				flex: 1,
+				headerAlign: "right",
+				align: "right",
+				renderCell: ({ value, row }) => (
+					<Typography
+						variant="body2"
+						sx={{
+							fontWeight: "bold",
+							color:
+								row.orderType === "sell"
+									? theme.palette.warning.main
+									: theme.palette.info.main,
+						}}
+					>
+						{Number(value).toLocaleString(undefined, {
+							maximumFractionDigits: 2,
+						})}
+					</Typography>
+				),
+			},
+			{
+				field: "price",
+				headerName: "Price",
+				flex: 2,
+				headerAlign: "center",
+				align: "center",
+				valueGetter: (_, row) => row.ica,
+				renderCell: ({ row }) => (
+					<Box sx={{ display: "flex", alignItems: "right", gap: 0.5 }}>
+						{row.corpStats && (
+							<PriceComparisonBadge label="COSM" stats={row.corpStats} />
+						)}
+						{row.cxStats && (
+							<PriceComparisonBadge label="CX" stats={row.cxStats} />
+						)}
+					</Box>
+				),
+			},
+			{
+				field: "location",
+				headerName: "Location",
+				flex: 2,
+				headerAlign: "left",
+				align: "left",
+				renderCell: ({ value }) => {
+					const locationText = String(value || "");
+					const match = locationText.match(/^(.+)\s\((.+)\)$/);
+					if (!match) {
+						return (
+							<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+								{locationText}
+							</Typography>
+						);
+					}
+					return (
+						<Typography variant="body2">
+							<Box component="span" sx={{ fontWeight: "bold" }}>
+								{match[1]}
+							</Box>{" "}
+							({match[2]})
+						</Typography>
+					);
+				},
+			},
+			{
+				field: "user",
+				headerName: "User",
+				flex: 3,
+				headerAlign: "left",
+				align: "left",
+				renderCell: ({ value }) => {
+					const userText = String(value || "");
+					const match = userText.match(/^(.+)\s\((.+)\)\s(.+)$/);
+					if (!match) {
+						return <Typography variant="body2">{userText}</Typography>;
+					}
+					return (
+						<Typography variant="body2">
+							<Box component="span" sx={{ fontWeight: "bold" }}>
+								{match[1]}
+							</Box>{" "}
+							({match[2]}) {match[3]}
+						</Typography>
+					);
+				},
+			},
+			{
+				field: "updated",
+				headerName: "Updated",
+				flex: 1,
+				headerAlign: "left",
+				align: "left",
+				renderCell: ({ value }) => (
+					<Typography variant="caption" sx={{ opacity: 0.8 }}>
+						{value === "-" ? "-" : `${value} ago`}
+					</Typography>
+				),
+			},
+		],
+		[theme],
 	);
 
 	return (
@@ -1021,7 +1295,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						variant="outlined"
 						size="small"
 						inputRef={searchInputRef}
-						placeholder="Search Vendors..."
+						placeholder="Search Materials & Vendors…"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						sx={{
@@ -1104,11 +1378,59 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 1, pb: 2 }}
 			>
 				{vendorViewMode === "table" ? (
-					<Box sx={{ textAlign: "center", py: 8, opacity: 0.8 }}>
-						<Typography variant="h6">Table view placeholder</Typography>
-						<Typography variant="body2" sx={{ mt: 1, opacity: 0.7 }}>
-							Table layout coming soon.
-						</Typography>
+					<Box sx={{ height: "100%", width: "100%" }}>
+						<DataGrid
+							rows={tableRows}
+							columns={tableColumns}
+							density="compact"
+							hideFooter
+							disableColumnMenu
+							disableColumnSorting
+							disableRowSelectionOnClick
+							sortModel={[{ field: "material", sort: "asc" }]}
+							localeText={{ noRowsLabel: "No results" }}
+							sx={{
+								border: "none",
+								"& .MuiDataGrid-row": {
+									borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+									"&:hover": {
+										backgroundColor: alpha(theme.palette.primary.main, 0.04),
+									},
+									display: "flex",
+									alignItems: "center",
+								},
+								"& .MuiDataGrid-cell": {
+									borderBottom: "none",
+									display: "flex",
+									alignItems: "center",
+									padding: "0 8px",
+									"&:focus": { outline: "none" },
+									"&:focus-within": { outline: "none" },
+								},
+								"& .MuiDataGrid-columnHeaders": {
+									backgroundColor: theme.palette.background.default,
+									color: theme.palette.primary.contrastText,
+									fontSize: "0.7rem",
+									fontWeight: "bold",
+									textTransform: "uppercase",
+									letterSpacing: "0.05em",
+									borderBottom: "none",
+									minHeight: "40px !important",
+									maxHeight: "40px !important",
+								},
+								"& .MuiDataGrid-columnHeader": {
+									padding: "0 10px",
+									"&:focus": { outline: "none" },
+									"&:focus-within": { outline: "none" },
+								},
+								"& .MuiDataGrid-columnSeparator": {
+									display: "none",
+								},
+								"& .MuiDataGrid-virtualScroller": {
+									marginTop: "0 !important",
+								},
+							}}
+						/>
 					</Box>
 				) : (
 					<>
@@ -1127,9 +1449,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						) : (
 							<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
 								<Typography variant="h6">
-									{isLoadingVendors
-										? "Loading…"
-										: "No vendors found matching your search."}
+									{isLoadingVendors ? "Loading…" : "No results"}
 								</Typography>
 							</Box>
 						)}
