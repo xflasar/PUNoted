@@ -737,6 +737,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState<string>("");
+	const searchInputRef = useRef<HTMLInputElement>(null);
 	const querySubtab = searchParams.get("subtab");
 	const vendorViewMode: "grid" | "table" =
 		(isVendorViewMode(querySubtab) ? querySubtab : null) ||
@@ -772,6 +773,13 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			return;
 		}
 		localStorage.setItem(VENDORS_VIEW_MODE_STORAGE_KEY, vendorViewMode);
+	}, [vendorViewMode]);
+
+	useEffect(() => {
+		const frameId = requestAnimationFrame(() => {
+			searchInputRef.current?.focus();
+		});
+		return () => cancelAnimationFrame(frameId);
 	}, [vendorViewMode]);
 
 	// Initial Data Fetch
@@ -996,6 +1004,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						fullWidth
 						variant="outlined"
 						size="small"
+						inputRef={searchInputRef}
 						placeholder="Search Vendors..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
