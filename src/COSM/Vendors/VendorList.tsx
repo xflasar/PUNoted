@@ -29,6 +29,7 @@ import {
 	ShoppingBasket,
 	MapPin,
 	Minus,
+	Target,
 } from "lucide-react";
 import VendorCreationModal from "./CreateVendorStoreModal";
 import EditVendorStoreModal from "./EditVendorStoreModal";
@@ -149,20 +150,20 @@ const PriceComparisonBadge = ({
 	return (
 			<Tooltip title={`${label} Price Difference`}>
 				<Chip
-					label={stats.color === "neutral" ? `✓ ${label}` : `${label} ${stats.label}`}
+					// icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+					icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+					label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
 					size="small"
 					variant="outlined"
 					sx={{
-					height: 18,
-					fontSize: "0.7rem",
-					"& .MuiChip-label": { px: 0.8 },
-					backdropFilter: "blur(4px)",
+						fontSize: "0.7rem",
+						"& .MuiChip-icon": { color: "inherit" },
 						color:
 							stats.color === "neutral"
-								? theme.palette.primary.light
-								: stats.isGood
-									? theme.palette.success.light
-									: theme.palette.error.light,
+							? theme.palette.primary.light
+							: stats.isGood
+								? theme.palette.success.light
+								: theme.palette.error.light,
 						borderColor:
 							stats.color === "neutral"
 								? alpha(theme.palette.primary.main, 0.3)
