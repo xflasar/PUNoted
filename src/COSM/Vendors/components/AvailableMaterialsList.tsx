@@ -6,6 +6,8 @@ import {
 	Box,
 	useTheme,
 	Pagination,
+	Checkbox,
+	FormControlLabel,
 } from "@mui/material";
 import { Search } from "@mui/icons-material";
 import OrderItemRow from "./OrderItemRow";
@@ -42,6 +44,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 	const theme = useTheme();
 	const [page, setPage] = useState(1);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [showUnavailable, setShowUnavailable] = useState(false);
 	const [itemsPerPage, setItemsPerPage] = useState(10); // Default start
 	const listRef = useRef<HTMLDivElement>(null); // Ref for the container
 
@@ -72,6 +75,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 		const lowerCaseQuery = debouncedSearchQuery.toLowerCase();
 		return materials
 			.filter((m) => m.materialticker.toLowerCase().includes(lowerCaseQuery))
+			.filter((m) => showUnavailable || m.instore > 0)
 			.map((m) => ({
 				...m,
 				// Disable adding if the user already has both a buy and a sell order for this ticker
@@ -79,7 +83,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					allOrders.filter((o) => o.materialticker === m.materialticker)
 						.length >= 2,
 			}));
-	}, [debouncedSearchQuery, materials, allOrders]);
+	}, [debouncedSearchQuery, materials, allOrders, showUnavailable]);
 
 	// Ensure page doesn't get stuck out of bounds if itemsPerPage changes
 	const count = Math.ceil(filteredAndMarkedMaterials.length / itemsPerPage);
@@ -154,6 +158,20 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 						startAdornment: <Search sx={{ mr: 1, color: "text.secondary" }} />,
 						sx: { borderRadius: "24px" },
 					}}
+				/>
+				<FormControlLabel
+					control={
+						<Checkbox
+							size="small"
+							checked={showUnavailable}
+							onChange={(e) => {
+								setShowUnavailable(e.target.checked);
+								setPage(1);
+							}}
+						/>
+					}
+					label="Show unavailable"
+					sx={{ mt: 0.5, ml: 0.5 }}
 				/>
 			</Box>
 
