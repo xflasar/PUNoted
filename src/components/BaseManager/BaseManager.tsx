@@ -31,7 +31,7 @@ import { SettingsDialog, AddPlatformDialog, AddRecipeDialog } from "./Dialogs";
 
 /**
  * BaseManager Component
- * 
+ *
  * This is the main orchestrator for planning and managing a player's base on a specific planet.
  * It handles the state for production platforms, infrastructure, recipes, and material pricing.
  * It allows the user to draft changes (in a planner mode) before saving them to the user profile.
@@ -45,7 +45,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 }) => {
 	// Determines if the user has initialized a base on this planet yet
 	const isUninitialized = user.baseData.status === "uninitialized";
-	
+
 	// UI State: Controls whether the planner view is visible
 	const [isPlannerOpen, setIsPlannerOpen] = useState(standalone);
 	// Ref to the DOM element where the planner portal will be injected
@@ -53,8 +53,8 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 
 	// State for the "draft" base data, allowing edits without immediately saving
 	const [draftBaseData, setDraftBaseData] = useState(user.baseData);
-	
-	// The current data being used to calculate metrics. 
+
+	// The current data being used to calculate metrics.
 	// If the planner is open, we use the draft; otherwise, we use the saved user data.
 	const activeData = isPlannerOpen ? draftBaseData : user.baseData;
 
@@ -93,15 +93,15 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 	// Dialog Visibility State
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [isEditingPlatform, setIsEditingPlatform] = useState(false);
-	
+
 	// Temporary state for adding a new platform
 	const [newPlatformTicker, setNewPlatformTicker] = useState("FRM");
 	const [newPlatformAmount, setNewPlatformAmount] = useState(1);
-	
+
 	// Temporary state for adding recipes to a specific platform (holds platform ID)
 	const [isAddingRecipe, setIsAddingRecipe] = useState<string | null>(null);
 	const [selectedRecipe, setSelectedRecipe] = useState("");
-	
+
 	// Determines if we are manually editing or syncing from an actual game state
 	const [syncMode, setSyncMode] = useState<"manual" | "sync">(
 		activeData?.status === "actual" ? "sync" : "manual",
@@ -135,7 +135,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 				m.inputRecipes?.forEach((r: any) => {
 					// Convert duration to seconds
 					const durSecs = r.durationmillis ? r.durationmillis / 1000 : 0;
-					
+
 					// Determine outputs (some recipes might just output the material itself)
 					const actualOutputs =
 						r.outputs?.length > 0
@@ -169,27 +169,31 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 	 * (e.g., market price vs corp price).
 	 * Wrapped in useCallback to prevent unnecessary recalculations in child components.
 	 */
-	const getPrice = useCallback((ticker: string) =>
-		activePrices[ticker]
-			? activePrices[ticker][globalMatPrices[ticker] || planDefaultPricing]
-			: 0,
-		[activePrices, globalMatPrices, planDefaultPricing]
+	const getPrice = useCallback(
+		(ticker: string) =>
+			activePrices[ticker]
+				? activePrices[ticker][globalMatPrices[ticker] || planDefaultPricing]
+				: 0,
+		[activePrices, globalMatPrices, planDefaultPricing],
 	);
 
 	/**
 	 * Calculates the total cost of constructing a building by summing the costs
 	 * of all its required materials.
 	 */
-	const getBuildingCost = useCallback((ticker: string) => {
-		const b = activeBuildings.find((mb) => mb.ticker === ticker);
-		return b?.buildReq
-			? b.buildReq.reduce(
-					(acc: number, req: any) =>
-						acc + Number(req.amount) * getPrice(req.ticker),
-					0,
-				)
-			: 0;
-	}, [activeBuildings, getPrice]);
+	const getBuildingCost = useCallback(
+		(ticker: string) => {
+			const b = activeBuildings.find((mb) => mb.ticker === ticker);
+			return b?.buildReq
+				? b.buildReq.reduce(
+						(acc: number, req: any) =>
+							acc + Number(req.amount) * getPrice(req.ticker),
+						0,
+					)
+				: 0;
+		},
+		[activeBuildings, getPrice],
+	);
 
 	/**
 	 * Central metric calculation for the base.
@@ -587,7 +591,8 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 				onAdd={() => {
 					let p = [...activeData.platforms];
 					const ex = p.find((x: any) => x.buildingTicker === newPlatformTicker);
-					if (ex) ex.amount += newPlatformAmount; // Increase amount if platform already exists
+					if (ex)
+						ex.amount += newPlatformAmount; // Increase amount if platform already exists
 					else
 						p.push({
 							id: uuidv4(),

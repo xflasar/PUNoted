@@ -1,4 +1,5 @@
-{/* <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+{
+	/* <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
             <Autocomplete
               options={sectorOptions}
               value={selectedSector}
@@ -99,4 +100,5 @@
             />
           </Box>
           
-          )} */}
+          )} */
+}

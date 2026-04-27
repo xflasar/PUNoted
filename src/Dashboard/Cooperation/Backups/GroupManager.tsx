@@ -160,7 +160,7 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
 
 	const isOwner =
 		activeGroup!.members!.find(
-			(m: { uid: any }) => m.uid === activeGroup.ownerId
+			(m: { uid: any }) => m.uid === activeGroup.ownerId,
 		)?.uid === localStorage.getItem("currentUserId");
 
 	const handleDelete = async () => {
@@ -181,12 +181,12 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
 					body: JSON.stringify({
 						member_uid: memberId,
 					}),
-				}
+				},
 			);
 
 			if (response.ok) {
 				activeGroup.members = activeGroup.members.filter(
-					(m) => m.uid !== memberId
+					(m) => m.uid !== memberId,
 				);
 				await onGroupMemberUpdate(activeGroup);
 			} else {
@@ -195,7 +195,7 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
 					.catch(() => ({ detail: "Unknown error occurred." }));
 				throw new Error(
 					errorDetail.detail ||
-						`Failed to remove member. Status: ${response.status}`
+						`Failed to remove member. Status: ${response.status}`,
 				);
 			}
 		} catch (error) {
@@ -215,7 +215,7 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
 			await changeUserRole(activeGroup.id, memberUid, newRole);
 
 			const updatedMembers = activeGroup.members.map((m) =>
-				m.uid === memberUid ? { ...m, role: newRole } : m
+				m.uid === memberUid ? { ...m, role: newRole } : m,
 			);
 
 			const updatedGroup = { ...activeGroup, members: updatedMembers };
@@ -348,16 +348,24 @@ const GroupManager: React.FC<
 	const [newGroupName, setNewGroupName] = useState("");
 	const [newGroupError, setNewGroupError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const [isProcessingInvite, setIsProcessingInvite] = useState<string | null>(null);
+	const [isProcessingInvite, setIsProcessingInvite] = useState<string | null>(
+		null,
+	);
 
 	const liveUserIds = useMemo(
 		() => Array.from(remoteCursors.keys()).map(String),
-		[remoteCursors]
+		[remoteCursors],
 	);
 
 	// Separate groups into pending and active
-	const activeGroups = useMemo(() => (groups || []).filter(g => !g.isPending), [groups]);
-	const pendingGroups = useMemo(() => (groups || []).filter(g => g.isPending), [groups]);
+	const activeGroups = useMemo(
+		() => (groups || []).filter((g) => !g.isPending),
+		[groups],
+	);
+	const pendingGroups = useMemo(
+		() => (groups || []).filter((g) => g.isPending),
+		[groups],
+	);
 
 	useEffect(() => {
 		const loadGroups = async () => {
@@ -382,8 +390,13 @@ const GroupManager: React.FC<
 			return;
 		}
 
-		if (!localStorage.getItem('displayName') || localStorage.getItem('displayName') === 'null') {
-			setNewGroupError("Please set your displayName in Settings. 'displayName' should reflect ingame displayName not your company name.");
+		if (
+			!localStorage.getItem("displayName") ||
+			localStorage.getItem("displayName") === "null"
+		) {
+			setNewGroupError(
+				"Please set your displayName in Settings. 'displayName' should reflect ingame displayName not your company name.",
+			);
 			return;
 		}
 
@@ -480,21 +493,27 @@ const GroupManager: React.FC<
 				</Box>
 			) : (
 				<List sx={{ maxHeight: "calc(100vh - 200px)", overflowY: "auto" }}>
-					
 					{/* --- PENDING INVITATIONS --- */}
 					{pendingGroups.length > 0 && (
 						<Box sx={{ mb: 2 }}>
-							<Typography variant="subtitle2" color="warning.main" sx={{ mb: 1, fontWeight: "bold" }}>
+							<Typography
+								variant="subtitle2"
+								color="warning.main"
+								sx={{ mb: 1, fontWeight: "bold" }}
+							>
 								Pending Invitations ({pendingGroups.length})
 							</Typography>
 							{pendingGroups.map((group) => (
 								<Card
 									key={group.id}
 									sx={{
-										mb: 1, p: 1.5,
+										mb: 1,
+										p: 1.5,
 										border: `1px dashed ${theme.palette.warning.main}`,
 										background: theme.palette.background.paper,
-										display: "flex", alignItems: "center", justifyContent: "space-between",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "space-between",
 									}}
 								>
 									<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
@@ -506,12 +525,20 @@ const GroupManager: React.FC<
 										) : (
 											<>
 												<Tooltip title="Accept">
-													<IconButton color="success" size="small" onClick={(e) => handleAcceptInvite(e, group.id)}>
+													<IconButton
+														color="success"
+														size="small"
+														onClick={(e) => handleAcceptInvite(e, group.id)}
+													>
 														<CheckCircleOutline fontSize="small" />
 													</IconButton>
 												</Tooltip>
 												<Tooltip title="Reject">
-													<IconButton color="error" size="small" onClick={(e) => handleRejectInvite(e, group.id)}>
+													<IconButton
+														color="error"
+														size="small"
+														onClick={(e) => handleRejectInvite(e, group.id)}
+													>
 														<CloseIcon fontSize="small" />
 													</IconButton>
 												</Tooltip>
@@ -528,13 +555,17 @@ const GroupManager: React.FC<
 					{(groups || []).length === 0 ? (
 						<Alert severity="info">No groups found. Create one above!</Alert>
 					) : activeGroups.length === 0 ? (
-						<Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 2 }}>
+						<Typography
+							variant="body2"
+							color="text.secondary"
+							sx={{ textAlign: "center", mt: 2 }}
+						>
 							No active groups.
 						</Typography>
 					) : (
 						activeGroups.map((group) => {
 							const liveMembersArray = (group.members || []).filter((member) =>
-								liveUserIds.includes(member.uid)
+								liveUserIds.includes(member.uid),
 							);
 							const usersToShow = liveMembersArray.slice(0, 3);
 							const totalLiveMembers = liveMembersArray.length;
@@ -636,7 +667,7 @@ const GroupManager: React.FC<
 																	border: `1px solid ${theme.palette.background.paper}`,
 																	bgcolor: theme.palette.info.main,
 																	color: theme.palette.getContrastText(
-																		theme.palette.info.main
+																		theme.palette.info.main,
 																	),
 																	zIndex: 10 + index,
 																}}

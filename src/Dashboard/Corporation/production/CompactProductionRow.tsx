@@ -50,7 +50,7 @@ export const CompactProductionRow = React.memo(
 			if (isDrilldown) return null;
 			const p = row.productionTotal;
 			const c = row.consumptionTotal;
-			
+
 			// 1. Handle cases where there is no consumption
 			if (c === 0)
 				return p > 0
@@ -66,7 +66,7 @@ export const CompactProductionRow = React.memo(
 							hasTooltip: false,
 							tooltipText: "",
 						};
-			
+
 			// 2. Calculate ratio and format for display based on magnitude
 			const ratio = (p - c) / c;
 			const percentage = Math.abs(ratio * 100);

@@ -292,7 +292,6 @@ const LandingPage: React.FC<LandingPageProps> = ({
 						flexWrap: "wrap",
 					}}
 				>
-
 					{isLoggedIn ? (
 						<>
 							<ActionButton

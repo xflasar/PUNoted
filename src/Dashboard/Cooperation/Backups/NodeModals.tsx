@@ -72,7 +72,7 @@ interface SearchResultPlanet {
 // --- API HELPER: exponentialBackoffFetch ---
 const exponentialBackoffFetch = async (
 	url: string,
-	attempt: number = 0
+	attempt: number = 0,
 ): Promise<any> => {
 	const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
 	if (attempt > 0) {
@@ -144,17 +144,17 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 	groupMembers,
 }) => {
 	const [materialTicker, setMaterialTicker] = useState(
-		initialData?.materialTicker || ""
+		initialData?.materialTicker || "",
 	);
 	const [siteName, setSiteName] = useState(initialData?.siteName || "New-Site");
 	const [productionRate, setProductionRate] = useState(
-		initialData?.productionRate.toFixed(1) || "0.0"
+		initialData?.productionRate.toFixed(1) || "0.0",
 	);
 	const [consumptionRate, setConsumptionRate] = useState(
-		initialData?.consumptionRatio?.toFixed(1) || "0.0"
+		initialData?.consumptionRatio?.toFixed(1) || "0.0",
 	);
 	const [netRate, setNetRate] = useState(
-		initialData?.netFlow.toFixed(1) || "0.0"
+		initialData?.netFlow.toFixed(1) || "0.0",
 	);
 	const [error, setError] = useState("");
 	const theme = useTheme();
@@ -168,14 +168,14 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 	// Location States (3-Tier Hierarchy)
 	/* const [sectorOptions, setSectorOptions] = useState<SectorOption[]>([]); */
 	const [selectedSector, setSelectedSector] = useState<SectorOption | null>(
-		null
+		null,
 	);
 	const [selectedSystem, setSelectedSystem] = useState<SystemOption | null>(
-		null
+		null,
 	);
 	/* const [planetOptions, setPlanetOptions] = useState<PlanetOption[]>([]); */
 	const [selectedPlanet, setSelectedPlanet] = useState<PlanetOption | null>(
-		null
+		null,
 	);
 	/* const [systemOptions, setSystemOptions] = useState<SystemOption[]>([]);
 	const [isLoadingSystems, setIsLoadingSystems] = useState(false);
@@ -186,9 +186,13 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 	const [searchResults, setSearchResults] = useState<SearchResultPlanet[]>([]);
 	const [isSearching, setIsSearching] = useState<boolean>(false);
 
-	const [selectedRecipe, setSelectedRecipe] = useState<InputRecipe | null>(null);
+	const [selectedRecipe, setSelectedRecipe] = useState<InputRecipe | null>(
+		null,
+	);
 
-	const handleSelectRecipe = (recipe: React.SetStateAction<InputRecipe | null>) => {
+	const handleSelectRecipe = (
+		recipe: React.SetStateAction<InputRecipe | null>,
+	) => {
 		setSelectedRecipe(recipe);
 	};
 
@@ -198,12 +202,12 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 	// --- Memoized Helpers ---
 	const materialOptions = useMemo(
 		() => materials.map((m) => m.ticker),
-		[materials]
+		[materials],
 	);
 
 	const selectedMaterial = useMemo(
 		() => materials.find((m) => m.ticker === materialTicker),
-		[materials, materialTicker]
+		[materials, materialTicker],
 	);
 
 	// Calculate the color for the modal border/highlights
@@ -228,7 +232,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 			const initialFlows: UserFlowInput[] = (initialData.userFlows || []).map(
 				(flow) => {
 					const member = groupMembers.find(
-						(m) => m.username === flow.username
+						(m) => m.username === flow.username,
 					) as GroupMember;
 					return {
 						uid: member?.uid || flow.username,
@@ -237,7 +241,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 						rate: parseFloat(parseFloat(flow.rate).toFixed(1)),
 						type: flow.type as "Produce" | "Consume",
 					};
-				}
+				},
 			);
 			setUserFlowInputs(initialFlows);
 
@@ -247,14 +251,18 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 					current: storage.current,
 					unit: storage.unit,
 					overallStorage: storage.overallStorage,
-				})
+				}),
 			);
 			setUserStorage(initialStorage);
 			setError("");
 
-
-			const recipe = materials.find(mat => mat.ticker === initialData.materialTicker)?.inputRecipes.find(recipe => recipe.processid === initialData.recipe?.processid) || null
-			setSelectedRecipe(recipe)
+			const recipe =
+				materials
+					.find((mat) => mat.ticker === initialData.materialTicker)
+					?.inputRecipes.find(
+						(recipe) => recipe.processid === initialData.recipe?.processid,
+					) || null;
+			setSelectedRecipe(recipe);
 
 			// --- Location init logic (assuming initialData has location objects) ---
 			setSelectedSector(initialData.sector || null);
@@ -278,7 +286,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 		// NOTE: Assuming your calculateNetProductionRate utility takes a node object or object with userFlows.
 		const mockNodeData = { userFlows: userFlowInputs };
 		const { production, consumption, net } = calculateProductionAndConsumption(
-			mockNodeData as ChainNodeData
+			mockNodeData as ChainNodeData,
 		);
 		const productionString = production.toFixed(1);
 		const consumptionString = consumption.toFixed(1);
@@ -396,7 +404,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 		setIsSearching(true);
 		// Use the new endpoint for planet search
 		const apiUrl = `${API_BASE_URL}/map/planets/search?query=${encodeURIComponent(
-			query
+			query,
 		)}`;
 
 		try {
@@ -442,7 +450,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 			setSearchTerm("");
 			setSearchResults([]);
 		},
-		[]
+		[],
 	);
 
 	const handleAddUserToFlow = useCallback(
@@ -469,7 +477,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 			setUserFlowInputs((prev) => [...prev, newUserFlow]);
 			setUserStorage((prev) => [...prev, newUserStorage]);
 		},
-		[userFlowInputs, setUserFlowInputs, setUserStorage]
+		[userFlowInputs, setUserFlowInputs, setUserStorage],
 	);
 
 	const handleFlowChange = useCallback(
@@ -483,27 +491,27 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 									field === "type"
 										? (value as "Produce" | "Consume")
 										: parseFloat(value),
-						  }
-						: flow
-				)
+							}
+						: flow,
+				),
 			);
 		},
-		[]
+		[],
 	);
 
 	const handleRemoveFlowUser = useCallback(
 		(uid: string) => {
 			setUserFlowInputs((prevFlows) =>
-				prevFlows.filter((flow) => flow.uid !== uid)
+				prevFlows.filter((flow) => flow.uid !== uid),
 			);
 			setUserStorage((prevStorage) =>
 				prevStorage.filter((storage) => {
 					const flowToRemove = userFlowInputs.find((f) => f.uid === uid);
 					return storage.username !== flowToRemove?.username;
-				})
+				}),
 			);
 		},
-		[userFlowInputs]
+		[userFlowInputs],
 	);
 
 	const getUniqueId = () => {
@@ -560,7 +568,10 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 			nodeId: finalNodeId,
 			materialTicker: materialTicker,
 			locked: false,
-			recipe: !selectedRecipe ? materials.find(mat => mat.ticker === materialTicker)!.inputRecipes[0] : selectedRecipe,
+			recipe: !selectedRecipe
+				? materials.find((mat) => mat.ticker === materialTicker)!
+						.inputRecipes[0]
+				: selectedRecipe,
 			isResource: selectedMaterial!.inputRecipes.length > 0 ? false : true,
 			isEndMaterial: selectedMaterial!.requiredFor.length > 0 ? false : true,
 			siteName: siteName.trim() || "Untitled-Site",
@@ -579,7 +590,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 			userStorage: finalUserStorage,
 			position: initialData?.position,
 			supply: {},
-			inputStatus: false
+			inputStatus: false,
 		};
 
 		const updatedProductionRate =
@@ -674,7 +685,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 										border: `1px solid ${theme.palette.divider}`,
 										borderRadius: 1,
 										mb: 0.5,
-										background: 'transparent',
+										background: "transparent",
 										"&:hover": {
 											bgcolor: theme.palette.action.selected,
 										},
@@ -845,7 +856,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 							freeSolo
 							options={
 								groupMembers.filter(
-									(m) => !userFlowInputs.some((uf) => uf.uid === m.uid)
+									(m) => !userFlowInputs.some((uf) => uf.uid === m.uid),
 								) as GroupMember[]
 							}
 							getOptionLabel={(member) => {
@@ -868,8 +879,8 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 													username,
 													displayName: username,
 													role: "viewer",
-											  }
-											: null
+												}
+											: null,
 									);
 								} else if (newValue) {
 									setUserToAdd(newValue);
@@ -958,7 +969,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 												handleFlowChange(
 													flow.uid,
 													"type",
-													e.target.value as "Produce" | "Consume"
+													e.target.value as "Produce" | "Consume",
 												)
 											}
 										>
