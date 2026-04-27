@@ -8,7 +8,7 @@ import {
 	Select,
 	MenuItem,
 	SelectChangeEvent,
-    useTheme,
+	useTheme,
 } from "@mui/material";
 import { Search } from "lucide-react";
 
@@ -29,11 +29,11 @@ const ShipsList: React.FC<ShipsListProps> = ({
 	const [searchTerm, setSearchTerm] = useState("");
 	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [assignmentFilter, setAssignmentFilter] = useState<string>("all");
-    const theme = useTheme();
+	const theme = useTheme();
 
 	const siteMap = useMemo(
 		() => new Map(sites.map((s) => [s.id, s.name])),
-		[sites]
+		[sites],
 	);
 
 	const filteredShips = useMemo(() => {
@@ -55,7 +55,17 @@ const ShipsList: React.FC<ShipsListProps> = ({
 	}, [ships, searchTerm, statusFilter, assignmentFilter]);
 
 	return (
-		<Box sx={{ height: "100%", display: "flex", flexDirection: "column", flexGrow: 1, overflow: 'hidden', p: 2, background: 'transparent' }}>
+		<Box
+			sx={{
+				height: "100%",
+				display: "flex",
+				flexDirection: "column",
+				flexGrow: 1,
+				overflow: "hidden",
+				p: 2,
+				background: "transparent",
+			}}
+		>
 			<Box
 				sx={{
 					display: "flex",
@@ -63,7 +73,7 @@ const ShipsList: React.FC<ShipsListProps> = ({
 					alignItems: "center",
 					gap: 1.5,
 					mb: 2,
-                    flexShrink: 0
+					flexShrink: 0,
 				}}
 			>
 				<TextField
@@ -119,31 +129,37 @@ const ShipsList: React.FC<ShipsListProps> = ({
 				</Box>
 			</Box>
 
-			<Box 
-                name="ship-list" 
-                sx={{ 
-                    flexGrow: 1, 
-                    overflowY: "auto",
-                    minHeight: 0,
-                    pr: 1,
-                    // Custom Scrollbar Styling
-                    '&::-webkit-scrollbar': { width: '8px' },
-                    '&::-webkit-scrollbar-track': { background: 'transparent' },
-                    '&::-webkit-scrollbar-thumb': { 
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
-                        borderRadius: '4px' 
-                    },
-                    '&::-webkit-scrollbar-thumb:hover': { 
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' 
-                    },
-                }}
-            >
+			<Box
+				name="ship-list"
+				sx={{
+					flexGrow: 1,
+					overflowY: "auto",
+					minHeight: 0,
+					pr: 1,
+					// Custom Scrollbar Styling
+					"&::-webkit-scrollbar": { width: "8px" },
+					"&::-webkit-scrollbar-track": { background: "transparent" },
+					"&::-webkit-scrollbar-thumb": {
+						backgroundColor:
+							theme.palette.mode === "dark"
+								? "rgba(255,255,255,0.2)"
+								: "rgba(0,0,0,0.2)",
+						borderRadius: "4px",
+					},
+					"&::-webkit-scrollbar-thumb:hover": {
+						backgroundColor:
+							theme.palette.mode === "dark"
+								? "rgba(255,255,255,0.3)"
+								: "rgba(0,0,0,0.3)",
+					},
+				}}
+			>
 				<Box
 					sx={{
 						display: "grid",
 						gap: 2,
 						gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                        pb: 2
+						pb: 2,
 					}}
 				>
 					{filteredShips.map((ship) => (

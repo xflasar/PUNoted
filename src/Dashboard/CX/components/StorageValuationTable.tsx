@@ -235,7 +235,7 @@ export const StorageValuationTable = ({ exchange }: { exchange: string }) => {
 					<Typography variant="caption" fontWeight="bold">
 						STORAGE VALUATION
 					</Typography>
-					<FormControl size="small" sx={{ ml: 2,minWidth: 120 }}>
+					<FormControl size="small" sx={{ ml: 2, minWidth: 120 }}>
 						<Select
 							// Control by ID
 							value={selectedStorageId}
@@ -281,7 +281,7 @@ export const StorageValuationTable = ({ exchange }: { exchange: string }) => {
 					<TableHead>
 						<TableRow>
 							<HeaderCell label="TICKER" sortKey="ticker" tooltip="Item Code" />
-                            <HeaderCell label="AMT" sortKey="amount" />
+							<HeaderCell label="AMT" sortKey="amount" />
 							<TableCell
 								align="right"
 								sx={{ cursor: "help", fontSize: "0.7rem", fontWeight: "bold" }}
@@ -323,9 +323,11 @@ export const StorageValuationTable = ({ exchange }: { exchange: string }) => {
 										</Typography>
 									</TableCell>
 
-                                    <TableCell>
-                                        <Typography variant="caption" fontWeight="600">{row.amount}</Typography>
-                                    </TableCell>
+									<TableCell>
+										<Typography variant="caption" fontWeight="600">
+											{row.amount}
+										</Typography>
+									</TableCell>
 
 									{/* Editable Target (Not Sortable via Header) */}
 									<TableCell

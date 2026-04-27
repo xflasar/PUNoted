@@ -1,84 +1,127 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScatterplotLayer, PolygonLayer, PathLayer, TextLayer, IconLayer } from "@deck.gl/layers";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	ScatterplotLayer,
+	PolygonLayer,
+	PathLayer,
+	TextLayer,
+	IconLayer,
+} from "@deck.gl/layers";
 import type { OrthographicViewport } from "@deck.gl/core";
-import type { MapPoint, Sector, PlanetPosition, AnimatedShipData, StationPosition } from '../types/mapTypes';
-import { hexToRgba } from '../utils/colors';
-import { BASE_PLANET_SIZE, SYSTEM_BASE_RADIUS } from '../constants/map';
-import ShipIconAtlas from '../../../../assets/ship_icons.png';
-import starO from '../../../../assets/stars/O_star.png';
-import starB from '../../../../assets/stars/B_star.png';
-import starA from '../../../../assets/stars/A_star.png';
-import starF from '../../../../assets/stars/F_star.png';
-import starG from '../../../../assets/stars/G_star.png';
-import starK from '../../../../assets/stars/K_star.png';
-import starM from '../../../../assets/stars/M_star.png';
-import stationIC from '../../../../assets/stations/IC_station.png';
-import earth from '../../../../assets/planets/earth_like/earth.png';
-import vartu from '../../../../assets/planets/earth_like/VARTU.png';
-import niceq from '../../../../assets/planets/earth_like/NICEQ.png';
-import arden from '../../../../assets/planets/gas_like/ARDEN.png';
-import berst from '../../../../assets/planets/gas_like/BERST.png';
-import aerst from '../../../../assets/planets/gas_like/AERST.png';
-import bluey from '../../../../assets/planets/gas_like/BLUEY.png';
-import ert from '../../../../assets/planets/rocky_like/ERT.png';
-import bar from '../../../../assets/planets/rocky_like/BAR.png';
-import ters from '../../../../assets/planets/rocky_like/TERS.png';
-import lcb from '../../../../assets/ships/LCB.png';
-import wcb from '../../../../assets/ships/WCB.png';
-import vcb from '../../../../assets/ships/VCB.png';
-import hcb from '../../../../assets/ships/HCB.png';
-import { buildStarAtlas } from '../utils/buildStarAtlas';
-import { useAnimation } from './useAnimation';
-import { useTheme } from '@emotion/react';
+import type {
+	MapPoint,
+	Sector,
+	PlanetPosition,
+	AnimatedShipData,
+	StationPosition,
+} from "../types/mapTypes";
+import { hexToRgba } from "../utils/colors";
+import { BASE_PLANET_SIZE, SYSTEM_BASE_RADIUS } from "../constants/map";
+import ShipIconAtlas from "../../../../assets/ship_icons.png";
+import starO from "../../../../assets/stars/O_star.png";
+import starB from "../../../../assets/stars/B_star.png";
+import starA from "../../../../assets/stars/A_star.png";
+import starF from "../../../../assets/stars/F_star.png";
+import starG from "../../../../assets/stars/G_star.png";
+import starK from "../../../../assets/stars/K_star.png";
+import starM from "../../../../assets/stars/M_star.png";
+import stationIC from "../../../../assets/stations/IC_station.png";
+import earth from "../../../../assets/planets/earth_like/earth.png";
+import vartu from "../../../../assets/planets/earth_like/VARTU.png";
+import niceq from "../../../../assets/planets/earth_like/NICEQ.png";
+import arden from "../../../../assets/planets/gas_like/ARDEN.png";
+import berst from "../../../../assets/planets/gas_like/BERST.png";
+import aerst from "../../../../assets/planets/gas_like/AERST.png";
+import bluey from "../../../../assets/planets/gas_like/BLUEY.png";
+import ert from "../../../../assets/planets/rocky_like/ERT.png";
+import bar from "../../../../assets/planets/rocky_like/BAR.png";
+import ters from "../../../../assets/planets/rocky_like/TERS.png";
+import lcb from "../../../../assets/ships/LCB.png";
+import wcb from "../../../../assets/ships/WCB.png";
+import vcb from "../../../../assets/ships/VCB.png";
+import hcb from "../../../../assets/ships/HCB.png";
+import { buildStarAtlas } from "../utils/buildStarAtlas";
+import { useAnimation } from "./useAnimation";
+import { useTheme } from "@emotion/react";
 
 // --- CONSTANTS ---
-const STAR_ICONS = [ { type: 'O', url: starO, size: 512 }, { type: 'B', url: starB, size: 512 }, { type: 'A', url: starA, size: 512 }, { type: 'F', url: starF, size: 512 }, { type: 'G', url: starG, size: 512 }, { type: 'K', url: starK, size: 512 }, { type: 'M', url: starM, size: 512 } ];
-const STATION_ICONS = [ { type: 'IC', url: stationIC, size: 512 } ];
-const SHIP_ICONS = [ { type: 'LCB', url: lcb, size: 512 }, { type: 'WCB', url: wcb, size: 512 }, { type: 'VCB', url: vcb, size: 512 }, { type: 'HCB', url: hcb, size: 512 }, { type: 'cluster', url: ShipIconAtlas, size: 512 } ];
-const PLANET_ICONS = [ { type: 'EARTH', url: earth, size: 256 }, { type: 'VARTU', url: vartu, size: 256}, { type: 'NICEQ', url: niceq, size: 256 }, { type: 'ARDEN', url: arden, size: 256 }, { type: 'BERST', url: berst, size: 256 }, { type: 'AERST', url: aerst, size: 256 }, { type: 'BLUEY', url: bluey, size: 256 }, { type: 'ERT', url: ert, size: 256 }, { type: 'BAR', url: bar, size: 256 }, { type: 'TERS', url: ters, size: 256 } ];
+const STAR_ICONS = [
+	{ type: "O", url: starO, size: 512 },
+	{ type: "B", url: starB, size: 512 },
+	{ type: "A", url: starA, size: 512 },
+	{ type: "F", url: starF, size: 512 },
+	{ type: "G", url: starG, size: 512 },
+	{ type: "K", url: starK, size: 512 },
+	{ type: "M", url: starM, size: 512 },
+];
+const STATION_ICONS = [{ type: "IC", url: stationIC, size: 512 }];
+const SHIP_ICONS = [
+	{ type: "LCB", url: lcb, size: 512 },
+	{ type: "WCB", url: wcb, size: 512 },
+	{ type: "VCB", url: vcb, size: 512 },
+	{ type: "HCB", url: hcb, size: 512 },
+	{ type: "cluster", url: ShipIconAtlas, size: 512 },
+];
+const PLANET_ICONS = [
+	{ type: "EARTH", url: earth, size: 256 },
+	{ type: "VARTU", url: vartu, size: 256 },
+	{ type: "NICEQ", url: niceq, size: 256 },
+	{ type: "ARDEN", url: arden, size: 256 },
+	{ type: "BERST", url: berst, size: 256 },
+	{ type: "AERST", url: aerst, size: 256 },
+	{ type: "BLUEY", url: bluey, size: 256 },
+	{ type: "ERT", url: ert, size: 256 },
+	{ type: "BAR", url: bar, size: 256 },
+	{ type: "TERS", url: ters, size: 256 },
+];
 
 interface UseMapLayersProps {
-  systemToSectorMap: Map<string, string>;
-  visibilityVersion: number;
-  galaxyViewState: any;
-  SYSTEMS_VISIBLE_ZOOM: number;
-  sectors: Sector[];
-  empireLegend: Record<string, string>;
-  viewportInstance: OrthographicViewport | null;
-  systemsPoints: MapPoint[];
-  maxSystemPopulation: number;
-  ZOOM_SENSITIVITY: number;
-  MAX_ALLOWED_RADIUS: number;
-  onSystemClick: (sys: MapPoint | null) => void;
-  isPlanetModeActive: boolean;
-  setTooltip: (tooltip: { x: number; y: number; content: string; } | null) => void;
-  isGalaxyView: boolean;
-  popFilterSetting: string;
-  systemConnections: { sourcePosition: number[]; targetPosition: number[]; }[];
-  gatewayConnections: { sourcePosition: number[]; targetPosition: number[]; type: string }[];
-  throttleKey: number;
-  systemBoundingBox: any[];
-  orbitLines: any[];
-  orbitLinesStatic: any[];
-  allPlanetsData: Record<string, PlanetData[]>;
-  allStationsData: Record<string, StationData[]>;
-  allGatewaysData: Record<string, GatewayData[]>;
-  setSelectedPlanet: (planet: PlanetPosition | null) => void;
-  animatedShipData: AnimatedShipData[];
-  activeFlightPlans: any[];
-  ownFlightPlans: any[];
-  corpFlightPlans: any[];
-  setActiveFlightPlans: React.Dispatch<React.SetStateAction<any[]>>;
-  mode: 'public' | 'dashboard' | 'shipping';
-  onShipHover: (info: { object: any, x: number, y: number } | null) => void;
-  onShipClick: (ship: AnimatedShipData) => void;
-  currentSystemId: string | null;
-  currentSystem: MapPoint | null;
-  deckRef: React.RefObject<any>;
-  animationWorker: Worker | null;
-  isInteracting: boolean;
-  visiblePathShipIds: Set<string>;
-  selectedShipId: string | null;
+	systemToSectorMap: Map<string, string>;
+	visibilityVersion: number;
+	galaxyViewState: any;
+	SYSTEMS_VISIBLE_ZOOM: number;
+	sectors: Sector[];
+	empireLegend: Record<string, string>;
+	viewportInstance: OrthographicViewport | null;
+	systemsPoints: MapPoint[];
+	maxSystemPopulation: number;
+	ZOOM_SENSITIVITY: number;
+	MAX_ALLOWED_RADIUS: number;
+	onSystemClick: (sys: MapPoint | null) => void;
+	isPlanetModeActive: boolean;
+	setTooltip: (
+		tooltip: { x: number; y: number; content: string } | null,
+	) => void;
+	isGalaxyView: boolean;
+	popFilterSetting: string;
+	systemConnections: { sourcePosition: number[]; targetPosition: number[] }[];
+	gatewayConnections: {
+		sourcePosition: number[];
+		targetPosition: number[];
+		type: string;
+	}[];
+	throttleKey: number;
+	systemBoundingBox: any[];
+	orbitLines: any[];
+	orbitLinesStatic: any[];
+	allPlanetsData: Record<string, PlanetData[]>;
+	allStationsData: Record<string, StationData[]>;
+	allGatewaysData: Record<string, GatewayData[]>;
+	setSelectedPlanet: (planet: PlanetPosition | null) => void;
+	animatedShipData: AnimatedShipData[];
+	activeFlightPlans: any[];
+	ownFlightPlans: any[];
+	corpFlightPlans: any[];
+	setActiveFlightPlans: React.Dispatch<React.SetStateAction<any[]>>;
+	mode: "public" | "dashboard" | "shipping";
+	onShipHover: (info: { object: any; x: number; y: number } | null) => void;
+	onShipClick: (ship: AnimatedShipData) => void;
+	currentSystemId: string | null;
+	currentSystem: MapPoint | null;
+	deckRef: React.RefObject<any>;
+	animationWorker: Worker | null;
+	isInteracting: boolean;
+	visiblePathShipIds: Set<string>;
+	selectedShipId: string | null;
 }
 
 // --- STATIC ACCESSORS (Performance Optimization) ---
@@ -87,9 +130,9 @@ const getPlanetPosition = (d: any) => [d.x, d.y];
 const getStationPosition = (d: any) => [d.x, d.y];
 const getShipPosition = (d: any) => d.position;
 const getShipIconType = (d: any) => d.type;
-const getShipSize = (d: any) => d.isCluster ? 40 : 33;
-const getPlanetIcon = (d: any) => 'EARTH';
-const getStationIcon = (d: any) => 'IC';
+const getShipSize = (d: any) => (d.isCluster ? 40 : 33);
+const getPlanetIcon = (d: any) => "EARTH";
+const getStationIcon = (d: any) => "IC";
 const getGatewayPosition = (d: any) => [d.x, d.y];
 const getGatewayColor = [180, 0, 255];
 const getClusterBadgeText = (d: any) => `${d.count}`;
@@ -110,441 +153,870 @@ const getPathData = (d: any) => d.path;
 const getPathColor = (d: any) => d.color;
 const getConnectionColor = [255, 255, 255, 40];
 const getGatewayConnectionColor = [180, 0, 255, 100];
-const getGatewayConnectionPath = (d: any) => [d.sourcePosition, d.targetPosition];
+const getGatewayConnectionPath = (d: any) => [
+	d.sourcePosition,
+	d.targetPosition,
+];
 
 // --- Helper: Debounced Zoom Hook ---
 function useDebouncedZoom(zoom: number, delay: number = 200) {
-  const [debouncedZoom, setDebouncedZoom] = useState(zoom);
-  const timeoutRef = useRef<any>(null);
-  useEffect(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => { setDebouncedZoom(zoom); }, delay);
-    return () => clearTimeout(timeoutRef.current);
-  }, [zoom, delay]);
-  return debouncedZoom;
+	const [debouncedZoom, setDebouncedZoom] = useState(zoom);
+	const timeoutRef = useRef<any>(null);
+	useEffect(() => {
+		if (timeoutRef.current) clearTimeout(timeoutRef.current);
+		timeoutRef.current = setTimeout(() => {
+			setDebouncedZoom(zoom);
+		}, delay);
+		return () => clearTimeout(timeoutRef.current);
+	}, [zoom, delay]);
+	return debouncedZoom;
 }
 
 // --- CLUSTERING HELPER ---
-function clusterShipsByRadius(ships: any[], zoom: number, isGalaxyView: boolean, systemId: string | null): any[] {
-    if (!ships || ships.length === 0) return [];
-    
-    const screenPixelRadius = !isGalaxyView && systemId ? 20 : 40; 
-    const scale = Math.pow(2, zoom);
-    const worldDist = screenPixelRadius / scale; 
-    const worldDistSq = worldDist * worldDist;
-    const cellSize = worldDist; 
+function clusterShipsByRadius(
+	ships: any[],
+	zoom: number,
+	isGalaxyView: boolean,
+	systemId: string | null,
+): any[] {
+	if (!ships || ships.length === 0) return [];
 
-    const grid = new Map<string, any[]>();
-    for(const ship of ships) {
-        if (!ship.position) continue;
-        const [x,y] = ship.position;
-        const key = `${Math.floor(x/cellSize)},${Math.floor(y/cellSize)}`;
-        if (!grid.has(key)) grid.set(key, []);
-        grid.get(key)!.push(ship);
-    }
+	const screenPixelRadius = !isGalaxyView && systemId ? 20 : 40;
+	const scale = Math.pow(2, zoom);
+	const worldDist = screenPixelRadius / scale;
+	const worldDistSq = worldDist * worldDist;
+	const cellSize = worldDist;
 
-    const clusters: any[] = [];
-    const processedShips = new Set<string>();
+	const grid = new Map<string, any[]>();
+	for (const ship of ships) {
+		if (!ship.position) continue;
+		const [x, y] = ship.position;
+		const key = `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+		if (!grid.has(key)) grid.set(key, []);
+		grid.get(key)!.push(ship);
+	}
 
-    for (const ship of ships) {
-        if (processedShips.has(ship.id) || !ship.position) continue;
-        
-        const cluster = {
-            id: `c-${ship.id}`, position: [...ship.position], count: 1,
-            ships: [ship], type: ship.type, name: ship.name ?? ship.id, bearing: ship.bearing, color: ship.color,
-            isCluster: false
-        };
-        processedShips.add(ship.id);
+	const clusters: any[] = [];
+	const processedShips = new Set<string>();
 
-        const [x,y] = ship.position;
-        const gx = Math.floor(x/cellSize), gy = Math.floor(y/cellSize);
+	for (const ship of ships) {
+		if (processedShips.has(ship.id) || !ship.position) continue;
 
-        for (let dx = -1; dx <= 1; dx++) {
-            for (let dy = -1; dy <= 1; dy++) {
-                const cellShips = grid.get(`${gx+dx},${gy+dy}`);
-                if (cellShips) {
-                    for (const neighbor of cellShips) {
-                        if (processedShips.has(neighbor.id)) continue;
-                        const d2 = (neighbor.position[0]-x)**2 + (neighbor.position[1]-y)**2;
-                        if (d2 <= worldDistSq) {
-                            cluster.ships.push(neighbor);
-                            cluster.count++;
-                            cluster.isCluster = true;
-                            cluster.color = [255, 255, 0];
-                            cluster.name = `${cluster.count} Ships`;
-                            processedShips.add(neighbor.id);
-                        }
-                    }
-                }
-            }
-        }
-        clusters.push(cluster);
-    }
-    return clusters;
+		const cluster = {
+			id: `c-${ship.id}`,
+			position: [...ship.position],
+			count: 1,
+			ships: [ship],
+			type: ship.type,
+			name: ship.name ?? ship.id,
+			bearing: ship.bearing,
+			color: ship.color,
+			isCluster: false,
+		};
+		processedShips.add(ship.id);
+
+		const [x, y] = ship.position;
+		const gx = Math.floor(x / cellSize),
+			gy = Math.floor(y / cellSize);
+
+		for (let dx = -1; dx <= 1; dx++) {
+			for (let dy = -1; dy <= 1; dy++) {
+				const cellShips = grid.get(`${gx + dx},${gy + dy}`);
+				if (cellShips) {
+					for (const neighbor of cellShips) {
+						if (processedShips.has(neighbor.id)) continue;
+						const d2 =
+							(neighbor.position[0] - x) ** 2 + (neighbor.position[1] - y) ** 2;
+						if (d2 <= worldDistSq) {
+							cluster.ships.push(neighbor);
+							cluster.count++;
+							cluster.isCluster = true;
+							cluster.color = [255, 255, 0];
+							cluster.name = `${cluster.count} Ships`;
+							processedShips.add(neighbor.id);
+						}
+					}
+				}
+			}
+		}
+		clusters.push(cluster);
+	}
+	return clusters;
 }
 
 export const useMapLayers = (props: UseMapLayersProps) => {
-  const {
-    sectors, empireLegend, viewportInstance, systemsPoints, maxSystemPopulation,
-    onSystemClick, isPlanetModeActive, setTooltip, isGalaxyView, popFilterSetting,
-    systemConnections, gatewayConnections, allGatewaysData, animatedShipData,
-    activeFlightPlans, ownFlightPlans, corpFlightPlans, setActiveFlightPlans, visiblePathShipIds,
-    mode, onShipHover, onShipClick, currentSystem, setSelectedPlanet,
-    deckRef, animationWorker, galaxyViewState, SYSTEMS_VISIBLE_ZOOM, visibilityVersion,
-    isInteracting, systemBoundingBox, selectedShipId
-  } = props;
+	const {
+		sectors,
+		empireLegend,
+		viewportInstance,
+		systemsPoints,
+		maxSystemPopulation,
+		onSystemClick,
+		isPlanetModeActive,
+		setTooltip,
+		isGalaxyView,
+		popFilterSetting,
+		systemConnections,
+		gatewayConnections,
+		allGatewaysData,
+		animatedShipData,
+		activeFlightPlans,
+		ownFlightPlans,
+		corpFlightPlans,
+		setActiveFlightPlans,
+		visiblePathShipIds,
+		mode,
+		onShipHover,
+		onShipClick,
+		currentSystem,
+		setSelectedPlanet,
+		deckRef,
+		animationWorker,
+		galaxyViewState,
+		SYSTEMS_VISIBLE_ZOOM,
+		visibilityVersion,
+		isInteracting,
+		systemBoundingBox,
+		selectedShipId,
+	} = props;
 
-  // --- REFS FOR STABLE CALLBACKS ---
-  const callbacksRef = useRef({
-      onShipClick,
-      onShipHover,
-      onSystemClick,
-      setTooltip,
-      setSelectedPlanet
-  });
+	// --- REFS FOR STABLE CALLBACKS ---
+	const callbacksRef = useRef({
+		onShipClick,
+		onShipHover,
+		onSystemClick,
+		setTooltip,
+		setSelectedPlanet,
+	});
 
-  useEffect(() => {
-      callbacksRef.current = { onShipClick, onShipHover, onSystemClick, setTooltip, setSelectedPlanet };
-  }, [onShipClick, onShipHover, onSystemClick, setTooltip, setSelectedPlanet]);
+	useEffect(() => {
+		callbacksRef.current = {
+			onShipClick,
+			onShipHover,
+			onSystemClick,
+			setTooltip,
+			setSelectedPlanet,
+		};
+	}, [onShipClick, onShipHover, onSystemClick, setTooltip, setSelectedPlanet]);
 
-  // --- STABLE HANDLERS ---
-  const handleShipClick = useCallback((info: any) => { if (info.object) callbacksRef.current.onShipClick(info.object); }, []);
-  const handlePlanetClick = useCallback((info: any) => { if (info.object) callbacksRef.current.setSelectedPlanet(info.object); }, []);
-  const handleHoverTooltip = useCallback((info: any) => { if (info.object) callbacksRef.current.setTooltip({ x: info.x, y: info.y, content: info.object.name || info.object.label }); else callbacksRef.current.setTooltip(null); }, []);
-  const handleGatewayHover = useCallback((info: any) => { if (info.object) callbacksRef.current.setTooltip({ x: info.x, y: info.y, content: `Gateway: ${info.object.name}` }); else callbacksRef.current.setTooltip(null); }, []);
-  const handleSystemClick = useCallback((info: any) => { if (mode !== "shipping" && info.object) callbacksRef.current.onSystemClick(info.object); }, [mode]);
-  const handleSystemHover = useCallback((info: any) => { if (mode !== "shipping" && info.object) callbacksRef.current.setTooltip({ x: info.x, y: info.y, content: info.object.label }); else callbacksRef.current.setTooltip(null); }, [mode]);
+	// --- STABLE HANDLERS ---
+	const handleShipClick = useCallback((info: any) => {
+		if (info.object) callbacksRef.current.onShipClick(info.object);
+	}, []);
+	const handlePlanetClick = useCallback((info: any) => {
+		if (info.object) callbacksRef.current.setSelectedPlanet(info.object);
+	}, []);
+	const handleHoverTooltip = useCallback((info: any) => {
+		if (info.object)
+			callbacksRef.current.setTooltip({
+				x: info.x,
+				y: info.y,
+				content: info.object.name || info.object.label,
+			});
+		else callbacksRef.current.setTooltip(null);
+	}, []);
+	const handleGatewayHover = useCallback((info: any) => {
+		if (info.object)
+			callbacksRef.current.setTooltip({
+				x: info.x,
+				y: info.y,
+				content: `Gateway: ${info.object.name}`,
+			});
+		else callbacksRef.current.setTooltip(null);
+	}, []);
+	const handleSystemClick = useCallback(
+		(info: any) => {
+			if (mode !== "shipping" && info.object)
+				callbacksRef.current.onSystemClick(info.object);
+		},
+		[mode],
+	);
+	const handleSystemHover = useCallback(
+		(info: any) => {
+			if (mode !== "shipping" && info.object)
+				callbacksRef.current.setTooltip({
+					x: info.x,
+					y: info.y,
+					content: info.object.label,
+				});
+			else callbacksRef.current.setTooltip(null);
+		},
+		[mode],
+	);
 
-  const safeGetColor = useCallback((empireCode: string | undefined, alpha: number) => {
-    if (!empireCode || !empireLegend || !empireLegend[empireCode]) return [55, 55, 80, alpha]; 
-    try { return hexToRgba(empireLegend[empireCode], alpha); } catch (e) { return [100, 100, 150, alpha]; }
-  }, [empireLegend]);
+	const safeGetColor = useCallback(
+		(empireCode: string | undefined, alpha: number) => {
+			if (!empireCode || !empireLegend || !empireLegend[empireCode])
+				return [55, 55, 80, alpha];
+			try {
+				return hexToRgba(empireLegend[empireCode], alpha);
+			} catch (e) {
+				return [100, 100, 150, alpha];
+			}
+		},
+		[empireLegend],
+	);
 
-  const findLocationPosition = useCallback((systemId: any) => {
-    if (!systemId) return null;
-    const p = systemsPoints.find((p:any) => p.originalSystemId === systemId);
-    if (p) return [p.x, p.y] as [number, number];
-    return null;
-  }, [systemsPoints]);
+	const findLocationPosition = useCallback(
+		(systemId: any) => {
+			if (!systemId) return null;
+			const p = systemsPoints.find((p: any) => p.originalSystemId === systemId);
+			if (p) return [p.x, p.y] as [number, number];
+			return null;
+		},
+		[systemsPoints],
+	);
 
-  // --- ANIMATION HOOK ---
-  const {
-    activePlanets, activeStations, updatedShips, orbitTrails, workerDebugStats
-  } = useAnimation(
-    currentSystem, isPlanetModeActive, props.allPlanetsData, props.allStationsData,
-    allGatewaysData, animatedShipData, activeFlightPlans, setActiveFlightPlans,
-    systemsPoints, isGalaxyView, deckRef, animationWorker, isInteracting
-  );
+	// --- ANIMATION HOOK ---
+	const {
+		activePlanets,
+		activeStations,
+		updatedShips,
+		orbitTrails,
+		workerDebugStats,
+	} = useAnimation(
+		currentSystem,
+		isPlanetModeActive,
+		props.allPlanetsData,
+		props.allStationsData,
+		allGatewaysData,
+		animatedShipData,
+		activeFlightPlans,
+		setActiveFlightPlans,
+		systemsPoints,
+		isGalaxyView,
+		deckRef,
+		animationWorker,
+		isInteracting,
+	);
 
-  // --- ATLAS LOADING ---
-  const [starAtlas, setStarAtlas] = useState<ImageBitmap | null>(null);
-  const [starMapping, setStarMapping] = useState<any>(null);
-  const [stationsAtlas, setStationsAtlas] = useState<ImageBitmap | null>(null);
-  const [stationsMapping, setStationsMapping] = useState<any>(null);
-  const [shipAtlas, setShipAtlas] = useState<ImageBitmap | null>(null);
-  const [shipMapping, setShipMapping] = useState<any>(null);
-  const [planetAtlas, setPlanetAtlas] = useState<ImageBitmap | null>(null);
-  const [planetMapping, setPlanetMapping] = useState<any>(null);
+	// --- ATLAS LOADING ---
+	const [starAtlas, setStarAtlas] = useState<ImageBitmap | null>(null);
+	const [starMapping, setStarMapping] = useState<any>(null);
+	const [stationsAtlas, setStationsAtlas] = useState<ImageBitmap | null>(null);
+	const [stationsMapping, setStationsMapping] = useState<any>(null);
+	const [shipAtlas, setShipAtlas] = useState<ImageBitmap | null>(null);
+	const [shipMapping, setShipMapping] = useState<any>(null);
+	const [planetAtlas, setPlanetAtlas] = useState<ImageBitmap | null>(null);
+	const [planetMapping, setPlanetMapping] = useState<any>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    buildStarAtlas(STAR_ICONS).then(d => {
-      if (cancelled) {
-        // free resources if produced after unmount
-        try { (d.atlas as any)?.close?.(); } catch {}
-        return;
-      }
-      setStarAtlas(d.atlas);
-      setStarMapping(d.mapping);
-    }).catch(() => {});
-    return () => {
-      cancelled = true;
-      setStarAtlas(prev => {
-        try { (prev as any)?.close?.(); } catch {}
-        return null;
-      });
-      setStarMapping(null);
-    };
-  }, []);
+	useEffect(() => {
+		let cancelled = false;
+		buildStarAtlas(STAR_ICONS)
+			.then((d) => {
+				if (cancelled) {
+					// free resources if produced after unmount
+					try {
+						(d.atlas as any)?.close?.();
+					} catch {}
+					return;
+				}
+				setStarAtlas(d.atlas);
+				setStarMapping(d.mapping);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+			setStarAtlas((prev) => {
+				try {
+					(prev as any)?.close?.();
+				} catch {}
+				return null;
+			});
+			setStarMapping(null);
+		};
+	}, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    buildStarAtlas(STATION_ICONS).then(d => {
-      if (cancelled) { try { (d.atlas as any)?.close?.(); } catch {} ; return; }
-      setStationsAtlas(d.atlas);
-      setStationsMapping(d.mapping);
-    }).catch(() => {});
-    return () => {
-      cancelled = true;
-      setStationsAtlas(prev => { try { (prev as any)?.close?.(); } catch {} ; return null; });
-      setStationsMapping(null);
-    };
-  }, []);
+	useEffect(() => {
+		let cancelled = false;
+		buildStarAtlas(STATION_ICONS)
+			.then((d) => {
+				if (cancelled) {
+					try {
+						(d.atlas as any)?.close?.();
+					} catch {}
+					return;
+				}
+				setStationsAtlas(d.atlas);
+				setStationsMapping(d.mapping);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+			setStationsAtlas((prev) => {
+				try {
+					(prev as any)?.close?.();
+				} catch {}
+				return null;
+			});
+			setStationsMapping(null);
+		};
+	}, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    buildStarAtlas(SHIP_ICONS).then(d => {
-      if (cancelled) { try { (d.atlas as any)?.close?.(); } catch {} ; return; }
-      setShipAtlas(d.atlas);
-      setShipMapping(d.mapping);
-    }).catch(() => {});
-    return () => {
-      cancelled = true;
-      setShipAtlas(prev => { try { (prev as any)?.close?.(); } catch {} ; return null; });
-      setShipMapping(null);
-    };
-  }, []);
+	useEffect(() => {
+		let cancelled = false;
+		buildStarAtlas(SHIP_ICONS)
+			.then((d) => {
+				if (cancelled) {
+					try {
+						(d.atlas as any)?.close?.();
+					} catch {}
+					return;
+				}
+				setShipAtlas(d.atlas);
+				setShipMapping(d.mapping);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+			setShipAtlas((prev) => {
+				try {
+					(prev as any)?.close?.();
+				} catch {}
+				return null;
+			});
+			setShipMapping(null);
+		};
+	}, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    buildStarAtlas(PLANET_ICONS).then(d => {
-      if (cancelled) { try { (d.atlas as any)?.close?.(); } catch {} ; return; }
-      setPlanetAtlas(d.atlas);
-      setPlanetMapping(d.mapping);
-    }).catch(() => {});
-    return () => {
-      cancelled = true;
-      setPlanetAtlas(prev => { try { (prev as any)?.close?.(); } catch {} ; return null; });
-      setPlanetMapping(null);
-    };
-  }, []);
+	useEffect(() => {
+		let cancelled = false;
+		buildStarAtlas(PLANET_ICONS)
+			.then((d) => {
+				if (cancelled) {
+					try {
+						(d.atlas as any)?.close?.();
+					} catch {}
+					return;
+				}
+				setPlanetAtlas(d.atlas);
+				setPlanetMapping(d.mapping);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+			setPlanetAtlas((prev) => {
+				try {
+					(prev as any)?.close?.();
+				} catch {}
+				return null;
+			});
+			setPlanetMapping(null);
+		};
+	}, []);
 
-  // --- STATIC PREP ---
-  const currentZoom = galaxyViewState?.zoom ?? 1;
-  const debouncedZoom = useDebouncedZoom(currentZoom, 200);
-  const showLabels = currentZoom >= SYSTEMS_VISIBLE_ZOOM;
+	// --- STATIC PREP ---
+	const currentZoom = galaxyViewState?.zoom ?? 1;
+	const debouncedZoom = useDebouncedZoom(currentZoom, 200);
+	const showLabels = currentZoom >= SYSTEMS_VISIBLE_ZOOM;
 
-  // --- 1. CLUSTERING ---
-  const [clusteredData, setClusteredData] = useState<any[]>([]);
-  const lastClusteredShipsRef = useRef<any[]>([]);
-  const lastZoomRef = useRef<number>(currentZoom);
+	// --- 1. CLUSTERING ---
+	const [clusteredData, setClusteredData] = useState<any[]>([]);
+	const lastClusteredShipsRef = useRef<any[]>([]);
+	const lastZoomRef = useRef<number>(currentZoom);
 
-  // small checksum for ships to avoid recompute when ref changes but content is same
-  const lastClusterChecksumRef = useRef<number>(0);
-  function computeShipsChecksum(ships: any[]): number {
-    // simple non-cryptographic checksum of positions and length — fast
-    let h = ships.length | 0;
-    for (let i = 0; i < ships.length; i++) {
-      const p = ships[i].position;
-      if (!p) continue;
-      // quantize to reduce sensitivity to tiny changes
-      const x = Math.round(p[0] * 1000);
-      const y = Math.round(p[1] * 1000);
-      h = ((h * 31) ^ (x + (y << 3))) >>> 0;
-    }
-    return h;
-  }
+	// small checksum for ships to avoid recompute when ref changes but content is same
+	const lastClusterChecksumRef = useRef<number>(0);
+	function computeShipsChecksum(ships: any[]): number {
+		// simple non-cryptographic checksum of positions and length — fast
+		let h = ships.length | 0;
+		for (let i = 0; i < ships.length; i++) {
+			const p = ships[i].position;
+			if (!p) continue;
+			// quantize to reduce sensitivity to tiny changes
+			const x = Math.round(p[0] * 1000);
+			const y = Math.round(p[1] * 1000);
+			h = ((h * 31) ^ (x + (y << 3))) >>> 0;
+		}
+		return h;
+	}
 
-  useEffect(() => {
-    if (isInteracting) return;
-    const ships = updatedShips || [];
-    const checksum = computeShipsChecksum(ships);
-    if (checksum === lastClusterChecksumRef.current && debouncedZoom === lastZoomRef.current) return;
+	useEffect(() => {
+		if (isInteracting) return;
+		const ships = updatedShips || [];
+		const checksum = computeShipsChecksum(ships);
+		if (
+			checksum === lastClusterChecksumRef.current &&
+			debouncedZoom === lastZoomRef.current
+		)
+			return;
 
-    const visibleShips = ships.filter((s: any) => s.visible !== false);
-    const newClusters = clusterShipsByRadius(visibleShips, debouncedZoom, isGalaxyView, currentSystem?.originalSystemId || null);
+		const visibleShips = ships.filter((s: any) => s.visible !== false);
+		const newClusters = clusterShipsByRadius(
+			visibleShips,
+			debouncedZoom,
+			isGalaxyView,
+			currentSystem?.originalSystemId || null,
+		);
 
-    setClusteredData(newClusters);
-    lastClusteredShipsRef.current = ships;
-    lastClusterChecksumRef.current = checksum;
-    lastZoomRef.current = debouncedZoom;
-  }, [updatedShips, debouncedZoom, isGalaxyView, currentSystem, isInteracting]);
+		setClusteredData(newClusters);
+		lastClusteredShipsRef.current = ships;
+		lastClusterChecksumRef.current = checksum;
+		lastZoomRef.current = debouncedZoom;
+	}, [updatedShips, debouncedZoom, isGalaxyView, currentSystem, isInteracting]);
 
-  // --- MEMOIZED FLIGHT DATA (NO ZOOM DEPENDENCY) ---
-  const memoizedFlightPaths = useMemo(() => {
-    const corpPlans = (mode === 'dashboard' || mode === 'shipping') ? (corpFlightPlans || []) : [];
-    const validOwnPlans = Array.isArray(ownFlightPlans) ? ownFlightPlans : [];
-    const validCorpPlans = Array.isArray(corpPlans) ? corpPlans : [];
+	// --- MEMOIZED FLIGHT DATA (NO ZOOM DEPENDENCY) ---
+	const memoizedFlightPaths = useMemo(() => {
+		const corpPlans =
+			mode === "dashboard" || mode === "shipping" ? corpFlightPlans || [] : [];
+		const validOwnPlans = Array.isArray(ownFlightPlans) ? ownFlightPlans : [];
+		const validCorpPlans = Array.isArray(corpPlans) ? corpPlans : [];
 
-    const allFlightPlans = [
-      ...validOwnPlans.map((p: any) => ({ ...p, color: [0, 255, 255, 200], isOwn: true })),
-      ...validCorpPlans.map((p: any) => ({ ...p, isOwn: false }))
-    ];
+		const allFlightPlans = [
+			...validOwnPlans.map((p: any) => ({
+				...p,
+				color: [0, 255, 255, 200],
+				isOwn: true,
+			})),
+			...validCorpPlans.map((p: any) => ({ ...p, isOwn: false })),
+		];
 
-    const paths: { path: [number, number][], id: string, shipId: string, color: number[], isOwn: boolean }[] = [];
+		const paths: {
+			path: [number, number][];
+			id: string;
+			shipId: string;
+			color: number[];
+			isOwn: boolean;
+		}[] = [];
 
-    for (let i = 0; i < allFlightPlans.length; i++) {
-      const plan = allFlightPlans[i];
-      const shipId = plan.shipid || plan.id;
-      if (!visiblePathShipIds || !visiblePathShipIds.has(shipId)) continue;
-      if (!plan || !plan.segments) continue;
+		for (let i = 0; i < allFlightPlans.length; i++) {
+			const plan = allFlightPlans[i];
+			const shipId = plan.shipid || plan.id;
+			if (!visiblePathShipIds || !visiblePathShipIds.has(shipId)) continue;
+			if (!plan || !plan.segments) continue;
 
-      for (let j = 0; j < plan.segments.length; j++) {
-        const seg = plan.segments[j];
-        const start = findLocationPosition(seg.origin_system_id);
-        const end = findLocationPosition(seg.destination_system_id);
-        if (start && end) {
-          paths.push({
-            path: [start, end],
-            id: `${plan.id}-${seg.segment_index ?? j}`,
-            shipId: shipId, 
-            color: plan.color || [255, 255, 0, 150],
-            isOwn: plan.isOwn
-          });
-        }
-      }
-    }
-    return paths;
-  }, [ownFlightPlans, corpFlightPlans, visiblePathShipIds, findLocationPosition, mode]);
+			for (let j = 0; j < plan.segments.length; j++) {
+				const seg = plan.segments[j];
+				const start = findLocationPosition(seg.origin_system_id);
+				const end = findLocationPosition(seg.destination_system_id);
+				if (start && end) {
+					paths.push({
+						path: [start, end],
+						id: `${plan.id}-${seg.segment_index ?? j}`,
+						shipId: shipId,
+						color: plan.color || [255, 255, 0, 150],
+						isOwn: plan.isOwn,
+					});
+				}
+			}
+		}
+		return paths;
+	}, [
+		ownFlightPlans,
+		corpFlightPlans,
+		visiblePathShipIds,
+		findLocationPosition,
+		mode,
+	]);
 
-  // --- MEMOIZED FLIGHT LAYERS (ZOOM DEPENDENT STYLE) ---
-  const flightPathLayers = useMemo(() => {
-    let corpWidth = 1.5, ownWidth = 2.5;
-    const zoomBucket = Math.floor((galaxyViewState?.zoom || 1) / 2) * 2;
-    if (zoomBucket < -8) { corpWidth = 4; ownWidth = 5; }
-    else if (zoomBucket < -6) { corpWidth = 3; ownWidth = 4; }
-    else if (zoomBucket < -4) { corpWidth = 2; ownWidth = 3; }
+	// --- MEMOIZED FLIGHT LAYERS (ZOOM DEPENDENT STYLE) ---
+	const flightPathLayers = useMemo(() => {
+		let corpWidth = 1.5,
+			ownWidth = 2.5;
+		const zoomBucket = Math.floor((galaxyViewState?.zoom || 1) / 2) * 2;
+		if (zoomBucket < -8) {
+			corpWidth = 4;
+			ownWidth = 5;
+		} else if (zoomBucket < -6) {
+			corpWidth = 3;
+			ownWidth = 4;
+		} else if (zoomBucket < -4) {
+			corpWidth = 2;
+			ownWidth = 3;
+		}
 
-    const selectedPaths = memoizedFlightPaths.filter(p => p.shipId === selectedShipId);
-    const regularPaths = memoizedFlightPaths.filter(p => p.shipId !== selectedShipId);
+		const selectedPaths = memoizedFlightPaths.filter(
+			(p) => p.shipId === selectedShipId,
+		);
+		const regularPaths = memoizedFlightPaths.filter(
+			(p) => p.shipId !== selectedShipId,
+		);
 
-    return [
-        new PathLayer({
-            id: 'flight-paths-standard',
-            data: regularPaths,
-            getPath: getPathData,
-            getColor: getPathColor,
-            getWidth: (d: any) => d.isOwn ? ownWidth : corpWidth,
-            widthUnits: 'pixels', widthMinPixels: 1, visible: true, pickable: false,
-            updateTriggers: { getWidth: [ownWidth, corpWidth] }
-        }),
-        new PathLayer({
-            id: 'flight-paths-selected',
-            data: selectedPaths,
-            getPath: getPathData,
-            getColor: [255, 180, 0, 255],
-            getWidth: ownWidth * 2.5,
-            widthUnits: 'pixels', widthMinPixels: 3, visible: true, pickable: false,
-            parameters: { depthTest: false }
-        })
-    ];
-  }, [memoizedFlightPaths, galaxyViewState?.zoom, selectedShipId]);
+		return [
+			new PathLayer({
+				id: "flight-paths-standard",
+				data: regularPaths,
+				getPath: getPathData,
+				getColor: getPathColor,
+				getWidth: (d: any) => (d.isOwn ? ownWidth : corpWidth),
+				widthUnits: "pixels",
+				widthMinPixels: 1,
+				visible: true,
+				pickable: false,
+				updateTriggers: { getWidth: [ownWidth, corpWidth] },
+			}),
+			new PathLayer({
+				id: "flight-paths-selected",
+				data: selectedPaths,
+				getPath: getPathData,
+				getColor: [255, 180, 0, 255],
+				getWidth: ownWidth * 2.5,
+				widthUnits: "pixels",
+				widthMinPixels: 3,
+				visible: true,
+				pickable: false,
+				parameters: { depthTest: false },
+			}),
+		];
+	}, [memoizedFlightPaths, galaxyViewState?.zoom, selectedShipId]);
 
-  // --- STATIC GALAXY LAYERS ---
-  const staticGalaxyLayers = useMemo(() => {
-    if (!isGalaxyView) return [];
-    const layers: any[] = [];
-    
-    if (systemConnections && systemConnections.length > 0) {
-      const connectionData = systemConnections.map((c:any) => ({ path: [c.sourcePosition, c.targetPosition] }));
-      layers.push(new PathLayer({ id: 'static-connections', data: connectionData, getPath: getPathData, getColor: getConnectionColor, getWidth: 1.5, widthUnits: 'pixels', pickable: false }));
-    }
-    
-    if (gatewayConnections && gatewayConnections.length > 0) {
-       layers.push(new PathLayer({ id: 'static-gateway-connections', data: gatewayConnections, getPath: getGatewayConnectionPath, getColor: getGatewayConnectionColor, getWidth: 3, widthUnits: 'meters', pickable: false }));
-    }
-    
-    if (isGalaxyView && starAtlas) {
-        layers.push(new IconLayer({ 
-            id: "systems-icons", 
-            data: systemsPoints, 
-            iconAtlas: starAtlas, 
-            iconMapping: starMapping, 
-            getIcon: getSystemIcon, 
-            getPosition: getSystemPos, 
-            sizeUnits: 'meters', sizeScale: 1, sizeMinPixels: 8, sizeMaxPixels: 225, pickable: true, 
-            getSize: (d:any) => { const popRatio = maxSystemPopulation > 1 ? Math.log1p(d.population ?? 0) / Math.log1p(maxSystemPopulation) : 0; return 22 * (1 + popRatio * 2); }, 
-            onClick: handleSystemClick, 
-            onHover: handleSystemHover 
-        }));
-    }
-    
-    if (systemsPoints && systemsPoints.length > 0) {
-        const labelData = showLabels ? [...systemsPoints].sort((a:any, b:any) => (a.population || 0) - (b.population || 0)) : [];
-        layers.push(new TextLayer({ id: 'static-system-labels', data: labelData, getPosition: getLabelPos, getText: getLabelText, getSize: 12, getColor: getLabelColor, billboard: true, background: true, getBackgroundColor: getLabelBgColor, backgroundPadding: [4, 2], getPixelOffset: [0, 22], sizeUnits: 'pixels', pickable: false, updateTriggers: { data: [showLabels] } }));
-    }
-    return layers;
-  }, [isGalaxyView, systemConnections, gatewayConnections, systemsPoints, showLabels, starAtlas, starMapping, maxSystemPopulation, handleSystemClick, handleSystemHover]);
+	// --- STATIC GALAXY LAYERS ---
+	const staticGalaxyLayers = useMemo(() => {
+		if (!isGalaxyView) return [];
+		const layers: any[] = [];
 
-  // --- DYNAMIC LAYERS ---
-  const dynamicLayers = useMemo(() => {
-    if (!starAtlas || !shipAtlas) return [];
-    const dLayers: any[] = [];
+		if (systemConnections && systemConnections.length > 0) {
+			const connectionData = systemConnections.map((c: any) => ({
+				path: [c.sourcePosition, c.targetPosition],
+			}));
+			layers.push(
+				new PathLayer({
+					id: "static-connections",
+					data: connectionData,
+					getPath: getPathData,
+					getColor: getConnectionColor,
+					getWidth: 1.5,
+					widthUnits: "pixels",
+					pickable: false,
+				}),
+			);
+		}
 
-    // System Mode
-    if (isPlanetModeActive && planetAtlas && stationsAtlas) {
-       // Gateways
-       const activeGateways = allGatewaysData[currentSystem?.originalSystemId ?? ""] || [];
-       const gatewayData = activeGateways.map((g: any) => ({ ...g, x: (currentSystem?.x ?? 0) + (g.semimajoraxis || 1000), y: (currentSystem?.y ?? 0) }));
-       if (gatewayData.length) {
-           dLayers.push(new ScatterplotLayer({ 
-               id: 'gateways-dynamic', data: gatewayData, getPosition: getGatewayPosition, getFillColor: getGatewayColor, getRadius: (SYSTEM_BASE_RADIUS * 0.06) * 0.30, radiusUnits: 'meters', radiusMinPixels: 8, pickable: true, onHover: handleGatewayHover 
-            }));
-       }
-       // Trails
-       if (orbitTrails && orbitTrails.length > 0) {
-           dLayers.push(new PathLayer({ id: 'orbit-trails', data: orbitTrails, getPath: getPathData, getColor: getPathColor, getWidth: 2, widthUnits: 'pixels', parameters: { blend: true, depthTest: false } }));
-       }
-       // Flight Paths
-       if (flightPathLayers.length > 0) dLayers.push(...flightPathLayers);
+		if (gatewayConnections && gatewayConnections.length > 0) {
+			layers.push(
+				new PathLayer({
+					id: "static-gateway-connections",
+					data: gatewayConnections,
+					getPath: getGatewayConnectionPath,
+					getColor: getGatewayConnectionColor,
+					getWidth: 3,
+					widthUnits: "meters",
+					pickable: false,
+				}),
+			);
+		}
 
-       // Planets
-       dLayers.push(new IconLayer<PlanetPosition>({ 
-           id: 'planets-dynamic', data: activePlanets, iconAtlas: planetAtlas, iconMapping: planetMapping, getIcon: getPlanetIcon, getPosition: getPlanetPosition, getSize: (SYSTEM_BASE_RADIUS * 0.06), sizeUnits: 'meters', sizeMinPixels: 35, sizeMaxPixels: 400, pickable: true, transitions: { getPosition: 5000 }, onClick: handlePlanetClick, onHover: handleHoverTooltip 
-        }));
-       
-       // Stations
-       dLayers.push(new IconLayer<StationPosition>({ 
-           id: 'stations-dynamic', data: activeStations, iconAtlas: stationsAtlas, iconMapping: stationsMapping, getIcon: getStationIcon, getPosition: getStationPosition, getSize: (SYSTEM_BASE_RADIUS * 0.02), sizeUnits: 'meters', sizeMinPixels: 40, sizeMaxPixels: 100, pickable: false, transitions: { getPosition: 5000 } 
-        }));
-       
-       // BBox
-       if (systemBoundingBox) {
-           dLayers.push(new PolygonLayer({ id: 'system-bbox', data: systemBoundingBox, getPolygon: (d: any) => d.polygon, getFillColor: [0, 0, 0, 0], getLineColor: (d: any) => d.color, getLineWidth: 2, visible: isPlanetModeActive }));
-       }
-    } else {
-        // Galaxy Mode Flight Paths
-        if (flightPathLayers.length > 0) dLayers.push(...flightPathLayers);
-    }
+		if (isGalaxyView && starAtlas) {
+			layers.push(
+				new IconLayer({
+					id: "systems-icons",
+					data: systemsPoints,
+					iconAtlas: starAtlas,
+					iconMapping: starMapping,
+					getIcon: getSystemIcon,
+					getPosition: getSystemPos,
+					sizeUnits: "meters",
+					sizeScale: 1,
+					sizeMinPixels: 8,
+					sizeMaxPixels: 225,
+					pickable: true,
+					getSize: (d: any) => {
+						const popRatio =
+							maxSystemPopulation > 1
+								? Math.log1p(d.population ?? 0) /
+									Math.log1p(maxSystemPopulation)
+								: 0;
+						return 22 * (1 + popRatio * 2);
+					},
+					onClick: handleSystemClick,
+					onHover: handleSystemHover,
+				}),
+			);
+		}
 
-    // Ships (Clustered)
-    if (clusteredData.length > 0 && shipAtlas) {
-        // eslint-disable-next-line react-hooks/refs
-        dLayers.push(new IconLayer({ 
-            id: 'ships-icons', data: clusteredData, iconAtlas: shipAtlas, iconMapping: shipMapping, getIcon: getShipIconType, getPosition: getShipPosition, getSize: getShipSize, sizeUnits: isGalaxyView ? 'pixels' : 'meters', sizeMinPixels: 33, sizeMaxPixels: 105, pickable: true,onClick: handleShipClick 
-        }));
-        
-        if (showLabels || !isGalaxyView) {
-             dLayers.push(new TextLayer({ 
-                 id: 'ship-labels', data: clusteredData.filter((d:any) => !d.isCluster), getPosition: getShipLabelPos, getText: getShipLabelText, getPixelOffset: [0, -30], getColor: getShipLabelColor, background: true, getBackgroundColor: getShipLabelBg, getSize: 12, sizeUnits: 'pixels' 
-            }));
-        }
-        dLayers.push(new TextLayer({ 
-            id: 'cluster-badges', data: clusteredData.filter((d:any) => d.isCluster), getPosition: getClusterBadgePos, getText: getClusterBadgeText, getPixelOffset: [12, -12], getColor: getClusterBadgeColor, background: true, getBackgroundColor: getClusterBadgeBg, getSize: 14, sizeUnits: 'pixels' 
-        }));
-    }
+		if (systemsPoints && systemsPoints.length > 0) {
+			const labelData = showLabels
+				? [...systemsPoints].sort(
+						(a: any, b: any) => (a.population || 0) - (b.population || 0),
+					)
+				: [];
+			layers.push(
+				new TextLayer({
+					id: "static-system-labels",
+					data: labelData,
+					getPosition: getLabelPos,
+					getText: getLabelText,
+					getSize: 12,
+					getColor: getLabelColor,
+					billboard: true,
+					background: true,
+					getBackgroundColor: getLabelBgColor,
+					backgroundPadding: [4, 2],
+					getPixelOffset: [0, 22],
+					sizeUnits: "pixels",
+					pickable: false,
+					updateTriggers: { data: [showLabels] },
+				}),
+			);
+		}
+		return layers;
+	}, [
+		isGalaxyView,
+		systemConnections,
+		gatewayConnections,
+		systemsPoints,
+		showLabels,
+		starAtlas,
+		starMapping,
+		maxSystemPopulation,
+		handleSystemClick,
+		handleSystemHover,
+	]);
 
-    return dLayers;
-  }, [
-      isGalaxyView, isPlanetModeActive, starAtlas, shipAtlas, planetAtlas, stationsAtlas,
-      activePlanets, activeStations, clusteredData, orbitTrails, systemsPoints, showLabels, currentSystem, systemBoundingBox, 
-      flightPathLayers,
-      handleGatewayHover, handlePlanetClick, handleHoverTooltip, handleShipClick
-  ]);
+	// --- DYNAMIC LAYERS ---
+	const dynamicLayers = useMemo(() => {
+		if (!starAtlas || !shipAtlas) return [];
+		const dLayers: any[] = [];
 
-  // --- SECTOR LAYER (Keep existing) ---
-  const sectorLayer = useMemo(() => {
-    if (!isGalaxyView || !sectors || sectors.length === 0) return [];
-    const sectorLayers: any[] = []
-    const sectorLabels = sectors.map(s => ({ text: s.name || s.id, position: s.centroid }));
-    
-    sectorLayers.push(new PolygonLayer<Sector>({ id: 'sector-polygons', data: sectors, getPolygon: (d: Sector) => { const cx = d.centroid[0], cy = d.centroid[1]; const gap = 0.995; return d.vertices.map((v:any) => [cx + (v[0] - cx) * gap, cy + (v[1] - cy) * gap]); }, getFillColor: (d: Sector) => safeGetColor(d.empireCode, 60), getLineColor: (d: Sector) => safeGetColor(d.empireCode, 180), getLineWidth: 2, stroked: true, pickable: false }));
-    sectorLayers.push(new TextLayer({ id: 'sector-labels', data: sectorLabels, getPosition: (d: any) => d.position, getText: (d: any) => d.text, getSize: 18, sizeUnits: 'pixels', getColor: [255, 255, 255, 255], billboard: true, pickable: false }));
-    return sectorLayers;
-  }, [isGalaxyView, sectors, safeGetColor]);
+		// System Mode
+		if (isPlanetModeActive && planetAtlas && stationsAtlas) {
+			// Gateways
+			const activeGateways =
+				allGatewaysData[currentSystem?.originalSystemId ?? ""] || [];
+			const gatewayData = activeGateways.map((g: any) => ({
+				...g,
+				x: (currentSystem?.x ?? 0) + (g.semimajoraxis || 1000),
+				y: currentSystem?.y ?? 0,
+			}));
+			if (gatewayData.length) {
+				dLayers.push(
+					new ScatterplotLayer({
+						id: "gateways-dynamic",
+						data: gatewayData,
+						getPosition: getGatewayPosition,
+						getFillColor: getGatewayColor,
+						getRadius: SYSTEM_BASE_RADIUS * 0.06 * 0.3,
+						radiusUnits: "meters",
+						radiusMinPixels: 8,
+						pickable: true,
+						onHover: handleGatewayHover,
+					}),
+				);
+			}
+			// Trails
+			if (orbitTrails && orbitTrails.length > 0) {
+				dLayers.push(
+					new PathLayer({
+						id: "orbit-trails",
+						data: orbitTrails,
+						getPath: getPathData,
+						getColor: getPathColor,
+						getWidth: 2,
+						widthUnits: "pixels",
+						parameters: { blend: true, depthTest: false },
+					}),
+				);
+			}
+			// Flight Paths
+			if (flightPathLayers.length > 0) dLayers.push(...flightPathLayers);
 
-  // --- FINAL COMBINATION ---
-  const prevLayersRef = useRef<any[]>([]);
-  // cleanup prevLayersRef on unmount to reduce chance of holding onto old layer instances
-  useEffect(() => () => { prevLayersRef.current = []; }, []);
+			// Planets
+			dLayers.push(
+				new IconLayer<PlanetPosition>({
+					id: "planets-dynamic",
+					data: activePlanets,
+					iconAtlas: planetAtlas,
+					iconMapping: planetMapping,
+					getIcon: getPlanetIcon,
+					getPosition: getPlanetPosition,
+					getSize: SYSTEM_BASE_RADIUS * 0.06,
+					sizeUnits: "meters",
+					sizeMinPixels: 35,
+					sizeMaxPixels: 400,
+					pickable: true,
+					transitions: { getPosition: 5000 },
+					onClick: handlePlanetClick,
+					onHover: handleHoverTooltip,
+				}),
+			);
 
-  const layers = useMemo(() => {
-    if (isInteracting && prevLayersRef.current.length > 0) return prevLayersRef.current;
-    if (!viewportInstance) return [];
-    const combined = [...sectorLayer, ...staticGalaxyLayers, ...dynamicLayers];
-    prevLayersRef.current = combined;
-    return combined;
-  }, [staticGalaxyLayers, sectorLayer, dynamicLayers, isInteracting, viewportInstance]);
+			// Stations
+			dLayers.push(
+				new IconLayer<StationPosition>({
+					id: "stations-dynamic",
+					data: activeStations,
+					iconAtlas: stationsAtlas,
+					iconMapping: stationsMapping,
+					getIcon: getStationIcon,
+					getPosition: getStationPosition,
+					getSize: SYSTEM_BASE_RADIUS * 0.02,
+					sizeUnits: "meters",
+					sizeMinPixels: 40,
+					sizeMaxPixels: 100,
+					pickable: false,
+					transitions: { getPosition: 5000 },
+				}),
+			);
 
-  return { layers, updatedShips, activePlanets, activeStations, workerStats: workerDebugStats };
+			// BBox
+			if (systemBoundingBox) {
+				dLayers.push(
+					new PolygonLayer({
+						id: "system-bbox",
+						data: systemBoundingBox,
+						getPolygon: (d: any) => d.polygon,
+						getFillColor: [0, 0, 0, 0],
+						getLineColor: (d: any) => d.color,
+						getLineWidth: 2,
+						visible: isPlanetModeActive,
+					}),
+				);
+			}
+		} else {
+			// Galaxy Mode Flight Paths
+			if (flightPathLayers.length > 0) dLayers.push(...flightPathLayers);
+		}
+
+		// Ships (Clustered)
+		if (clusteredData.length > 0 && shipAtlas) {
+			// eslint-disable-next-line react-hooks/refs
+			dLayers.push(
+				new IconLayer({
+					id: "ships-icons",
+					data: clusteredData,
+					iconAtlas: shipAtlas,
+					iconMapping: shipMapping,
+					getIcon: getShipIconType,
+					getPosition: getShipPosition,
+					getSize: getShipSize,
+					sizeUnits: isGalaxyView ? "pixels" : "meters",
+					sizeMinPixels: 33,
+					sizeMaxPixels: 105,
+					pickable: true,
+					onClick: handleShipClick,
+				}),
+			);
+
+			if (showLabels || !isGalaxyView) {
+				dLayers.push(
+					new TextLayer({
+						id: "ship-labels",
+						data: clusteredData.filter((d: any) => !d.isCluster),
+						getPosition: getShipLabelPos,
+						getText: getShipLabelText,
+						getPixelOffset: [0, -30],
+						getColor: getShipLabelColor,
+						background: true,
+						getBackgroundColor: getShipLabelBg,
+						getSize: 12,
+						sizeUnits: "pixels",
+					}),
+				);
+			}
+			dLayers.push(
+				new TextLayer({
+					id: "cluster-badges",
+					data: clusteredData.filter((d: any) => d.isCluster),
+					getPosition: getClusterBadgePos,
+					getText: getClusterBadgeText,
+					getPixelOffset: [12, -12],
+					getColor: getClusterBadgeColor,
+					background: true,
+					getBackgroundColor: getClusterBadgeBg,
+					getSize: 14,
+					sizeUnits: "pixels",
+				}),
+			);
+		}
+
+		return dLayers;
+	}, [
+		isGalaxyView,
+		isPlanetModeActive,
+		starAtlas,
+		shipAtlas,
+		planetAtlas,
+		stationsAtlas,
+		activePlanets,
+		activeStations,
+		clusteredData,
+		orbitTrails,
+		systemsPoints,
+		showLabels,
+		currentSystem,
+		systemBoundingBox,
+		flightPathLayers,
+		handleGatewayHover,
+		handlePlanetClick,
+		handleHoverTooltip,
+		handleShipClick,
+	]);
+
+	// --- SECTOR LAYER (Keep existing) ---
+	const sectorLayer = useMemo(() => {
+		if (!isGalaxyView || !sectors || sectors.length === 0) return [];
+		const sectorLayers: any[] = [];
+		const sectorLabels = sectors.map((s) => ({
+			text: s.name || s.id,
+			position: s.centroid,
+		}));
+
+		sectorLayers.push(
+			new PolygonLayer<Sector>({
+				id: "sector-polygons",
+				data: sectors,
+				getPolygon: (d: Sector) => {
+					const cx = d.centroid[0],
+						cy = d.centroid[1];
+					const gap = 0.995;
+					return d.vertices.map((v: any) => [
+						cx + (v[0] - cx) * gap,
+						cy + (v[1] - cy) * gap,
+					]);
+				},
+				getFillColor: (d: Sector) => safeGetColor(d.empireCode, 60),
+				getLineColor: (d: Sector) => safeGetColor(d.empireCode, 180),
+				getLineWidth: 2,
+				stroked: true,
+				pickable: false,
+			}),
+		);
+		sectorLayers.push(
+			new TextLayer({
+				id: "sector-labels",
+				data: sectorLabels,
+				getPosition: (d: any) => d.position,
+				getText: (d: any) => d.text,
+				getSize: 18,
+				sizeUnits: "pixels",
+				getColor: [255, 255, 255, 255],
+				billboard: true,
+				pickable: false,
+			}),
+		);
+		return sectorLayers;
+	}, [isGalaxyView, sectors, safeGetColor]);
+
+	// --- FINAL COMBINATION ---
+	const prevLayersRef = useRef<any[]>([]);
+	// cleanup prevLayersRef on unmount to reduce chance of holding onto old layer instances
+	useEffect(
+		() => () => {
+			prevLayersRef.current = [];
+		},
+		[],
+	);
+
+	const layers = useMemo(() => {
+		if (isInteracting && prevLayersRef.current.length > 0)
+			return prevLayersRef.current;
+		if (!viewportInstance) return [];
+		const combined = [...sectorLayer, ...staticGalaxyLayers, ...dynamicLayers];
+		prevLayersRef.current = combined;
+		return combined;
+	}, [
+		staticGalaxyLayers,
+		sectorLayer,
+		dynamicLayers,
+		isInteracting,
+		viewportInstance,
+	]);
+
+	return {
+		layers,
+		updatedShips,
+		activePlanets,
+		activeStations,
+		workerStats: workerDebugStats,
+	};
 };

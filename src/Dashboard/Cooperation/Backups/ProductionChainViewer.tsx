@@ -24,7 +24,7 @@ import type {
 	Connection,
 	Edge,
 	Node,
-    NodeDragHandler
+	NodeDragHandler,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { Box, Button, Tooltip, useTheme } from "@mui/material";
@@ -61,7 +61,7 @@ import TransshipmentEdge from "./EdgesTypes";
 const useMouseSync = (
 	onSendSyncMessage: ProductionChainViewerProps["onSendSyncMessage"],
 	displayName: string,
-	viewport: Viewport
+	viewport: Viewport,
 ) => {
 	const { screenToFlowPosition } = useReactFlow();
 	const lastSentRef = React.useRef(0);
@@ -89,15 +89,15 @@ const useMouseSync = (
 			onSendSyncMessage(message);
 			lastSentRef.current = Date.now();
 		},
-		[onSendSyncMessage, screenToFlowPosition, viewport.zoom, displayName]
+		[onSendSyncMessage, screenToFlowPosition, viewport.zoom, displayName],
 	);
 
 	return handleMouseMove;
 };
 
 const edgeTypes = {
-    // Register your custom edge type
-    transshipment: TransshipmentEdge, 
+	// Register your custom edge type
+	transshipment: TransshipmentEdge,
 };
 
 const ProductionChainViewer = forwardRef<
@@ -117,9 +117,9 @@ const ProductionChainViewer = forwardRef<
 			remoteCursors,
 			lockedNode,
 			userId,
-			activeGroupId
+			activeGroupId,
 		},
-		ref
+		ref,
 	) => {
 		//const theme = useTheme();
 		const { fitView, getViewport } = useReactFlow();
@@ -141,7 +141,9 @@ const ProductionChainViewer = forwardRef<
 			if (!initialChain) return;
 
 			const chainWithLockStatus = initialChain.nodes?.map((n) => {
-				const isLocked = lockedNode?.some((lock: any) => lock.nodeId === n.nodeId);
+				const isLocked = lockedNode?.some(
+					(lock: any) => lock.nodeId === n.nodeId,
+				);
 
 				return {
 					...n,
@@ -149,10 +151,13 @@ const ProductionChainViewer = forwardRef<
 				};
 			});
 
-			const { rfNodes: newRFNodes, rfEdges: newRFEdges } = transformChainToRF({
-				nodes: chainWithLockStatus,
-				links: initialChain.links
-			}, materials);
+			const { rfNodes: newRFNodes, rfEdges: newRFEdges } = transformChainToRF(
+				{
+					nodes: chainWithLockStatus,
+					links: initialChain.links,
+				},
+				materials,
+			);
 
 			setNodes((prevNodes) => {
 				if (prevNodes.length !== newRFNodes.length) {
@@ -197,12 +202,12 @@ const ProductionChainViewer = forwardRef<
 		const getNewChainState = useCallback(
 			(
 				latestNodes: Node<ChainNodeData>[],
-				latestEdges: Edge<ChainLinkData>[]
+				latestEdges: Edge<ChainLinkData>[],
 			): Chain => {
 				// MOCK: This function MUST be implemented in your helpers.ts
 				return transformRFToChain(latestNodes, latestEdges);
 			},
-			[]
+			[],
 		);
 
 		// 4. Custom Node/Edge Change Handlers (CRITICAL: SEND SYNC MESSAGE HERE)
@@ -220,7 +225,7 @@ const ProductionChainViewer = forwardRef<
 				// NOTE: We do NOT need to check if it's the end of a drag for real-time sync.
 				// We want collaborators to see the drag in real-time.
 				const syncChanges = changes.filter(
-					(c) => c.type === "position" || c.type === "remove"
+					(c) => c.type === "position" || c.type === "remove",
 				);
 
 				if (syncChanges.length > 0) {
@@ -235,7 +240,7 @@ const ProductionChainViewer = forwardRef<
 				// 2. Identify the END of a drag operation to trigger the full, heavy save.
 				// This is the CRITICAL change to fix lag.
 				const dragEndChange = changes.some(
-					(c) => c.type === "position" && c.dragging === false
+					(c) => c.type === "position" && c.dragging === false,
 				);
 
 				// Also trigger a save for NODE_REMOVE operations, which is always final.
@@ -258,7 +263,7 @@ const ProductionChainViewer = forwardRef<
 				getNewChainState,
 				onChainUpdate, // This function should now only be called once per drag end
 				onSendSyncMessage,
-			]
+			],
 		);
 
 		// Handler for Edge changes (Delete)
@@ -291,7 +296,7 @@ const ProductionChainViewer = forwardRef<
 				getNewChainState,
 				onChainUpdate,
 				onSendSyncMessage,
-			]
+			],
 		);
 
 		const isValidConnection = useCallback(
@@ -313,13 +318,13 @@ const ProductionChainViewer = forwardRef<
 				const isConnectionValid = validateConnection(
 					sourceChainNodeData,
 					targetChainNodeData,
-					materials
+					materials,
 				);
 
 				// Note: The drag direction is irrelevant here; we only check if the connection (Source -> Target) is valid.
 				return isConnectionValid;
 			},
-			[nodes, materials]
+			[nodes, materials],
 		);
 
 		// Handler for New Edge Connection
@@ -350,7 +355,7 @@ const ProductionChainViewer = forwardRef<
 							targetHandle: connection.targetHandle,
 						} as unknown as ChainLinkData,
 					},
-					edges
+					edges,
 				);
 				setEdges(newEdges);
 				console.log(newEdges);
@@ -375,7 +380,7 @@ const ProductionChainViewer = forwardRef<
 				onChainUpdate,
 				onSendSyncMessage,
 				setEdges,
-			]
+			],
 		);
 
 		// Handler for Dropping a new node (e.g., from a sidebar) not used for now
@@ -420,7 +425,7 @@ const ProductionChainViewer = forwardRef<
 				onChainUpdate,
 				onSendSyncMessage,
 				setNodes,
-			]
+			],
 		);
 
 		// Handler for when a user starts dragging a connection line
@@ -443,7 +448,7 @@ const ProductionChainViewer = forwardRef<
 				// 3. Find all potential target nodes (excluding the source node itself)
 				// Note: Using `initialChain.nodes` which is the full list from your data model
 				const allTargetNodes = initialChain?.nodes?.filter(
-					(n) => n.nodeId !== nodeId
+					(n) => n.nodeId !== nodeId,
 				);
 
 				// 4. Determine valid targets by checking BOTH forward and reverse flow
@@ -455,7 +460,7 @@ const ProductionChainViewer = forwardRef<
 					const isForwardValid = validateConnection(
 						sourceChainNodeData, // Source
 						targetNodeData, // Target
-						materials
+						materials,
 					);
 
 					// Check 2: Reverse Flow (TargetNode's output -> SourceNode's input)
@@ -463,7 +468,7 @@ const ProductionChainViewer = forwardRef<
 					const isReverseValid = validateConnection(
 						targetNodeData, // Source
 						sourceChainNodeData, // Target
-						materials
+						materials,
 					);
 
 					// If EITHER direction is valid, we highlight the target node.
@@ -481,7 +486,7 @@ const ProductionChainViewer = forwardRef<
 				});
 			},
 			// Added setValidationData to dependencies for correctness
-			[initialChain.nodes, nodes, materials, setValidationData]
+			[initialChain.nodes, nodes, materials, setValidationData],
 		);
 
 		// Handler for when a connection drag ends (or is cancelled)
@@ -495,14 +500,14 @@ const ProductionChainViewer = forwardRef<
 			(_: any, viewport: React.SetStateAction<Viewport>) => {
 				setLocalViewport(viewport); // Update local viewport state
 			},
-			[]
+			[],
 		);
 
 		// Hook to handle sending mouse movements
 		const handleMouseMove = useMouseSync(
 			onSendSyncMessage,
 			localStorage.getItem("displayName") || "",
-			viewport
+			viewport,
 		);
 
 		interface LockedNodeState {
@@ -514,15 +519,15 @@ const ProductionChainViewer = forwardRef<
 			(
 				nodeId: string,
 				lockedNode: LockedNodeState[] | null,
-				currentUserId: string
+				currentUserId: string,
 			): boolean => {
 				if (!lockedNode) return false;
 				// Returns true if the node is locked AND the locking user is NOT the current user
 				return lockedNode.some(
-					(lock) => lock.nodeId === nodeId && lock.userId !== currentUserId
+					(lock) => lock.nodeId === nodeId && lock.userId !== currentUserId,
 				);
 			},
-			[]
+			[],
 		);
 
 		// 2. Define the drag start handler
@@ -543,9 +548,9 @@ const ProductionChainViewer = forwardRef<
 					payload: { nodeId: node.id, userId: userId },
 				});
 			},
-			[isNodeLockedByOther, lockedNode, userId, onSendSyncMessage]
+			[isNodeLockedByOther, lockedNode, userId, onSendSyncMessage],
 		);
-        // 2. Define the drag start handler
+		// 2. Define the drag start handler
 		const handleNodeDragStop: NodeDragHandler = useCallback(
 			(_event, node: Node, _nodes: Node[]) => {
 				// If not locked, send a message to lock the node for the current user
@@ -554,169 +559,170 @@ const ProductionChainViewer = forwardRef<
 					payload: { nodeId: node.id, userId: userId },
 				});
 			},
-			[onSendSyncMessage, userId]
+			[onSendSyncMessage, userId],
 		);
 
-/**
- * Computes per-node material input status (need, input, deficit)
- * based on material recipes, connected edges, and production rate.
- * * FIX: Calculates the required inputs based on the recipe's output amount 
- * and the node's desired productionRate.
- */
-const computeNodeInputStatus = (
-  nodes: Node[],
-  edges: Edge[],
-  materials: Material[]
-): Record<string, InputStatus> => {
-  const inputStatusMap: Record<string, InputStatus> = {};
+		/**
+		 * Computes per-node material input status (need, input, deficit)
+		 * based on material recipes, connected edges, and production rate.
+		 * * FIX: Calculates the required inputs based on the recipe's output amount
+		 * and the node's desired productionRate.
+		 */
+		const computeNodeInputStatus = (
+			nodes: Node[],
+			edges: Edge[],
+			materials: Material[],
+		): Record<string, InputStatus> => {
+			const inputStatusMap: Record<string, InputStatus> = {};
 
-  // Step 1: For each node, calculate NEED based on its material recipe
-  nodes.forEach(node => {
-    const material = materials.find(m => m.ticker === node.data.materialTicker);
-    if (!material) return;
+			// Step 1: For each node, calculate NEED based on its material recipe
+			nodes.forEach((node) => {
+				const material = materials.find(
+					(m) => m.ticker === node.data.materialTicker,
+				);
+				if (!material) return;
 
-    const productionRate = node.data.productionRate || 0;
-    const inputStatus: InputStatus = {};
+				const productionRate = node.data.productionRate || 0;
+				const inputStatus: InputStatus = {};
 
-    if (material.resource) {
-      // If the material is a resource, the node needs no inputs.
-      return;
-    } else {
-      // Iterate through all possible recipes for this material
-      material.inputRecipes.forEach(recipe => {
+				if (material.resource) {
+					// If the material is a resource, the node needs no inputs.
+					return;
+				} else {
+					// Iterate through all possible recipes for this material
+					material.inputRecipes.forEach((recipe) => {
+						// Find the amount of the final material (node.data.materialTicker)
+						// that this specific recipe produces.
+						const recipeOutputEntry = recipe.outputs.find(
+							(output) => output.ticker === material.ticker,
+						);
 
-        // Find the amount of the final material (node.data.materialTicker) 
-        // that this specific recipe produces.
-        const recipeOutputEntry = recipe.outputs.find(
-            output => output.ticker === material.ticker
-        );
-        
-        // If the recipe doesn't output the node's material or the amount is 0, skip.
-        if (!recipeOutputEntry || recipeOutputEntry.amount === 0) return;
-        
-        const recipeOutputAmount = recipeOutputEntry.amount; // e.g., 50 (for 50 MCG)
-        
-        if (productionRate > 0) {
-            
-            // CRITICAL FIX: Calculate the multiplier (how many times the recipe must run).
-            // Example: 9765 (desired rate) / 50 (recipe output)
-            const recipeMultiplier = productionRate / recipeOutputAmount;
+						// If the recipe doesn't output the node's material or the amount is 0, skip.
+						if (!recipeOutputEntry || recipeOutputEntry.amount === 0) return;
 
-            // Now, calculate the need for each input material
-            recipe.inputs.forEach(input => {
-                const ticker = input.ticker;
-                const amountPerRecipe = input.amount;
-                
-                // Total need = Multiplier * Input amount per recipe run
-                const need = recipeMultiplier * amountPerRecipe;
+						const recipeOutputAmount = recipeOutputEntry.amount; // e.g., 50 (for 50 MCG)
 
-                if (!inputStatus[ticker]) {
-                    // First time encountering this input ticker
-                    inputStatus[ticker] = { need, input: 0, deficit: need };
-                } else {
-                    // Aggregate need from multiple recipes if applicable
-                    inputStatus[ticker].need += need;
-                    // Deficit is updated automatically in Step 3, but update here for accuracy
-                    inputStatus[ticker].deficit = inputStatus[ticker].need - inputStatus[ticker].input;
-                }
-            });
-        }
-      });
-    }
+						if (productionRate > 0) {
+							// CRITICAL FIX: Calculate the multiplier (how many times the recipe must run).
+							// Example: 9765 (desired rate) / 50 (recipe output)
+							const recipeMultiplier = productionRate / recipeOutputAmount;
 
-    // Only set inputStatusMap entry if there is actual input data
-    if (Object.keys(inputStatus).length > 0) {
-      inputStatusMap[node.id] = inputStatus;
-    }
-  });
+							// Now, calculate the need for each input material
+							recipe.inputs.forEach((input) => {
+								const ticker = input.ticker;
+								const amountPerRecipe = input.amount;
 
-  // Step 2: For each edge, add INPUT from source node’s production (UNCHANGED)
-  edges.forEach(edge => {
-    const sourceNode = nodes.find(n => n.id === edge.source);
-    const targetNode = nodes.find(n => n.id === edge.target);
-    if (!sourceNode || !targetNode) return;
+								// Total need = Multiplier * Input amount per recipe run
+								const need = recipeMultiplier * amountPerRecipe;
 
-    const sourceTicker = sourceNode.data.materialTicker;
-    const targetInputStatus = inputStatusMap[targetNode.id];
-    if (!targetInputStatus) return;
+								if (!inputStatus[ticker]) {
+									// First time encountering this input ticker
+									inputStatus[ticker] = { need, input: 0, deficit: need };
+								} else {
+									// Aggregate need from multiple recipes if applicable
+									inputStatus[ticker].need += need;
+									// Deficit is updated automatically in Step 3, but update here for accuracy
+									inputStatus[ticker].deficit =
+										inputStatus[ticker].need - inputStatus[ticker].input;
+								}
+							});
+						}
+					});
+				}
 
-    // Check if the target node actually needs this material as an input
-    if (targetInputStatus[sourceTicker]) {
-      targetInputStatus[sourceTicker].input += sourceNode.data.netFlow || 0;
-    }
-  });
+				// Only set inputStatusMap entry if there is actual input data
+				if (Object.keys(inputStatus).length > 0) {
+					inputStatusMap[node.id] = inputStatus;
+				}
+			});
 
-  // Step 3: Compute final DEFICIT (need - input) (UNCHANGED)
-  Object.values(inputStatusMap).forEach(status =>
-    Object.values(status).forEach(s => {
-      s.deficit = s.need - s.input;
-    })
-  );
+			// Step 2: For each edge, add INPUT from source node’s production (UNCHANGED)
+			edges.forEach((edge) => {
+				const sourceNode = nodes.find((n) => n.id === edge.source);
+				const targetNode = nodes.find((n) => n.id === edge.target);
+				if (!sourceNode || !targetNode) return;
 
-  return inputStatusMap;
-};
+				const sourceTicker = sourceNode.data.materialTicker;
+				const targetInputStatus = inputStatusMap[targetNode.id];
+				if (!targetInputStatus) return;
 
-const inputStatusMap = useMemo(() => {
-  return computeNodeInputStatus(nodes, edges, materials);
-}, [nodes, edges, materials]);
+				// Check if the target node actually needs this material as an input
+				if (targetInputStatus[sourceTicker]) {
+					targetInputStatus[sourceTicker].input += sourceNode.data.netFlow || 0;
+				}
+			});
 
-const enrichedNodes = useMemo(() => {
-  return nodes.map(n => ({
-    ...n,
-    data: {
-      ...n.data,
-      inputStatus: inputStatusMap[n.id] || {},
-    },
-  }));
-}, [nodes, inputStatusMap]);
+			// Step 3: Compute final DEFICIT (need - input) (UNCHANGED)
+			Object.values(inputStatusMap).forEach((status) =>
+				Object.values(status).forEach((s) => {
+					s.deficit = s.need - s.input;
+				}),
+			);
 
+			return inputStatusMap;
+		};
+
+		const inputStatusMap = useMemo(() => {
+			return computeNodeInputStatus(nodes, edges, materials);
+		}, [nodes, edges, materials]);
+
+		const enrichedNodes = useMemo(() => {
+			return nodes.map((n) => ({
+				...n,
+				data: {
+					...n.data,
+					inputStatus: inputStatusMap[n.id] || {},
+				},
+			}));
+		}, [nodes, inputStatusMap]);
 
 		// --- Compute inputList for each node based on connected sources ---
-useEffect(() => {
-  if (!nodes.length) return;
+		useEffect(() => {
+			if (!nodes.length) return;
 
-  // Build a quick lookup for all node data by ID
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+			// Build a quick lookup for all node data by ID
+			const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
-  // Build adjacency list: targetId -> [sourceIds]
-  const incomingMap = new Map<string, string[]>();
-  edges.forEach(edge => {
-    const { source, target } = edge;
-    if (!incomingMap.has(target)) incomingMap.set(target, []);
-    incomingMap.get(target)!.push(source);
-  });
+			// Build adjacency list: targetId -> [sourceIds]
+			const incomingMap = new Map<string, string[]>();
+			edges.forEach((edge) => {
+				const { source, target } = edge;
+				if (!incomingMap.has(target)) incomingMap.set(target, []);
+				incomingMap.get(target)!.push(source);
+			});
 
-  // Rebuild nodes with computed inputList
-  setNodes(prevNodes =>
-    prevNodes.map(node => {
-      const sourceIds = incomingMap.get(node.id) || [];
-      const inputList: Record<string, number> = {};
+			// Rebuild nodes with computed inputList
+			setNodes((prevNodes) =>
+				prevNodes.map((node) => {
+					const sourceIds = incomingMap.get(node.id) || [];
+					const inputList: Record<string, number> = {};
 
-      for (const srcId of sourceIds) {
-        const srcNode = nodeMap.get(srcId);
-        if (!srcNode) continue;
+					for (const srcId of sourceIds) {
+						const srcNode = nodeMap.get(srcId);
+						if (!srcNode) continue;
 
-        const ticker = srcNode.data.materialTicker;
-        const flow = srcNode.data.netFlow ?? 0;
-        inputList[ticker] = (inputList[ticker] || 0) + flow;
-      }
+						const ticker = srcNode.data.materialTicker;
+						const flow = srcNode.data.netFlow ?? 0;
+						inputList[ticker] = (inputList[ticker] || 0) + flow;
+					}
 
-      // If nothing changed, avoid useless re-render
-      if (JSON.stringify(node.data.inputList) === JSON.stringify(inputList)) {
-        return node;
-      }
+					// If nothing changed, avoid useless re-render
+					if (
+						JSON.stringify(node.data.inputList) === JSON.stringify(inputList)
+					) {
+						return node;
+					}
 
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          inputList, // ✅ computed dynamically
-        },
-      };
-    })
-  );
-}, [edges, nodes.map(n => n.data.netFlow).join(",")]);
-
+					return {
+						...node,
+						data: {
+							...node.data,
+							inputList, // ✅ computed dynamically
+						},
+					};
+				}),
+			);
+		}, [edges, nodes.map((n) => n.data.netFlow).join(",")]);
 
 		// Provide methods to the parent component (GroupManager)
 		useImperativeHandle(ref, () => ({
@@ -728,28 +734,26 @@ useEffect(() => {
 		// 5. Context Value for custom nodes
 		// 2. Add it to the Context Value Memo
 		const connectionToolContextValue = useMemo(
-		    () => ({
-		        connectionMode,
-		        sourceNodeData: sourceRFNode,
-		        materials,
-		        onEditNode,
-		        onDeleteNode,
-		        validationData,
-		        activeGroupId, // ✅ NEW
-		    }),
-		    [
-		        connectionMode,
-		        sourceRFNode,
-		        materials,
-		        onEditNode,
-		        onDeleteNode,
-		        validationData,
-		        activeGroupId, // ✅ NEW
-		    ]
+			() => ({
+				connectionMode,
+				sourceNodeData: sourceRFNode,
+				materials,
+				onEditNode,
+				onDeleteNode,
+				validationData,
+				activeGroupId, // ✅ NEW
+			}),
+			[
+				connectionMode,
+				sourceRFNode,
+				materials,
+				onEditNode,
+				onDeleteNode,
+				validationData,
+				activeGroupId, // ✅ NEW
+			],
 		);
 		const nodeTypes = useMemo(() => NODE_TYPES, []);
-
-		
 
 		return (
 			<ConnectionToolContext.Provider value={connectionToolContextValue}>
@@ -768,7 +772,7 @@ useEffect(() => {
 						onDrop={onDrop}
 						onDragOver={(event) => event.preventDefault()}
 						onNodeDragStart={handleNodeDragStart}
-                        onNodeDragStop={handleNodeDragStop}
+						onNodeDragStop={handleNodeDragStop}
 						onMoveEnd={onMoveEnd}
 						nodeTypes={nodeTypes}
 						onConnectStart={onConnectStart}
@@ -812,7 +816,7 @@ useEffect(() => {
 				</Box>
 			</ConnectionToolContext.Provider>
 		);
-	}
+	},
 );
 
 export default ProductionChainViewer;

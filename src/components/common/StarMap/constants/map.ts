@@ -1,12 +1,12 @@
 import type { OrthographicViewState } from "../types/mapTypes";
 
 export const INITIAL_VIEW_STATE: OrthographicViewState = {
-  target: [0, 0],
-  zoom: -3,
-  minZoom: -3,
-  maxZoom: 8,
-  pitch: 0,
-  bearing: 0,
+	target: [0, 0],
+	zoom: -3,
+	minZoom: -3,
+	maxZoom: 8,
+	pitch: 0,
+	bearing: 0,
 };
 
 export const BASE_PLANET_SIZE = 1;
@@ -32,9 +32,9 @@ export const PLANET_MAX_RADIUS_INCREMENT = 12;
 
 export const CELL_SIZE = 50;
 
-export const MIN_ICON_PIXELS = 5;   // Icons never get smaller than this
+export const MIN_ICON_PIXELS = 5; // Icons never get smaller than this
 export const MAX_ICON_PIXELS = 100; // Icons never get bigger than this
-export const REF_ZOOM = 0;          // The zoom level where scale is 1:1
+export const REF_ZOOM = 0; // The zoom level where scale is 1:1
 
 // label and visibility tuning
 export const LABEL_ZOOM_THRESHOLD = 0.5; // below this hide most labels

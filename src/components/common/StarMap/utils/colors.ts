@@ -1,26 +1,31 @@
 import { EMPIRE_PALETTE, NEUTRAL_COLOR } from "../constants/colors";
 
-export const hexToRgba = (hex: string, alpha = 255): [number, number, number, number] => {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!m) return [0, 0, 0, alpha];
-  return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16), alpha];
+export const hexToRgba = (
+	hex: string,
+	alpha = 255,
+): [number, number, number, number] => {
+	const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	if (!m) return [0, 0, 0, alpha];
+	return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16), alpha];
 };
 
 export const assignEmpireColors = (codes: string[]) => {
-  const map: Record<string, string> = {};
-  const paletteKeys = Object.keys(EMPIRE_PALETTE);
-  let idx = 0;
-  for (const c of codes) {
-    if ((EMPIRE_PALETTE as any)[c]) map[c] = (EMPIRE_PALETTE as any)[c];
-    else map[c] = (EMPIRE_PALETTE as any)[paletteKeys[idx % paletteKeys.length]] || null;
-    idx++;
-  }
-  return map;
+	const map: Record<string, string> = {};
+	const paletteKeys = Object.keys(EMPIRE_PALETTE);
+	let idx = 0;
+	for (const c of codes) {
+		if ((EMPIRE_PALETTE as any)[c]) map[c] = (EMPIRE_PALETTE as any)[c];
+		else
+			map[c] =
+				(EMPIRE_PALETTE as any)[paletteKeys[idx % paletteKeys.length]] || null;
+		idx++;
+	}
+	return map;
 };
 
 export function getPlanetColorByPopulation(
 	population: number,
-	maxPlanetPopulationInContext: number
+	maxPlanetPopulationInContext: number,
 ): [number, number, number, number] {
 	// Light Blue/Grey - used for zero population or errors.
 	const defaultColor: [number, number, number, number] = [100, 100, 100, 255];

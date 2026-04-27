@@ -5,16 +5,16 @@ import { useMemo } from "react";
 
 // --- PROPS INTERFACE ---
 interface FlightLinesLayerProps {
-    id: string;
-    data: FlightPlan[];
-    visibleShipIds: Set<string>;
-    systemIdToCoordinates: Map<string, [number, number]>; // Fast lookup map
-    theme: any; // Material UI Theme
+	id: string;
+	data: FlightPlan[];
+	visibleShipIds: Set<string>;
+	systemIdToCoordinates: Map<string, [number, number]>; // Fast lookup map
+	theme: any; // Material UI Theme
 }
 
 interface FlightData {
-    path: [number, number][];
-    isOwn: boolean;
+	path: [number, number][];
+	isOwn: boolean;
 }
 
 /**
@@ -101,9 +101,6 @@ interface FlightData {
         return map;
     }, [systems]);
 }; */
-
-
-
 
 /* export const memoFlightPathLayers = useMemo(() => {
     const corpPlans = (mode === 'dashboard' || mode === 'shipping') ? (corpFlightPlans || []) : [];

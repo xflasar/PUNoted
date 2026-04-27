@@ -107,9 +107,7 @@ const TopNavbar: React.FC = () => {
 								},
 							}}
 						>
-							<ListItemIcon sx={{ color: "inherit" }}>
-								{item.icon}
-							</ListItemIcon>
+							<ListItemIcon sx={{ color: "inherit" }}>{item.icon}</ListItemIcon>
 							<ListItemText primary={item.text} />
 						</MenuItem>
 					))}

@@ -857,7 +857,10 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 						flexShrink: 0,
 					}}
 				>
-					<Stack direction="row" sx={{ mb: 2, justifyContent: "space-between" }}>
+					<Stack
+						direction="row"
+						sx={{ mb: 2, justifyContent: "space-between" }}
+					>
 						<Typography sx={{ color: "#aaa" }}>Total</Typography>
 						<Typography
 							variant="h5"

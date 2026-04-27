@@ -85,7 +85,7 @@ async function copyToClipboard(text: string) {
 		// Log failure of the fallback
 		if (!copySuccess) {
 			console.error(
-				"Fallback copy failed: document.execCommand returned false."
+				"Fallback copy failed: document.execCommand returned false.",
 			);
 		}
 	} catch (err) {
@@ -113,7 +113,7 @@ const ConsumptionFlowTable: React.FC<ConsumptionFlowDetailProps> = ({
 	const originKeys = Object.keys(StationExchangeMap);
 
 	const [selectedOrigin, setSelectedOrigin] = useState<string>(
-		originKeys.length > 0 ? originKeys[0] : "Configure on Execution"
+		originKeys.length > 0 ? originKeys[0] : "Configure on Execution",
 	);
 
 	const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -137,8 +137,8 @@ const ConsumptionFlowTable: React.FC<ConsumptionFlowDetailProps> = ({
 					deficitPerDay < 0
 						? currentAmount / Math.abs(deficitPerDay)
 						: currentAmount > 0
-						? Infinity
-						: 0;
+							? Infinity
+							: 0;
 				const targetSupply = Math.abs(deficitPerDay * targetDaysValue);
 				const neededAmount = Math.max(0, targetSupply - currentAmount);
 				const neededWeight = neededAmount * props.weight;
@@ -201,7 +201,7 @@ const ConsumptionFlowTable: React.FC<ConsumptionFlowDetailProps> = ({
 						group: groupName,
 						origin: origin, // Source station
 						dest: "Configure on Execution", // Destination (the site)
-				  }
+					}
 				: {
 						// CX Buy (Commodity Exchange Buy)
 						type: "CX Buy",
@@ -212,7 +212,7 @@ const ConsumptionFlowTable: React.FC<ConsumptionFlowDetailProps> = ({
 						priceLimits: {},
 						buyPartial: false,
 						useCXInv: true,
-				  };
+					};
 
 		console.log("XIT Action:", finalAction);
 
