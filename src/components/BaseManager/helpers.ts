@@ -29,7 +29,7 @@ export const formatDuration = (seconds: number): string => {
 	const d = Math.floor(seconds / 86400);
 	const h = Math.floor((seconds % 86400) / 3600);
 	const m = Math.floor((seconds % 3600) / 60);
-	let parts = [];
+	const parts = [];
 	if (d > 0) parts.push(`${d}d`);
 	if (h > 0) parts.push(`${h}h`);
 	if (m > 0) parts.push(`${m}m`);
@@ -231,7 +231,7 @@ export const calculateBaseMetrics = (params: EngineParams) => {
 		platformActiveRecipes[p.id] = bRecipes;
 
 		// Distribute recipes evenly across the amount of identical platforms
-		let bOrders: any[] = Array(platformAmount).fill(null);
+		const bOrders: any[] = Array(platformAmount).fill(null);
 		if (bRecipes.length > 0) {
 			for (let i = 0; i < platformAmount; i++) {
 				bOrders[i] = bRecipes[i % bRecipes.length];

@@ -245,7 +245,7 @@ export const useMapData = () => {
 					const systemPopTypeCounts: Record<string, number> = {};
 
 					for (const p of planets) {
-						let rawBreakdown = p.nextPopulation;
+						const rawBreakdown = p.nextPopulation;
 						let planetBreakdown: Record<string, number> | null = null;
 
 						if (typeof rawBreakdown === "string") {

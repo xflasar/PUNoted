@@ -2,8 +2,6 @@
 // FILE: orbitWorker.fixed.ts
 // ================================
 
-/* eslint-disable no-restricted-globals */
-
 import type {
 	MapPoint,
 	PlanetData,
@@ -34,7 +32,7 @@ let shipsForInterval: any[] = [];
 let plansMap: Map<string, any> = new Map();
 
 // --- OPTIMIZATION: Map for O(1) Galaxy Lookup ---
-let systemsMap: Map<string, MapPoint> = new Map();
+const systemsMap: Map<string, MapPoint> = new Map();
 
 let centeredSystemCached: MapPoint | null = null;
 let isGalaxyViewCached = true;
@@ -63,7 +61,7 @@ function _calculateWorldTimeSeconds(timeMs: number): number {
 }
 
 function keplerEquation(e: number, M: number): number {
-	let Mnorm =
+	const Mnorm =
 		((((M + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
 	if (Math.abs(e) < 1e-8) return Mnorm;
 	let E = e < 0.8 ? Mnorm : Math.PI;
@@ -484,7 +482,7 @@ function calculateAndPostEverything() {
 			visible = 1;
 
 		const key = ship.plan?.id ?? ship.id;
-		let plan = plansMap.get(key) ?? ship.plan;
+		const plan = plansMap.get(key) ?? ship.plan;
 
 		const flightStatus = getFlightStatus(ship, plan);
 

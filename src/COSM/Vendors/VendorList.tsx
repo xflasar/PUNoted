@@ -148,34 +148,34 @@ const PriceComparisonBadge = ({
 	if (!stats) return <Box sx={{ width: 40 }} />;
 
 	return (
-			<Tooltip title={`${label} Price Difference`}>
-				<Chip
-					// icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
-					icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
-					label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
-					size="small"
-					variant="outlined"
-					sx={{
-						fontSize: "0.7rem",
-						"& .MuiChip-icon": { color: "inherit" },
-						color:
-							stats.color === "neutral"
+		<Tooltip title={`${label} Price Difference`}>
+			<Chip
+				// icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+				icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
+				size="small"
+				variant="outlined"
+				sx={{
+					fontSize: "0.7rem",
+					"& .MuiChip-icon": { color: "inherit" },
+					color:
+						stats.color === "neutral"
 							? theme.palette.primary.light
 							: stats.isGood
 								? theme.palette.success.light
 								: theme.palette.error.light,
-						borderColor:
-							stats.color === "neutral"
-								? alpha(theme.palette.primary.main, 0.3)
-								: stats.isGood
-									? alpha(theme.palette.success.main, 0.3)
-									: alpha(theme.palette.error.main, 0.3),
-						bgcolor:
-							stats.color === "neutral"
-								? alpha(theme.palette.primary.main, 0.06)
-								: stats.isGood
-									? alpha(theme.palette.success.main, 0.05)
-									: alpha(theme.palette.error.main, 0.05),
+					borderColor:
+						stats.color === "neutral"
+							? alpha(theme.palette.primary.main, 0.3)
+							: stats.isGood
+								? alpha(theme.palette.success.main, 0.3)
+								: alpha(theme.palette.error.main, 0.3),
+					bgcolor:
+						stats.color === "neutral"
+							? alpha(theme.palette.primary.main, 0.06)
+							: stats.isGood
+								? alpha(theme.palette.success.main, 0.05)
+								: alpha(theme.palette.error.main, 0.05),
 				}}
 			/>
 		</Tooltip>
@@ -197,7 +197,8 @@ const VendorProductList = React.memo(
 	}) => {
 		const theme = useTheme();
 		const isBuying = title === "Bid";
-		const normalizedExchange = (vendorCx || "IC1").trim().toUpperCase() || "IC1";
+		const normalizedExchange =
+			(vendorCx || "IC1").trim().toUpperCase() || "IC1";
 		const sortedList = useMemo(
 			() =>
 				[...list].sort((a, b) =>
@@ -265,7 +266,9 @@ const VendorProductList = React.memo(
 							const cxReferencePrice = Number(rawCxValue);
 							const cxStats = getDiffStats(
 								fixedPrice,
-								Number.isFinite(cxReferencePrice) ? cxReferencePrice : undefined,
+								Number.isFinite(cxReferencePrice)
+									? cxReferencePrice
+									: undefined,
 								orderType,
 							);
 							const corpStats = getDiffStats(
@@ -289,7 +292,7 @@ const VendorProductList = React.memo(
 									sx={{
 										p: 0,
 										borderBottom:
-												index === sortedList.length - 1
+											index === sortedList.length - 1
 												? "none"
 												: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
 										padding: ".5em 0",
@@ -427,7 +430,11 @@ const VendorProductList = React.memo(
 												)}
 											</Box>
 											<Box
-												sx={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
+												sx={{
+													flex: 1,
+													display: "flex",
+													justifyContent: "flex-end",
+												}}
 											>
 												{cxStats && (
 													<PriceComparisonBadge label="CX" stats={cxStats} />
@@ -477,9 +484,10 @@ const VendorProductList = React.memo(
 												variant="body2"
 												sx={{
 													fontWeight: "bold",
-													color: orderType === "buy"
-														? theme.palette.info.main
-														: theme.palette.warning.main,
+													color:
+														orderType === "buy"
+															? theme.palette.info.main
+															: theme.palette.warning.main,
 												}}
 											>
 												{fixedPrice}
@@ -521,179 +529,185 @@ const VendorProductList = React.memo(
 
 // The Main Card Component
 const VendorCard = React.memo(
-	({ vendor, cxPriceLookup }: { vendor: VendorStore; cxPriceLookup: CxPriceLookup }) => {
-	const theme = useTheme();
+	({
+		vendor,
+		cxPriceLookup,
+	}: {
+		vendor: VendorStore;
+		cxPriceLookup: CxPriceLookup;
+	}) => {
+		const theme = useTheme();
 
-	const buyOrders = useMemo(
-		() =>
-			vendor.orders
-				? vendor.orders.filter((mat) => mat.ordertype === "buy")
-				: [],
-		[vendor.orders],
-	);
-	const sellOrders = useMemo(
-		() =>
-			vendor.orders
-				? vendor.orders.filter((mat) => mat.ordertype === "sell")
-				: [],
-		[vendor.orders],
-	);
+		const buyOrders = useMemo(
+			() =>
+				vendor.orders
+					? vendor.orders.filter((mat) => mat.ordertype === "buy")
+					: [],
+			[vendor.orders],
+		);
+		const sellOrders = useMemo(
+			() =>
+				vendor.orders
+					? vendor.orders.filter((mat) => mat.ordertype === "sell")
+					: [],
+			[vendor.orders],
+		);
 
-	return (
-		<Card
-			sx={{
-				bgcolor: alpha(theme.palette.background.default, 0.7),
-				backgroundImage: "none",
-				color: theme.palette.text.primary,
-				borderRadius: "16px",
-				display: "flex",
-				flexDirection: "column",
-				border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
-				backdropFilter: "blur(12px)",
-				WebkitBackdropFilter: "blur(12px)",
-				boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
-				transition: "box-shadow 0.2s, border-color 0.2s",
-				"&:hover": {
-					boxShadow: "0 8px 25px rgba(0, 0, 0, 0.5)",
-					borderColor: alpha(theme.palette.primary.main, 0.5),
-				},
-			}}
-		>
-			<CardContent
+		return (
+			<Card
 				sx={{
-					p: "12px !important",
+					bgcolor: alpha(theme.palette.background.default, 0.7),
+					backgroundImage: "none",
+					color: theme.palette.text.primary,
+					borderRadius: "16px",
 					display: "flex",
 					flexDirection: "column",
-					height: "100%",
+					border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+					backdropFilter: "blur(12px)",
+					WebkitBackdropFilter: "blur(12px)",
+					boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
+					transition: "box-shadow 0.2s, border-color 0.2s",
+					"&:hover": {
+						boxShadow: "0 8px 25px rgba(0, 0, 0, 0.5)",
+						borderColor: alpha(theme.palette.primary.main, 0.5),
+					},
 				}}
 			>
-				<Box sx={{ textAlign: "center", mb: 1.5 }}>
-					<ScrollingText
-						text={vendor.vendor.companyname}
-						variant="subtitle1"
-						sx={{ fontWeight: 600, letterSpacing: "0.5px", mb: 1 }}
+				<CardContent
+					sx={{
+						p: "12px !important",
+						display: "flex",
+						flexDirection: "column",
+						height: "100%",
+					}}
+				>
+					<Box sx={{ textAlign: "center", mb: 1.5 }}>
+						<ScrollingText
+							text={vendor.vendor.companyname}
+							variant="subtitle1"
+							sx={{ fontWeight: 600, letterSpacing: "0.5px", mb: 1 }}
+						/>
+
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+								gap: 1.5,
+								flexWrap: "wrap",
+							}}
+						>
+							{/* Game Name Badge: Soft, pill-shaped background for standard metadata */}
+							<Typography
+								variant="caption"
+								sx={{
+									color: theme.palette.text.secondary,
+									bgcolor: alpha(theme.palette.background.default, 0.6),
+									px: 1.5,
+									py: 0.5,
+									borderRadius: "12px",
+									fontWeight: 500,
+								}}
+							>
+								{vendor.vendor.gamename}
+							</Typography>
+
+							{/* Company Code Badge: Ticker style, primary colors, sharp radius */}
+							<Typography
+								variant="caption"
+								sx={{
+									color: theme.palette.primary.light,
+									bgcolor: alpha(theme.palette.primary.main, 0.1),
+									border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+									px: 1.5,
+									py: 0.5,
+									borderRadius: "4px",
+									fontWeight: "bold",
+									letterSpacing: "0.5px",
+								}}
+							>
+								{vendor.vendor.companycode}
+							</Typography>
+
+							{/* Activity Status: Flex container to hold the text and the status dot */}
+							<Typography
+								variant="caption"
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 0.75,
+									color: theme.palette.text.secondary,
+									bgcolor: alpha(theme.palette.background.default, 0.6),
+									px: 1.5,
+									py: 0.5,
+									borderRadius: "12px",
+									fontWeight: 500,
+								}}
+							>
+								{/* Status Indicator Dot */}
+								<Box
+									component="span"
+									sx={{
+										width: 6,
+										height: 6,
+										borderRadius: "50%",
+										bgcolor: theme.palette.success.main,
+										boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
+									}}
+								/>
+								Updated {vendor.vendor.activity} ago
+							</Typography>
+						</Box>
+					</Box>
+
+					<Divider
+						sx={{ my: 1, bgcolor: alpha(theme.palette.common.white, 0.08) }}
 					/>
 
+					{/* Product Columns - Responsive Layout: Row on Desktop, Column on Mobile */}
 					<Box
 						sx={{
 							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							gap: 1.5,
-							flexWrap: "wrap",
+							flexDirection: { xs: "column", sm: "row" },
+							gap: 1,
 						}}
 					>
-						{/* Game Name Badge: Soft, pill-shaped background for standard metadata */}
-						<Typography
-							variant="caption"
-							sx={{
-								color: theme.palette.text.secondary,
-								bgcolor: alpha(theme.palette.background.default, 0.6),
-								px: 1.5,
-								py: 0.5,
-								borderRadius: "12px",
-								fontWeight: 500,
-							}}
-						>
-							{vendor.vendor.gamename}
-						</Typography>
+						<VendorProductList
+							list={sellOrders}
+							title="Ask"
+							vendorCx={vendor.vendor.cx}
+							cxPriceLookup={cxPriceLookup}
+						/>
 
-						{/* Company Code Badge: Ticker style, primary colors, sharp radius */}
-						<Typography
-							variant="caption"
+						{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
+						<Divider
+							orientation="vertical"
+							flexItem
 							sx={{
-								color: theme.palette.primary.light,
-								bgcolor: alpha(theme.palette.primary.main, 0.1),
-								border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-								px: 1.5,
-								py: 0.5,
-								borderRadius: "4px",
-								fontWeight: "bold",
-								letterSpacing: "0.5px",
+								bgcolor: alpha(theme.palette.common.white, 0.08),
+								display: { xs: "none", sm: "block" },
 							}}
-						>
-							{vendor.vendor.companycode}
-						</Typography>
+						/>
+						<Divider
+							orientation="horizontal"
+							flexItem
+							sx={{
+								bgcolor: alpha(theme.palette.common.white, 0.08),
+								display: { xs: "block", sm: "none" },
+								width: "100%",
+							}}
+						/>
 
-						{/* Activity Status: Flex container to hold the text and the status dot */}
-						<Typography
-							variant="caption"
-							sx={{
-								display: "flex",
-								alignItems: "center",
-								gap: 0.75,
-								color: theme.palette.text.secondary,
-								bgcolor: alpha(theme.palette.background.default, 0.6),
-								px: 1.5,
-								py: 0.5,
-								borderRadius: "12px",
-								fontWeight: 500,
-							}}
-						>
-							{/* Status Indicator Dot */}
-							<Box
-								component="span"
-								sx={{
-									width: 6,
-									height: 6,
-									borderRadius: "50%",
-									bgcolor: theme.palette.success.main,
-									boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
-								}}
-							/>
-							Updated {vendor.vendor.activity} ago
-						</Typography>
+						<VendorProductList
+							list={buyOrders}
+							title="Bid"
+							vendorCx={vendor.vendor.cx}
+							cxPriceLookup={cxPriceLookup}
+						/>
 					</Box>
-				</Box>
-
-				<Divider
-					sx={{ my: 1, bgcolor: alpha(theme.palette.common.white, 0.08) }}
-				/>
-
-				{/* Product Columns - Responsive Layout: Row on Desktop, Column on Mobile */}
-				<Box
-					sx={{
-						display: "flex",
-						flexDirection: { xs: "column", sm: "row" },
-						gap: 1,
-					}}
-				>
-					<VendorProductList
-						list={sellOrders}
-						title="Ask"
-						vendorCx={vendor.vendor.cx}
-						cxPriceLookup={cxPriceLookup}
-					/>
-
-					{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
-					<Divider
-						orientation="vertical"
-						flexItem
-						sx={{
-							bgcolor: alpha(theme.palette.common.white, 0.08),
-							display: { xs: "none", sm: "block" },
-						}}
-					/>
-					<Divider
-						orientation="horizontal"
-						flexItem
-						sx={{
-							bgcolor: alpha(theme.palette.common.white, 0.08),
-							display: { xs: "block", sm: "none" },
-							width: "100%",
-						}}
-					/>
-
-					<VendorProductList
-						list={buyOrders}
-						title="Bid"
-						vendorCx={vendor.vendor.cx}
-						cxPriceLookup={cxPriceLookup}
-					/>
-				</Box>
-			</CardContent>
-		</Card>
-	);
+				</CardContent>
+			</Card>
+		);
 	},
 );
 
@@ -779,7 +793,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					const lookup: CxPriceLookup = {};
 					rows.forEach((row) => {
 						const ticker =
-							typeof row.ticker === "string" ? row.ticker.trim().toUpperCase() : "";
+							typeof row.ticker === "string"
+								? row.ticker.trim().toUpperCase()
+								: "";
 						if (ticker) lookup[ticker] = row;
 					});
 					setCxPriceLookup(lookup);

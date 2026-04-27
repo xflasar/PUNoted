@@ -869,7 +869,6 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 		// Ships (Clustered)
 		if (clusteredData.length > 0 && shipAtlas) {
-			// eslint-disable-next-line react-hooks/refs
 			dLayers.push(
 				new IconLayer({
 					id: "ships-icons",

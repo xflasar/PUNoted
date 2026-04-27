@@ -203,7 +203,7 @@ const formatDuration = (seconds: number) => {
 	const d = Math.floor(seconds / 86400);
 	const h = Math.floor((seconds % 86400) / 3600);
 	const m = Math.floor((seconds % 3600) / 60);
-	let parts = [];
+	const parts = [];
 	if (d > 0) parts.push(`${d}d`);
 	if (h > 0) parts.push(`${h}h`);
 	if (m > 0) parts.push(`${m}m`);
@@ -715,7 +715,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 		platformEfficiencies[p.id] = rawEfficiency * 100;
 
 		// Distribute recipes into individual building queues chronologically
-		let bOrders: any[][] = Array.from({ length: p.amount }, () => []);
+		const bOrders: any[][] = Array.from({ length: p.amount }, () => []);
 		(p.activeRecipes || []).forEach((recipeId, idx) => {
 			const bIdx = idx % p.amount;
 			const recipe = activeRecipes.find((r) => r.id === recipeId);
@@ -810,7 +810,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 		);
 
 	const handleAddPlatform = () => {
-		let newPlatforms = [...activeData.platforms];
+		const newPlatforms = [...activeData.platforms];
 		const existing = newPlatforms.find(
 			(p) => p.buildingTicker === newPlatformTicker,
 		);
@@ -828,7 +828,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 	};
 
 	const handleAdjustPlatformAmount = (platformId: string, change: number) => {
-		let newPlatforms = [...activeData.platforms];
+		const newPlatforms = [...activeData.platforms];
 		const index = newPlatforms.findIndex((p) => p.id === platformId);
 		if (index > -1)
 			newPlatforms[index].amount = Math.max(
@@ -891,7 +891,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 		);
 
 	const handleAdjustInfra = (ticker: string, change: number) => {
-		let newInfra = [...activeData.infrastructure];
+		const newInfra = [...activeData.infrastructure];
 		const existingIndex = newInfra.findIndex(
 			(i) => i.buildingTicker === ticker,
 		);
@@ -1450,7 +1450,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 											)?.amount || 0;
 										const totalCost =
 											getBuildingCost(infra.ticker) * currentCount;
-										let benefits = [];
+										const benefits = [];
 										if (infra.supply)
 											Object.entries(infra.supply).forEach(([k, v]) =>
 												benefits.push(`+${v as number} ${k.substring(0, 3)}`),

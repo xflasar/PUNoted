@@ -61,13 +61,13 @@ function buildEdgeGrid(edges: any[], cellSize: number) {
 	for (const edge of edges) {
 		let x0 = Math.floor(edge.ax / cellSize);
 		let y0 = Math.floor(edge.ay / cellSize);
-		let x1 = Math.floor(edge.bx / cellSize);
-		let y1 = Math.floor(edge.by / cellSize);
+		const x1 = Math.floor(edge.bx / cellSize);
+		const y1 = Math.floor(edge.by / cellSize);
 
-		let dx = Math.abs(x1 - x0);
-		let dy = Math.abs(y1 - y0);
-		let sx = x0 < x1 ? 1 : -1;
-		let sy = y0 < y1 ? 1 : -1;
+		const dx = Math.abs(x1 - x0);
+		const dy = Math.abs(y1 - y0);
+		const sx = x0 < x1 ? 1 : -1;
+		const sy = y0 < y1 ? 1 : -1;
 		let err = dx - dy;
 
 		while (true) {
@@ -76,7 +76,7 @@ function buildEdgeGrid(edges: any[], cellSize: number) {
 			edgeGrid.get(key)!.push(edge);
 
 			if (x0 === x1 && y0 === y1) break;
-			let e2 = 2 * err;
+			const e2 = 2 * err;
 			if (e2 > -dy) {
 				err -= dy;
 				x0 += sx;

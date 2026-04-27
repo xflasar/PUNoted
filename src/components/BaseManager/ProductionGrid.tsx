@@ -574,7 +574,7 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 									activeData.infrastructure.find(
 										(i: any) => i.buildingTicker === infra.ticker,
 									)?.amount || 0;
-								let benefits = [];
+								const benefits = [];
 								if (infra.supply)
 									Object.entries(infra.supply).forEach(([k, v]) =>
 										benefits.push(`+${v as number} ${k.substring(0, 3)}`),

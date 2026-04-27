@@ -84,7 +84,7 @@ function orbitalPlaneToInertial(
 }
 
 function keplerEquation(e: number, M: number): number {
-	let Mnorm =
+	const Mnorm =
 		((((M + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
 	if (Math.abs(e) < 1e-8) return Mnorm;
 	let E = e < 0.8 ? Mnorm : Math.PI;

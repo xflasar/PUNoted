@@ -505,7 +505,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 						buildMaterials={metrics.buildMaterials}
 						totalCapEx={metrics.totalCapEx}
 						handleAdjustPlatformAmount={(id: string, change: number) => {
-							let p = [...activeData.platforms];
+							const p = [...activeData.platforms];
 							const ex = p.findIndex((x) => x.id === id);
 							if (ex > -1) p[ex].amount = Math.max(1, p[ex].amount + change);
 							saveEdits(p, activeData.infrastructure, activeData.permitLevel);
@@ -545,7 +545,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 							}
 						}}
 						handleAdjustInfra={(t: string, change: number) => {
-							let i = [...activeData.infrastructure];
+							const i = [...activeData.infrastructure];
 							const ex = i.findIndex((x) => x.buildingTicker === t);
 							if (ex > -1) {
 								i[ex].amount = Math.max(0, i[ex].amount + change);
@@ -589,7 +589,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 				setNewAmount={setNewPlatformAmount}
 				activeBuildings={activeBuildings}
 				onAdd={() => {
-					let p = [...activeData.platforms];
+					const p = [...activeData.platforms];
 					const ex = p.find((x: any) => x.buildingTicker === newPlatformTicker);
 					if (ex)
 						ex.amount += newPlatformAmount; // Increase amount if platform already exists

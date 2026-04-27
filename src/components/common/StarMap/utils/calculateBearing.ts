@@ -11,7 +11,7 @@ const calculateBearing = (
 
 	// 1. Math.atan2 returns radians counter-clockwise from the positive X-axis.
 	// We convert it to degrees (AngleInDegrees: 0=East, increases counter-clockwise).
-	let angleInDegrees = Math.atan2(dy, dx) * (180 / Math.PI);
+	const angleInDegrees = Math.atan2(dy, dx) * (180 / Math.PI);
 
 	// 2. Adjust to Deck.gl/Navigational Standard: 0=North, increases clockwise.
 

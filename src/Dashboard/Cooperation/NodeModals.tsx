@@ -448,7 +448,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 	};
 
 	const modalStyle = {
-		position: "absolute" as "absolute",
+		position: "absolute" as const,
 		top: 0,
 		left: 0,
 		right: 0,
@@ -821,7 +821,7 @@ const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 											size="medium"
 											color="secondary"
 											onClick={() => {
-												let userObj = assignedUserToAdd;
+												const userObj = assignedUserToAdd;
 												let isManual = false;
 												const manualName = assignedManualInputText.trim();
 												if (!userObj && manualName) isManual = true;

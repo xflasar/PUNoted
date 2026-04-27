@@ -78,7 +78,7 @@ const FlowManagerApp: React.FC = () => {
 		[selectedGroup, currentUserId],
 	);
 	const [activeTab, setActiveTab] = useState("Flow");
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 	const [isSaving, setIsSaving] = useState(false); // Global flag to indicate an API save is in progress
 	const [isGroupManagerVisible, setIsGroupManagerVisible] = useState(true);
 

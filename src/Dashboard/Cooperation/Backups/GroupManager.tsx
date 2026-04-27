@@ -295,7 +295,7 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
 			>
 				<Box
 					sx={{
-						position: "absolute" as "absolute",
+						position: "absolute" as const,
 						top: "50%",
 						left: "50%",
 						transform: "translate(-50%, -50%)",

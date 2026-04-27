@@ -131,7 +131,7 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 			);
 		} catch (err) {
 			// Worker creation might fail in some environments — fail gracefully.
-			// eslint-disable-next-line no-console
+
 			console.warn("Could not create animation worker:", err);
 			animationWorkerRef.current = null;
 		}
@@ -154,7 +154,7 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 				});
 			} catch (err) {
 				// Worker may have been terminated or not available
-				// eslint-disable-next-line no-console
+
 				console.warn("worker postMessage failed", err);
 			}
 		}
@@ -865,7 +865,6 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		} catch {
 			// swallow any errors in focus logic
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		focusTarget,
 		systemsPoints,
