@@ -147,6 +147,65 @@ const activityToMinutes = (activity: unknown) => {
 	return value * 1440;
 };
 
+const prepareVendorStore = (
+	vendorStore: VendorStore,
+	cxPriceLookup: CxPriceLookup,
+) => {
+	const normalizedExchange =
+		(vendorStore.vendor.cx || "IC1").trim().toUpperCase() || "IC1";
+
+	const prepareOrders = (orderType: "buy" | "sell") =>
+		vendorStore.orders
+			.filter((order) => order.ordertype === orderType)
+			.sort((a, b) =>
+				a.materialticker.localeCompare(b.materialticker, undefined, {
+					sensitivity: "base",
+				}),
+			)
+			.map((item) => {
+				const available = Reflect.get(item as object, "available");
+				const displayQuantity =
+					typeof available === "number" ? available : item.quantity;
+				const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
+				const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
+				const rawCxValue =
+					cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[sideKey];
+				const cxReferencePrice = Number(rawCxValue);
+				const cxStats = getDiffStats(
+					fixedPrice,
+					Number.isFinite(cxReferencePrice) ? cxReferencePrice : undefined,
+					orderType,
+				);
+				const corpStats = getDiffStats(
+					fixedPrice,
+					item.price?.corpprice,
+					orderType,
+				);
+				const hasLocation = Boolean(item.location?.length);
+				const locationText = hasLocation
+					? item.location[0].location_code || item.location[0].location_name
+					: "Unknown";
+				const locationCount = hasLocation ? item.location.length : 0;
+
+				return {
+					item,
+					fixedPrice,
+					orderType,
+					cxStats,
+					corpStats,
+					locationText,
+					locationCount,
+					displayQuantity,
+				};
+			});
+
+	return {
+		vendorStore,
+		buyOrders: prepareOrders("buy"),
+		sellOrders: prepareOrders("sell"),
+	};
+};
+
 // --- MEMOIZED SUB-COMPONENTS ---
 
 const PriceComparisonBadge = ({
@@ -199,27 +258,12 @@ const VendorProductList = React.memo(
 	({
 		list,
 		title,
-		vendorCx,
-		cxPriceLookup,
 	}: {
-		list: OrderItem[];
+		list: ReturnType<typeof prepareVendorStore>["buyOrders"];
 		title: string;
-		vendorCx: string | undefined;
-		cxPriceLookup: CxPriceLookup;
 	}) => {
 		const theme = useTheme();
 		const isBuying = title === "Bid";
-		const normalizedExchange =
-			(vendorCx || "IC1").trim().toUpperCase() || "IC1";
-		const sortedList = useMemo(
-			() =>
-				[...list].sort((a, b) =>
-					a.materialticker.localeCompare(b.materialticker, undefined, {
-						sensitivity: "base",
-					}),
-				),
-			[list],
-		);
 
 		return (
 			<Box
@@ -266,37 +310,18 @@ const VendorProductList = React.memo(
 						},
 					}}
 				>
-					{sortedList.length > 0 ? (
-						sortedList.map((item, index) => {
-							const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
-							const orderType = item.ordertype || (isBuying ? "buy" : "sell");
-							const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
-							const rawCxValue =
-								cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[
-									sideKey
-								];
-							const cxReferencePrice = Number(rawCxValue);
-							const cxStats = getDiffStats(
+					{list.length > 0 ? (
+						list.map((preparedOrder, index) => {
+							const {
+								item,
 								fixedPrice,
-								Number.isFinite(cxReferencePrice)
-									? cxReferencePrice
-									: undefined,
 								orderType,
-							);
-							const corpStats = getDiffStats(
-								fixedPrice,
-								item.price?.corpprice,
-								orderType,
-							);
-
-							let locationText = "Unknown";
-							let locationCount = 0;
-							if (item.location && item.location.length > 0) {
-								locationText =
-									item.location[0].location_code ||
-									item.location[0].location_name;
-								locationCount = item.location.length;
-							}
+								cxStats,
+								corpStats,
+								locationText,
+								locationCount,
+								displayQuantity,
+							} = preparedOrder;
 
 							return (
 								<Box
@@ -304,7 +329,7 @@ const VendorProductList = React.memo(
 									sx={{
 										p: 0,
 										borderBottom:
-											index === sortedList.length - 1
+											index === list.length - 1
 												? "none"
 												: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
 										padding: ".5em 0",
@@ -358,7 +383,13 @@ const VendorProductList = React.memo(
 																	variant="caption"
 																	color="success.light"
 																>
-																	{formatAmount(l.available)}
+																	{formatAmount(
+																		(
+																			l as typeof l & {
+																				available?: number;
+																			}
+																		).available,
+																	)}
 																</Typography>
 															</Box>
 														))}
@@ -485,7 +516,7 @@ const VendorProductList = React.memo(
 													color: theme.palette.primary.light,
 												}}
 											>
-												{formatAmount(item.available || item.quantity)}
+												{formatAmount(displayQuantity)}
 											</Typography>
 										</Box>
 
@@ -542,28 +573,13 @@ const VendorProductList = React.memo(
 // The Main Card Component
 const VendorCard = React.memo(
 	({
-		vendor,
-		cxPriceLookup,
+		preparedVendor,
 	}: {
-		vendor: VendorStore;
-		cxPriceLookup: CxPriceLookup;
+		preparedVendor: ReturnType<typeof prepareVendorStore>;
 	}) => {
 		const theme = useTheme();
-
-		const buyOrders = useMemo(
-			() =>
-				vendor.orders
-					? vendor.orders.filter((mat) => mat.ordertype === "buy")
-					: [],
-			[vendor.orders],
-		);
-		const sellOrders = useMemo(
-			() =>
-				vendor.orders
-					? vendor.orders.filter((mat) => mat.ordertype === "sell")
-					: [],
-			[vendor.orders],
-		);
+		const { vendorStore, buyOrders, sellOrders } = preparedVendor;
+		const vendor = vendorStore.vendor;
 
 		return (
 			<Card
@@ -595,7 +611,7 @@ const VendorCard = React.memo(
 				>
 					<Box sx={{ textAlign: "center", mb: 1.5 }}>
 						<ScrollingText
-							text={vendor.vendor.companyname}
+							text={vendor.companyname}
 							variant="subtitle1"
 							sx={{ fontWeight: 600, letterSpacing: "0.5px", mb: 1 }}
 						/>
@@ -621,7 +637,7 @@ const VendorCard = React.memo(
 									fontWeight: 500,
 								}}
 							>
-								{vendor.vendor.gamename}
+								{vendor.gamename}
 							</Typography>
 
 							{/* Company Code Badge: Ticker style, primary colors, sharp radius */}
@@ -638,7 +654,7 @@ const VendorCard = React.memo(
 									letterSpacing: "0.5px",
 								}}
 							>
-								{vendor.vendor.companycode}
+								{vendor.companycode}
 							</Typography>
 
 							{/* Activity Status: Flex container to hold the text and the status dot */}
@@ -667,7 +683,9 @@ const VendorCard = React.memo(
 										boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
 									}}
 								/>
-								Updated {vendor.vendor.activity} ago
+								Updated{" "}
+								{(vendor as typeof vendor & { activity?: unknown }).activity}{" "}
+								ago
 							</Typography>
 						</Box>
 					</Box>
@@ -684,12 +702,7 @@ const VendorCard = React.memo(
 							gap: 1,
 						}}
 					>
-						<VendorProductList
-							list={sellOrders}
-							title="Ask"
-							vendorCx={vendor.vendor.cx}
-							cxPriceLookup={cxPriceLookup}
-						/>
+						<VendorProductList list={sellOrders} title="Ask" />
 
 						{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
 						<Divider
@@ -710,12 +723,7 @@ const VendorCard = React.memo(
 							}}
 						/>
 
-						<VendorProductList
-							list={buyOrders}
-							title="Bid"
-							vendorCx={vendor.vendor.cx}
-							cxPriceLookup={cxPriceLookup}
-						/>
+						<VendorProductList list={buyOrders} title="Bid" />
 					</Box>
 				</CardContent>
 			</Card>
@@ -945,6 +953,14 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		);
 	}, [searchQuery, sortedVendors]);
 
+	const preparedFilteredVendors = useMemo(
+		() =>
+			filteredVendors.map((vendorStore) =>
+				prepareVendorStore(vendorStore, cxPriceLookup),
+			),
+		[filteredVendors, cxPriceLookup],
+	);
+
 	return (
 		<Box
 			sx={{
@@ -1101,11 +1117,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xll: 5 }}
 								spacing={2}
 							>
-								{filteredVendors.map((vendor) => (
+								{preparedFilteredVendors.map((preparedVendor) => (
 									<VendorCard
-										key={vendor.vendor.companycode}
-										vendor={vendor}
-										cxPriceLookup={cxPriceLookup}
+										key={preparedVendor.vendorStore.vendor.companycode}
+										preparedVendor={preparedVendor}
 									/>
 								))}
 							</Masonry>
