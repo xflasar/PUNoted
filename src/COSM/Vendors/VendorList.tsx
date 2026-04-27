@@ -641,7 +641,7 @@ const VendorCard = React.memo(
 									boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
 								}}
 							/>
-							Active {vendor.vendor.activity} ago
+							Updated {vendor.vendor.activity} ago
 						</Typography>
 					</Box>
 				</Box>
