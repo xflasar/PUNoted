@@ -18,7 +18,6 @@ import {
 	AutoFixHigh,
 	InfoOutlined,
 	SettingsSuggest,
-	HelpOutlineRounded,
 } from "@mui/icons-material";
 
 export interface GuideStep {
@@ -60,32 +59,38 @@ export const SectionGuide = ({ title, steps = [] }: SectionGuideProps) => {
 			<IconButton
 				size="small"
 				onClick={(e) => setAnchorEl(e.currentTarget)}
-				sx={{ opacity: 0.6, ml: 0.5, p: 0.3 }}
+				sx={{ opacity: 1, ml: 0.5, p: 0.3, color: "primary.main" }}
 			>
-				<HelpOutlineOutlined sx={{ fontSize: 16 }} />
+				<HelpOutlineOutlined sx={{ fontSize: 18 }} />
 			</IconButton>
 			<Popover
-				open={Boolean(anchorEl)}
+				open={!!anchorEl}
 				anchorEl={anchorEl}
 				onClose={() => setAnchorEl(null)}
 				anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-				PaperProps={{
-					sx: {
-						bgcolor: alpha(theme.palette.background.default, 0.98),
-						backdropFilter: "blur(12px)",
-						border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-						width: 320,
-						maxHeight: 450,
-						boxShadow: theme.shadows[20],
-						borderRadius: 2,
-						backgroundImage: "none",
+				slotProps={{
+					paper: {
+						sx: {
+							bgcolor: alpha(theme.palette.background.default, 0.98),
+							backdropFilter: "blur(12px)",
+							border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+							width: 320,
+							maxHeight: 450,
+							boxShadow: theme.shadows[20],
+							borderRadius: 2,
+							backgroundImage: "none",
+						},
 					},
 				}}
 			>
 				<Box sx={{ p: 2 }}>
-					<Box display="flex" alignItems="center" gap={1} mb={1.5}>
-						<SettingsSuggest color="primary" />
-						<Typography variant="subtitle1" fontWeight="bold">
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+						<SettingsSuggest
+							sx={{
+								color: "primary.main",
+							}}
+						/>
+						<Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
 							{title} Guide
 						</Typography>
 					</Box>
@@ -104,8 +109,8 @@ export const SectionGuide = ({ title, steps = [] }: SectionGuideProps) => {
 										primary={
 											<Typography
 												variant="caption"
-												fontWeight="bold"
 												color="text.primary"
+												sx={{ fontWeight: "bold" }}
 											>
 												{step.title}
 											</Typography>

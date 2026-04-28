@@ -10,7 +10,6 @@ import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
 	Typography,
 	Box,
-	Grid,
 	TextField,
 	InputAdornment,
 	ToggleButton,
@@ -19,11 +18,11 @@ import {
 	CardContent,
 	Divider,
 	useTheme,
-	keyframes,
 	IconButton,
 	Tooltip,
 	Chip,
 	alpha,
+	Autocomplete,
 } from "@mui/material";
 import {
 	Search,
@@ -52,63 +51,7 @@ const getStoredVendorViewMode = (): "grid" | "table" | null => {
 	return isVendorViewMode(storedValue) ? storedValue : null;
 };
 
-// --- ANIMATIONS ---
-const scroll = keyframes`
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-100%); }
-  75% { transform: translateX(-100%); }
-  100% { transform: translateX(0); }
-`;
-
 // --- HELPER COMPONENTS ---
-
-const ScrollingText: React.FC<{ text: string; variant: any; sx?: any }> =
-	React.memo(({ text, variant, sx }) => {
-		const textRef = useRef<HTMLDivElement>(null);
-		const [overflowing, setOverflowing] = useState(false);
-
-		useEffect(() => {
-			const checkOverflow = () => {
-				if (textRef.current) {
-					setOverflowing(
-						textRef.current.scrollWidth > textRef.current.clientWidth,
-					);
-				}
-			};
-			checkOverflow();
-			window.addEventListener("resize", checkOverflow);
-			return () => window.removeEventListener("resize", checkOverflow);
-		}, [text]);
-
-		return (
-			<Box
-				sx={{
-					overflow: "hidden",
-					whiteSpace: "nowrap",
-					display: "inline-block",
-					maxWidth: "100%",
-					verticalAlign: "middle",
-				}}
-			>
-				<Typography
-					ref={textRef}
-					variant={variant}
-					component="div"
-					sx={{
-						...sx,
-						display: "inline-block",
-						whiteSpace: "nowrap",
-						pr: overflowing ? "16px" : 0,
-						animation: overflowing
-							? `${scroll} 10s linear infinite alternate`
-							: "none",
-					}}
-				>
-					{text}
-				</Typography>
-			</Box>
-		);
-	});
 
 const getDiffStats = (
 	vendorPrice: number,
@@ -134,6 +77,7 @@ const getDiffStats = (
 		label: formatted,
 		isGood,
 		color: isNeutral ? "neutral" : isGood ? "success" : "error",
+		refPrice,
 	};
 };
 
@@ -167,7 +111,7 @@ const prepareVendorStore = (
 				const available = Reflect.get(item as object, "available");
 				const displayQuantity =
 					typeof available === "number" ? available : item.quantity;
-				const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
+				const fixedPrice = item.price?.fixedprice ?? 0;
 				const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
 				const rawCxValue =
 					cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[sideKey];
@@ -182,11 +126,6 @@ const prepareVendorStore = (
 					item.price?.corpprice,
 					orderType,
 				);
-				const hasLocation = Boolean(item.location?.length);
-				const locationText = hasLocation
-					? item.location[0].location_code || item.location[0].location_name
-					: "Unknown";
-				const locationCount = hasLocation ? item.location.length : 0;
 
 				return {
 					item,
@@ -194,8 +133,6 @@ const prepareVendorStore = (
 					orderType,
 					cxStats,
 					corpStats,
-					locationText,
-					locationCount,
 					displayQuantity,
 				};
 			});
@@ -214,15 +151,41 @@ const PriceComparisonBadge = ({
 	stats,
 }: {
 	label: string;
-	stats: any;
+	stats: NonNullable<ReturnType<typeof getDiffStats>>;
 }) => {
 	const theme = useTheme();
 	if (!stats) return <Box sx={{ width: 40 }} />;
 
 	return (
-		<Tooltip title={`${label} Price Difference`}>
+		<Tooltip
+			title={
+				<Box sx={{ textAlign: "center" }}>
+					<Typography
+						variant="caption"
+						sx={{ display: "block", fontWeight: "bold" }}
+					>
+						{label} Price Difference
+					</Typography>
+					<Typography
+						variant="caption"
+						sx={{ color: theme.palette.text.secondary }}
+					>
+						{label} Price: {stats.refPrice} ICA
+					</Typography>
+				</Box>
+			}
+			slotProps={{
+				tooltip: {
+					sx: {
+						backdropFilter: "blur(8px)",
+						background: alpha(theme.palette.background.default, 0.95),
+						border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+						color: theme.palette.text.primary,
+					},
+				},
+			}}
+		>
 			<Chip
-				// icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
 				icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
 				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
 				size="small"
@@ -254,323 +217,6 @@ const PriceComparisonBadge = ({
 	);
 };
 
-// Renders the list of products
-const VendorProductList = React.memo(
-	({
-		list,
-		title,
-	}: {
-		list: ReturnType<typeof prepareVendorStore>["buyOrders"];
-		title: string;
-	}) => {
-		const theme = useTheme();
-		const isBuying = title === "Bid";
-
-		return (
-			<Box
-				sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}
-			>
-				<Typography
-					variant="caption"
-					sx={{
-						mb: 0.5,
-						color: isBuying
-							? theme.palette.info.light
-							: theme.palette.warning.light,
-						fontWeight: "bold",
-						textAlign: "center",
-						letterSpacing: 1,
-						fontSize: "0.7rem",
-						borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-						pb: 0.2,
-					}}
-				>
-					{title.toUpperCase()}
-				</Typography>
-
-				<Box
-					sx={{
-						overflowY: "auto",
-						px: 0,
-						maxHeight: "300px",
-						minHeight: "50px",
-						display: "flex",
-						flexDirection: "column",
-						"&::-webkit-scrollbar": {
-							width: "4px",
-						},
-						"&::-webkit-scrollbar-track": {
-							background: "transparent",
-						},
-						"&::-webkit-scrollbar-thumb": {
-							background: alpha(theme.palette.common.white, 0.1),
-							borderRadius: "4px",
-						},
-						"&::-webkit-scrollbar-thumb:hover": {
-							background: alpha(theme.palette.primary.main, 0.5),
-						},
-					}}
-				>
-					{list.length > 0 ? (
-						list.map((preparedOrder, index) => {
-							const {
-								item,
-								fixedPrice,
-								orderType,
-								cxStats,
-								corpStats,
-								locationText,
-								locationCount,
-								displayQuantity,
-							} = preparedOrder;
-
-							return (
-								<Box
-									key={item.frontendId || index}
-									sx={{
-										p: 0,
-										borderBottom:
-											index === list.length - 1
-												? "none"
-												: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
-										padding: ".5em 0",
-										transition: "background-color 0.2s",
-										display: "flex",
-										flexDirection: "column",
-										cursor: "default",
-										"&:hover": {
-											backgroundColor: alpha(theme.palette.common.white, 0.03),
-										},
-									}}
-								>
-									{/* ROW 1: Ticker (Left) -- Location (Right, Max 50%) */}
-									<Box
-										sx={{
-											display: "flex",
-											justifyContent: "space-between",
-											alignItems: "center",
-										}}
-									>
-										<Typography
-											variant="subtitle2"
-											sx={{
-												fontWeight: "bold",
-												color: theme.palette.text.primary,
-												fontSize: "0.85rem",
-												lineHeight: 1,
-											}}
-										>
-											{item.materialticker}
-										</Typography>
-
-										{item.location && item.location.length > 0 && (
-											<Tooltip
-												title={
-													<Box sx={{ p: 0.5 }}>
-														{item.location.map((l, i) => (
-															<Box
-																key={i}
-																sx={{
-																	display: "flex",
-																	justifyContent: "space-between",
-																	gap: 2,
-																	minWidth: 120,
-																}}
-															>
-																<Typography variant="caption">
-																	{l.location_name}
-																</Typography>
-																<Typography
-																	variant="caption"
-																	color="success.light"
-																>
-																	{formatAmount(
-																		(
-																			l as typeof l & {
-																				available?: number;
-																			}
-																		).available,
-																	)}
-																</Typography>
-															</Box>
-														))}
-													</Box>
-												}
-												slotProps={{
-													tooltip: {
-														sx: {
-															backdropFilter: "blur(8px)",
-															background: alpha(
-																theme.palette.background.default,
-																0.95,
-															),
-															border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-														},
-													},
-												}}
-											>
-												<Box
-													sx={{
-														display: "flex",
-														alignItems: "center",
-														gap: 0.5,
-														opacity: 0.8,
-														cursor: "help",
-														maxWidth: "50%",
-														justifyContent: "flex-end",
-													}}
-												>
-													<MapPin
-														size={10}
-														color={theme.palette.text.secondary}
-														style={{ flexShrink: 0 }}
-													/>
-													<Typography
-														variant="caption"
-														noWrap
-														sx={{
-															fontSize: "0.75rem",
-															color: theme.palette.text.secondary,
-														}}
-													>
-														{locationText}
-													</Typography>
-													{locationCount > 1 && (
-														<span
-															style={{
-																fontSize: "0.75rem",
-																fontWeight: "bold",
-																color: theme.palette.primary.main,
-																flexShrink: 0,
-															}}
-														>
-															+{locationCount - 1}
-														</span>
-													)}
-												</Box>
-											</Tooltip>
-										)}
-									</Box>
-
-									{/* ROW 2: Quantity & Price (Middle) */}
-									<Box
-										sx={{
-											display: "flex",
-											justifyContent: "space-between",
-											alignItems: "flex-end",
-											mt: 0.2,
-										}}
-									>
-										<Box
-											sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}
-										>
-											<Typography
-												variant="caption"
-												sx={{
-													color: theme.palette.text.secondary,
-													fontSize: "0.75rem",
-												}}
-											>
-												Qty:
-											</Typography>
-											<Typography
-												variant="body2"
-												sx={{
-													fontWeight: "bold",
-													color: theme.palette.primary.light,
-												}}
-											>
-												{formatAmount(displayQuantity)}
-											</Typography>
-										</Box>
-
-										<Box
-											sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}
-										>
-											<Typography
-												variant="body2"
-												sx={{
-													fontWeight: "bold",
-													color:
-														orderType === "buy"
-															? theme.palette.info.main
-															: theme.palette.warning.main,
-												}}
-											>
-												{fixedPrice}
-											</Typography>
-											<Typography
-												variant="caption"
-												sx={{
-													color: theme.palette.text.secondary,
-													fontSize: "0.75rem",
-												}}
-											>
-												ICA
-											</Typography>
-										</Box>
-									</Box>
-
-									{/* ROW 3: Badges (Bottom - Comparisons) */}
-									{cxStats || corpStats ? (
-										<Box
-											sx={{
-												display: "flex",
-												gap: 1,
-												flexWrap: "nowrap",
-												mt: 0.2,
-												minHeight: "25px",
-												justifyContent: "space-between",
-												alignItems: "center",
-											}}
-										>
-											<Box sx={{ flex: 1, display: "flex" }}>
-												{cxStats && (
-													<PriceComparisonBadge label="CX" stats={cxStats} />
-												)}
-											</Box>
-											<Box
-												sx={{
-													flex: 1,
-													display: "flex",
-													justifyContent: "flex-end",
-												}}
-											>
-												{corpStats && (
-													<PriceComparisonBadge
-														label="COSM"
-														stats={corpStats}
-													/>
-												)}
-											</Box>
-										</Box>
-									) : (
-										<Box sx={{ minHeight: "25px" }} />
-									)}
-								</Box>
-							);
-						})
-					) : (
-						<Box
-							sx={{
-								height: "100%",
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								opacity: 0.2,
-								py: 3,
-								flexDirection: "column",
-							}}
-						>
-							<Minus size={20} />
-						</Box>
-					)}
-				</Box>
-			</Box>
-		);
-	},
-);
-
 // The Main Card Component
 const VendorCard = React.memo(
 	({
@@ -581,6 +227,20 @@ const VendorCard = React.memo(
 		const theme = useTheme();
 		const { vendorStore, buyOrders, sellOrders } = preparedVendor;
 		const vendor = vendorStore.vendor;
+
+		const sortedList = useMemo(
+			() =>
+				[...buyOrders, ...sellOrders].sort((a, b) => {
+					const tickerCmp = a.item.materialticker.localeCompare(
+						b.item.materialticker,
+						undefined,
+						{ sensitivity: "base" },
+					);
+					if (tickerCmp !== 0) return tickerCmp;
+					return (a.orderType || "sell").localeCompare(b.orderType || "sell");
+				}),
+			[buyOrders, sellOrders],
+		);
 
 		return (
 			<Card
@@ -610,70 +270,83 @@ const VendorCard = React.memo(
 						height: "100%",
 					}}
 				>
-					<Box sx={{ textAlign: "center", mb: 1.5 }}>
-						<ScrollingText
-							text={vendor.companyname}
-							variant="subtitle1"
-							sx={{ fontWeight: 600, letterSpacing: "0.5px", mb: 1 }}
-						/>
-
+					<Box sx={{ textAlign: "center", mb: 1 }}>
 						<Box
 							sx={{
 								display: "flex",
-								justifyContent: "center",
 								alignItems: "center",
-								gap: 1.5,
+								justifyContent: "center",
+								gap: 1,
+								mb: 0.5,
 								flexWrap: "wrap",
 							}}
 						>
-							{/* Game Name Badge: Soft, pill-shaped background for standard metadata */}
 							<Typography
-								variant="caption"
+								variant="subtitle2"
 								sx={{
-									color: theme.palette.text.secondary,
-									bgcolor: alpha(theme.palette.background.default, 0.6),
-									px: 1.5,
-									py: 0.5,
-									borderRadius: "12px",
-									fontWeight: 500,
+									fontWeight: 600,
+									letterSpacing: "0.5px",
+									maxWidth: "200px",
 								}}
 							>
-								{vendor.gamename}
+								{vendor.companyname}
 							</Typography>
-
-							{/* Company Code Badge: Ticker style, primary colors, sharp radius */}
 							<Typography
 								variant="caption"
 								sx={{
 									color: theme.palette.primary.light,
 									bgcolor: alpha(theme.palette.primary.main, 0.1),
 									border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-									px: 1.5,
-									py: 0.5,
+									px: 1,
+									py: 0.25,
 									borderRadius: "4px",
 									fontWeight: "bold",
-									letterSpacing: "0.5px",
+									lineHeight: 1.2,
 								}}
 							>
 								{vendor.companycode}
 							</Typography>
+						</Box>
 
-							{/* Activity Status: Flex container to hold the text and the status dot */}
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+								gap: 1,
+								flexWrap: "wrap",
+							}}
+						>
+							<Typography
+								variant="caption"
+								sx={{
+									color: theme.palette.text.secondary,
+									bgcolor: alpha(theme.palette.background.default, 0.6),
+									px: 1,
+									py: 0.25,
+									borderRadius: "8px",
+									fontWeight: 500,
+									lineHeight: 1.2,
+								}}
+							>
+								{vendor.gamename}
+							</Typography>
+
 							<Typography
 								variant="caption"
 								sx={{
 									display: "flex",
 									alignItems: "center",
-									gap: 0.75,
+									gap: 0.5,
 									color: theme.palette.text.secondary,
 									bgcolor: alpha(theme.palette.background.default, 0.6),
-									px: 1.5,
-									py: 0.5,
-									borderRadius: "12px",
+									px: 1,
+									py: 0.25,
+									borderRadius: "8px",
 									fontWeight: 500,
+									lineHeight: 1.2,
 								}}
 							>
-								{/* Status Indicator Dot */}
 								<Box
 									component="span"
 									sx={{
@@ -684,47 +357,301 @@ const VendorCard = React.memo(
 										boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
 									}}
 								/>
-								Updated{" "}
-								{(vendor as typeof vendor & { activity?: unknown }).activity}{" "}
-								ago
+								{(() => {
+									const act = String(
+										(vendor as typeof vendor & { activity?: unknown })
+											.activity || "-",
+									).trim();
+									if (act === "0 m" || act === "0m") return "Recently Active";
+									if (act === "-") return "Active Unknown";
+									return `Active ${act} ago`;
+								})()}
 							</Typography>
 						</Box>
 					</Box>
 
 					<Divider
-						sx={{ my: 1, bgcolor: alpha(theme.palette.common.white, 0.08) }}
+						sx={{ my: 0.5, bgcolor: alpha(theme.palette.common.white, 0.08) }}
 					/>
 
-					{/* Product Columns - Responsive Layout: Row on Desktop, Column on Mobile */}
 					<Box
 						sx={{
+							flex: 1,
+							overflowY: "auto",
+							px: 0,
+							maxHeight: "450px",
+							minHeight: "50px",
 							display: "flex",
-							flexDirection: { xs: "column", sm: "row" },
-							gap: 1,
+							flexDirection: "column",
+							scrollbarWidth: "thin",
+							"&::-webkit-scrollbar": {
+								width: "4px",
+							},
+							"&::-webkit-scrollbar-track": {
+								background: "transparent",
+							},
+							"&::-webkit-scrollbar-thumb": {
+								background: alpha(theme.palette.common.white, 0.1),
+								borderRadius: "4px",
+							},
+							"&::-webkit-scrollbar-thumb:hover": {
+								background: alpha(theme.palette.primary.main, 0.5),
+							},
 						}}
 					>
-						<VendorProductList list={sellOrders} title="Ask" />
+						{sortedList.length > 0 ? (
+							sortedList.map((preparedOrder, index) => {
+								const {
+									item,
+									fixedPrice,
+									orderType,
+									cxStats,
+									corpStats,
+									displayQuantity,
+								} = preparedOrder;
+								const isBuying = orderType === "buy";
 
-						{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
-						<Divider
-							orientation="vertical"
-							flexItem
-							sx={{
-								bgcolor: alpha(theme.palette.common.white, 0.08),
-								display: { xs: "none", sm: "block" },
-							}}
-						/>
-						<Divider
-							orientation="horizontal"
-							flexItem
-							sx={{
-								bgcolor: alpha(theme.palette.common.white, 0.08),
-								display: { xs: "block", sm: "none" },
-								width: "100%",
-							}}
-						/>
+								return (
+									<Box
+										key={item.frontendId || index}
+										sx={{
+											p: 0,
+											borderBottom:
+												index === sortedList.length - 1
+													? "none"
+													: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
+											padding: ".5em .5em",
+											transition: "background-color 0.2s",
+											display: "flex",
+											flexDirection: "column",
+											gap: 0.5,
+											cursor: "default",
+											"&:hover": {
+												backgroundColor: alpha(
+													theme.palette.common.white,
+													0.03,
+												),
+											},
+										}}
+									>
+										{/* Main Row: Ticker, Price */}
+										<Box
+											sx={{
+												display: "flex",
+												justifyContent: "space-between",
+												alignItems: "center",
+											}}
+										>
+											<Box
+												sx={{ display: "flex", alignItems: "center", gap: 1 }}
+											>
+												<Chip
+													size="small"
+													label={isBuying ? "BID" : "ASK"}
+													sx={{
+														height: 18,
+														fontSize: "0.65rem",
+														fontWeight: "bold",
+														color: isBuying
+															? theme.palette.info.light
+															: theme.palette.warning.light,
+														bgcolor: isBuying
+															? alpha(theme.palette.info.main, 0.1)
+															: alpha(theme.palette.warning.main, 0.1),
+														border: `1px solid ${isBuying ? alpha(theme.palette.info.main, 0.3) : alpha(theme.palette.warning.main, 0.3)}`,
+													}}
+												/>
+												<Typography
+													variant="subtitle2"
+													sx={{
+														fontWeight: "bold",
+														color: theme.palette.text.primary,
+														fontSize: "0.85rem",
+													}}
+												>
+													{item.materialticker}
+												</Typography>
+											</Box>
 
-						<VendorProductList list={buyOrders} title="Bid" />
+											<Box
+												sx={{
+													display: "flex",
+													alignItems: "baseline",
+													gap: 0.5,
+												}}
+											>
+												<Typography
+													variant="body2"
+													sx={{
+														fontWeight: "bold",
+														color: isBuying
+															? theme.palette.info.main
+															: theme.palette.warning.main,
+													}}
+												>
+													{fixedPrice}
+												</Typography>
+												<Typography
+													variant="caption"
+													sx={{
+														color: theme.palette.text.secondary,
+														fontSize: "0.7rem",
+													}}
+												>
+													ICA
+												</Typography>
+											</Box>
+										</Box>
+
+										{/* Sub Rows: Locations and Quantities */}
+										{item.location && item.location.length > 0 ? (
+											<Box
+												sx={{
+													pl: 0,
+													display: "flex",
+													flexDirection: "column",
+													gap: 0.25,
+												}}
+											>
+												{item.location.map((l, i) => (
+													<Box
+														key={i}
+														sx={{
+															display: "flex",
+															justifyContent: "space-between",
+															alignItems: "center",
+														}}
+													>
+														<Box
+															sx={{
+																display: "flex",
+																alignItems: "center",
+																gap: 0.5,
+															}}
+														>
+															<MapPin
+																size={10}
+																color={theme.palette.text.secondary}
+																style={{ flexShrink: 0 }}
+															/>
+															<Typography
+																variant="caption"
+																sx={{
+																	color: theme.palette.text.secondary,
+																	fontSize: "0.80rem",
+																}}
+															>
+																{l.location_name ||
+																	l.location_code ||
+																	"Unknown"}
+															</Typography>
+														</Box>
+														<Typography
+															variant="caption"
+															sx={{
+																color: theme.palette.primary.light,
+																fontSize: "0.75rem",
+																fontWeight: "medium",
+															}}
+														>
+															Qty:{" "}
+															{formatAmount(
+																(
+																	l as typeof l & {
+																		available?: number;
+																	}
+																).available ?? displayQuantity,
+															)}
+														</Typography>
+													</Box>
+												))}
+											</Box>
+										) : (
+											<Box
+												sx={{
+													pl: 2,
+													display: "flex",
+													justifyContent: "space-between",
+													alignItems: "center",
+												}}
+											>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 0.5,
+													}}
+												>
+													<MapPin
+														size={10}
+														color={theme.palette.text.secondary}
+														style={{ flexShrink: 0 }}
+													/>
+													<Typography
+														variant="caption"
+														sx={{
+															color: theme.palette.text.secondary,
+															fontSize: "0.8rem",
+														}}
+													>
+														Unknown
+													</Typography>
+												</Box>
+												<Typography
+													variant="caption"
+													sx={{
+														color: theme.palette.primary.light,
+														fontSize: "0.75rem",
+														fontWeight: "medium",
+													}}
+												>
+													Qty: {formatAmount(displayQuantity)}
+												</Typography>
+											</Box>
+										)}
+
+										{/* Badges Row */}
+										{(cxStats || corpStats) && (
+											<Box
+												sx={{
+													display: "flex",
+													justifyContent: "space-between",
+													mt: 0.5,
+												}}
+											>
+												<Box sx={{ display: "flex", gap: 1 }}>
+													{corpStats && (
+														<PriceComparisonBadge
+															label="COSM"
+															stats={corpStats}
+														/>
+													)}
+												</Box>
+												<Box sx={{ display: "flex", gap: 1 }}>
+													{cxStats && (
+														<PriceComparisonBadge label="CX" stats={cxStats} />
+													)}
+												</Box>
+											</Box>
+										)}
+									</Box>
+								);
+							})
+						) : (
+							<Box
+								sx={{
+									height: "100%",
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+									opacity: 0.2,
+									py: 3,
+									flexDirection: "column",
+								}}
+							>
+								<Minus size={20} />
+							</Box>
+						)}
 					</Box>
 				</CardContent>
 			</Card>
@@ -746,6 +673,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [selectedLocation, setSelectedLocation] = useState<string>("All");
+	const [locationInputValue, setLocationInputValue] =
+		useState<string>("All Locations");
+	const [orderTypeFilter, setOrderTypeFilter] = useState<
+		"ASK" | "BID" | "BOTH"
+	>("BOTH");
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const querySubtab = searchParams.get("subtab");
 	const vendorViewMode: "grid" | "table" =
@@ -757,6 +690,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
 	const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 	const [isShoppingListModalOpen, setIsShoppingListModalOpen] = useState(false);
+
+	useEffect(() => {
+		setLocationInputValue(
+			selectedLocation === "All" ? "All Locations" : selectedLocation,
+		);
+	}, [selectedLocation]);
 
 	// Data States
 	const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
@@ -829,7 +768,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			setIsLoadingVendors(true);
 			try {
 				const [storesResponse, pricesResponse] = await Promise.all([
-					fetch("https://punoted.ddns.net/dev/api/vendor_stores"),
+					fetch("https://api.punoted.net/vendor_stores"),
 					fetch("https://api.punoted.net/market_price_all"),
 				]);
 				if (storesResponse.ok) {
@@ -864,7 +803,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		getVendorStores();
 	}, []);
 
-	// Handlers (Memoized to stay stable)
+	// Handlers
 	const handleOpenCreateModal = useCallback(
 		() => setIsCreateModalOpen(true),
 		[],
@@ -955,15 +894,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		[],
 	);
 
-	const vendorStoreMatchesSearch = useCallback(
-		(vendorStore: VendorStore, query: string) =>
-			matchesVendorSearch(vendorStore.vendor, query) ||
-			vendorStore.orders.some((order) =>
-				matchesMaterialSearch(order.materialticker, query),
-			),
-		[matchesVendorSearch, matchesMaterialSearch],
-	);
-
 	const vendorsWithOrders = useMemo(
 		() =>
 			sortedVendors.filter((vendor) =>
@@ -974,27 +904,111 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		[sortedVendors],
 	);
 
-	// Filter Logic
-	const filteredVendors = useMemo(() => {
-		if (!searchQuery) return vendorsWithOrders;
-		const lowerCaseQuery = normalizeSearchQuery(searchQuery);
-		return vendorsWithOrders.filter((vendor) =>
-			vendorStoreMatchesSearch(vendor, lowerCaseQuery),
-		);
+	// Extract unique locations for the filter
+	const allLocations = useMemo(() => {
+		const locs = new Set<string>();
+		vendorsWithOrders.forEach((v) => {
+			v.orders?.forEach((o) => {
+				o.location?.forEach((l) => {
+					const text = l.location_code || l.location_name;
+					if (text) locs.add(text);
+				});
+			});
+		});
+		return ["All", ...Array.from(locs).sort((a, b) => a.localeCompare(b))];
+	}, [vendorsWithOrders]);
+
+	// Filter Logic for Grid View
+	const preparedFilteredVendors = useMemo(() => {
+		const terms = searchQuery
+			.split(",")
+			.map((t) => t.trim().toLowerCase())
+			.filter(Boolean);
+
+		const result: ReturnType<typeof prepareVendorStore>[] = [];
+
+		for (const vendorStore of vendorsWithOrders) {
+			const preparedVendor = prepareVendorStore(vendorStore, cxPriceLookup);
+
+			// Check which terms match the vendor metadata directly
+			const vendorMatchTerms = terms.filter((term) =>
+				matchesVendorSearch(vendorStore.vendor, term),
+			);
+
+			// Filter the buy/sell orders
+			const filterOrders = (orders: typeof preparedVendor.buyOrders) => {
+				return orders.filter((order) => {
+					// 1. Filter by location
+					const locMatch =
+						selectedLocation === "All" ||
+						order.item.location?.some(
+							(l) =>
+								l.location_name === selectedLocation ||
+								l.location_code === selectedLocation,
+						);
+					if (!locMatch) return false;
+
+					// 2. Filter by search terms
+					if (terms.length === 0) return true;
+
+					// Does this order's material match ANY of the search terms?
+					const matchesMat = terms.some((term) =>
+						matchesMaterialSearch(order.item.materialticker, term),
+					);
+
+					if (matchesMat) return true;
+
+					// Did ANY material in this vendor match ANY of the search terms?
+					const allOrders = [
+						...preparedVendor.buyOrders,
+						...preparedVendor.sellOrders,
+					];
+					const hasAnyMaterialMatchInVendor = allOrders.some((o) =>
+						terms.some((t) => matchesMaterialSearch(o.item.materialticker, t)),
+					);
+
+					// If the vendor metadata matched, but we didn't specifically search for any materials
+					// that exist in this vendor, then show the order.
+					if (vendorMatchTerms.length > 0 && !hasAnyMaterialMatchInVendor) {
+						return true;
+					}
+
+					return false;
+				});
+			};
+
+			const filteredBuyOrders =
+				orderTypeFilter === "ASK" ? [] : filterOrders(preparedVendor.buyOrders);
+			const filteredSellOrders =
+				orderTypeFilter === "BID"
+					? []
+					: filterOrders(preparedVendor.sellOrders);
+
+			if (filteredBuyOrders.length > 0 || filteredSellOrders.length > 0) {
+				result.push({
+					...preparedVendor,
+					buyOrders: filteredBuyOrders,
+					sellOrders: filteredSellOrders,
+				});
+			}
+		}
+
+		return result;
 	}, [
 		searchQuery,
 		vendorsWithOrders,
-		normalizeSearchQuery,
-		vendorStoreMatchesSearch,
+		selectedLocation,
+		orderTypeFilter,
+		cxPriceLookup,
+		matchesVendorSearch,
+		matchesMaterialSearch,
 	]);
 
-	const preparedFilteredVendors = useMemo(
-		() =>
-			filteredVendors.map((vendorStore) =>
-				prepareVendorStore(vendorStore, cxPriceLookup),
-			),
-		[filteredVendors, cxPriceLookup],
-	);
+	const filteredVendors = useMemo(() => {
+		// tableRows uses filteredVendors ? No, it uses preparedVendorsWithOrders
+		// but we provide it here just in case it's used elsewhere, or just a dummy array
+		return preparedFilteredVendors.map((p) => p.vendorStore);
+	}, [preparedFilteredVendors]);
 
 	const preparedVendorsWithOrders = useMemo(
 		() =>
@@ -1058,10 +1072,17 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					};
 				});
 			};
-			return [
-				...sellOrders.flatMap((order) => buildRows(order, "Ask")),
-				...buyOrders.flatMap((order) => buildRows(order, "Bid")),
-			].filter((row) => {
+
+			const askRows =
+				orderTypeFilter === "BID"
+					? []
+					: sellOrders.flatMap((order) => buildRows(order, "Ask"));
+			const bidRows =
+				orderTypeFilter === "ASK"
+					? []
+					: buyOrders.flatMap((order) => buildRows(order, "Bid"));
+
+			return [...askRows, ...bidRows].filter((row) => {
 				if (row.quantity <= 0) return false;
 				if (!lowerCaseQuery) return true;
 				if (searchScope === "vendor") {
@@ -1075,6 +1096,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	}, [
 		preparedVendorsWithOrders,
 		searchQuery,
+		orderTypeFilter,
 		normalizeSearchQuery,
 		matchesVendorSearch,
 		matchesMaterialSearch,
@@ -1221,15 +1243,25 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			},
 			{
 				field: "updated",
-				headerName: "Updated",
+				headerName: "Active",
 				flex: 1,
 				headerAlign: "left",
 				align: "left",
-				renderCell: ({ value }) => (
-					<Typography variant="caption" sx={{ opacity: 0.8 }}>
-						{value === "-" ? "-" : `${value} ago`}
-					</Typography>
-				),
+				renderCell: ({ value }) => {
+					const act = String(value).trim();
+					if (act === "0 m" || act === "0m") {
+						return (
+							<Typography variant="caption" sx={{ opacity: 0.8 }}>
+								Recently Active
+							</Typography>
+						);
+					}
+					return (
+						<Typography variant="caption" sx={{ opacity: 0.8 }}>
+							{act === "-" ? "-" : `Active ${act} ago`}
+						</Typography>
+					);
+				},
 			},
 		],
 		[theme],
@@ -1239,7 +1271,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		<Box
 			sx={{
 				boxSizing: "border-box",
-				margin: { xs: 0, sm: "0 1rem" },
+				margin: { xs: 0, sm: "0 0rem" },
 				height: "100%",
 				width: "100%",
 				display: "flex",
@@ -1247,49 +1279,71 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			}}
 		>
 			{/* Search and Action Bar */}
-			<Grid container spacing={2} alignItems="center" sx={{ mb: 2, pt: 1 }}>
+			<Box sx={{ mb: 2, pt: 1, mx: 1 }}>
 				<Box
 					sx={{
 						width: "100%",
 						display: "flex",
-						flexDirection: "row",
-						alignItems: "center",
-						gap: 2,
-						px: 1,
+						flexDirection: { xs: "column", md: "row" },
+						alignItems: { xs: "stretch", md: "center" },
+						gap: 1.5,
 					}}
 				>
-					<ToggleButtonGroup
-						value={vendorViewMode}
-						exclusive
-						onChange={(_event, newValue: "grid" | "table" | null) => {
-							if (newValue) {
-								handleViewModeChange(newValue);
-							}
-						}}
-						size="small"
-						aria-label="Vendor view mode"
+					<Box
 						sx={{
-							height: 40,
-							borderRadius: "12px",
+							display: "flex",
+							gap: 1.5,
+							flexDirection: { xs: "column", sm: "row" },
 						}}
 					>
-						<ToggleButton
-							value="grid"
+						<ToggleButtonGroup
+							value={vendorViewMode}
+							exclusive
+							fullWidth
+							onChange={(_event, newValue: "grid" | "table" | null) => {
+								if (newValue) {
+									handleViewModeChange(newValue);
+								}
+							}}
 							size="small"
-							aria-label="Grid view"
-							sx={{ px: 1.5, textTransform: "none" }}
+							aria-label="Vendor view mode"
+							sx={{
+								height: 40,
+								borderRadius: "12px",
+								"& .MuiToggleButtonGroup-grouped": {
+									"&:hover": {
+										background: alpha(theme.palette.primary.main, 0.5),
+									},
+									"&.Mui-selected": {
+										background: alpha(theme.palette.background.default, 0.8),
+										color: theme.palette.primary.light,
+										pointerEvents: "none",
+										"&:hover": {
+											background: alpha(theme.palette.background.default, 0.9),
+										},
+									},
+								},
+							}}
 						>
-							Grid
-						</ToggleButton>
-						<ToggleButton
-							value="table"
-							size="small"
-							aria-label="Table view"
-							sx={{ px: 1.5, textTransform: "none" }}
-						>
-							Table
-						</ToggleButton>
-					</ToggleButtonGroup>
+							<ToggleButton
+								value="grid"
+								size="small"
+								aria-label="Grid view"
+								sx={{ px: 1.5, textTransform: "none" }}
+							>
+								Grid
+							</ToggleButton>
+							<ToggleButton
+								value="table"
+								size="small"
+								aria-label="Table view"
+								sx={{ px: 1.5, textTransform: "none" }}
+							>
+								Table
+							</ToggleButton>
+						</ToggleButtonGroup>
+					</Box>
+
 					<TextField
 						fullWidth
 						variant="outlined"
@@ -1299,6 +1353,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						sx={{
+							flexGrow: 1,
 							"& .MuiOutlinedInput-root": {
 								height: 40,
 								bgcolor: alpha(theme.palette.background.default, 0.5),
@@ -1314,42 +1369,146 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								color: theme.palette.text.primary,
 							},
 						}}
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<Search size={20} color={theme.palette.primary.main} />
-								</InputAdornment>
-							),
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<Search size={20} color={theme.palette.primary.main} />
+									</InputAdornment>
+								),
+							},
 						}}
 					/>
+
 					<Box
 						sx={{
 							display: "flex",
-							gap: 1,
+							gap: 1.5,
+							flexDirection: { xs: "column", sm: "row" },
 						}}
 					>
-						<IconButton
-							onClick={handleOpenShoppingListModal}
+						<ToggleButtonGroup
+							value={orderTypeFilter}
+							exclusive
+							fullWidth
+							onChange={(_event, newValue: "ASK" | "BID" | "BOTH" | null) => {
+								if (newValue) {
+									setOrderTypeFilter(newValue);
+								}
+							}}
+							size="small"
+							aria-label="Order type filter"
 							sx={{
 								height: 40,
-								width: 40,
-								borderRadius: "50%",
-								color: "white",
-								bgcolor: "primary.main",
-								boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-								"&:hover": {
-									bgcolor: "primary.dark",
+								borderRadius: "12px",
+								"& .MuiToggleButtonGroup-grouped": {
+									"&:hover": {
+										background: alpha(theme.palette.primary.main, 0.5),
+									},
+									"&.Mui-selected": {
+										background: alpha(theme.palette.background.default, 0.8),
+										color: theme.palette.primary.light,
+										pointerEvents: "none",
+										"&:hover": {
+											background: alpha(theme.palette.background.default, 1),
+										},
+									},
 								},
 							}}
 						>
-							<ShoppingBasket size={24} />
-						</IconButton>
-						{loggedIn && (
-							<IconButton
-								onClick={
-									hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
+							<ToggleButton
+								value="BOTH"
+								size="small"
+								aria-label="Show both ask and bid"
+								sx={{ px: 1.5, textTransform: "none" }}
+							>
+								Both
+							</ToggleButton>
+							<ToggleButton
+								value="ASK"
+								size="small"
+								aria-label="Show only ask"
+								sx={{ px: 1.5, textTransform: "none" }}
+							>
+								Ask
+							</ToggleButton>
+							<ToggleButton
+								value="BID"
+								size="small"
+								aria-label="Show only bid"
+								sx={{ px: 1.5, textTransform: "none" }}
+							>
+								Bid
+							</ToggleButton>
+						</ToggleButtonGroup>
+						<Autocomplete
+							size="small"
+							options={allLocations}
+							value={selectedLocation}
+							onChange={(_e, newValue) =>
+								setSelectedLocation(newValue || "All")
+							}
+							inputValue={locationInputValue}
+							onInputChange={(_e, newInputValue, reason) => {
+								if (reason === "reset" || reason === "clear") {
+									setLocationInputValue(
+										selectedLocation === "All"
+											? "All Locations"
+											: selectedLocation,
+									);
+								} else {
+									setLocationInputValue(newInputValue);
 								}
-								disabled={isCheckingStore}
+							}}
+							disableClearable={selectedLocation === "All"}
+							getOptionLabel={(option) =>
+								option === "All" ? "All Locations" : option
+							}
+							slotProps={{
+								paper: {
+									sx: {
+										bgcolor: theme.palette.background.default,
+										backgroundImage: "none",
+									},
+								},
+							}}
+							sx={{ flexGrow: { xs: 1, sm: 0 }, minWidth: { sm: 170 } }}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									variant="outlined"
+									placeholder="Location"
+									onFocus={() => setLocationInputValue("")}
+									sx={{
+										"& .MuiOutlinedInput-root": {
+											height: 40,
+											bgcolor: alpha(theme.palette.background.default, 0.5),
+											backdropFilter: "blur(5px)",
+											borderRadius: "12px",
+											"& fieldset": {
+												borderColor: alpha(theme.palette.common.white, 0.1),
+											},
+											"&:hover fieldset": {
+												borderColor: theme.palette.primary.main,
+											},
+											"&.Mui-focused fieldset": {
+												borderColor: theme.palette.primary.main,
+											},
+											color: theme.palette.text.primary,
+										},
+									}}
+								/>
+							)}
+						/>
+						<Box
+							sx={{
+								display: "flex",
+								gap: 1,
+								justifyContent: { xs: "center", sm: "flex-end" },
+							}}
+						>
+							<IconButton
+								onClick={handleOpenShoppingListModal}
 								sx={{
 									height: 40,
 									width: 40,
@@ -1360,22 +1519,47 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									"&:hover": {
 										bgcolor: "primary.dark",
 									},
-									"&.Mui-disabled": {
-										bgcolor: alpha(theme.palette.primary.main, 0.5),
-									},
 								}}
 							>
-								{hasVendorStore ? <Edit size={24} /> : <PlusCircle size={24} />}
+								<ShoppingBasket size={24} />
 							</IconButton>
-						)}
+							{loggedIn && (
+								<IconButton
+									onClick={
+										hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
+									}
+									disabled={isCheckingStore}
+									sx={{
+										height: 40,
+										width: 40,
+										borderRadius: "50%",
+										color: "white",
+										bgcolor: "primary.main",
+										boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+										"&:hover": {
+											bgcolor: "primary.dark",
+										},
+										"&.Mui-disabled": {
+											bgcolor: alpha(theme.palette.primary.main, 0.5),
+										},
+									}}
+								>
+									{hasVendorStore ? (
+										<Edit size={24} />
+									) : (
+										<PlusCircle size={24} />
+									)}
+								</IconButton>
+							)}
+						</Box>
 					</Box>
 				</Box>
-			</Grid>
+			</Box>
 
 			{/* Vendor List Area */}
 			<Box
 				id="vendors"
-				sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 1, pb: 2 }}
+				sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 0, pb: 2 }}
 			>
 				{vendorViewMode === "table" ? (
 					<Box sx={{ height: "100%", width: "100%" }}>
@@ -1461,7 +1645,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				open={isCreateModalOpen}
 				handleClose={handleCloseCreateModal}
 				onVendorCreated={handleOnVendorCreated}
-				// @ts-ignore
 				vendorStore={null}
 			/>
 			<EditVendorStoreModal
