@@ -1086,17 +1086,19 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	);
 
 	const tableRows = useMemo(() => {
-		const lowerCaseQuery = normalizeSearchQuery(searchQuery);
-		const searchScope: SearchScope = "row";
+		const terms = searchQuery
+			.split(",")
+			.map((t) => t.trim().toLowerCase())
+			.filter(Boolean);
+
 		return preparedVendorsWithOrders.flatMap((preparedVendor) => {
 			const { vendorStore, buyOrders, sellOrders } = preparedVendor;
 			const vendor = vendorStore.vendor;
-			const vendorMatches =
-				!lowerCaseQuery || matchesVendorSearch(vendor, lowerCaseQuery);
 			const updated = String(
 				(vendor as typeof vendor & { activity?: unknown }).activity || "-",
 			);
 			const user = `${vendor.gamename} (${vendor.companycode}) ${vendor.companyname}`;
+
 			const buildRows = (
 				preparedOrder: (typeof buyOrders)[number],
 				typeLabel: "Ask" | "Bid",
@@ -1105,12 +1107,13 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					preparedOrder.item.location?.length > 0
 						? preparedOrder.item.location
 						: [null];
-				return locations.map((location, index) => {
-					const locationQuantity =
-						location &&
-						typeof Reflect.get(location as object, "available") === "number"
-							? Number(Reflect.get(location as object, "available"))
-							: (location?.amount ?? preparedOrder.displayQuantity);
+
+				// FIXME: location.available is broken but works
+				return locations.map((location: Location, index: number) => {
+					const locationQuantity = location
+						? location.available
+						: preparedOrder.displayQuantity;
+
 					const locationLabel = (() => {
 						if (!location) return "Unknown";
 						const code = location.location_code?.trim();
@@ -1124,6 +1127,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						}
 						return code || name || "Unknown";
 					})();
+
 					return {
 						id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
 						typeLabel,
@@ -1136,6 +1140,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						cxStats: preparedOrder.cxStats,
 						corpStats: preparedOrder.corpStats,
 						updated,
+						locCode: location?.location_code,
+						locName: location?.location_name,
+						rawVendor: vendor,
 					};
 				});
 			};
@@ -1150,21 +1157,31 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					: buyOrders.flatMap((order) => buildRows(order, "Bid"));
 
 			return [...askRows, ...bidRows].filter((row) => {
-				if (row.quantity <= 0) return false;
-				if (!lowerCaseQuery) return true;
-				if (searchScope === "vendor") {
-					return vendorMatches;
-				}
-				return (
-					vendorMatches || matchesMaterialSearch(row.material, lowerCaseQuery)
+				if (typeof row.quantity === "number" && row.quantity <= 0) return false;
+
+				const locMatch =
+					selectedLocation === "All" ||
+					row.locName === selectedLocation ||
+					row.locCode === selectedLocation;
+				if (!locMatch) return false;
+
+				if (terms.length === 0) return true;
+
+				const materialMatches = terms.some((term) =>
+					matchesMaterialSearch(row.material, term),
 				);
+				const vendorMatches = terms.some((term) =>
+					matchesVendorSearch(row.rawVendor, term),
+				);
+
+				return materialMatches || vendorMatches;
 			});
 		});
 	}, [
 		preparedVendorsWithOrders,
 		searchQuery,
 		orderTypeFilter,
-		normalizeSearchQuery,
+		selectedLocation,
 		matchesVendorSearch,
 		matchesMaterialSearch,
 	]);
