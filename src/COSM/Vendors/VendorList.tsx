@@ -925,19 +925,59 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		[sortedVendors],
 	);
 
-	// Extract unique locations for the filter
+	// Extract unique locations dynamically based on search and order type filters
 	const allLocations = useMemo(() => {
 		const locs = new Set<string>();
+
+		const terms = searchQuery
+			.split(",")
+			.map((t) => t.trim().toLowerCase())
+			.filter(Boolean);
+
 		vendorsWithOrders.forEach((v) => {
+			const vendorMatchTerms = terms.filter((term) =>
+				matchesVendorSearch(v.vendor, term),
+			);
+
+			const hasAnyMaterialMatchInVendor = v.orders?.some((o) =>
+				terms.some((t) => matchesMaterialSearch(o.materialticker, t)),
+			);
+
 			v.orders?.forEach((o) => {
-				o.location?.forEach((l) => {
-					const text = l.location_code || l.location_name;
-					if (text) locs.add(text);
-				});
+				if (orderTypeFilter === "ASK" && o.ordertype === "buy") return;
+				if (orderTypeFilter === "BID" && o.ordertype === "sell") return;
+
+				const matchesMat = terms.some((term) =>
+					matchesMaterialSearch(o.materialticker, term),
+				);
+
+				const isValidForSearch =
+					terms.length === 0 ||
+					matchesMat ||
+					(vendorMatchTerms.length > 0 && !hasAnyMaterialMatchInVendor);
+
+				if (isValidForSearch) {
+					o.location?.forEach((l: Location) => {
+						const qty = l.available;
+						const hasStock = typeof qty === "number" && qty > 0;
+
+						if (hasStock) {
+							const text = l.location_code || l.location_name;
+							if (text) locs.add(text);
+						}
+					});
+				}
 			});
 		});
+
 		return ["All", ...Array.from(locs).sort((a, b) => a.localeCompare(b))];
-	}, [vendorsWithOrders]);
+	}, [
+		vendorsWithOrders,
+		searchQuery,
+		orderTypeFilter,
+		matchesVendorSearch,
+		matchesMaterialSearch,
+	]);
 
 	// Filter Logic for Grid View
 	const preparedFilteredVendors = useMemo(() => {
@@ -959,14 +999,20 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			// Filter the buy/sell orders
 			const filterOrders = (orders: typeof preparedVendor.buyOrders) => {
 				return orders.filter((order) => {
-					// 1. Filter by location
+					// 1. Filter by location (AND ensure it actually has quantity > 0)
 					const locMatch =
 						selectedLocation === "All" ||
-						order.item.location?.some(
-							(l) =>
+						order.item.location?.some((l: Location) => {
+							const nameMatches =
 								l.location_name === selectedLocation ||
-								l.location_code === selectedLocation,
-						);
+								l.location_code === selectedLocation;
+
+							const qty = l.available;
+							const hasStock = typeof qty === "number" && qty > 0;
+
+							return nameMatches && hasStock;
+						});
+
 					if (!locMatch) return false;
 
 					// 2. Filter by search terms

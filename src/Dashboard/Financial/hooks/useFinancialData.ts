@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import {
+import type {
 	FinancialPayload,
 	PartnerMetrics,
 	Transaction,
-} from "../types/finance";
+} from "../types/finances";
 
 export const useFinancialData = () => {
 	const [data, setData] = useState<FinancialPayload | null>(null);

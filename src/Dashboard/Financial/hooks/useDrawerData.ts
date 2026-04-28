@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import {
+import type {
 	Transaction,
 	TransactionDetail,
 	PublicCompanyProfile,
-} from "../types/finance";
+} from "../types/finances";
 
 export const useDrawerData = (
 	selectedTx: Transaction | null,
