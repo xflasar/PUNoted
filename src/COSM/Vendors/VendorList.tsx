@@ -38,7 +38,7 @@ import VendorCreationModal from "./CreateVendorStoreModal";
 import EditVendorStoreModal from "./EditVendorStoreModal";
 import ShoppingListModal from "./ShoppingListModal";
 import { formatAmount } from "../../utils/formaters";
-import type { VendorStore } from "./types";
+import type { Location, VendorStore } from "./types";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
 const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
@@ -228,9 +228,31 @@ const VendorCard = React.memo(
 		const { vendorStore, buyOrders, sellOrders } = preparedVendor;
 		const vendor = vendorStore.vendor;
 
-		const sortedList = useMemo(
-			() =>
-				[...buyOrders, ...sellOrders].sort((a, b) => {
+		const sortedList = useMemo(() => {
+			return [...buyOrders, ...sellOrders]
+				.map((order) => {
+					const activeLocations = order.item.location?.filter(
+						(loc: Location) => {
+							// FIXME: loc.amount is broken loc.available works...
+							const qty = loc.available;
+							return typeof qty === "number" && qty > 0;
+						},
+					);
+
+					return {
+						...order,
+						item: {
+							...order.item,
+							location: activeLocations || [],
+						},
+					};
+				})
+				.filter(
+					(order) =>
+						(order.displayQuantity && order.displayQuantity > 0) ||
+						(order.item.location && order.item.location.length > 0),
+				)
+				.sort((a, b) => {
 					const tickerCmp = a.item.materialticker.localeCompare(
 						b.item.materialticker,
 						undefined,
@@ -238,9 +260,8 @@ const VendorCard = React.memo(
 					);
 					if (tickerCmp !== 0) return tickerCmp;
 					return (a.orderType || "sell").localeCompare(b.orderType || "sell");
-				}),
-			[buyOrders, sellOrders],
-		);
+				});
+		}, [buyOrders, sellOrders]);
 
 		return (
 			<Card
