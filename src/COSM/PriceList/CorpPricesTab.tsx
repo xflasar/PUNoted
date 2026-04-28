@@ -714,18 +714,20 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
 						size="small"
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<Search color="rgba(255,255,255,0.7)" size={20} />
+									</InputAdornment>
+								),
+							},
+						}}
 						sx={{
 							"& .MuiOutlinedInput-root": {
 								color: "white",
 								"& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
 							},
-						}}
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<Search color="rgba(255,255,255,0.7)" size={20} />
-								</InputAdornment>
-							),
 						}}
 					/>
 				</Paper>
@@ -751,7 +753,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 
 			<Paper
 				sx={{
-					flex: { xs: "0 0 auto", md: "0 0 40%" },
+					flex: { xs: "0 0 auto", md: 1 },
 					...glassStyle,
 					borderRadius: 2,
 					display: "flex",

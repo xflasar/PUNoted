@@ -245,15 +245,15 @@ const VendorCard = React.memo(
 		return (
 			<Card
 				sx={{
-					bgcolor: alpha(theme.palette.background.default, 0.7),
+					bgcolor: alpha(theme.palette.background.default, 0.9),
 					backgroundImage: "none",
 					color: theme.palette.text.primary,
 					borderRadius: "16px",
 					display: "flex",
 					flexDirection: "column",
-					border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
-					backdropFilter: "blur(12px)",
-					WebkitBackdropFilter: "blur(12px)",
+					border: `1px solid ${alpha(theme.palette.common.white, 0.05)}`,
+					backdropFilter: "blur(6px)",
+					WebkitBackdropFilter: "blur(6px)",
 					boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
 					transition: "box-shadow 0.2s, border-color 0.2s",
 					"&:hover": {
@@ -286,7 +286,7 @@ const VendorCard = React.memo(
 								sx={{
 									fontWeight: 600,
 									letterSpacing: "0.5px",
-									maxWidth: "200px",
+									fontSize: "1.1rem",
 								}}
 							>
 								{vendor.companyname}

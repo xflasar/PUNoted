@@ -9,7 +9,7 @@ import {
 	Container,
 	useMediaQuery,
 } from "@mui/material";
-import { maxHeight, minHeight, useTheme, width } from "@mui/system";
+import { alpha, maxHeight, minHeight, useTheme, width } from "@mui/system";
 import ProductionDashboard from "./ShipProduction/ProductionDashboard";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -45,7 +45,6 @@ const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
 		<Container
 			id="Container"
 			sx={{
-				p: { xs: 0, sm: 2 },
 				minWidth: "100%",
 				maxHeight: "100%",
 				height: "100%",
@@ -74,6 +73,15 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 		}
 	};
 
+	// Shared hover styles for all tabs
+	const tabHoverStyles = {
+		transition: "background-color 0.2s ease",
+		"&:hover": {
+			backgroundColor: alpha(theme.palette.primary.main, 0.1),
+			color: "primary.main",
+		},
+	};
+
 	return (
 		<Container
 			sx={{
@@ -87,55 +95,13 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 				flexDirection: "column",
 			}}
 		>
-			{/* Back to landing page button - Desktop Only */}
-			{!isMobile && (
-				<Box
-					sx={{
-						mb: { xs: 2, sm: 4 },
-						display: "flex",
-						position: "absolute",
-						justifyContent: "flex-start",
-					}}
-				>
-					<Button
-						variant="outlined"
-						startIcon={<FaArrowLeft style={{ color: "#7B68EE" }} />}
-						onClick={() => navigate("/")}
-						sx={{
-							color: "white",
-							borderColor: "#7B68EE",
-							fontSize: { xs: "0.75rem", sm: "1rem" },
-						}}
-					>
-						Back to Homepage
-					</Button>
-				</Box>
-			)}
-			<Typography
-				variant="h3"
-				component="h1"
-				gutterBottom
-				align="center"
-				sx={{
-					mb: { xs: 4, sm: 6 },
-					fontWeight: "bold",
-					letterSpacing: "0.05em",
-					background: "linear-gradient(90deg, #5D80F7, #7B68EE)",
-					WebkitBackgroundClip: "text",
-					WebkitTextFillColor: "transparent",
-					backgroundClip: "text",
-					textFillColor: "transparent",
-					fontSize: { xs: "2rem", sm: "3rem" }, // Responsive font size
-				}}
-			>
-				COSM Corporation
-			</Typography>
 			<Paper
 				square
 				sx={{
-					bgcolor: "rgba(25, 25, 50, 0.8)",
+					bgcolor: alpha(theme.palette.background.default, 1),
 					border: "none",
 					boxShadow: "none",
+					borderRadius: "16px",
 				}}
 			>
 				<Tabs
@@ -145,37 +111,47 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					indicatorColor="primary"
 					variant={isMobile ? "scrollable" : "fullWidth"}
 					scrollButtons
-					allowScrollButtonsMobile /* <--- Forces arrows on mobile */
+					allowScrollButtonsMobile
 					aria-label="cosm page tabs"
 					sx={{
-						// Optional: Customizes the arrow buttons
 						"& .MuiTabs-scrollButtons": {
 							color: "primary.main",
 							width: "auto",
 						},
 					}}
 				>
-					{isMobile && (
-						<Tab label="Homepage" icon={<FaArrowLeft />} value="homepage" />
-					)}
+					<Tab
+						label="Homepage"
+						icon={<FaArrowLeft />}
+						value="homepage"
+						sx={{
+							...tabHoverStyles,
+							flexGrow: 0,
+							minWidth: 100,
+							px: { xs: 2, sm: 3 },
+						}}
+					/>
 					<Tab
 						label="Vendors"
 						icon={<Store />}
 						iconPosition="start"
 						value="vendors"
+						sx={tabHoverStyles}
 					/>
 					<Tab
 						label="Price List"
 						icon={<DollarSign />}
 						iconPosition="start"
 						value="priceList"
+						sx={tabHoverStyles}
 					/>
-					{/* <Tab label="Shipping" icon={<Truck />} iconPosition="start" value="shipping" /> */}
+					{/* <Tab label="Shipping" icon={<Truck />} iconPosition="start" value="shipping" sx={tabHoverStyles} /> */}
 					<Tab
 						label="Ship Production"
 						icon={<Rocket />}
 						iconPosition="start"
 						value="production"
+						sx={tabHoverStyles}
 					/>
 				</Tabs>
 			</Paper>
@@ -183,12 +159,11 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 				id="Table"
 				sx={{
 					flexGrow: 1,
-					background: "rgba(123, 104, 238, 0.03)",
+					background: alpha(theme.palette.background.default, 0.03),
 					boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
 					backdropFilter: "blur(5px)",
-					pt: 2,
-					p: { sm: 2 },
 					overflow: "hidden",
+					pt: 1,
 					width: { xs: "100%", sm: "100%" },
 				}}
 			>
