@@ -6,18 +6,21 @@ import React, {
 	useCallback,
 } from "react";
 import { Masonry } from "@mui/lab";
+import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
 	Typography,
 	Box,
 	Grid,
 	TextField,
 	InputAdornment,
+	ToggleButton,
+	ToggleButtonGroup,
 	Card,
 	CardContent,
 	Divider,
 	useTheme,
 	keyframes,
-	Fab,
+	IconButton,
 	Tooltip,
 	Chip,
 	alpha,
@@ -31,13 +34,23 @@ import {
 	Minus,
 	Target,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./CreateVendorStoreModal";
 import EditVendorStoreModal from "./EditVendorStoreModal";
 import ShoppingListModal from "./ShoppingListModal";
 import { formatAmount } from "../../utils/formaters";
-import type { VendorStore, OrderItem } from "./types";
+import type { VendorStore } from "./types";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
+const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
+
+const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
+	value === "grid" || value === "table";
+
+const getStoredVendorViewMode = (): "grid" | "table" | null => {
+	const storedValue = localStorage.getItem(VENDORS_VIEW_MODE_STORAGE_KEY);
+	return isVendorViewMode(storedValue) ? storedValue : null;
+};
 
 // --- ANIMATIONS ---
 const scroll = keyframes`
@@ -135,6 +148,65 @@ const activityToMinutes = (activity: unknown) => {
 	return value * 1440;
 };
 
+const prepareVendorStore = (
+	vendorStore: VendorStore,
+	cxPriceLookup: CxPriceLookup,
+) => {
+	const normalizedExchange =
+		(vendorStore.vendor.cx || "IC1").trim().toUpperCase() || "IC1";
+
+	const prepareOrders = (orderType: "buy" | "sell") =>
+		vendorStore.orders
+			.filter((order) => order.ordertype === orderType)
+			.sort((a, b) =>
+				a.materialticker.localeCompare(b.materialticker, undefined, {
+					sensitivity: "base",
+				}),
+			)
+			.map((item) => {
+				const available = Reflect.get(item as object, "available");
+				const displayQuantity =
+					typeof available === "number" ? available : item.quantity;
+				const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
+				const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
+				const rawCxValue =
+					cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[sideKey];
+				const cxReferencePrice = Number(rawCxValue);
+				const cxStats = getDiffStats(
+					fixedPrice,
+					Number.isFinite(cxReferencePrice) ? cxReferencePrice : undefined,
+					orderType,
+				);
+				const corpStats = getDiffStats(
+					fixedPrice,
+					item.price?.corpprice,
+					orderType,
+				);
+				const hasLocation = Boolean(item.location?.length);
+				const locationText = hasLocation
+					? item.location[0].location_code || item.location[0].location_name
+					: "Unknown";
+				const locationCount = hasLocation ? item.location.length : 0;
+
+				return {
+					item,
+					fixedPrice,
+					orderType,
+					cxStats,
+					corpStats,
+					locationText,
+					locationCount,
+					displayQuantity,
+				};
+			});
+
+	return {
+		vendorStore,
+		buyOrders: prepareOrders("buy"),
+		sellOrders: prepareOrders("sell"),
+	};
+};
+
 // --- MEMOIZED SUB-COMPONENTS ---
 
 const PriceComparisonBadge = ({
@@ -187,27 +259,12 @@ const VendorProductList = React.memo(
 	({
 		list,
 		title,
-		vendorCx,
-		cxPriceLookup,
 	}: {
-		list: OrderItem[];
+		list: ReturnType<typeof prepareVendorStore>["buyOrders"];
 		title: string;
-		vendorCx: string | undefined;
-		cxPriceLookup: CxPriceLookup;
 	}) => {
 		const theme = useTheme();
 		const isBuying = title === "Bid";
-		const normalizedExchange =
-			(vendorCx || "IC1").trim().toUpperCase() || "IC1";
-		const sortedList = useMemo(
-			() =>
-				[...list].sort((a, b) =>
-					a.materialticker.localeCompare(b.materialticker, undefined, {
-						sensitivity: "base",
-					}),
-				),
-			[list],
-		);
 
 		return (
 			<Box
@@ -254,37 +311,18 @@ const VendorProductList = React.memo(
 						},
 					}}
 				>
-					{sortedList.length > 0 ? (
-						sortedList.map((item, index) => {
-							const fixedPrice = item.price?.fixedprice ?? item.fixedprice ?? 0;
-							const orderType = item.ordertype || (isBuying ? "buy" : "sell");
-							const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
-							const rawCxValue =
-								cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[
-									sideKey
-								];
-							const cxReferencePrice = Number(rawCxValue);
-							const cxStats = getDiffStats(
+					{list.length > 0 ? (
+						list.map((preparedOrder, index) => {
+							const {
+								item,
 								fixedPrice,
-								Number.isFinite(cxReferencePrice)
-									? cxReferencePrice
-									: undefined,
 								orderType,
-							);
-							const corpStats = getDiffStats(
-								fixedPrice,
-								item.price?.corpprice,
-								orderType,
-							);
-
-							let locationText = "Unknown";
-							let locationCount = 0;
-							if (item.location && item.location.length > 0) {
-								locationText =
-									item.location[0].location_code ||
-									item.location[0].location_name;
-								locationCount = item.location.length;
-							}
+								cxStats,
+								corpStats,
+								locationText,
+								locationCount,
+								displayQuantity,
+							} = preparedOrder;
 
 							return (
 								<Box
@@ -292,7 +330,7 @@ const VendorProductList = React.memo(
 									sx={{
 										p: 0,
 										borderBottom:
-											index === sortedList.length - 1
+											index === list.length - 1
 												? "none"
 												: `1px solid ${alpha(theme.palette.common.white, 0.15)}`,
 										padding: ".5em 0",
@@ -346,7 +384,13 @@ const VendorProductList = React.memo(
 																	variant="caption"
 																	color="success.light"
 																>
-																	{formatAmount(l.available)}
+																	{formatAmount(
+																		(
+																			l as typeof l & {
+																				available?: number;
+																			}
+																		).available,
+																	)}
 																</Typography>
 															</Box>
 														))}
@@ -408,44 +452,7 @@ const VendorProductList = React.memo(
 										)}
 									</Box>
 
-									{/* ROW 2: Badges (Middle - Comparisons) */}
-									{cxStats || corpStats ? (
-										<Box
-											sx={{
-												display: "flex",
-												gap: 1,
-												flexWrap: "nowrap",
-												mt: 0.2,
-												minHeight: "25px",
-												justifyContent: "space-between",
-												alignItems: "center",
-											}}
-										>
-											<Box sx={{ flex: 1, display: "flex" }}>
-												{corpStats && (
-													<PriceComparisonBadge
-														label="COSM"
-														stats={corpStats}
-													/>
-												)}
-											</Box>
-											<Box
-												sx={{
-													flex: 1,
-													display: "flex",
-													justifyContent: "flex-end",
-												}}
-											>
-												{cxStats && (
-													<PriceComparisonBadge label="CX" stats={cxStats} />
-												)}
-											</Box>
-										</Box>
-									) : (
-										<Box sx={{ minHeight: "25px" }} />
-									)}
-
-									{/* ROW 3: Quantity & Price (Bottom) */}
+									{/* ROW 2: Quantity & Price (Middle) */}
 									<Box
 										sx={{
 											display: "flex",
@@ -473,7 +480,7 @@ const VendorProductList = React.memo(
 													color: theme.palette.primary.light,
 												}}
 											>
-												{formatAmount(item.available || item.quantity)}
+												{formatAmount(displayQuantity)}
 											</Typography>
 										</Box>
 
@@ -503,6 +510,43 @@ const VendorProductList = React.memo(
 											</Typography>
 										</Box>
 									</Box>
+
+									{/* ROW 3: Badges (Bottom - Comparisons) */}
+									{cxStats || corpStats ? (
+										<Box
+											sx={{
+												display: "flex",
+												gap: 1,
+												flexWrap: "nowrap",
+												mt: 0.2,
+												minHeight: "25px",
+												justifyContent: "space-between",
+												alignItems: "center",
+											}}
+										>
+											<Box sx={{ flex: 1, display: "flex" }}>
+												{cxStats && (
+													<PriceComparisonBadge label="CX" stats={cxStats} />
+												)}
+											</Box>
+											<Box
+												sx={{
+													flex: 1,
+													display: "flex",
+													justifyContent: "flex-end",
+												}}
+											>
+												{corpStats && (
+													<PriceComparisonBadge
+														label="COSM"
+														stats={corpStats}
+													/>
+												)}
+											</Box>
+										</Box>
+									) : (
+										<Box sx={{ minHeight: "25px" }} />
+									)}
 								</Box>
 							);
 						})
@@ -530,28 +574,13 @@ const VendorProductList = React.memo(
 // The Main Card Component
 const VendorCard = React.memo(
 	({
-		vendor,
-		cxPriceLookup,
+		preparedVendor,
 	}: {
-		vendor: VendorStore;
-		cxPriceLookup: CxPriceLookup;
+		preparedVendor: ReturnType<typeof prepareVendorStore>;
 	}) => {
 		const theme = useTheme();
-
-		const buyOrders = useMemo(
-			() =>
-				vendor.orders
-					? vendor.orders.filter((mat) => mat.ordertype === "buy")
-					: [],
-			[vendor.orders],
-		);
-		const sellOrders = useMemo(
-			() =>
-				vendor.orders
-					? vendor.orders.filter((mat) => mat.ordertype === "sell")
-					: [],
-			[vendor.orders],
-		);
+		const { vendorStore, buyOrders, sellOrders } = preparedVendor;
+		const vendor = vendorStore.vendor;
 
 		return (
 			<Card
@@ -583,7 +612,7 @@ const VendorCard = React.memo(
 				>
 					<Box sx={{ textAlign: "center", mb: 1.5 }}>
 						<ScrollingText
-							text={vendor.vendor.companyname}
+							text={vendor.companyname}
 							variant="subtitle1"
 							sx={{ fontWeight: 600, letterSpacing: "0.5px", mb: 1 }}
 						/>
@@ -609,7 +638,7 @@ const VendorCard = React.memo(
 									fontWeight: 500,
 								}}
 							>
-								{vendor.vendor.gamename}
+								{vendor.gamename}
 							</Typography>
 
 							{/* Company Code Badge: Ticker style, primary colors, sharp radius */}
@@ -626,7 +655,7 @@ const VendorCard = React.memo(
 									letterSpacing: "0.5px",
 								}}
 							>
-								{vendor.vendor.companycode}
+								{vendor.companycode}
 							</Typography>
 
 							{/* Activity Status: Flex container to hold the text and the status dot */}
@@ -655,7 +684,9 @@ const VendorCard = React.memo(
 										boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
 									}}
 								/>
-								Updated {vendor.vendor.activity} ago
+								Updated{" "}
+								{(vendor as typeof vendor & { activity?: unknown }).activity}{" "}
+								ago
 							</Typography>
 						</Box>
 					</Box>
@@ -672,12 +703,7 @@ const VendorCard = React.memo(
 							gap: 1,
 						}}
 					>
-						<VendorProductList
-							list={sellOrders}
-							title="Ask"
-							vendorCx={vendor.vendor.cx}
-							cxPriceLookup={cxPriceLookup}
-						/>
+						<VendorProductList list={sellOrders} title="Ask" />
 
 						{/* Divider Logic: Horizontal on Mobile, Vertical on Desktop */}
 						<Divider
@@ -698,12 +724,7 @@ const VendorCard = React.memo(
 							}}
 						/>
 
-						<VendorProductList
-							list={buyOrders}
-							title="Bid"
-							vendorCx={vendor.vendor.cx}
-							cxPriceLookup={cxPriceLookup}
-						/>
+						<VendorProductList list={buyOrders} title="Bid" />
 					</Box>
 				</CardContent>
 			</Card>
@@ -723,7 +744,14 @@ const VendorCard = React.memo(
  */
 const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
+	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState<string>("");
+	const searchInputRef = useRef<HTMLInputElement>(null);
+	const querySubtab = searchParams.get("subtab");
+	const vendorViewMode: "grid" | "table" =
+		(isVendorViewMode(querySubtab) ? querySubtab : null) ||
+		getStoredVendorViewMode() ||
+		"grid";
 
 	// Modal States
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -739,6 +767,29 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
 		null,
 	);
+
+	useEffect(() => {
+		if (querySubtab === vendorViewMode) {
+			return;
+		}
+		const nextParams = new URLSearchParams(searchParams);
+		nextParams.set("subtab", vendorViewMode);
+		setSearchParams(nextParams, { replace: true });
+	}, [querySubtab, searchParams, setSearchParams, vendorViewMode]);
+
+	useEffect(() => {
+		if (getStoredVendorViewMode() === vendorViewMode) {
+			return;
+		}
+		localStorage.setItem(VENDORS_VIEW_MODE_STORAGE_KEY, vendorViewMode);
+	}, [vendorViewMode]);
+
+	useEffect(() => {
+		const frameId = requestAnimationFrame(() => {
+			searchInputRef.current?.focus();
+		});
+		return () => cancelAnimationFrame(frameId);
+	}, [vendorViewMode]);
 
 	// Initial Data Fetch
 	useEffect(() => {
@@ -832,6 +883,14 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		() => setIsShoppingListModalOpen(false),
 		[],
 	);
+	const handleViewModeChange = useCallback(
+		(newValue: "grid" | "table") => {
+			const nextParams = new URLSearchParams(searchParams);
+			nextParams.set("subtab", newValue);
+			setSearchParams(nextParams);
+		},
+		[searchParams, setSearchParams],
+	);
 
 	const handleOnVendorChanged = useCallback(
 		(updatedVendorStore: VendorStore) => {
@@ -875,25 +934,306 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		});
 	}, [vendorStores]);
 
+	const normalizeSearchQuery = useCallback(
+		(query: string) => query.trim().toLowerCase(),
+		[],
+	);
+
+	type SearchScope = "vendor" | "row";
+
+	const matchesVendorSearch = useCallback(
+		(vendor: VendorStore["vendor"], query: string) =>
+			vendor.companyname.toLowerCase().includes(query) ||
+			vendor.companycode.toLowerCase().includes(query) ||
+			vendor.gamename.toLowerCase().includes(query),
+		[],
+	);
+
+	const matchesMaterialSearch = useCallback(
+		(materialTicker: string, query: string) =>
+			materialTicker.toLowerCase().includes(query),
+		[],
+	);
+
+	const vendorStoreMatchesSearch = useCallback(
+		(vendorStore: VendorStore, query: string) =>
+			matchesVendorSearch(vendorStore.vendor, query) ||
+			vendorStore.orders.some((order) =>
+				matchesMaterialSearch(order.materialticker, query),
+			),
+		[matchesVendorSearch, matchesMaterialSearch],
+	);
+
+	const vendorsWithOrders = useMemo(
+		() =>
+			sortedVendors.filter((vendor) =>
+				vendor.orders?.some(
+					(order) => order.ordertype === "buy" || order.ordertype === "sell",
+				),
+			),
+		[sortedVendors],
+	);
+
 	// Filter Logic
 	const filteredVendors = useMemo(() => {
-		const vendorsWithOrders = sortedVendors.filter((vendor) =>
-			vendor.orders?.some(
-				(order) => order.ordertype === "buy" || order.ordertype === "sell",
-			),
-		);
 		if (!searchQuery) return vendorsWithOrders;
-		const lowerCaseQuery = searchQuery.toLowerCase();
-		return vendorsWithOrders.filter(
-			(vendor) =>
-				vendor.vendor.companyname.toLowerCase().includes(lowerCaseQuery) ||
-				vendor.vendor.gamename.toLowerCase().includes(lowerCaseQuery) ||
-				vendor.vendor.companycode.toLowerCase().includes(lowerCaseQuery) ||
-				vendor.orders.some((material) =>
-					material.materialticker.toLowerCase().includes(lowerCaseQuery),
-				),
+		const lowerCaseQuery = normalizeSearchQuery(searchQuery);
+		return vendorsWithOrders.filter((vendor) =>
+			vendorStoreMatchesSearch(vendor, lowerCaseQuery),
 		);
-	}, [searchQuery, sortedVendors]);
+	}, [
+		searchQuery,
+		vendorsWithOrders,
+		normalizeSearchQuery,
+		vendorStoreMatchesSearch,
+	]);
+
+	const preparedFilteredVendors = useMemo(
+		() =>
+			filteredVendors.map((vendorStore) =>
+				prepareVendorStore(vendorStore, cxPriceLookup),
+			),
+		[filteredVendors, cxPriceLookup],
+	);
+
+	const preparedVendorsWithOrders = useMemo(
+		() =>
+			vendorsWithOrders.map((vendorStore) =>
+				prepareVendorStore(vendorStore, cxPriceLookup),
+			),
+		[vendorsWithOrders, cxPriceLookup],
+	);
+
+	const tableRows = useMemo(() => {
+		const lowerCaseQuery = normalizeSearchQuery(searchQuery);
+		const searchScope: SearchScope = "row";
+		return preparedVendorsWithOrders.flatMap((preparedVendor) => {
+			const { vendorStore, buyOrders, sellOrders } = preparedVendor;
+			const vendor = vendorStore.vendor;
+			const vendorMatches =
+				!lowerCaseQuery || matchesVendorSearch(vendor, lowerCaseQuery);
+			const updated = String(
+				(vendor as typeof vendor & { activity?: unknown }).activity || "-",
+			);
+			const user = `${vendor.gamename} (${vendor.companycode}) ${vendor.companyname}`;
+			const buildRows = (
+				preparedOrder: (typeof buyOrders)[number],
+				typeLabel: "Ask" | "Bid",
+			) => {
+				const locations =
+					preparedOrder.item.location?.length > 0
+						? preparedOrder.item.location
+						: [null];
+				return locations.map((location, index) => {
+					const locationQuantity =
+						location &&
+						typeof Reflect.get(location as object, "available") === "number"
+							? Number(Reflect.get(location as object, "available"))
+							: (location?.amount ?? preparedOrder.displayQuantity);
+					const locationLabel = (() => {
+						if (!location) return "Unknown";
+						const code = location.location_code?.trim();
+						const name = location.location_name?.trim();
+						if (code && name) {
+							const sameLabel =
+								code.localeCompare(name, undefined, {
+									sensitivity: "base",
+								}) === 0;
+							return sameLabel ? name : `${name} (${code})`;
+						}
+						return code || name || "Unknown";
+					})();
+					return {
+						id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
+						typeLabel,
+						orderType: preparedOrder.orderType,
+						material: preparedOrder.item.materialticker,
+						user,
+						ica: preparedOrder.fixedPrice,
+						location: locationLabel,
+						quantity: locationQuantity,
+						cxStats: preparedOrder.cxStats,
+						corpStats: preparedOrder.corpStats,
+						updated,
+					};
+				});
+			};
+			return [
+				...sellOrders.flatMap((order) => buildRows(order, "Ask")),
+				...buyOrders.flatMap((order) => buildRows(order, "Bid")),
+			].filter((row) => {
+				if (row.quantity <= 0) return false;
+				if (!lowerCaseQuery) return true;
+				if (searchScope === "vendor") {
+					return vendorMatches;
+				}
+				return (
+					vendorMatches || matchesMaterialSearch(row.material, lowerCaseQuery)
+				);
+			});
+		});
+	}, [
+		preparedVendorsWithOrders,
+		searchQuery,
+		normalizeSearchQuery,
+		matchesVendorSearch,
+		matchesMaterialSearch,
+	]);
+
+	const tableColumns = useMemo<GridColDef[]>(
+		() => [
+			{
+				field: "material",
+				headerName: "Material",
+				flex: 1,
+				headerAlign: "center",
+				align: "center",
+			},
+			{
+				field: "quantity",
+				headerName: "Quantity",
+				type: "number",
+				flex: 1,
+				headerAlign: "right",
+				align: "right",
+				renderCell: ({ value }) => (
+					<Typography
+						variant="body2"
+						sx={{
+							color: theme.palette.primary.light,
+							fontWeight: "bold",
+						}}
+					>
+						{formatAmount(Number(value))}
+					</Typography>
+				),
+			},
+			{
+				field: "typeLabel",
+				headerName: "Type",
+				flex: 1,
+				align: "right",
+				headerAlign: "right",
+				renderCell: ({ row }) => (
+					<Typography
+						variant="body2"
+						sx={{
+							fontWeight: "bold",
+							color:
+								row.orderType === "sell"
+									? theme.palette.warning.main
+									: theme.palette.info.main,
+						}}
+					>
+						{row.typeLabel}
+					</Typography>
+				),
+			},
+			{
+				field: "ica",
+				headerName: "ICA",
+				type: "number",
+				flex: 1,
+				headerAlign: "right",
+				align: "right",
+				renderCell: ({ value, row }) => (
+					<Typography
+						variant="body2"
+						sx={{
+							fontWeight: "bold",
+							color:
+								row.orderType === "sell"
+									? theme.palette.warning.main
+									: theme.palette.info.main,
+						}}
+					>
+						{Number(value).toLocaleString(undefined, {
+							maximumFractionDigits: 2,
+						})}
+					</Typography>
+				),
+			},
+			{
+				field: "price",
+				headerName: "Price",
+				flex: 2,
+				headerAlign: "center",
+				align: "center",
+				valueGetter: (_, row) => row.ica,
+				renderCell: ({ row }) => (
+					<Box sx={{ display: "flex", alignItems: "right", gap: 0.5 }}>
+						{row.corpStats && (
+							<PriceComparisonBadge label="COSM" stats={row.corpStats} />
+						)}
+						{row.cxStats && (
+							<PriceComparisonBadge label="CX" stats={row.cxStats} />
+						)}
+					</Box>
+				),
+			},
+			{
+				field: "location",
+				headerName: "Location",
+				flex: 2,
+				headerAlign: "left",
+				align: "left",
+				renderCell: ({ value }) => {
+					const locationText = String(value || "");
+					const match = locationText.match(/^(.+)\s\((.+)\)$/);
+					if (!match) {
+						return (
+							<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+								{locationText}
+							</Typography>
+						);
+					}
+					return (
+						<Typography variant="body2">
+							<Box component="span" sx={{ fontWeight: "bold" }}>
+								{match[1]}
+							</Box>{" "}
+							({match[2]})
+						</Typography>
+					);
+				},
+			},
+			{
+				field: "user",
+				headerName: "User",
+				flex: 3,
+				headerAlign: "left",
+				align: "left",
+				renderCell: ({ value }) => {
+					const userText = String(value || "");
+					const match = userText.match(/^(.+)\s\((.+)\)\s(.+)$/);
+					if (!match) {
+						return <Typography variant="body2">{userText}</Typography>;
+					}
+					return (
+						<Typography variant="body2">
+							<Box component="span" sx={{ fontWeight: "bold" }}>
+								{match[1]}
+							</Box>{" "}
+							({match[2]}) {match[3]}
+						</Typography>
+					);
+				},
+			},
+			{
+				field: "updated",
+				headerName: "Updated",
+				flex: 1,
+				headerAlign: "left",
+				align: "left",
+				renderCell: ({ value }) => (
+					<Typography variant="caption" sx={{ opacity: 0.8 }}>
+						{value === "-" ? "-" : `${value} ago`}
+					</Typography>
+				),
+			},
+		],
+		[theme],
+	);
 
 	return (
 		<Box
@@ -913,19 +1253,54 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						width: "100%",
 						display: "flex",
 						flexDirection: "row",
+						alignItems: "center",
 						gap: 2,
 						px: 1,
 					}}
 				>
+					<ToggleButtonGroup
+						value={vendorViewMode}
+						exclusive
+						onChange={(_event, newValue: "grid" | "table" | null) => {
+							if (newValue) {
+								handleViewModeChange(newValue);
+							}
+						}}
+						size="small"
+						aria-label="Vendor view mode"
+						sx={{
+							height: 40,
+							borderRadius: "12px",
+						}}
+					>
+						<ToggleButton
+							value="grid"
+							size="small"
+							aria-label="Grid view"
+							sx={{ px: 1.5, textTransform: "none" }}
+						>
+							Grid
+						</ToggleButton>
+						<ToggleButton
+							value="table"
+							size="small"
+							aria-label="Table view"
+							sx={{ px: 1.5, textTransform: "none" }}
+						>
+							Table
+						</ToggleButton>
+					</ToggleButtonGroup>
 					<TextField
 						fullWidth
 						variant="outlined"
 						size="small"
-						placeholder="Search Vendors..."
+						inputRef={searchInputRef}
+						placeholder="Search Materials & Vendors…"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						sx={{
 							"& .MuiOutlinedInput-root": {
+								height: 40,
 								bgcolor: alpha(theme.palette.background.default, 0.5),
 								backdropFilter: "blur(5px)",
 								borderRadius: "12px",
@@ -947,27 +1322,51 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							),
 						}}
 					/>
-					<Box sx={{ display: "flex", gap: 1 }}>
-						<Fab
-							color="primary"
-							size="medium"
+					<Box
+						sx={{
+							display: "flex",
+							gap: 1,
+						}}
+					>
+						<IconButton
 							onClick={handleOpenShoppingListModal}
-							sx={{ color: "white", boxShadow: "0 4px 10px rgba(0,0,0,0.5)" }}
+							sx={{
+								height: 40,
+								width: 40,
+								borderRadius: "50%",
+								color: "white",
+								bgcolor: "primary.main",
+								boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+								"&:hover": {
+									bgcolor: "primary.dark",
+								},
+							}}
 						>
 							<ShoppingBasket size={24} />
-						</Fab>
+						</IconButton>
 						{loggedIn && (
-							<Fab
-								color="primary"
-								size="medium"
+							<IconButton
 								onClick={
 									hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
 								}
 								disabled={isCheckingStore}
-								sx={{ color: "white", boxShadow: "0 4px 10px rgba(0,0,0,0.5)" }}
+								sx={{
+									height: 40,
+									width: 40,
+									borderRadius: "50%",
+									color: "white",
+									bgcolor: "primary.main",
+									boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+									"&:hover": {
+										bgcolor: "primary.dark",
+									},
+									"&.Mui-disabled": {
+										bgcolor: alpha(theme.palette.primary.main, 0.5),
+									},
+								}}
 							>
 								{hasVendorStore ? <Edit size={24} /> : <PlusCircle size={24} />}
-							</Fab>
+							</IconButton>
 						)}
 					</Box>
 				</Box>
@@ -978,27 +1377,83 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				id="vendors"
 				sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 1, pb: 2 }}
 			>
-				{filteredVendors.length > 0 ? (
-					<Masonry
-						columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xll: 5 }}
-						spacing={2}
-					>
-						{filteredVendors.map((vendor) => (
-							<VendorCard
-								key={vendor.vendor.companycode}
-								vendor={vendor}
-								cxPriceLookup={cxPriceLookup}
-							/>
-						))}
-					</Masonry>
-				) : (
-					<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
-						<Typography variant="h6">
-							{isLoadingVendors
-								? "Loading…"
-								: "No vendors found matching your search."}
-						</Typography>
+				{vendorViewMode === "table" ? (
+					<Box sx={{ height: "100%", width: "100%" }}>
+						<DataGrid
+							rows={tableRows}
+							columns={tableColumns}
+							density="compact"
+							hideFooter
+							disableColumnMenu
+							disableColumnSorting
+							disableRowSelectionOnClick
+							sortModel={[{ field: "material", sort: "asc" }]}
+							localeText={{ noRowsLabel: "No results" }}
+							sx={{
+								border: "none",
+								"& .MuiDataGrid-row": {
+									borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+									"&:hover": {
+										backgroundColor: alpha(theme.palette.primary.main, 0.04),
+									},
+									display: "flex",
+									alignItems: "center",
+								},
+								"& .MuiDataGrid-cell": {
+									borderBottom: "none",
+									display: "flex",
+									alignItems: "center",
+									padding: "0 8px",
+									"&:focus": { outline: "none" },
+									"&:focus-within": { outline: "none" },
+								},
+								"& .MuiDataGrid-columnHeaders": {
+									backgroundColor: theme.palette.background.default,
+									color: theme.palette.primary.contrastText,
+									fontSize: "0.7rem",
+									fontWeight: "bold",
+									textTransform: "uppercase",
+									letterSpacing: "0.05em",
+									borderBottom: "none",
+									minHeight: "40px !important",
+									maxHeight: "40px !important",
+								},
+								"& .MuiDataGrid-columnHeader": {
+									padding: "0 10px",
+									"&:focus": { outline: "none" },
+									"&:focus-within": { outline: "none" },
+								},
+								"& .MuiDataGrid-columnSeparator": {
+									display: "none",
+								},
+								"& .MuiDataGrid-virtualScroller": {
+									marginTop: "0 !important",
+								},
+							}}
+						/>
 					</Box>
+				) : (
+					<>
+						{filteredVendors.length > 0 ? (
+							<Masonry
+								columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xll: 5 }}
+								spacing={2}
+							>
+								{preparedFilteredVendors.map((preparedVendor) => (
+									<VendorCard
+										key={preparedVendor.vendorStore.vendor.companycode}
+										preparedVendor={preparedVendor}
+									/>
+								))}
+							</Masonry>
+						) : (
+							<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
+								<Typography variant="h6">
+									{isLoadingVendors ? "Loading…" : "No results"}
+								</Typography>
+							</Box>
+						)}
+					</>
 				)}
 			</Box>
 
