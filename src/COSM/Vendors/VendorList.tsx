@@ -40,6 +40,7 @@ import { getDiffStats } from "./utils/priceComparison";
 import PriceComparisonBadge from "./components/PriceComparisonBadge";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
+type LocationOption = { id: string; name: string };
 const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
 
 const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
@@ -48,6 +49,22 @@ const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 const getStoredVendorViewMode = (): "grid" | "table" | null => {
 	const storedValue = localStorage.getItem(VENDORS_VIEW_MODE_STORAGE_KEY);
 	return isVendorViewMode(storedValue) ? storedValue : null;
+};
+
+const formatLocation = (name?: string, id?: string) => {
+	const locationName = name?.trim();
+	const locationId = id?.trim();
+	let displayName = locationName || locationId || "Unknown";
+	let displayId: string | null = null;
+	if (locationName && locationId) {
+		const sameLabel =
+			locationName.localeCompare(locationId, undefined, {
+				sensitivity: "base",
+			}) === 0;
+		displayName = locationName;
+		displayId = sameLabel ? null : locationId;
+	}
+	return displayId ? `${displayName} (${displayId})` : displayName;
 };
 
 // --- HELPER COMPONENTS ---
@@ -462,9 +479,10 @@ const VendorCard = React.memo(
 																	fontSize: "0.80rem",
 																}}
 															>
-																{l.location_name ||
-																	l.location_code ||
-																	"Unknown"}
+																{formatLocation(
+																	l.location_name,
+																	l.location_code,
+																)}
 															</Typography>
 														</Box>
 														<Typography
@@ -594,7 +612,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState<string>("");
-	const [selectedLocation, setSelectedLocation] = useState<string>("All");
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 	const [locationInputValue, setLocationInputValue] =
 		useState<string>("All Locations");
 	const [orderTypeFilter, setOrderTypeFilter] = useState<
@@ -611,12 +629,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
 	const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 	const [isShoppingListModalOpen, setIsShoppingListModalOpen] = useState(false);
-
-	useEffect(() => {
-		setLocationInputValue(
-			selectedLocation === "All" ? "All Locations" : selectedLocation,
-		);
-	}, [selectedLocation]);
 
 	// Data States
 	const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
@@ -827,7 +839,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	// Extract unique locations dynamically based on search and order type filters
 	const allLocations = useMemo(() => {
-		const locs = new Set<string>();
+		const locs = new Map<string, LocationOption>();
 
 		const terms = searchQuery
 			.split(",")
@@ -862,15 +874,28 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						const hasStock = typeof qty === "number" && qty > 0;
 
 						if (hasStock) {
-							const text = l.location_code || l.location_name;
-							if (text) locs.add(text);
+							const locationId = l.location_code?.trim();
+							const locationName = l.location_name?.trim();
+							const optionId = locationId || locationName;
+							if (optionId) {
+								locs.set(optionId, {
+									id: optionId,
+									name: locationName || optionId,
+								});
+							}
 						}
 					});
 				}
 			});
 		});
 
-		return ["All", ...Array.from(locs).sort((a, b) => a.localeCompare(b))];
+		return [
+			...Array.from(locs.values()).sort((a, b) =>
+				formatLocation(a.name, a.id).localeCompare(
+					formatLocation(b.name, b.id),
+				),
+			),
+		];
 	}, [
 		vendorsWithOrders,
 		searchQuery,
@@ -878,6 +903,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		matchesVendorSearch,
 		matchesMaterialSearch,
 	]);
+
+	useEffect(() => {
+		const selectedOption = allLocations.find((option) => option.id === selectedLocation);
+		setLocationInputValue(
+			selectedLocation === null
+				? ""
+				: formatLocation(selectedOption?.name, selectedLocation),
+		);
+	}, [selectedLocation, allLocations]);
 
 	// Filter Logic for Grid View
 	const preparedFilteredVendors = useMemo(() => {
@@ -901,7 +935,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				return orders.filter((order) => {
 					// 1. Filter by location (AND ensure it actually has quantity > 0)
 					const locMatch =
-						selectedLocation === "All" ||
+						selectedLocation === null ||
 						order.item.location?.some((l: Location) => {
 							const nameMatches =
 								l.location_name === selectedLocation ||
@@ -1014,19 +1048,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						? location.available
 						: preparedOrder.displayQuantity;
 
-					const locationLabel = (() => {
-						if (!location) return "Unknown";
-						const code = location.location_code?.trim();
-						const name = location.location_name?.trim();
-						if (code && name) {
-							const sameLabel =
-								code.localeCompare(name, undefined, {
-									sensitivity: "base",
-								}) === 0;
-							return sameLabel ? name : `${name} (${code})`;
-						}
-						return code || name || "Unknown";
-					})();
+					const locationLabel = formatLocation(
+						location?.location_name,
+						location?.location_code,
+					);
 
 					return {
 						id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
@@ -1060,7 +1085,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				if (typeof row.quantity === "number" && row.quantity <= 0) return false;
 
 				const locMatch =
-					selectedLocation === "All" ||
+					selectedLocation === null ||
 					row.locName === selectedLocation ||
 					row.locCode === selectedLocation;
 				if (!locMatch) return false;
@@ -1183,25 +1208,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				flex: 2,
 				headerAlign: "left",
 				align: "left",
-				renderCell: ({ value }) => {
-					const locationText = String(value || "");
-					const match = locationText.match(/^(.+)\s\((.+)\)$/);
-					if (!match) {
-						return (
-							<Typography variant="body2" sx={{ fontWeight: "bold" }}>
-								{locationText}
-							</Typography>
-						);
-					}
-					return (
-						<Typography variant="body2">
-							<Box component="span" sx={{ fontWeight: "bold" }}>
-								{match[1]}
-							</Box>{" "}
-							({match[2]})
-						</Typography>
-					);
-				},
+				renderCell: ({ row }) => (
+					<Typography variant="body2">
+						{formatLocation(row.locName, row.locCode)}
+					</Typography>
+				),
 			},
 			{
 				field: "user",
@@ -1425,29 +1436,44 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								Bid
 							</ToggleButton>
 						</ToggleButtonGroup>
-						<Autocomplete
+						<Autocomplete<LocationOption, false, false, false>
 							size="small"
 							options={allLocations}
-							value={selectedLocation}
-							onChange={(_e, newValue) =>
-								setSelectedLocation(newValue || "All")
+							value={
+								selectedLocation === null
+									? null
+									: allLocations.find((option) => option.id === selectedLocation) ||
+										null
 							}
+							onChange={(_e, newValue) => setSelectedLocation(newValue?.id || null)}
 							inputValue={locationInputValue}
 							onInputChange={(_e, newInputValue, reason) => {
-								if (reason === "reset" || reason === "clear") {
+								if (reason === "reset") {
+									const selectedOption = allLocations.find(
+										(option) => option.id === selectedLocation,
+									);
 									setLocationInputValue(
-										selectedLocation === "All"
-											? "All Locations"
-											: selectedLocation,
+										selectedLocation === null
+											? ""
+											: formatLocation(
+													selectedOption?.name,
+													selectedLocation,
+												),
 									);
 								} else {
 									setLocationInputValue(newInputValue);
 								}
 							}}
-							disableClearable={selectedLocation === "All"}
-							getOptionLabel={(option) =>
-								option === "All" ? "All Locations" : option
-							}
+							disableClearable={false}
+							getOptionLabel={(option) => formatLocation(option.name, option.id)}
+							isOptionEqualToValue={(option, value) => option.id === value.id}
+							renderOption={(props, option) => (
+								<Box component="li" {...props}>
+									<Typography variant="body2">
+										{formatLocation(option.name, option.id)}
+									</Typography>
+								</Box>
+							)}
 							slotProps={{
 								paper: {
 									sx: {
@@ -1456,12 +1482,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									},
 								},
 							}}
-							sx={{ flexGrow: { xs: 1, sm: 0 }, minWidth: { sm: 170 } }}
+							sx={{ flexGrow: { xs: 1, sm: 0 }, minWidth: { sm: 260 } }}
 							renderInput={(params) => (
 								<TextField
 									{...params}
 									variant="outlined"
-									placeholder="Location"
+									placeholder="All Locations"
 									onFocus={() => setLocationInputValue("")}
 									sx={{
 										"& .MuiOutlinedInput-root": {
