@@ -1242,7 +1242,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					}
 					return (
 						<Typography variant="caption" sx={{ opacity: 0.8 }}>
-							{act === "-" ? "-" : `Active ${act} ago`}
+							{act === "-" ? "-" : `${act} ago`}
 						</Typography>
 					);
 				},
