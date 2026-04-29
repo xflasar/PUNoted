@@ -136,6 +136,148 @@ const prepareVendorStore = (
 
 // --- MEMOIZED SUB-COMPONENTS ---
 
+const PriceComparisonBadge = ({
+	label,
+	stats,
+}: {
+	label: string;
+	stats: NonNullable<ReturnType<typeof getDiffStats>>;
+}) => {
+	const theme = useTheme();
+	if (!stats) return <Box sx={{ width: 40 }} />;
+
+	return (
+		<Tooltip
+			title={
+				<Box sx={{ textAlign: "center" }}>
+					<Typography
+						variant="caption"
+						sx={{ display: "block", fontWeight: "bold" }}
+					>
+						{label} Price Difference
+					</Typography>
+					<Typography
+						variant="caption"
+						sx={{ color: theme.palette.text.secondary }}
+					>
+						{label} Price: {stats.refPrice} ICA
+					</Typography>
+				</Box>
+			}
+			slotProps={{
+				tooltip: {
+					sx: {
+						backdropFilter: "blur(8px)",
+						background: alpha(theme.palette.background.default, 0.95),
+						border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+						color: theme.palette.text.primary,
+					},
+				},
+			}}
+		>
+			<Chip
+				icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
+				size="small"
+				variant="outlined"
+				sx={{
+					fontSize: "0.7rem",
+					"& .MuiChip-icon": { color: "inherit" },
+					color:
+						stats.color === "neutral"
+							? theme.palette.primary.light
+							: stats.isGood
+								? theme.palette.success.light
+								: theme.palette.error.light,
+					borderColor:
+						stats.color === "neutral"
+							? alpha(theme.palette.primary.main, 0.3)
+							: stats.isGood
+								? alpha(theme.palette.success.main, 0.3)
+								: alpha(theme.palette.error.main, 0.3),
+					bgcolor:
+						stats.color === "neutral"
+							? alpha(theme.palette.primary.main, 0.06)
+							: stats.isGood
+								? alpha(theme.palette.success.main, 0.05)
+								: alpha(theme.palette.error.main, 0.05),
+				}}
+			/>
+		</Tooltip>
+	);
+};
+
+const ChipSmall = ({
+	text,
+	colour,
+	tooltip,
+}: {
+	text: string;
+	colour?: string;
+	tooltip?: React.ReactNode;
+}) => {
+	const theme = useTheme();
+	const badgeColour = colour ?? theme.palette.primary.light;
+
+	const badge = (
+		<Chip
+			size="small"
+			label={text}
+			sx={{
+				height: 18,
+				fontSize: "0.65rem",
+				fontWeight: "bold",
+				color: badgeColour,
+				bgcolor: alpha(badgeColour, 0.1),
+				border: `1px solid ${alpha(badgeColour, 0.3)}`,
+				cursor: tooltip ? "help" : "default",
+			}}
+		/>
+	);
+
+	if (!tooltip) return badge;
+
+	return (
+		<Tooltip
+			title={<Typography variant="caption" sx={{ fontWeight: "bold" }}>{tooltip}</Typography>}
+			slotProps={{
+				tooltip: {
+					sx: {
+						backdropFilter: "blur(8px)",
+						background: alpha(theme.palette.background.default, 0.95),
+						border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+						color: theme.palette.text.primary,
+					},
+				},
+			}}
+		>
+			{badge}
+		</Tooltip>
+	);
+};
+
+const ChipAsk = () => {
+	const theme = useTheme();
+	return (
+		<ChipSmall
+			text="ASK"
+			colour={theme.palette.warning.light}
+			tooltip="Buy from the vendor"
+		/>
+	);
+};
+
+const ChipBid = () => {
+	const theme = useTheme();
+	return (
+		<ChipSmall
+			text="BID"
+			colour={theme.palette.info.light}
+			tooltip="Sell to the vendor"
+		/>
+	);
+};
+
 // The Main Card Component
 const VendorCard = React.memo(
 	({
@@ -385,22 +527,7 @@ const VendorCard = React.memo(
 											<Box
 												sx={{ display: "flex", alignItems: "center", gap: 1 }}
 											>
-												<Chip
-													size="small"
-													label={isBuying ? "BID" : "ASK"}
-													sx={{
-														height: 18,
-														fontSize: "0.65rem",
-														fontWeight: "bold",
-														color: isBuying
-															? theme.palette.info.light
-															: theme.palette.warning.light,
-														bgcolor: isBuying
-															? alpha(theme.palette.info.main, 0.1)
-															: alpha(theme.palette.warning.main, 0.1),
-														border: `1px solid ${isBuying ? alpha(theme.palette.info.main, 0.3) : alpha(theme.palette.warning.main, 0.3)}`,
-													}}
-												/>
+													{isBuying ? <ChipBid /> : <ChipAsk />}
 												<Typography
 													variant="subtitle2"
 													sx={{
@@ -1141,27 +1268,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					</Typography>
 				),
 			},
-			{
-				field: "typeLabel",
-				headerName: "Type",
-				flex: 1,
-				align: "right",
-				headerAlign: "right",
-				renderCell: ({ row }) => (
-					<Typography
-						variant="body2"
-						sx={{
-							fontWeight: "bold",
-							color:
-								row.orderType === "sell"
-									? theme.palette.warning.main
-									: theme.palette.info.main,
-						}}
-					>
-						{row.typeLabel}
-					</Typography>
-				),
-			},
+				{
+					field: "typeLabel",
+					headerName: "Type",
+					flex: 1,
+					align: "right",
+					headerAlign: "right",
+					renderCell: ({ row }) =>
+						row.orderType === "sell" ? <ChipAsk /> : <ChipBid />,
+				},
 			{
 				field: "ica",
 				headerName: "ICA",
