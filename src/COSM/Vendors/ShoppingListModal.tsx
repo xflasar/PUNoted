@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { ContentCopy } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
+import PriceComparisonBadge from "./components/PriceComparisonBadge";
+import { getDiffStats } from "./utils/priceComparison";
 
 // --- Types ---
 /**
@@ -50,7 +52,11 @@ export interface OrderItem {
 	gamename: string;
 	vendorid: string;
 	reserved: number;
-	price?: { fixedprice: number };
+	price?: {
+		fixedprice: number;
+		corpprice?: number;
+		cxprice?: number;
+	};
 }
 
 /**
@@ -229,6 +235,11 @@ const VendorPrioritySelector: React.FC<{
 		>
 			{sortedVendors.map((vendor, index) => {
 				const isFirst = index === 0;
+				const corpStats = getDiffStats(
+					vendor.fixedprice,
+					vendor.price?.corpprice,
+					"ask",
+				);
 				return (
 					<Box
 						key={vendor.vendorid}
@@ -256,17 +267,29 @@ const VendorPrioritySelector: React.FC<{
 							#{index + 1}
 						</Typography>
 
-						<Box sx={{ flex: 1 }}>
-							<Typography
-								variant="body2"
+						<Box sx={{ flex: 1, minWidth: 0 }}>
+							<Box
 								sx={{
-									fontSize: "0.9rem",
-									fontWeight: isFirst ? "bold" : "normal",
-									color: isFirst ? theme.palette.success.light : "inherit",
+									display: "flex",
+									alignItems: "center",
+									gap: 1,
+									flexWrap: "wrap",
 								}}
 							>
-								{vendor.vendorname}
-							</Typography>
+								<Typography
+									variant="body2"
+									sx={{
+										fontSize: "0.9rem",
+										fontWeight: isFirst ? "bold" : "normal",
+										color: isFirst ? theme.palette.success.light : "inherit",
+									}}
+								>
+									{vendor.vendorname}
+								</Typography>
+								{corpStats && (
+									<PriceComparisonBadge label="COSM" stats={corpStats} />
+								)}
+							</Box>
 							<Box sx={{ display: "flex", gap: 2 }}>
 								<Typography variant="caption" color="text.secondary">
 									Stock: {formatAmount(vendor.quantity)}

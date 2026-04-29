@@ -19,8 +19,6 @@ import {
 	Divider,
 	useTheme,
 	IconButton,
-	Tooltip,
-	Chip,
 	alpha,
 	Autocomplete,
 } from "@mui/material";
@@ -31,7 +29,6 @@ import {
 	ShoppingBasket,
 	MapPin,
 	Minus,
-	Target,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./CreateVendorStoreModal";
@@ -39,6 +36,8 @@ import EditVendorStoreModal from "./EditVendorStoreModal";
 import ShoppingListModal from "./ShoppingListModal";
 import { formatAmount } from "../../utils/formaters";
 import type { Location, VendorStore } from "./types";
+import { getDiffStats } from "./utils/priceComparison";
+import PriceComparisonBadge from "./components/PriceComparisonBadge";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
 const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
@@ -52,34 +51,6 @@ const getStoredVendorViewMode = (): "grid" | "table" | null => {
 };
 
 // --- HELPER COMPONENTS ---
-
-const getDiffStats = (
-	vendorPrice: number,
-	refPrice: number | undefined,
-	type: "buy" | "sell",
-) => {
-	if (!refPrice || refPrice === 0 || !vendorPrice) return null;
-
-	const diff = ((vendorPrice - refPrice) / refPrice) * 100;
-	const roundedDiff = Number(diff.toFixed(1));
-	const normalizedDiff = Object.is(roundedDiff, -0) ? 0 : roundedDiff;
-	const formatted = `${normalizedDiff > 0 ? "+" : ""}${normalizedDiff.toFixed(1)}%`;
-
-	const isNeutral = normalizedDiff === 0;
-	let isGood = false;
-	if (!isNeutral) {
-		if (type === "sell") isGood = normalizedDiff < 0;
-		else isGood = normalizedDiff > 0;
-	}
-
-	return {
-		value: normalizedDiff,
-		label: formatted,
-		isGood,
-		color: isNeutral ? "neutral" : isGood ? "success" : "error",
-		refPrice,
-	};
-};
 
 const activityToMinutes = (activity: unknown) => {
 	if (typeof activity !== "string") return Number.POSITIVE_INFINITY;
@@ -119,12 +90,12 @@ const prepareVendorStore = (
 				const cxStats = getDiffStats(
 					fixedPrice,
 					Number.isFinite(cxReferencePrice) ? cxReferencePrice : undefined,
-					orderType,
+					orderType === "sell" ? "ask" : "bid",
 				);
 				const corpStats = getDiffStats(
 					fixedPrice,
 					item.price?.corpprice,
-					orderType,
+					orderType === "sell" ? "ask" : "bid",
 				);
 
 				return {
@@ -145,77 +116,6 @@ const prepareVendorStore = (
 };
 
 // --- MEMOIZED SUB-COMPONENTS ---
-
-const PriceComparisonBadge = ({
-	label,
-	stats,
-}: {
-	label: string;
-	stats: NonNullable<ReturnType<typeof getDiffStats>>;
-}) => {
-	const theme = useTheme();
-	if (!stats) return <Box sx={{ width: 40 }} />;
-
-	return (
-		<Tooltip
-			title={
-				<Box sx={{ textAlign: "center" }}>
-					<Typography
-						variant="caption"
-						sx={{ display: "block", fontWeight: "bold" }}
-					>
-						{label} Price Difference
-					</Typography>
-					<Typography
-						variant="caption"
-						sx={{ color: theme.palette.text.secondary }}
-					>
-						{label} Price: {stats.refPrice} ICA
-					</Typography>
-				</Box>
-			}
-			slotProps={{
-				tooltip: {
-					sx: {
-						backdropFilter: "blur(8px)",
-						background: alpha(theme.palette.background.default, 0.95),
-						border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-						color: theme.palette.text.primary,
-					},
-				},
-			}}
-		>
-			<Chip
-				icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
-				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
-				size="small"
-				variant="outlined"
-				sx={{
-					fontSize: "0.7rem",
-					"& .MuiChip-icon": { color: "inherit" },
-					color:
-						stats.color === "neutral"
-							? theme.palette.primary.light
-							: stats.isGood
-								? theme.palette.success.light
-								: theme.palette.error.light,
-					borderColor:
-						stats.color === "neutral"
-							? alpha(theme.palette.primary.main, 0.3)
-							: stats.isGood
-								? alpha(theme.palette.success.main, 0.3)
-								: alpha(theme.palette.error.main, 0.3),
-					bgcolor:
-						stats.color === "neutral"
-							? alpha(theme.palette.primary.main, 0.06)
-							: stats.isGood
-								? alpha(theme.palette.success.main, 0.05)
-								: alpha(theme.palette.error.main, 0.05),
-				}}
-			/>
-		</Tooltip>
-	);
-};
 
 // The Main Card Component
 const VendorCard = React.memo(
