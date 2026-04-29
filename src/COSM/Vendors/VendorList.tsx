@@ -239,7 +239,11 @@ const ChipSmall = ({
 
 	return (
 		<Tooltip
-			title={<Typography variant="caption" sx={{ fontWeight: "bold" }}>{tooltip}</Typography>}
+			title={
+				<Typography variant="caption" sx={{ fontWeight: "bold" }}>
+					{tooltip}
+				</Typography>
+			}
 			slotProps={{
 				tooltip: {
 					sx: {
@@ -527,7 +531,7 @@ const VendorCard = React.memo(
 											<Box
 												sx={{ display: "flex", alignItems: "center", gap: 1 }}
 											>
-													{isBuying ? <ChipBid /> : <ChipAsk />}
+												{isBuying ? <ChipBid /> : <ChipAsk />}
 												<Typography
 													variant="subtitle2"
 													sx={{
@@ -1034,7 +1038,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	]);
 
 	useEffect(() => {
-		const selectedOption = allLocations.find((option) => option.id === selectedLocation);
+		const selectedOption = allLocations.find(
+			(option) => option.id === selectedLocation,
+		);
 		setLocationInputValue(
 			selectedLocation === null
 				? ""
@@ -1268,15 +1274,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					</Typography>
 				),
 			},
-				{
-					field: "typeLabel",
-					headerName: "Type",
-					flex: 1,
-					align: "right",
-					headerAlign: "right",
-					renderCell: ({ row }) =>
-						row.orderType === "sell" ? <ChipAsk /> : <ChipBid />,
-				},
+			{
+				field: "typeLabel",
+				headerName: "Type",
+				flex: 1,
+				align: "right",
+				headerAlign: "right",
+				renderCell: ({ row }) =>
+					row.orderType === "sell" ? <ChipAsk /> : <ChipBid />,
+			},
 			{
 				field: "ica",
 				headerName: "ICA",
@@ -1570,10 +1576,13 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							value={
 								selectedLocation === null
 									? null
-									: allLocations.find((option) => option.id === selectedLocation) ||
-										null
+									: allLocations.find(
+											(option) => option.id === selectedLocation,
+										) || null
 							}
-							onChange={(_e, newValue) => setSelectedLocation(newValue?.id || null)}
+							onChange={(_e, newValue) =>
+								setSelectedLocation(newValue?.id || null)
+							}
 							inputValue={locationInputValue}
 							onInputChange={(_e, newInputValue, reason) => {
 								if (reason === "reset") {
@@ -1583,17 +1592,16 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									setLocationInputValue(
 										selectedLocation === null
 											? ""
-											: formatLocation(
-													selectedOption?.name,
-													selectedLocation,
-												),
+											: formatLocation(selectedOption?.name, selectedLocation),
 									);
 								} else {
 									setLocationInputValue(newInputValue);
 								}
 							}}
 							disableClearable={false}
-							getOptionLabel={(option) => formatLocation(option.name, option.id)}
+							getOptionLabel={(option) =>
+								formatLocation(option.name, option.id)
+							}
 							isOptionEqualToValue={(option, value) => option.id === value.id}
 							renderOption={(props, option) => (
 								<Box component="li" {...props}>
