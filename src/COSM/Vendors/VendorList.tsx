@@ -10,6 +10,7 @@ import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
 	Typography,
 	Box,
+	Chip,
 	TextField,
 	InputAdornment,
 	ToggleButton,
@@ -17,6 +18,7 @@ import {
 	Card,
 	CardContent,
 	Divider,
+	Tooltip,
 	useTheme,
 	IconButton,
 	alpha,
@@ -39,7 +41,6 @@ import ShoppingListModal from "./ShoppingListModal";
 import { formatAmount } from "../../utils/formaters";
 import type { Location, VendorStore } from "./types";
 import { getDiffStats } from "./utils/priceComparison";
-import PriceComparisonBadge from "./components/PriceComparisonBadge";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
 type LocationOption = { id: string; name: string };
