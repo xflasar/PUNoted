@@ -29,6 +29,8 @@ import {
 	ShoppingBasket,
 	MapPin,
 	Minus,
+	Target,
+	X,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./CreateVendorStoreModal";
@@ -1371,6 +1373,17 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										<Search size={20} color={theme.palette.primary.main} />
 									</InputAdornment>
 								),
+								endAdornment: searchQuery ? (
+									<InputAdornment position="end">
+										<IconButton
+											size="small"
+											aria-label="Clear material search"
+											onClick={() => setSearchQuery("")}
+										>
+											<X size={16} />
+										</IconButton>
+									</InputAdornment>
+								) : null,
 							},
 						}}
 					/>
@@ -1482,13 +1495,19 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									},
 								},
 							}}
-							sx={{ flexGrow: { xs: 1, sm: 0 }, minWidth: { sm: 260 } }}
+							sx={{
+								flexGrow: { xs: 1, sm: 0 },
+								minWidth: { sm: 260 },
+								"& .MuiAutocomplete-clearIndicator": {
+									visibility: selectedLocation ? "visible" : "hidden",
+									opacity: selectedLocation ? 1 : 0,
+								},
+							}}
 							renderInput={(params) => (
 								<TextField
 									{...params}
 									variant="outlined"
 									placeholder="All Locations"
-									onFocus={() => setLocationInputValue("")}
 									sx={{
 										"& .MuiOutlinedInput-root": {
 											height: 40,
