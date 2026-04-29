@@ -10,6 +10,7 @@ import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
 	Typography,
 	Box,
+	Chip,
 	TextField,
 	InputAdornment,
 	ToggleButton,
@@ -17,6 +18,7 @@ import {
 	Card,
 	CardContent,
 	Divider,
+	Tooltip,
 	useTheme,
 	IconButton,
 	alpha,
@@ -29,6 +31,8 @@ import {
 	ShoppingBasket,
 	MapPin,
 	Minus,
+	Target,
+	X,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./CreateVendorStoreModal";
@@ -37,9 +41,9 @@ import ShoppingListModal from "./ShoppingListModal";
 import { formatAmount } from "../../utils/formaters";
 import type { Location, VendorStore } from "./types";
 import { getDiffStats } from "./utils/priceComparison";
-import PriceComparisonBadge from "./components/PriceComparisonBadge";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
+type LocationOption = { id: string; name: string };
 const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
 
 const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
@@ -48,6 +52,22 @@ const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 const getStoredVendorViewMode = (): "grid" | "table" | null => {
 	const storedValue = localStorage.getItem(VENDORS_VIEW_MODE_STORAGE_KEY);
 	return isVendorViewMode(storedValue) ? storedValue : null;
+};
+
+const formatLocation = (name?: string, id?: string) => {
+	const locationName = name?.trim();
+	const locationId = id?.trim();
+	let displayName = locationName || locationId || "Unknown";
+	let displayId: string | null = null;
+	if (locationName && locationId) {
+		const sameLabel =
+			locationName.localeCompare(locationId, undefined, {
+				sensitivity: "base",
+			}) === 0;
+		displayName = locationName;
+		displayId = sameLabel ? null : locationId;
+	}
+	return displayId ? `${displayName} (${displayId})` : displayName;
 };
 
 // --- HELPER COMPONENTS ---
@@ -116,6 +136,152 @@ const prepareVendorStore = (
 };
 
 // --- MEMOIZED SUB-COMPONENTS ---
+
+const PriceComparisonBadge = ({
+	label,
+	stats,
+}: {
+	label: string;
+	stats: NonNullable<ReturnType<typeof getDiffStats>>;
+}) => {
+	const theme = useTheme();
+	if (!stats) return <Box sx={{ width: 40 }} />;
+
+	return (
+		<Tooltip
+			title={
+				<Box sx={{ textAlign: "center" }}>
+					<Typography
+						variant="caption"
+						sx={{ display: "block", fontWeight: "bold" }}
+					>
+						{label} Price Difference
+					</Typography>
+					<Typography
+						variant="caption"
+						sx={{ color: theme.palette.text.secondary }}
+					>
+						{label} Price: {stats.refPrice} ICA
+					</Typography>
+				</Box>
+			}
+			slotProps={{
+				tooltip: {
+					sx: {
+						backdropFilter: "blur(8px)",
+						background: alpha(theme.palette.background.default, 0.95),
+						border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+						color: theme.palette.text.primary,
+					},
+				},
+			}}
+		>
+			<Chip
+				icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
+				size="small"
+				variant="outlined"
+				sx={{
+					fontSize: "0.7rem",
+					"& .MuiChip-icon": { color: "inherit" },
+					color:
+						stats.color === "neutral"
+							? theme.palette.primary.light
+							: stats.isGood
+								? theme.palette.success.light
+								: theme.palette.error.light,
+					borderColor:
+						stats.color === "neutral"
+							? alpha(theme.palette.primary.main, 0.3)
+							: stats.isGood
+								? alpha(theme.palette.success.main, 0.3)
+								: alpha(theme.palette.error.main, 0.3),
+					bgcolor:
+						stats.color === "neutral"
+							? alpha(theme.palette.primary.main, 0.06)
+							: stats.isGood
+								? alpha(theme.palette.success.main, 0.05)
+								: alpha(theme.palette.error.main, 0.05),
+				}}
+			/>
+		</Tooltip>
+	);
+};
+
+const ChipSmall = ({
+	text,
+	colour,
+	tooltip,
+}: {
+	text: string;
+	colour?: string;
+	tooltip?: React.ReactNode;
+}) => {
+	const theme = useTheme();
+	const badgeColour = colour ?? theme.palette.primary.light;
+
+	const badge = (
+		<Chip
+			size="small"
+			label={text}
+			sx={{
+				height: 18,
+				fontSize: "0.65rem",
+				fontWeight: "bold",
+				color: badgeColour,
+				bgcolor: alpha(badgeColour, 0.1),
+				border: `1px solid ${alpha(badgeColour, 0.3)}`,
+				cursor: tooltip ? "help" : "default",
+			}}
+		/>
+	);
+
+	if (!tooltip) return badge;
+
+	return (
+		<Tooltip
+			title={
+				<Typography variant="caption" sx={{ fontWeight: "bold" }}>
+					{tooltip}
+				</Typography>
+			}
+			slotProps={{
+				tooltip: {
+					sx: {
+						backdropFilter: "blur(8px)",
+						background: alpha(theme.palette.background.default, 0.95),
+						border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+						color: theme.palette.text.primary,
+					},
+				},
+			}}
+		>
+			{badge}
+		</Tooltip>
+	);
+};
+
+const ChipAsk = () => {
+	const theme = useTheme();
+	return (
+		<ChipSmall
+			text="ASK"
+			colour={theme.palette.warning.light}
+			tooltip="Buy from the vendor"
+		/>
+	);
+};
+
+const ChipBid = () => {
+	const theme = useTheme();
+	return (
+		<ChipSmall
+			text="BID"
+			colour={theme.palette.info.light}
+			tooltip="Sell to the vendor"
+		/>
+	);
+};
 
 // The Main Card Component
 const VendorCard = React.memo(
@@ -366,22 +532,7 @@ const VendorCard = React.memo(
 											<Box
 												sx={{ display: "flex", alignItems: "center", gap: 1 }}
 											>
-												<Chip
-													size="small"
-													label={isBuying ? "BID" : "ASK"}
-													sx={{
-														height: 18,
-														fontSize: "0.65rem",
-														fontWeight: "bold",
-														color: isBuying
-															? theme.palette.info.light
-															: theme.palette.warning.light,
-														bgcolor: isBuying
-															? alpha(theme.palette.info.main, 0.1)
-															: alpha(theme.palette.warning.main, 0.1),
-														border: `1px solid ${isBuying ? alpha(theme.palette.info.main, 0.3) : alpha(theme.palette.warning.main, 0.3)}`,
-													}}
-												/>
+												{isBuying ? <ChipBid /> : <ChipAsk />}
 												<Typography
 													variant="subtitle2"
 													sx={{
@@ -462,9 +613,10 @@ const VendorCard = React.memo(
 																	fontSize: "0.80rem",
 																}}
 															>
-																{l.location_name ||
-																	l.location_code ||
-																	"Unknown"}
+																{formatLocation(
+																	l.location_name,
+																	l.location_code,
+																)}
 															</Typography>
 														</Box>
 														<Typography
@@ -594,7 +746,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState<string>("");
-	const [selectedLocation, setSelectedLocation] = useState<string>("All");
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 	const [locationInputValue, setLocationInputValue] =
 		useState<string>("All Locations");
 	const [orderTypeFilter, setOrderTypeFilter] = useState<
@@ -611,12 +763,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
 	const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 	const [isShoppingListModalOpen, setIsShoppingListModalOpen] = useState(false);
-
-	useEffect(() => {
-		setLocationInputValue(
-			selectedLocation === "All" ? "All Locations" : selectedLocation,
-		);
-	}, [selectedLocation]);
 
 	// Data States
 	const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
@@ -827,7 +973,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	// Extract unique locations dynamically based on search and order type filters
 	const allLocations = useMemo(() => {
-		const locs = new Set<string>();
+		const locs = new Map<string, LocationOption>();
 
 		const terms = searchQuery
 			.split(",")
@@ -862,15 +1008,28 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						const hasStock = typeof qty === "number" && qty > 0;
 
 						if (hasStock) {
-							const text = l.location_code || l.location_name;
-							if (text) locs.add(text);
+							const locationId = l.location_code?.trim();
+							const locationName = l.location_name?.trim();
+							const optionId = locationId || locationName;
+							if (optionId) {
+								locs.set(optionId, {
+									id: optionId,
+									name: locationName || optionId,
+								});
+							}
 						}
 					});
 				}
 			});
 		});
 
-		return ["All", ...Array.from(locs).sort((a, b) => a.localeCompare(b))];
+		return [
+			...Array.from(locs.values()).sort((a, b) =>
+				formatLocation(a.name, a.id).localeCompare(
+					formatLocation(b.name, b.id),
+				),
+			),
+		];
 	}, [
 		vendorsWithOrders,
 		searchQuery,
@@ -878,6 +1037,17 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		matchesVendorSearch,
 		matchesMaterialSearch,
 	]);
+
+	useEffect(() => {
+		const selectedOption = allLocations.find(
+			(option) => option.id === selectedLocation,
+		);
+		setLocationInputValue(
+			selectedLocation === null
+				? ""
+				: formatLocation(selectedOption?.name, selectedLocation),
+		);
+	}, [selectedLocation, allLocations]);
 
 	// Filter Logic for Grid View
 	const preparedFilteredVendors = useMemo(() => {
@@ -901,7 +1071,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				return orders.filter((order) => {
 					// 1. Filter by location (AND ensure it actually has quantity > 0)
 					const locMatch =
-						selectedLocation === "All" ||
+						selectedLocation === null ||
 						order.item.location?.some((l: Location) => {
 							const nameMatches =
 								l.location_name === selectedLocation ||
@@ -1014,19 +1184,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						? location.available
 						: preparedOrder.displayQuantity;
 
-					const locationLabel = (() => {
-						if (!location) return "Unknown";
-						const code = location.location_code?.trim();
-						const name = location.location_name?.trim();
-						if (code && name) {
-							const sameLabel =
-								code.localeCompare(name, undefined, {
-									sensitivity: "base",
-								}) === 0;
-							return sameLabel ? name : `${name} (${code})`;
-						}
-						return code || name || "Unknown";
-					})();
+					const locationLabel = formatLocation(
+						location?.location_name,
+						location?.location_code,
+					);
 
 					return {
 						id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
@@ -1060,7 +1221,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				if (typeof row.quantity === "number" && row.quantity <= 0) return false;
 
 				const locMatch =
-					selectedLocation === "All" ||
+					selectedLocation === null ||
 					row.locName === selectedLocation ||
 					row.locCode === selectedLocation;
 				if (!locMatch) return false;
@@ -1120,20 +1281,8 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				flex: 1,
 				align: "right",
 				headerAlign: "right",
-				renderCell: ({ row }) => (
-					<Typography
-						variant="body2"
-						sx={{
-							fontWeight: "bold",
-							color:
-								row.orderType === "sell"
-									? theme.palette.warning.main
-									: theme.palette.info.main,
-						}}
-					>
-						{row.typeLabel}
-					</Typography>
-				),
+				renderCell: ({ row }) =>
+					row.orderType === "sell" ? <ChipAsk /> : <ChipBid />,
 			},
 			{
 				field: "ica",
@@ -1183,25 +1332,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				flex: 2,
 				headerAlign: "left",
 				align: "left",
-				renderCell: ({ value }) => {
-					const locationText = String(value || "");
-					const match = locationText.match(/^(.+)\s\((.+)\)$/);
-					if (!match) {
-						return (
-							<Typography variant="body2" sx={{ fontWeight: "bold" }}>
-								{locationText}
-							</Typography>
-						);
-					}
-					return (
-						<Typography variant="body2">
-							<Box component="span" sx={{ fontWeight: "bold" }}>
-								{match[1]}
-							</Box>{" "}
-							({match[2]})
-						</Typography>
-					);
-				},
+				renderCell: ({ row }) => (
+					<Typography variant="body2">
+						{formatLocation(row.locName, row.locCode)}
+					</Typography>
+				),
 			},
 			{
 				field: "user",
@@ -1242,7 +1377,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					}
 					return (
 						<Typography variant="caption" sx={{ opacity: 0.8 }}>
-							{act === "-" ? "-" : `Active ${act} ago`}
+							{act === "-" ? "-" : `${act} ago`}
 						</Typography>
 					);
 				},
@@ -1360,6 +1495,17 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										<Search size={20} color={theme.palette.primary.main} />
 									</InputAdornment>
 								),
+								endAdornment: searchQuery ? (
+									<InputAdornment position="end">
+										<IconButton
+											size="small"
+											aria-label="Clear material search"
+											onClick={() => setSearchQuery("")}
+										>
+											<X size={16} />
+										</IconButton>
+									</InputAdornment>
+								) : null,
 							},
 						}}
 					/>
@@ -1425,29 +1571,46 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								Bid
 							</ToggleButton>
 						</ToggleButtonGroup>
-						<Autocomplete
+						<Autocomplete<LocationOption, false, false, false>
 							size="small"
 							options={allLocations}
-							value={selectedLocation}
+							value={
+								selectedLocation === null
+									? null
+									: allLocations.find(
+											(option) => option.id === selectedLocation,
+										) || null
+							}
 							onChange={(_e, newValue) =>
-								setSelectedLocation(newValue || "All")
+								setSelectedLocation(newValue?.id || null)
 							}
 							inputValue={locationInputValue}
 							onInputChange={(_e, newInputValue, reason) => {
-								if (reason === "reset" || reason === "clear") {
+								if (reason === "reset") {
+									const selectedOption = allLocations.find(
+										(option) => option.id === selectedLocation,
+									);
 									setLocationInputValue(
-										selectedLocation === "All"
-											? "All Locations"
-											: selectedLocation,
+										selectedLocation === null
+											? ""
+											: formatLocation(selectedOption?.name, selectedLocation),
 									);
 								} else {
 									setLocationInputValue(newInputValue);
 								}
 							}}
-							disableClearable={selectedLocation === "All"}
+							disableClearable={false}
 							getOptionLabel={(option) =>
-								option === "All" ? "All Locations" : option
+								formatLocation(option.name, option.id)
 							}
+							isOptionEqualToValue={(option, value) => option.id === value.id}
+							renderOption={(props, option) => (
+								<Box component="li" {...props}>
+									<Typography variant="body2">
+										{formatLocation(option.name, option.id)}
+									</Typography>
+								</Box>
+							)}
 							slotProps={{
 								paper: {
 									sx: {
@@ -1456,13 +1619,19 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									},
 								},
 							}}
-							sx={{ flexGrow: { xs: 1, sm: 0 }, minWidth: { sm: 170 } }}
+							sx={{
+								flexGrow: { xs: 1, sm: 0 },
+								minWidth: { sm: 260 },
+								"& .MuiAutocomplete-clearIndicator": {
+									visibility: selectedLocation ? "visible" : "hidden",
+									opacity: selectedLocation ? 1 : 0,
+								},
+							}}
 							renderInput={(params) => (
 								<TextField
 									{...params}
 									variant="outlined"
-									placeholder="Location"
-									onFocus={() => setLocationInputValue("")}
+									placeholder="All Locations"
 									sx={{
 										"& .MuiOutlinedInput-root": {
 											height: 40,
