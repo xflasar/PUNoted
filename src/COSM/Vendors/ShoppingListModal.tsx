@@ -286,7 +286,9 @@ const VendorPrioritySelector: React.FC<{
 								>
 									{vendor.vendorname}
 								</Typography>
-								{corpStats && <PriceComparisonBadge label="COSM" stats={corpStats} />}
+								{corpStats && (
+									<PriceComparisonBadge label="COSM" stats={corpStats} />
+								)}
 							</Box>
 							<Box sx={{ display: "flex", gap: 2 }}>
 								<Typography variant="caption" color="text.secondary">
