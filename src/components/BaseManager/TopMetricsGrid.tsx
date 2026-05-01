@@ -18,6 +18,9 @@ import {
 	useTheme,
 	Switch,
 	FormControlLabel,
+	Tabs,
+	Tab,
+	TextField,
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -69,6 +72,10 @@ export interface TopMetricsGridProps {
 	setIoDisplayMode: (mode: "profit" | "importExport") => void;
 	/** The estimated daily profit calculated from material deltas and pricing */
 	totalDailyProfit: number;
+	/** Total daily volume import across all materials */
+	totalVolumeImport?: number;
+	/** Total daily volume export across all materials */
+	totalVolumeExport?: number;
 	/** Function to fetch the active price for a given material ticker */
 	getPrice: (ticker: string) => number;
 }
@@ -100,9 +107,36 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 	ioDisplayMode,
 	setIoDisplayMode,
 	totalDailyProfit,
+	totalVolumeImport = 0,
+	totalVolumeExport = 0,
 	getPrice,
 }) => {
 	const theme = useTheme();
+	const [ioTab, setIoTab] = React.useState<"io" | "supply">("io");
+	const [supplyDays, setSupplyDays] = React.useState<number>(7);
+	const dailyCost = React.useMemo(() => {
+		let sum = 0;
+		Object.entries(materialIO || {}).forEach(([ticker, v]: any) => {
+			const cons = Number(v?.cons || 0);
+			if (cons > 0) sum += cons * getPrice(ticker);
+		});
+		return sum;
+	}, [materialIO, getPrice]);
+	const dailyRevenue = React.useMemo(() => {
+		let sum = 0;
+		Object.entries(materialIO || {}).forEach(([ticker, v]: any) => {
+			const prod = Number(v?.prod || 0);
+			if (prod > 0) sum += prod * getPrice(ticker);
+		});
+		return sum;
+	}, [materialIO, getPrice]);
+	const profitPerArea = usedArea > 0 ? totalDailyProfit / usedArea : 0;
+	const rio = dailyCost > 0 ? dailyRevenue / dailyCost : null;
+	// TODO: Replace with real PU base degradation calculation when provided.
+	const degradation = React.useMemo(() => {
+		const utilization = permitArea > 0 ? usedArea / permitArea : 0;
+		return Math.min(1, Math.max(0, utilization)) * 0.02; // mock: up to 2%/day at full utilization
+	}, [usedArea, permitArea]);
 	// Consolidate materials from actual storage and planned IO to display in the storage view
 	const storageMaterials = Array.from(
 		new Set([
@@ -160,15 +194,17 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 							alignItems: "center",
 						}}
 					>
-						<Typography variant="subtitle2" fontWeight="bold">
+						<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
 							Site Data
 						</Typography>
 						<Box
-							display="flex"
-							alignItems="center"
-							bgcolor="action.hover"
-							borderRadius={1}
-							px={0.5}
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								bgcolor: "action.hover",
+								borderRadius: 1,
+								px: 0.5,
+							}}
 						>
 							<IconButton
 								size="small"
@@ -178,7 +214,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 							>
 								<RemoveIcon fontSize="small" />
 							</IconButton>
-							<Typography variant="body2" fontWeight="bold" sx={{ px: 0.5 }}>
+							<Typography variant="body2" sx={{ px: 0.5, fontWeight: "bold" }}>
 								Permit {activeData.permitLevel}
 							</Typography>
 							<IconButton
@@ -192,14 +228,16 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 						</Box>
 					</Box>
 					<CardContent sx={{ p: 1.5, py: 1 }}>
-						<Box display="flex" justifyContent="space-between" mb={0.5}>
+						<Box
+							sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+						>
 							<Typography variant="body2" color="text.secondary">
 								Area Usage
 							</Typography>
 							<Typography
 								variant="body2"
 								color={usedArea > permitArea ? "error.main" : "text.secondary"}
-								fontWeight="bold"
+								sx={{ fontWeight: "bold" }}
 							>
 								{usedArea}/{permitArea}
 							</Typography>
@@ -226,9 +264,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 						<Typography
 							variant="body2"
 							color="text.secondary"
-							display="flex"
-							alignItems="center"
-							mb={1}
+							sx={{ display: "flex", alignItems: "center", mb: 1 }}
 						>
 							<PriceIcon sx={{ fontSize: "1.2rem", mr: 0.5 }} /> CapEx:{" "}
 							<span
@@ -244,17 +280,19 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 
 						{/* Global Efficiency Modifiers */}
 						<Box
-							display="flex"
-							justifyContent="space-between"
-							alignItems="center"
-							pt={1}
-							borderTop="1px solid"
-							borderColor="divider"
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								pt: 1,
+								borderTop: "1px solid",
+								borderColor: "divider",
+							}}
 						>
 							<Typography
 								variant="body2"
 								color="text.secondary"
-								fontWeight="bold"
+								sx={{ fontWeight: "bold" }}
 							>
 								COGM Active:
 							</Typography>
@@ -265,10 +303,12 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 									sx={{ height: 26, fontSize: "0.8rem" }}
 									onChange={(e) => setActiveCogc(e.target.value || null)}
 									MenuProps={{
-										PaperProps: {
-											sx: {
-												bgcolor: "background.default",
-												backgroundImage: "none",
+										slotProps: {
+											paper: {
+												sx: {
+													bgcolor: "background.default",
+													backgroundImage: "none",
+												},
 											},
 										},
 									}}
@@ -285,18 +325,20 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 							</FormControl>
 						</Box>
 						<Box
-							display="flex"
-							justifyContent="space-between"
-							alignItems="center"
-							pt={1}
-							mt={1}
-							borderTop="1px solid"
-							borderColor="divider"
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								pt: 1,
+								mt: 1,
+								borderTop: "1px solid",
+								borderColor: "divider",
+							}}
 						>
 							<Typography
 								variant="body2"
 								color="text.secondary"
-								fontWeight="bold"
+								sx={{ fontWeight: "bold" }}
 							>
 								Planet Fertility / Res %:
 							</Typography>
@@ -313,7 +355,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 								}}
 							>
 								<input
-									type="number"
+									type="text"
 									value={planetFactor}
 									onChange={(e) =>
 										setPlanetFactor(parseFloat(e.target.value) || 0)
@@ -324,7 +366,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 										border: "none",
 										color: "inherit",
 										outline: "none",
-										textAlign: "right",
+										textAlign: "center",
 										fontWeight: "bold",
 									}}
 								/>
@@ -352,7 +394,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 							borderColor: "divider",
 						}}
 					>
-						<Typography variant="subtitle2" fontWeight="bold">
+						<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
 							Storage & Inventory
 						</Typography>
 					</Box>
@@ -368,12 +410,46 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 						<Box
 							sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
 						>
-							<Typography variant="body2" fontWeight="bold">
+							<Typography variant="body2" sx={{ fontWeight: "bold" }}>
 								Capacity (Vol / Wgt)
 							</Typography>
 							<Typography variant="body2" color="text.secondary">
 								{storageMaxVolume} m³ / {storageMaxWeight} t
 							</Typography>
+						</Box>
+						<Box sx={{ mb: 1 }}>
+							<Box sx={{ display: "flex", justifyContent: "space-between" }}>
+								<Typography variant="caption" color="text.secondary">
+									Daily freight (m³)
+								</Typography>
+								<Typography variant="caption" color="text.secondary">
+									Imp {formatCurrency(totalVolumeImport)} / Exp{" "}
+									{formatCurrency(totalVolumeExport)}
+								</Typography>
+							</Box>
+							<Box
+								sx={{
+									height: 6,
+									bgcolor: "action.hover",
+									borderRadius: 1,
+									overflow: "hidden",
+									mt: 0.5,
+									display: "flex",
+								}}
+							>
+								<Box
+									sx={{
+										width: `${Math.min(100, (totalVolumeImport / Math.max(1, totalVolumeImport + totalVolumeExport)) * 100)}%`,
+										bgcolor: "warning.main",
+									}}
+								/>
+								<Box
+									sx={{
+										width: `${Math.min(100, (totalVolumeExport / Math.max(1, totalVolumeImport + totalVolumeExport)) * 100)}%`,
+										bgcolor: "success.main",
+									}}
+								/>
+							</Box>
 						</Box>
 						{storageMaterials.length > 0 ? (
 							<Box
@@ -409,26 +485,24 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 										>
 											<Typography
 												variant="body2"
-												fontWeight="bold"
-												lineHeight={1.2}
+												sx={{ fontWeight: "bold", lineHeight: 1.2 }}
 											>
 												{ticker}
 											</Typography>
 											<Typography
 												variant="caption"
 												color="text.secondary"
-												lineHeight={1.2}
+												sx={{ lineHeight: 1.2 }}
 											>
 												{actualAmt}
 											</Typography>
 											{plannedDelta !== 0 && (
 												<Typography
 													variant="caption"
-													fontWeight="bold"
 													color={
 														plannedDelta > 0 ? "warning.main" : "error.main"
 													}
-													lineHeight={1.2}
+													sx={{ fontWeight: "bold", lineHeight: 1.2 }}
 												>
 													{plannedDelta > 0 ? "+" : ""}
 													{plannedDelta.toFixed(1)}/d
@@ -442,7 +516,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 							<Typography
 								variant="body2"
 								color="text.secondary"
-								fontStyle="italic"
+								sx={{ fontStyle: "italic" }}
 							>
 								No materials.
 							</Typography>
@@ -451,7 +525,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 				</Card>
 			</Box>
 
-			{/* COLUMN 2: Workforce Luxuries and Efficiency */}
+			{/* COLUMN 2: Workforce */}
 			<Card
 				variant="outlined"
 				sx={{
@@ -470,9 +544,81 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 						borderColor: "divider",
 					}}
 				>
-					<Typography variant="subtitle2" fontWeight="bold">
-						Workforce Luxuries
+					<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+						Workforce
 					</Typography>
+				</Box>
+				<Box
+					sx={{
+						px: 1.5,
+						py: 1,
+						borderBottom: "1px solid",
+						borderColor: "divider",
+					}}
+				>
+					<Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
+						<Box>
+							<Typography variant="caption" color="text.secondary">
+								Daily Cost
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{ fontWeight: "bold" }}
+								color="error.main"
+							>
+								-${formatCurrency(dailyCost)}/d
+							</Typography>
+						</Box>
+						<Box>
+							<Typography variant="caption" color="text.secondary">
+								Daily Profit
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{ fontWeight: "bold" }}
+								color={totalDailyProfit >= 0 ? "success.main" : "error.main"}
+							>
+								{totalDailyProfit >= 0 ? "+" : ""}$
+								{formatCurrency(totalDailyProfit)}/d
+							</Typography>
+						</Box>
+						<Box>
+							<Typography variant="caption" color="text.secondary">
+								Plan Cost
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{ fontWeight: "bold" }}
+								color="info.main"
+							>
+								${formatCurrency(totalCapEx)}
+							</Typography>
+						</Box>
+						<Box>
+							<Typography variant="caption" color="text.secondary">
+								Profit / Area
+							</Typography>
+							<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+								${formatCurrency(profitPerArea)}/a
+							</Typography>
+						</Box>
+						<Box>
+							<Typography variant="caption" color="text.secondary">
+								RIO
+							</Typography>
+							<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+								{rio ? rio.toFixed(2) : "—"}
+							</Typography>
+						</Box>
+						<Box>
+							<Typography variant="caption" color="text.secondary">
+								Degradation
+							</Typography>
+							<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+								{(degradation * 100).toFixed(2)}%/d
+							</Typography>
+						</Box>
+					</Box>
 				</Box>
 				<Box sx={{ overflowY: "auto", flexGrow: 1 }}>
 					<Table size="small" padding="none" stickyHeader>
@@ -514,7 +660,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 										}}
 									>
 										<TableCell>
-											<Typography variant="body2" fontWeight="bold">
+											<Typography variant="body2" sx={{ fontWeight: "bold" }}>
 												{name.substring(0, 3)}
 											</Typography>
 										</TableCell>
@@ -526,7 +672,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 														? "warning.main"
 														: "success.main"
 												}
-												fontWeight="bold"
+												sx={{ fontWeight: "bold" }}
 											>
 												{data.efficiency.toFixed(0)}%
 											</Typography>
@@ -544,7 +690,7 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 											</Typography>
 										</TableCell>
 										<TableCell>
-											<Box display="flex" flexWrap="wrap" gap={0.5}>
+											<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
 												{n.luxuries.length === 0 ? (
 													<Typography variant="caption" color="text.secondary">
 														None
@@ -610,181 +756,304 @@ export const TopMetricsGrid: React.FC<TopMetricsGridProps> = ({
 						bgcolor: alpha(theme.palette.success.main, 0.05),
 					}}
 				>
-					<Typography variant="subtitle2" fontWeight="bold">
-						Material I/O (24h)
-					</Typography>
-					<Box display="flex" alignItems="center" gap={1}>
-						<FormControlLabel
-							control={
-								<Switch
-									size="small"
-									checked={ioDisplayMode === "importExport"}
-									onChange={(e) =>
-										setIoDisplayMode(
-											e.target.checked ? "importExport" : "profit",
-										)
-									}
-								/>
-							}
-							label={
-								<Typography variant="body2" fontWeight="bold">
-									{ioDisplayMode === "profit" ? "Profit/Day" : "Actions"}
-								</Typography>
-							}
-							sx={{ m: 0 }}
-						/>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+						<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+							Material
+						</Typography>
+						<Tabs
+							value={ioTab}
+							onChange={(_, v) => setIoTab(v)}
+							sx={{
+								minHeight: 26,
+								"& .MuiTab-root": { minHeight: 26, fontSize: "0.75rem", px: 1 },
+							}}
+						>
+							<Tab value="io" label="I/O (24h)" />
+							<Tab value="supply" label="Supply" />
+						</Tabs>
+					</Box>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+						{ioTab === "io" ? (
+							<FormControlLabel
+								control={
+									<Switch
+										size="small"
+										checked={ioDisplayMode === "importExport"}
+										onChange={(e) =>
+											setIoDisplayMode(
+												e.target.checked ? "importExport" : "profit",
+											)
+										}
+									/>
+								}
+								label={
+									<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+										{ioDisplayMode === "profit" ? "Profit/Day" : "Actions"}
+									</Typography>
+								}
+								sx={{ m: 0 }}
+							/>
+						) : (
+							<TextField
+								label="Days"
+								size="small"
+								type="number"
+								value={supplyDays}
+								onChange={(e) =>
+									setSupplyDays(
+										Math.max(1, Math.min(365, Number(e.target.value) || 1)),
+									)
+								}
+								slotProps={{ htmlInput: { style: { textAlign: "center" } } }}
+								sx={{ width: 90 }}
+							/>
+						)}
 						<Typography
 							variant="subtitle2"
 							color={totalDailyProfit >= 0 ? "success.main" : "error.main"}
-							fontWeight="bold"
+							sx={{ fontWeight: "bold" }}
 						>
-							{totalDailyProfit >= 0 ? "+" : ""}$
-							{formatCurrency(totalDailyProfit)}/d
+							{ioTab === "io" ? (
+								<>
+									{totalDailyProfit >= 0 ? "+" : ""}$
+									{formatCurrency(totalDailyProfit)}/d
+								</>
+							) : (
+								<>
+									-
+									{formatCurrency(
+										Object.entries(materialIO || {}).reduce(
+											(acc, [ticker, d]: any) => {
+												const cons = Number(d?.cons || 0);
+												if (cons <= 0) return acc;
+												return acc + cons * getPrice(ticker) * supplyDays;
+											},
+											0,
+										),
+									)}
+								</>
+							)}
 						</Typography>
 					</Box>
 				</Box>
 				<Box sx={{ overflowY: "auto", flexGrow: 1 }}>
-					<Table size="small" stickyHeader>
-						<TableHead>
-							<TableRow
-								sx={{
-									"& th": {
-										bgcolor: "background.default",
-										fontSize: "0.8rem",
-										borderBottom: "1px solid",
-										borderColor: "divider",
-										py: 0.5,
-									},
-								}}
-							>
-								<TableCell>Ticker</TableCell>
-								<TableCell align="right">P/C</TableCell>
-								<TableCell align="right">Delta</TableCell>
-								<TableCell align="right">
-									{ioDisplayMode === "profit" ? "Price/u & Profit" : "Action"}
-								</TableCell>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							{Object.keys(materialIO || {}).length === 0 ? (
-								<TableRow>
-									<TableCell colSpan={4} align="center">
-										<Typography
-											variant="body2"
-											color="text.secondary"
-											sx={{ py: 2 }}
-										>
-											No active production.
-										</Typography>
-									</TableCell>
+					{ioTab === "supply" ? (
+						<Table size="small" stickyHeader>
+							<TableHead>
+								<TableRow
+									sx={{
+										"& th": {
+											bgcolor: "background.default",
+											fontSize: "0.8rem",
+											borderBottom: "1px solid",
+											borderColor: "divider",
+											py: 0.5,
+										},
+									}}
+								>
+									<TableCell>Ticker</TableCell>
+									<TableCell align="right">/day</TableCell>
+									<TableCell align="right">for {supplyDays}d</TableCell>
+									<TableCell align="right">Cost</TableCell>
 								</TableRow>
-							) : (
-								Object.entries(materialIO).map(([ticker, data]: any) => (
-									<TableRow
-										key={ticker}
-										sx={{
-											"& td": {
-												borderBottom: "1px solid",
-												borderColor: "divider",
-												whiteSpace: "nowrap",
-												py: 1,
-											},
-										}}
-									>
-										<TableCell>
-											<Typography variant="body2" fontWeight="bold">
-												{ticker}
-											</Typography>
-										</TableCell>
-										<TableCell align="right">
-											<Typography
-												variant="caption"
-												color="success.main"
-												display="block"
-												lineHeight={1.2}
-											>
-												+{data.prod.toFixed(2)}
-											</Typography>
-											<Typography
-												variant="caption"
-												color="error.main"
-												display="block"
-												lineHeight={1.2}
-											>
-												-{data.cons.toFixed(2)}
-											</Typography>
-										</TableCell>
-										<TableCell align="right">
+							</TableHead>
+							<TableBody>
+								{Object.entries(materialIO || {})
+									.filter(([, d]: any) => Number(d?.cons || 0) > 0)
+									.map(([ticker, d]: any) => ({
+										ticker,
+										perDay: Number(d.cons || 0),
+										total: Number(d.cons || 0) * supplyDays,
+										cost: Number(d.cons || 0) * supplyDays * getPrice(ticker),
+									}))
+									.sort((a, b) => b.cost - a.cost)
+									.map((row) => (
+										<TableRow key={row.ticker}>
+											<TableCell>
+												<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+													{row.ticker}
+												</Typography>
+											</TableCell>
+											<TableCell align="right">
+												<Typography variant="body2" color="error.main">
+													-{row.perDay.toFixed(2)}
+												</Typography>
+											</TableCell>
+											<TableCell align="right">
+												<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+													{row.total.toFixed(2)}
+												</Typography>
+											</TableCell>
+											<TableCell align="right">
+												<Typography
+													variant="body2"
+													sx={{ fontWeight: "bold" }}
+													color="info.main"
+												>
+													${formatCurrency(row.cost)}
+												</Typography>
+											</TableCell>
+										</TableRow>
+									))}
+								{Object.entries(materialIO || {}).filter(
+									([, d]: any) => Number(d?.cons || 0) > 0,
+								).length === 0 && (
+									<TableRow>
+										<TableCell colSpan={4} align="center">
 											<Typography
 												variant="body2"
-												fontWeight="bold"
-												color={
-													data.delta > 0
-														? "success.main"
-														: data.delta < 0
-															? "error.main"
-															: "inherit"
-												}
+												color="text.secondary"
+												sx={{ py: 2 }}
 											>
-												{data.delta > 0 ? "+" : ""}
-												{data.delta.toFixed(2)}
+												No consumption detected.
 											</Typography>
 										</TableCell>
-										<TableCell align="right">
-											<Box
-												display="flex"
-												justifyContent="flex-end"
-												alignItems="center"
-												gap={1}
+									</TableRow>
+								)}
+							</TableBody>
+						</Table>
+					) : (
+						<Table size="small" stickyHeader>
+							<TableHead>
+								<TableRow
+									sx={{
+										"& th": {
+											bgcolor: "background.default",
+											fontSize: "0.8rem",
+											borderBottom: "1px solid",
+											borderColor: "divider",
+											py: 0.5,
+										},
+									}}
+								>
+									<TableCell>Ticker</TableCell>
+									<TableCell align="right">P/C</TableCell>
+									<TableCell align="right">Delta</TableCell>
+									<TableCell align="right">
+										{ioDisplayMode === "profit" ? "Price/u & Profit" : "Action"}
+									</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{Object.keys(materialIO || {}).length === 0 ? (
+									<TableRow>
+										<TableCell colSpan={4} align="center">
+											<Typography
+												variant="body2"
+												color="text.secondary"
+												sx={{ py: 2 }}
 											>
-												<Typography
-													variant="caption"
-													color="text.secondary"
-													sx={{ minWidth: 30 }}
-												>
-													${formatCurrency(getPrice(ticker))}
-												</Typography>
-												{ioDisplayMode === "profit" ? (
-													<Typography
-														variant="body2"
-														fontWeight="bold"
-														sx={{ minWidth: 40 }}
-													>
-														${formatCurrency(data.delta * getPrice(ticker))}
-													</Typography>
-												) : (
-													<Chip
-														size="small"
-														label={
-															data.delta > 0
-																? `Exp`
-																: data.delta < 0
-																	? `Imp`
-																	: "Bal"
-														}
-														color={
-															data.delta > 0
-																? "success"
-																: data.delta < 0
-																	? "error"
-																	: "default"
-														}
-														variant={data.delta === 0 ? "outlined" : "filled"}
-														sx={{
-															height: 20,
-															fontSize: "0.7rem",
-															fontWeight: "bold",
-															minWidth: 35,
-														}}
-													/>
-												)}
-											</Box>
+												No active production.
+											</Typography>
 										</TableCell>
 									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
+								) : (
+									Object.entries(materialIO).map(([ticker, data]: any) => (
+										<TableRow
+											key={ticker}
+											sx={{
+												"& td": {
+													borderBottom: "1px solid",
+													borderColor: "divider",
+													whiteSpace: "nowrap",
+													py: 1,
+												},
+											}}
+										>
+											<TableCell>
+												<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+													{ticker}
+												</Typography>
+											</TableCell>
+											<TableCell align="right">
+												<Typography
+													variant="caption"
+													color="success.main"
+													sx={{ display: "block", lineHeight: 1.2 }}
+												>
+													+{data.prod.toFixed(2)}
+												</Typography>
+												<Typography
+													variant="caption"
+													color="error.main"
+													sx={{ display: "block", lineHeight: 1.2 }}
+												>
+													-{data.cons.toFixed(2)}
+												</Typography>
+											</TableCell>
+											<TableCell align="right">
+												<Typography
+													variant="body2"
+													color={
+														data.delta > 0
+															? "success.main"
+															: data.delta < 0
+																? "error.main"
+																: "inherit"
+													}
+													sx={{ fontWeight: "bold" }}
+												>
+													{data.delta > 0 ? "+" : ""}
+													{data.delta.toFixed(2)}
+												</Typography>
+											</TableCell>
+											<TableCell align="right">
+												<Box
+													sx={{
+														display: "flex",
+														justifyContent: "flex-end",
+														alignItems: "center",
+														gap: 1,
+													}}
+												>
+													<Typography
+														variant="caption"
+														color="text.secondary"
+														sx={{ minWidth: 30 }}
+													>
+														${formatCurrency(getPrice(ticker))}
+													</Typography>
+													{ioDisplayMode === "profit" ? (
+														<Typography
+															variant="body2"
+															sx={{ minWidth: 40, fontWeight: "bold" }}
+														>
+															${formatCurrency(data.delta * getPrice(ticker))}
+														</Typography>
+													) : (
+														<Chip
+															size="small"
+															label={
+																data.delta > 0
+																	? `Exp`
+																	: data.delta < 0
+																		? `Imp`
+																		: "Bal"
+															}
+															color={
+																data.delta > 0
+																	? "success"
+																	: data.delta < 0
+																		? "error"
+																		: "default"
+															}
+															variant={data.delta === 0 ? "outlined" : "filled"}
+															sx={{
+																height: 20,
+																fontSize: "0.7rem",
+																fontWeight: "bold",
+																minWidth: 35,
+															}}
+														/>
+													)}
+												</Box>
+											</TableCell>
+										</TableRow>
+									))
+								)}
+							</TableBody>
+						</Table>
+					)}
 				</Box>
 			</Card>
 		</Box>

@@ -10,6 +10,7 @@ import "./App.css";
 import { getApiStatus } from "./components/common/ApiStatusService";
 import StoragePage from "./Dashboard/StoragePage";
 import DashboardPage from "./Dashboard/DashboardPage";
+import { BasePlanner } from "./Dashboard/Planner/BasePlanner";
 import GalaxyMap from "./GalaxyMap/GalaxyMap";
 import CX from "./CX/CX";
 import Settings from "./Dashboard/Settings/Settings";
@@ -189,6 +190,7 @@ function App() {
 				<Route path="/galaxy-map" element={<GalaxyMap />} />
 
 				<Route path="/cx" element={<CX />} />
+				<Route path="/planner/:planId" element={<BasePlanner />} />
 
 				{/* Protected Routes - These are nested under a protected layout */}
 				<Route
@@ -211,6 +213,11 @@ function App() {
 						<Route
 							path="/dashboard/production"
 							element={<ProductionDashboard />}
+						/>
+						<Route path="/dashboard/planner" element={<BasePlanner />} />
+						<Route
+							path="/dashboard/planner/:planId"
+							element={<BasePlanner />}
 						/>
 						<Route path="/dashboard/logistics" element={<Logistics />} />
 						<Route

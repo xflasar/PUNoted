@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import {
-	Box,
-	Typography,
-	Button,
-	AppBar,
-	Toolbar,
-	IconButton,
-	alpha,
-} from "@mui/material";
+import { Box, Typography, Button, AppBar, Toolbar, alpha } from "@mui/material";
 import {
 	Build as BuildIcon,
-	ArrowBack as ArrowBackIcon,
 	Settings as SettingsIcon,
 	Save as SaveIcon,
 } from "@mui/icons-material";
@@ -23,11 +14,12 @@ import {
 	FALLBACK_NEEDS,
 	FALLBACK_RECIPES,
 } from "./constants";
-import { BaseManagerProps } from "./types";
+import type { BaseManagerProps } from "./types";
 import { formatDuration, calculateBaseMetrics } from "./helpers";
+import { useBaseManagerData } from "./api";
 import { TopMetricsGrid } from "./TopMetricsGrid";
 import { ProductionGrid } from "./ProductionGrid";
-import { SettingsDialog, AddPlatformDialog, AddRecipeDialog } from "./Dialogs";
+import { SettingsDialog, AddRecipeDialog } from "./Dialogs";
 
 /**
  * BaseManager Component
@@ -39,9 +31,22 @@ import { SettingsDialog, AddPlatformDialog, AddRecipeDialog } from "./Dialogs";
 export const BaseManager: React.FC<BaseManagerProps> = ({
 	user,
 	onUpdateUser,
+	currentUserId,
+	isGroupOwner,
 	planetName = "Unknown Planet",
 	staticData,
 	standalone = false,
+	planName,
+	planDescription,
+	onClose,
+	cx = "IC1",
+	isGuestMode = false,
+	suggestions = [],
+	onSaveSuggestion,
+	onSetPrimarySuggestion,
+	onDeleteSuggestion,
+	primarySuggestionId = null,
+	readOnly = false,
 }) => {
 	// Determines if the user has initialized a base on this planet yet
 	const isUninitialized = user.baseData.status === "uninitialized";
@@ -51,12 +56,58 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 	// Ref to the DOM element where the planner portal will be injected
 	const [modalRoot, setModalRoot] = useState<HTMLElement | null>(null);
 
+	const [viewingSuggestionId, setViewingSuggestionId] = useState<string | null>(
+		primarySuggestionId,
+	);
+	const [showDiff, setShowDiff] = useState(false);
+	const [diffAgainstId, setDiffAgainstId] = useState<string | null>(null);
+
+	useEffect(() => {
+		// Default diff behavior:
+		// - Viewing Original: compare against Primary suggestion (if any)
+		// - Viewing Suggestion: compare against Original by default
+		if (!viewingSuggestionId) setDiffAgainstId(primarySuggestionId || null);
+		else setDiffAgainstId("__original__");
+		setShowDiff(false);
+	}, [viewingSuggestionId, primarySuggestionId]);
+
+	const comparisonData = useMemo(() => {
+		if (!showDiff) return null;
+		if (!viewingSuggestionId) {
+			const baselineId = diffAgainstId || primarySuggestionId;
+			if (!baselineId) return null;
+			return suggestions.find((s) => s.id === baselineId)?.baseData || null;
+		}
+		if (diffAgainstId === "__original__" || !diffAgainstId)
+			return user.baseData;
+		if (diffAgainstId === viewingSuggestionId) return null;
+		return suggestions.find((s) => s.id === diffAgainstId)?.baseData || null;
+		return null;
+	}, [
+		showDiff,
+		viewingSuggestionId,
+		primarySuggestionId,
+		diffAgainstId,
+		suggestions,
+		user.baseData,
+	]);
+
+	const getInitialData = () => {
+		if (viewingSuggestionId) {
+			const s = suggestions.find((x) => x.id === viewingSuggestionId);
+			if (s) return s.baseData;
+		}
+		return user.baseData;
+	};
+
 	// State for the "draft" base data, allowing edits without immediately saving
-	const [draftBaseData, setDraftBaseData] = useState(user.baseData);
+	const [draftBaseData, setDraftBaseData] = useState(getInitialData());
 
 	// The current data being used to calculate metrics.
 	// If the planner is open, we use the draft; otherwise, we use the saved user data.
-	const activeData = isPlannerOpen ? draftBaseData : user.baseData;
+	const activeData = isPlannerOpen ? draftBaseData : getInitialData();
+
+	const { data: baseManagerData } = useBaseManagerData(cx);
 
 	// User Preferences and Settings State
 	const [activeNeeds, setActiveNeeds] = useState<
@@ -92,11 +143,10 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 
 	// Dialog Visibility State
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-	const [isEditingPlatform, setIsEditingPlatform] = useState(false);
-
-	// Temporary state for adding a new platform
-	const [newPlatformTicker, setNewPlatformTicker] = useState("FRM");
-	const [newPlatformAmount, setNewPlatformAmount] = useState(1);
+	const [autoHabEnabled, setAutoHabEnabled] = useState(false);
+	const [autoHabStrategy, setAutoHabStrategy] = useState<"area" | "cost">(
+		"area",
+	);
 
 	// Temporary state for adding recipes to a specific platform (holds platform ID)
 	const [isAddingRecipe, setIsAddingRecipe] = useState<string | null>(null);
@@ -115,10 +165,31 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 			staticData?.buildings?.length ? staticData.buildings : FALLBACK_BUILDINGS,
 		[staticData],
 	);
-	const activePrices = useMemo(
-		() => (staticData?.prices ? staticData.prices : FALLBACK_PRICES),
-		[staticData],
-	);
+	const activePrices = useMemo(() => {
+		if (baseManagerData) {
+			const pricesRecord: Record<string, { market: number; corp: number }> = {
+				...FALLBACK_PRICES,
+			};
+			baseManagerData.cxPrices?.forEach((p) => {
+				if (!pricesRecord[p.ticker])
+					pricesRecord[p.ticker] = { market: p.price, corp: p.price };
+				else
+					pricesRecord[p.ticker].market =
+						p.price > 0 && !isNaN(p.price)
+							? p.price
+							: pricesRecord[p.ticker].market;
+			});
+			baseManagerData.corpPrices?.forEach((p) => {
+				if (pricesRecord[p.ticker])
+					pricesRecord[p.ticker].corp =
+						p.price > 0 && !isNaN(p.price)
+							? p.price
+							: pricesRecord[p.ticker].corp;
+			});
+			return pricesRecord;
+		}
+		return FALLBACK_PRICES;
+	}, [baseManagerData]);
 	const activeWorkerNeeds = useMemo(
 		() => (staticData?.needs ? staticData.needs : FALLBACK_NEEDS),
 		[staticData],
@@ -273,26 +344,166 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 	useEffect(() => {
 		if (isPlannerOpen && !standalone)
 			setModalRoot(document.getElementById("node-modal-root"));
-		if (isPlannerOpen) setDraftBaseData(user.baseData);
-	}, [isPlannerOpen, user.baseData, standalone]);
+		if (isPlannerOpen) setDraftBaseData(getInitialData());
+	}, [isPlannerOpen, user.baseData, standalone, viewingSuggestionId]);
 
 	// --- Handlers ---
+
+	const handleAutoManageHabitation = useCallback(
+		(strategy: "area" | "cost") => {
+			if (readOnly) return;
+			const infraBuildings = activeBuildings.filter(
+				(b: any) => b.type === "infrastructure" && b.supply,
+			);
+			const byWorker: Record<string, any[]> = {};
+			infraBuildings.forEach((b: any) => {
+				Object.entries(b.supply || {}).forEach(([worker]) => {
+					const w = String(worker);
+					if (!byWorker[w]) byWorker[w] = [];
+					byWorker[w].push(b);
+				});
+			});
+
+			const desired: Record<
+				string,
+				{ buildingTicker: string; amount: number }
+			> = {};
+			Object.entries(metrics.workforce || {}).forEach(([worker, d]: any) => {
+				const demand = Number(d?.demand || 0);
+				if (demand <= 0) return;
+				const options = byWorker[worker] || [];
+				if (options.length === 0) return;
+				const pick = [...options].sort((a, b) => {
+					const aSupply = Number((a.supply || {})[worker] || 0) || 1;
+					const bSupply = Number((b.supply || {})[worker] || 0) || 1;
+					const aAreaPer = Number(a.area || 0) / aSupply;
+					const bAreaPer = Number(b.area || 0) / bSupply;
+					const aCostPer = getBuildingCost(a.ticker) / aSupply;
+					const bCostPer = getBuildingCost(b.ticker) / bSupply;
+					return strategy === "cost"
+						? aCostPer - bCostPer
+						: aAreaPer - bAreaPer;
+				})[0];
+				const supplyPer = Number((pick.supply || {})[worker] || 0) || 1;
+				desired[worker] = {
+					buildingTicker: pick.ticker,
+					amount: Math.ceil(demand / supplyPer),
+				};
+			});
+
+			setDraftBaseData((prev: any) => {
+				const infra = [...(prev.infrastructure || [])];
+				const tickers = new Set(
+					Object.values(desired).map((x) => x.buildingTicker),
+				);
+				// If nothing changes, avoid churn.
+				const existingMap: Record<string, number> = {};
+				infra.forEach((x: any) => {
+					existingMap[x.buildingTicker] = Number(x.amount) || 0;
+				});
+				const desiredTickers = Object.values(desired).map(
+					(x) => x.buildingTicker,
+				);
+				const noChange = desiredTickers.every(
+					(t) =>
+						existingMap[t] ===
+						(Object.values(desired).find((x) => x.buildingTicker === t)
+							?.amount || 0),
+				);
+				if (noChange) return prev;
+
+				const nextInfra = infra
+					.filter((x: any) => !tickers.has(x.buildingTicker))
+					.concat(
+						Object.values(desired).map((x) => ({
+							id: uuidv4(),
+							buildingTicker: x.buildingTicker,
+							amount: x.amount,
+						})),
+					);
+				return { ...prev, infrastructure: nextInfra };
+			});
+		},
+		[readOnly, activeBuildings, metrics.workforce, getBuildingCost],
+	);
+
+	useEffect(() => {
+		if (!autoHabEnabled) return;
+		handleAutoManageHabitation(autoHabStrategy);
+	}, [
+		autoHabEnabled,
+		autoHabStrategy,
+		handleAutoManageHabitation,
+		// re-run when workforce demand changes due to platform edits
+		JSON.stringify(
+			Object.fromEntries(
+				Object.entries(metrics.workforce || {}).map(([k, v]: any) => [
+					k,
+					v?.demand || 0,
+				]),
+			),
+		),
+	]);
 
 	/**
 	 * Helper function to update the draft base state with new platforms, infra, or permits.
 	 */
-	const saveEdits = (platforms: any[], infra: any[], permitLevel: 1 | 2 | 3) =>
-		setDraftBaseData((p) => ({
+	const saveEdits = (
+		platforms: any[],
+		infra: any[],
+		permitLevel: 1 | 2 | 3,
+	) => {
+		if (readOnly) return;
+		setDraftBaseData((p: any) => ({
 			...p,
 			platforms,
 			infrastructure: infra,
 			permitLevel,
 		}));
+	};
 
 	/**
 	 * Persists the drafted plan to the user's profile and closes the planner.
 	 */
 	const handleSavePlan = () => {
+		if (readOnly) {
+			if (!standalone) setIsPlannerOpen(false);
+			onClose?.();
+			return;
+		}
+		if (isGuestMode) {
+			if (onSaveSuggestion) {
+				const currentSuggestion = suggestions?.find(
+					(s) => s.id === viewingSuggestionId,
+				);
+				const isOwnSuggestion =
+					currentSuggestion &&
+					!!currentUserId &&
+					currentSuggestion.authorId === currentUserId;
+				const suggestionId = isOwnSuggestion ? viewingSuggestionId : uuidv4();
+
+				onSaveSuggestion({
+					id: suggestionId,
+					authorId: currentUserId,
+					authorName: isOwnSuggestion
+						? currentSuggestion.authorName
+						: localStorage.getItem("displayName") || "Guest User",
+					name: isOwnSuggestion ? currentSuggestion.name : "Suggested Changes",
+					baseData: draftBaseData,
+					activeNeeds,
+					experts,
+					planetFactor,
+					activeCogc,
+					faction: activeFaction,
+					usedPermits,
+					totalPermits,
+				});
+			}
+			if (!standalone) setIsPlannerOpen(false);
+			onClose?.();
+			return;
+		}
+
 		onUpdateUser({
 			...user,
 			baseData: draftBaseData,
@@ -308,6 +519,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 			ioDisplayMode,
 		});
 		if (!standalone) setIsPlannerOpen(false);
+		onClose?.();
 	};
 
 	// --- Render Methods ---
@@ -332,7 +544,9 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 					color="primary"
 					size="small"
 					startIcon={<BuildIcon />}
+					disabled={readOnly}
 					onClick={() => {
+						if (readOnly) return;
 						// Initialize a default empty base for the user
 						onUpdateUser({
 							...user,
@@ -381,63 +595,213 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 				}}
 				elevation={0}
 			>
-				<Toolbar variant="dense" sx={{ overflowX: "auto" }}>
-					{!standalone && (
-						<IconButton
-							edge="start"
-							color="inherit"
-							onClick={() => {
-								setDraftBaseData(user.baseData); // Revert drafts
-								setIsPlannerOpen(false);
-							}}
-						>
-							<ArrowBackIcon />
-						</IconButton>
-					)}
-					<Typography
-						sx={{
-							ml: standalone ? 0 : 2,
-							mr: "auto",
-							flexShrink: 0,
-							fontWeight: "bold",
-						}}
-						variant="subtitle1"
-						color="text.primary"
-					>
-						{user.displayName} • {planetName} Planner
-					</Typography>
-
+				<Toolbar
+					variant="dense"
+					sx={{ overflowX: "auto", display: "flex", alignItems: "center" }}
+				>
 					<Button
 						color="inherit"
-						onClick={() => setIsSettingsOpen(true)}
-						startIcon={<SettingsIcon />}
-						sx={{ mr: 2, bgcolor: alpha("#8B949E", 0.1) }}
-					>
-						Settings
-					</Button>
-					{!standalone && (
-						<Button
-							color="inherit"
-							onClick={() => {
-								setDraftBaseData(user.baseData); // Revert drafts
-								setIsPlannerOpen(false);
-							}}
-							size="small"
-							variant="outlined"
-							sx={{ mr: 1 }}
-						>
-							Cancel
-						</Button>
-					)}
-					<Button
-						color="secondary"
-						onClick={handleSavePlan}
+						onClick={() => {
+							if (!readOnly) setDraftBaseData(user.baseData); // Revert drafts
+							if (!standalone) setIsPlannerOpen(false);
+							onClose?.();
+						}}
 						size="small"
-						variant="contained"
-						startIcon={<SaveIcon />}
+						variant="outlined"
+						sx={{ mr: 2 }}
 					>
-						Save Plan
+						{readOnly ? "Close View" : "Cancel"}
 					</Button>
+
+					<Box sx={{ display: "flex", flexDirection: "column", mr: "auto" }}>
+						<Typography
+							variant="subtitle1"
+							color="text.primary"
+							sx={{ fontWeight: "bold" }}
+						>
+							{planName
+								? `${planetName} • ${planName}`
+								: `${user.displayName} • ${planetName} Planner`}
+							{readOnly && " (View Only)"}
+							{!readOnly && isGuestMode && " (Guest Mode)"}
+						</Typography>
+						{planDescription && (
+							<Typography variant="caption" color="text.secondary">
+								{planDescription}
+							</Typography>
+						)}
+					</Box>
+
+					{suggestions && suggestions.length > 0 && (
+						<Box sx={{ mr: 2, display: "flex", alignItems: "center", gap: 1 }}>
+							<Typography variant="caption" color="text.secondary">
+								Viewing:
+							</Typography>
+							<select
+								value={viewingSuggestionId || ""}
+								onChange={(e) => {
+									setViewingSuggestionId(e.target.value || null);
+									setShowDiff(false);
+								}}
+								style={{
+									padding: "4px",
+									borderRadius: "4px",
+									backgroundColor: "#1e1e1e",
+									color: "white",
+									border: "1px solid #555",
+								}}
+							>
+								<option value="">Original Plan</option>
+								{suggestions.map((s) => (
+									<option key={s.id} value={s.id}>
+										{s.name} (by {s.authorName})
+									</option>
+								))}
+							</select>
+							{((!viewingSuggestionId &&
+								(diffAgainstId || primarySuggestionId)) ||
+								viewingSuggestionId) && (
+								<Box sx={{ display: "flex", alignItems: "center", ml: 1 }}>
+									<Typography
+										variant="caption"
+										sx={{ cursor: "pointer", opacity: showDiff ? 1 : 0.6 }}
+										onClick={() => setShowDiff(!showDiff)}
+									>
+										Show Diff
+									</Typography>
+									<input
+										type="checkbox"
+										checked={showDiff}
+										onChange={(e) => setShowDiff(e.target.checked)}
+										style={{ marginLeft: 4 }}
+									/>
+								</Box>
+							)}
+							{showDiff && viewingSuggestionId && (
+								<Box
+									sx={{ display: "flex", alignItems: "center", ml: 1, gap: 1 }}
+								>
+									<Typography variant="caption" color="text.secondary">
+										Diff vs:
+									</Typography>
+									<select
+										value={diffAgainstId || "__original__"}
+										onChange={(e) => setDiffAgainstId(e.target.value)}
+										style={{
+											padding: "4px",
+											borderRadius: "4px",
+											backgroundColor: "#1e1e1e",
+											color: "white",
+											border: "1px solid #555",
+										}}
+									>
+										<option value="__original__">Original Plan</option>
+										{suggestions
+											.filter((s) => s.id !== viewingSuggestionId)
+											.map((s) => (
+												<option key={s.id} value={s.id}>
+													{s.name}
+												</option>
+											))}
+									</select>
+								</Box>
+							)}
+							{!readOnly &&
+								!isGuestMode &&
+								viewingSuggestionId &&
+								onSetPrimarySuggestion && (
+									<Button
+										size="small"
+										variant={
+											primarySuggestionId === viewingSuggestionId
+												? "contained"
+												: "outlined"
+										}
+										color={
+											primarySuggestionId === viewingSuggestionId
+												? "success"
+												: "primary"
+										}
+										onClick={() =>
+											onSetPrimarySuggestion(
+												primarySuggestionId === viewingSuggestionId
+													? null
+													: viewingSuggestionId,
+											)
+										}
+										sx={{
+											ml: 1,
+											minWidth: "max-content",
+											height: 28,
+											fontSize: "0.7rem",
+										}}
+									>
+										{primarySuggestionId === viewingSuggestionId
+											? "Primary"
+											: "Set Primary"}
+									</Button>
+								)}
+							{!readOnly &&
+								!isGuestMode &&
+								viewingSuggestionId &&
+								onDeleteSuggestion && (
+									<Button
+										size="small"
+										variant="outlined"
+										color="error"
+										onClick={() => {
+											if (
+												window.confirm(
+													"Are you sure you want to delete this suggestion?",
+												)
+											) {
+												onDeleteSuggestion(viewingSuggestionId);
+												setViewingSuggestionId(null);
+												setShowDiff(false);
+											}
+										}}
+										sx={{
+											ml: 1,
+											minWidth: "max-content",
+											height: 28,
+											fontSize: "0.7rem",
+										}}
+									>
+										Delete
+									</Button>
+								)}
+						</Box>
+					)}
+
+					{!readOnly && (
+						<>
+							<Button
+								color="inherit"
+								onClick={() => setIsSettingsOpen(true)}
+								startIcon={<SettingsIcon />}
+								sx={{ mr: 2, bgcolor: alpha("#8B949E", 0.1) }}
+							>
+								Settings
+							</Button>
+							{(!isGuestMode || !!currentUserId) && (
+								<Button
+									color={isGuestMode ? "primary" : "secondary"}
+									onClick={handleSavePlan}
+									size="small"
+									variant="contained"
+									startIcon={<SaveIcon />}
+								>
+									{isGuestMode
+										? viewingSuggestionId
+											? "Update Suggestion"
+											: "Submit Suggestion"
+										: viewingSuggestionId
+											? "Apply to Original Plan"
+											: "Save Plan"}
+								</Button>
+							)}
+						</>
+					)}
 				</Toolbar>
 			</AppBar>
 
@@ -466,16 +830,30 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 						activeData={activeData}
 						activeBuildings={activeBuildings}
 						activeNeeds={activeNeeds}
-						setActiveNeeds={setActiveNeeds}
+						setActiveNeeds={(next) => {
+							if (readOnly) return;
+							setActiveNeeds(next as any);
+						}}
 						getBuildingCost={getBuildingCost}
 						activeCogc={activeCogc}
-						setActiveCogc={setActiveCogc}
+						setActiveCogc={(next) => {
+							if (readOnly) return;
+							setActiveCogc(next);
+						}}
 						planetFactor={planetFactor}
-						setPlanetFactor={setPlanetFactor}
+						setPlanetFactor={(next) => {
+							if (readOnly) return;
+							setPlanetFactor(next);
+						}}
 						materialIO={metrics.materialIO}
 						ioDisplayMode={ioDisplayMode}
-						setIoDisplayMode={setIoDisplayMode}
+						setIoDisplayMode={(next) => {
+							if (readOnly) return;
+							setIoDisplayMode(next);
+						}}
 						totalDailyProfit={metrics.totalDailyProfit}
+						totalVolumeImport={metrics.totalVolumeImport}
+						totalVolumeExport={metrics.totalVolumeExport}
 						getPrice={getPrice}
 						handleAdjustPermit={(change: number) =>
 							saveEdits(
@@ -495,16 +873,37 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 				<Box sx={{ display: "flex", flexGrow: 1, minHeight: 0 }}>
 					<ProductionGrid
 						activeData={activeData}
+						comparisonData={comparisonData}
 						activeBuildings={activeBuildings}
 						activeRecipes={activeRecipes}
 						getPrice={getPrice}
 						getBuildingCost={getBuildingCost}
-						setIsEditingPlatform={setIsEditingPlatform}
-						setIsAddingRecipe={setIsAddingRecipe}
-						setSelectedRecipe={setSelectedRecipe}
+						onAddPlatform={(ticker: string, amount: number) => {
+							if (readOnly) return;
+							const p = [...activeData.platforms];
+							const ex = p.find((x: any) => x.buildingTicker === ticker);
+							if (ex) ex.amount += amount;
+							else
+								p.push({
+									id: uuidv4(),
+									buildingTicker: ticker,
+									amount,
+									activeRecipes: [],
+								});
+							saveEdits(p, activeData.infrastructure, activeData.permitLevel);
+						}}
+						setIsAddingRecipe={(id) => {
+							if (readOnly) return;
+							setIsAddingRecipe(id);
+						}}
+						setSelectedRecipe={(id) => {
+							if (readOnly) return;
+							setSelectedRecipe(id);
+						}}
 						buildMaterials={metrics.buildMaterials}
 						totalCapEx={metrics.totalCapEx}
 						handleAdjustPlatformAmount={(id: string, change: number) => {
+							if (readOnly) return;
 							const p = [...activeData.platforms];
 							const ex = p.findIndex((x) => x.id === id);
 							if (ex > -1) p[ex].amount = Math.max(1, p[ex].amount + change);
@@ -529,6 +928,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 							)
 						}
 						handleRemoveSpecificRecipe={(id: string, rId: string) => {
+							if (readOnly) return;
 							const p = activeData.platforms.find((x: any) => x.id === id);
 							if (!p) return;
 							const i = p.activeRecipes.indexOf(rId);
@@ -545,6 +945,7 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 							}
 						}}
 						handleAdjustInfra={(t: string, change: number) => {
+							if (readOnly) return;
 							const i = [...activeData.infrastructure];
 							const ex = i.findIndex((x) => x.buildingTicker === t);
 							if (ex > -1) {
@@ -554,6 +955,19 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 								i.push({ id: uuidv4(), buildingTicker: t, amount: change });
 							saveEdits(activeData.platforms, i, activeData.permitLevel);
 						}}
+						autoHabEnabled={autoHabEnabled}
+						autoHabStrategy={autoHabStrategy}
+						onToggleAutoHab={(enabled) => {
+							if (readOnly) return;
+							setAutoHabEnabled(enabled);
+							if (enabled) handleAutoManageHabitation(autoHabStrategy);
+						}}
+						onChangeAutoHabStrategy={(strategy) => {
+							if (readOnly) return;
+							setAutoHabStrategy(strategy);
+							if (autoHabEnabled) handleAutoManageHabitation(strategy);
+						}}
+						onAutoManageHabitation={handleAutoManageHabitation}
 						{...metrics}
 					/>
 				</Box>
@@ -564,54 +978,57 @@ export const BaseManager: React.FC<BaseManagerProps> = ({
 				open={isSettingsOpen}
 				onClose={() => setIsSettingsOpen(false)}
 				syncMode={syncMode}
-				setSyncMode={setSyncMode}
-				setDraftBaseData={setDraftBaseData}
+				setSyncMode={(next) => {
+					if (readOnly) return;
+					setSyncMode(next);
+				}}
+				setDraftBaseData={(next) => {
+					if (readOnly) return;
+					setDraftBaseData(next);
+				}}
 				planDefaultPricing={planDefaultPricing}
-				setPlanDefaultPricing={setPlanDefaultPricing}
+				setPlanDefaultPricing={(next) => {
+					if (readOnly) return;
+					setPlanDefaultPricing(next);
+				}}
 				allUniqueMaterials={metrics.allUniqueMaterials}
 				globalMatPrices={globalMatPrices}
-				setGlobalMatPrices={setGlobalMatPrices}
+				setGlobalMatPrices={(next) => {
+					if (readOnly) return;
+					setGlobalMatPrices(next as any);
+				}}
 				activeFaction={activeFaction}
-				setActiveFaction={setActiveFaction}
+				setActiveFaction={(next) => {
+					if (readOnly) return;
+					setActiveFaction(next);
+				}}
 				usedPermits={usedPermits}
-				setUsedPermits={setUsedPermits}
+				setUsedPermits={(next) => {
+					if (readOnly) return;
+					setUsedPermits(next);
+				}}
 				totalPermits={totalPermits}
-				setTotalPermits={setTotalPermits}
+				setTotalPermits={(next) => {
+					if (readOnly) return;
+					setTotalPermits(next);
+				}}
 				experts={experts}
-				setExperts={setExperts}
-			/>
-			<AddPlatformDialog
-				open={isEditingPlatform}
-				onClose={() => setIsEditingPlatform(false)}
-				newTicker={newPlatformTicker}
-				setNewTicker={setNewPlatformTicker}
-				newAmount={newPlatformAmount}
-				setNewAmount={setNewPlatformAmount}
-				activeBuildings={activeBuildings}
-				onAdd={() => {
-					const p = [...activeData.platforms];
-					const ex = p.find((x: any) => x.buildingTicker === newPlatformTicker);
-					if (ex)
-						ex.amount += newPlatformAmount; // Increase amount if platform already exists
-					else
-						p.push({
-							id: uuidv4(),
-							buildingTicker: newPlatformTicker,
-							amount: newPlatformAmount,
-							activeRecipes: [],
-						});
-					saveEdits(p, activeData.infrastructure, activeData.permitLevel);
-					setIsEditingPlatform(false);
-					setNewPlatformAmount(1); // Reset form state
+				setExperts={(next) => {
+					if (readOnly) return;
+					setExperts(next as any);
 				}}
 			/>
 			<AddRecipeDialog
 				open={!!isAddingRecipe}
 				onClose={() => setIsAddingRecipe(null)}
 				selected={selectedRecipe}
-				setSelected={setSelectedRecipe}
+				setSelected={(next) => {
+					if (readOnly) return;
+					setSelectedRecipe(next);
+				}}
 				available={availableRecipesForPlatform}
 				onAdd={() => {
+					if (readOnly) return;
 					saveEdits(
 						activeData.platforms.map((p: any) =>
 							p.id === isAddingRecipe
