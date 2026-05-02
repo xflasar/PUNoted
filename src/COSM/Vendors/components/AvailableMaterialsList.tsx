@@ -216,7 +216,8 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					</Box>
 				) : (
 					paginatedMaterials.map((material) => {
-						const corpPrice = material.price?.corpprice ?? material.corpprice ?? 0;
+						const corpPrice =
+							material.price?.corpprice ?? material.corpprice ?? 0;
 						const displayMaterial = {
 							...material,
 							fixedprice: corpPrice,
