@@ -39,6 +39,7 @@ import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./CreateVendorStoreModal";
 import EditVendorStoreModal from "./EditVendorStoreModal";
 import ShoppingListModal from "./ShoppingListModal";
+import MaterialBadge from "../components/MaterialBadge";
 import { formatAmount } from "../../utils/formaters";
 import type { Location, VendorStore } from "./types";
 import { getDiffStats } from "./utils/priceComparison";
@@ -542,7 +543,7 @@ const VendorCard = React.memo(
 														fontSize: "0.85rem",
 													}}
 												>
-													{item.materialticker}
+													<MaterialBadge ticker={item.materialticker} />
 												</Typography>
 											</Box>
 
@@ -1267,6 +1268,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				flex: 1,
 				headerAlign: "center",
 				align: "center",
+				renderCell: ({ value }) => (
+					<MaterialBadge ticker={String(value ?? "")} />
+				),
 			},
 			{
 				field: "quantity",

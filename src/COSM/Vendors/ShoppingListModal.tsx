@@ -36,6 +36,7 @@ import { ContentCopy } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import PriceComparisonBadge from "./components/PriceComparisonBadge";
 import { getDiffStats } from "./utils/priceComparison";
+import MaterialBadge from "../components/MaterialBadge";
 
 // --- Types ---
 /**
@@ -410,7 +411,7 @@ const CompactListItem: React.FC<{
 							color: theme.palette.text.primary,
 						}}
 					>
-						{item.materialticker}
+						<MaterialBadge ticker={item.materialticker} />
 					</Typography>
 
 					<Box
@@ -634,7 +635,7 @@ const SummaryVendorGroup: React.FC<{
 							color="text.primary"
 							sx={{ fontSize: "0.75rem" }}
 						>
-							{item.ticker}{" "}
+							<MaterialBadge ticker={item.ticker} />{" "}
 							<span style={{ opacity: 0.8, fontWeight: 600 }}>
 								x{formatAmount(item.amount)}
 							</span>
@@ -727,7 +728,7 @@ const AvailableItemRow: React.FC<{
 			<Box>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					<Typography variant="body2" fontWeight="bold">
-						{mat.materialticker}
+						<MaterialBadge ticker={mat.materialticker} />
 					</Typography>
 					{/* VENDOR COUNT BADGE */}
 					<Box

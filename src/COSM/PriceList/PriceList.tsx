@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import { Search } from "lucide-react";
 import { glassStyle } from "./CustomComponents/glassStyle";
+import MaterialBadge from "../components/MaterialBadge";
 
 const MARKETS = ["AI1", "IC1", "CI1", "CI2", "NC1", "NC2"];
 const ROW_HEIGHT = 44;
@@ -504,7 +505,9 @@ const MarketPricesTab: React.FC<MarketPricesTabProps> = ({
 
 						{visibleRows.map((row) => (
 							<tr key={row.Ticker || row.ticker} className="virtual-row">
-								<td className="col-ticker">{row.Ticker || row.ticker}</td>
+								<td className="col-ticker">
+									<MaterialBadge ticker={row.Ticker || row.ticker} />
+								</td>
 								{selectedMarkets.map((m) => (
 									<FastCell key={m} row={row} market={m} />
 								))}

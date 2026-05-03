@@ -29,6 +29,7 @@ import {
 	Minus,
 } from "lucide-react";
 import { glassStyle } from "./CustomComponents/glassStyle";
+import MaterialBadge from "../components/MaterialBadge";
 
 const ROW_HEIGHT = 52;
 const HEADER_HEIGHT = 40;
@@ -233,7 +234,7 @@ const MaterialRow = memo(
 						textOverflow: "ellipsis",
 					}}
 				>
-					{item.ticker}
+					<MaterialBadge ticker={item.ticker} />
 				</td>
 				<td
 					style={{
@@ -367,7 +368,7 @@ const CartRow = memo(
 						fontSize: "0.9rem",
 					}}
 				>
-					{item.ticker}
+					<MaterialBadge ticker={item.ticker} />
 				</td>
 				<td style={{ padding: "8px", textAlign: "center" }}>
 					<BufferedInput

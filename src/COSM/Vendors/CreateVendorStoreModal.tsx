@@ -24,6 +24,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import { v4 as uuidv4 } from "uuid";
 import { PlusCircle } from "lucide-react";
 import React from "react";
+import MaterialBadge from "../components/MaterialBadge";
 
 // --- INTERFACES ---
 interface Material {
@@ -151,7 +152,9 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							textAlign: "center",
 						}}
 					>
-						<Typography variant="body2">{material.materialticker}</Typography>
+						<Typography variant="body2">
+							<MaterialBadge ticker={material.materialticker} />
+						</Typography>
 					</Box>
 					<Box
 						sx={{
@@ -347,7 +350,9 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							textAlign: "center",
 						}}
 					>
-						<Typography variant="body2">{material.materialticker}</Typography>
+						<Typography variant="body2">
+							<MaterialBadge ticker={material.materialticker} />
+						</Typography>
 					</Box>
 					<Box sx={{ width: getCellWidth(1, true), textAlign: "center" }}>
 						<Typography variant="body2">{material.fixedprice}</Typography>

@@ -1,0 +1,559 @@
+/* Adapted from https://github.com/richjenks/prunplanner-frontend/blob/main/src/assets/css/materials.css */
+
+.mat {
+	text-shadow: rgb(34, 34, 34) 1px 1px;
+	min-width: 3em;
+	line-height: 1.4em;
+	text-align: center;
+	display: inline-block;
+	font-weight: bold;
+
+	/* Material Tile color settings for unknown materials. */
+	background: linear-gradient(135deg, #000000, #191919);
+	color: #7f7f7f;
+}
+
+/* Agricultural Products */
+.mat-alg,
+.mat-bea,
+.mat-caf,
+.mat-fod,
+.mat-gra,
+.mat-grn,
+.mat-hcp,
+.mat-her,
+.mat-hop,
+.mat-mai,
+.mat-mtp,
+.mat-mus,
+.mat-nut,
+.mat-pib,
+.mat-ppa,
+.mat-rco,
+.mat-rsi,
+.mat-veg,
+.mat-vit {
+	background: linear-gradient(135deg, #003800, #0a4708);
+	color: #8bb37b;
+}
+
+/* Alloys */
+.mat-alr,
+.mat-ast,
+.mat-bgo,
+.mat-bos,
+.mat-bro,
+.mat-fal,
+.mat-fet,
+.mat-rgo,
+.mat-wal,
+.mat-wrh {
+	background: linear-gradient(135deg, #7b4c1e, #946537);
+	color: #facb9d;
+}
+
+/* Chemicals */
+.mat-bac,
+.mat-bl,
+.mat-ble,
+.mat-cst,
+.mat-ddt,
+.mat-ees,
+.mat-etc,
+.mat-flx,
+.mat-ind,
+.mat-jui,
+.mat-kre,
+.mat-lcr,
+.mat-nab,
+.mat-nr,
+.mat-ns,
+.mat-olf,
+.mat-pfe,
+.mat-rea,
+.mat-soi,
+.mat-tcl,
+.mat-thf {
+	background: linear-gradient(135deg, #b72e5b, #d04774);
+	color: #ffadda;
+}
+
+/* Construction Materials */
+.mat-cmk,
+.mat-epo,
+.mat-gl,
+.mat-ins,
+.mat-mcg,
+.mat-mtc,
+.mat-ncs,
+.mat-nfi,
+.mat-ng,
+.mat-rg,
+.mat-sea {
+	background: linear-gradient(135deg, #185bd3, #3174ec);
+	color: #97daff;
+}
+
+/* Construction Parts */
+.mat-aef,
+.mat-air,
+.mat-dec,
+.mat-fc,
+.mat-flo,
+.mat-flp,
+.mat-gc,
+.mat-gv,
+.mat-lit,
+.mat-mgc,
+.mat-mhl,
+.mat-psh,
+.mat-rsh,
+.mat-tcs,
+.mat-tru,
+.mat-tsh {
+	background: linear-gradient(135deg, #294d6b, #426684);
+	color: #a8ccea;
+}
+
+/* Construction Prefabs */
+.mat-abh,
+.mat-ade,
+.mat-ase,
+.mat-ata,
+.mat-bbh,
+.mat-bde,
+.mat-bse,
+.mat-bta,
+.mat-hse,
+.mat-lbh,
+.mat-lde,
+.mat-lse,
+.mat-lta,
+.mat-rbh,
+.mat-rde,
+.mat-rse,
+.mat-rta {
+	background: linear-gradient(135deg, #0f1e62, #28377b);
+	color: #8e9de1;
+}
+
+/* Consumable Bundles */
+.mat-cbu,
+.mat-ebu,
+.mat-pbu,
+.mat-sbu,
+.mat-tbu {
+	background: linear-gradient(135deg, #3e0a11, #57232a);
+	color: #bd8990;
+}
+
+/* Consumables (Basic) */
+.mat-dw,
+.mat-exo,
+.mat-fim,
+.mat-hms,
+.mat-hss,
+.mat-lc,
+.mat-mea,
+.mat-med,
+.mat-ove,
+.mat-pda,
+.mat-pt,
+.mat-rat,
+.mat-scn,
+.mat-ws {
+	background: linear-gradient(135deg, #a62c2a, #ba363c);
+	color: #ff989e;
+}
+
+/* Consumables (Luxury) */
+.mat-ale,
+.mat-cof,
+.mat-gin,
+.mat-kom,
+.mat-nst,
+.mat-pwo,
+.mat-rep,
+.mat-sc,
+.mat-vg,
+.mat-win {
+	background: linear-gradient(135deg, #680000, #7b0012);
+	color: #db9191;
+}
+
+/* Drones */
+.mat-ccd,
+.mat-dch,
+.mat-drf,
+.mat-red,
+.mat-sdr,
+.mat-srd,
+.mat-sud {
+	background: linear-gradient(135deg, #8c3412, #a54d2b);
+	color: #ffb391;
+}
+
+/* Electronic Devices */
+.mat-aar,
+.mat-awf,
+.mat-bid,
+.mat-bmf,
+.mat-bsc,
+.mat-bws,
+.mat-hd,
+.mat-hog,
+.mat-hpc,
+.mat-mhp,
+.mat-rad,
+.mat-sar {
+	background: linear-gradient(135deg, #561493, #6f2dac);
+	color: #d593ff;
+}
+
+/* Electronic Parts */
+.mat-cd,
+.mat-dis,
+.mat-fan,
+.mat-mb,
+.mat-mpc,
+.mat-pcb,
+.mat-ram,
+.mat-rom,
+.mat-sen,
+.mat-tpu,
+.mat-tra {
+	background: linear-gradient(135deg, #5b2eb7, #7447d0);
+	color: #daadff;
+}
+
+/* Electronic Pieces */
+.mat-bco,
+.mat-bgc,
+.mat-cap,
+.mat-hcc,
+.mat-ldi,
+.mat-mfk,
+.mat-mwf,
+.mat-sfk,
+.mat-swf,
+.mat-trn {
+	background: linear-gradient(135deg, #7752bd, #906bd6);
+	color: #f6d1ff;
+}
+
+/* Electronic Systems */
+.mat-acs,
+.mat-ads,
+.mat-cc,
+.mat-com,
+.mat-cru,
+.mat-ffc,
+.mat-lis,
+.mat-log,
+.mat-sts,
+.mat-tac,
+.mat-wr {
+	background: linear-gradient(135deg, #331a4c, #4c3365);
+	color: #b299cb;
+}
+
+/* Elements */
+.mat-be,
+.mat-c,
+.mat-ca,
+.mat-cl,
+.mat-es,
+.mat-i,
+.mat-mg,
+.mat-na,
+.mat-s,
+.mat-ta,
+.mat-tc,
+.mat-zr {
+	background: linear-gradient(135deg, #3d2e20, #564739);
+	color: #bcad9f;
+}
+
+/* Energy Systems */
+.mat-cbl,
+.mat-cbm,
+.mat-cbs,
+.mat-pow,
+.mat-sol,
+.mat-sp {
+	background: linear-gradient(135deg, #153e27, #2e5740);
+	color: #94bda6;
+}
+
+/* Fuels */
+.mat-ff,
+.mat-sf,
+.mat-vf {
+	background: linear-gradient(135deg, #548d22, #6ba23c);
+	color: #cbfaa3;
+}
+
+/* Gases */
+.mat-amm,
+.mat-ar,
+.mat-f,
+.mat-h,
+.mat-he,
+.mat-he3,
+.mat-kr,
+.mat-n,
+.mat-ne,
+.mat-o {
+	background: linear-gradient(135deg, #00696b, #198284);
+	color: #7fe8ea;
+}
+
+/* Infrastructure */
+.mat-gws,
+.mat-pfg,
+.mat-sdm,
+.mat-spt,
+.mat-sst,
+.mat-tor,
+.mat-trs {
+	background: linear-gradient(135deg, #000000, #191919);
+	color: #7f7f7f;
+}
+
+/* Liquids */
+.mat-bts,
+.mat-h2o,
+.mat-hex,
+.mat-les {
+	background: linear-gradient(135deg, #67a8da, #6098c3);
+	color: #f1ffff;
+}
+
+/* Medical Equipment */
+.mat-adr,
+.mat-bnd,
+.mat-pk,
+.mat-seq,
+.mat-str,
+.mat-tub {
+	background: linear-gradient(135deg, #55aa55, #6ec36e);
+	color: #d4ffd4;
+}
+
+/* Metals */
+.mat-al,
+.mat-au,
+.mat-cu,
+.mat-fe,
+.mat-li,
+.mat-re,
+.mat-si,
+.mat-stl,
+.mat-ti,
+.mat-w {
+	background: linear-gradient(135deg, #363636, #4f4f4f);
+	color: #b5b5b5;
+}
+
+/* Minerals */
+.mat-ber,
+.mat-bor,
+.mat-brm,
+.mat-cli,
+.mat-gal,
+.mat-hal,
+.mat-lst,
+.mat-mag,
+.mat-mgs,
+.mat-scr,
+.mat-tai,
+.mat-tco,
+.mat-ts,
+.mat-zir {
+	background: linear-gradient(135deg, #997149, #b28a62);
+	color: #fff0c8;
+}
+
+/* Ores */
+.mat-alo,
+.mat-auo,
+.mat-cuo,
+.mat-feo,
+.mat-lio,
+.mat-reo,
+.mat-sio,
+.mat-tio {
+	background: linear-gradient(135deg, #525761, #6b707a);
+	color: #d1d6e0;
+}
+
+/* Plastics */
+.mat-dcl,
+.mat-dcm,
+.mat-dcs,
+.mat-pe,
+.mat-pg,
+.mat-psl,
+.mat-psm,
+.mat-pss {
+	background: linear-gradient(135deg, #791f62, #92387b);
+	color: #f89ee1;
+}
+
+/* Ship Engines */
+.mat-aen,
+.mat-afp,
+.mat-afr,
+.mat-anz,
+.mat-bfp,
+.mat-bfr,
+.mat-cha,
+.mat-eng,
+.mat-fir,
+.mat-fse,
+.mat-gch,
+.mat-gen,
+.mat-gnz,
+.mat-hnz,
+.mat-hpr,
+.mat-hte,
+.mat-hyr,
+.mat-lfe,
+.mat-lfp,
+.mat-mfe,
+.mat-noz,
+.mat-qcr,
+.mat-rag,
+.mat-rcs,
+.mat-rct,
+.mat-sfe,
+.mat-voe,
+.mat-vor {
+	background: linear-gradient(135deg, #992900, #b24219);
+	color: #ffa87f;
+}
+
+/* Ship Kits */
+.mat-hcb,
+.mat-lcb,
+.mat-lfl,
+.mat-lsl,
+.mat-mcb,
+.mat-mfl,
+.mat-msl,
+.mat-scb,
+.mat-sfl,
+.mat-ssl,
+.mat-tcb,
+.mat-vcb,
+.mat-vft,
+.mat-vsc,
+.mat-wcb {
+	background: linear-gradient(135deg, #995400, #b26d19);
+	color: #ffd37f;
+}
+
+/* Ship Parts */
+.mat-ags,
+.mat-ahp,
+.mat-atp,
+.mat-bgs,
+.mat-bhp,
+.mat-ham,
+.mat-hhp,
+.mat-lhp,
+.mat-nv1,
+.mat-nv2,
+.mat-rhp,
+.mat-ssc,
+.mat-thp {
+	background: linear-gradient(135deg, #996300, #b27c19);
+	color: #ffe27f;
+}
+
+/* Ship Shields */
+.mat-apt,
+.mat-arp,
+.mat-awh,
+.mat-bpt,
+.mat-brp,
+.mat-bwh,
+.mat-srp {
+	background: linear-gradient(135deg, #bf740a, #d98c21);
+	color: #dbdb79;
+}
+
+/* Software Components */
+.mat-bai,
+.mat-ld,
+.mat-mli,
+.mat-nf,
+.mat-sa,
+.mat-sal,
+.mat-wm {
+	background: linear-gradient(135deg, #88792f, #a19248);
+	color: #fff8ae;
+}
+
+/* Software Systems */
+.mat-idc,
+.mat-imm,
+.mat-snm,
+.mat-wai {
+	background: linear-gradient(135deg, #3c3505, #554e1e);
+	color: #bbb484;
+}
+
+/* Software Tools */
+.mat-da,
+.mat-dd,
+.mat-dv,
+.mat-edc,
+.mat-nn,
+.mat-os {
+	background: linear-gradient(135deg, #816213, #9a7b2c);
+	color: #ffe192;
+}
+
+/* Textiles */
+.mat-cf,
+.mat-cot,
+.mat-ctf,
+.mat-kv,
+.mat-nl,
+.mat-sil,
+.mat-tk {
+	background: linear-gradient(135deg, #525a21, #6b733a);
+	color: #d1d9a0;
+}
+
+/* Unit Prefabs */
+.mat-br1,
+.mat-br2,
+.mat-brs,
+.mat-bsu,
+.mat-cpu,
+.mat-cql,
+.mat-cqm,
+.mat-cqs,
+.mat-cqt,
+.mat-dou,
+.mat-fun,
+.mat-hab,
+.mat-lu,
+.mat-rdl,
+.mat-rds,
+.mat-su,
+.mat-tcu,
+.mat-wor {
+	background: linear-gradient(135deg, #1d1b1c, #363435);
+	color: #9c9a9b;
+}
+
+/* Utility */
+.mat-off,
+.mat-sun,
+.mat-uts {
+	background: linear-gradient(135deg, #a19488, #baada1);
+	color: #ffffff;
+}

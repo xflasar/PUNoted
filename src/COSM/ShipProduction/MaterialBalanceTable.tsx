@@ -12,6 +12,7 @@ import {
 	TableCell,
 	type Theme,
 } from "@mui/material";
+import MaterialBadge from "../components/MaterialBadge";
 
 /**
  * Represents the balance of a specific material required for production.
@@ -152,7 +153,7 @@ const BalanceColumn: React.FC<BalanceColumnProps> = ({
 										fontWeight: "bold",
 									}}
 								>
-									{item.ticker}
+									<MaterialBadge ticker={item.ticker} />
 								</TableCell>
 								<TableCell sx={compactCellStyle}>
 									{formatAmount(item.available)}
