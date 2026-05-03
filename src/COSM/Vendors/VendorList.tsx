@@ -776,6 +776,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
 		null,
 	);
+	const [vendorsRefreshTick, setVendorsRefreshTick] = useState(0);
 
 	useEffect(() => {
 		if (querySubtab === vendorViewMode) {
@@ -871,7 +872,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			}
 		};
 		getVendorStores();
-	}, []);
+	}, [vendorsRefreshTick]);
 
 	// Handlers
 	const handleOpenCreateModal = useCallback(
@@ -903,16 +904,8 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	const handleOnVendorChanged = useCallback(
 		(updatedVendorStore: VendorStore) => {
-			setVendorStores((prevStores) => {
-				const withoutStore = prevStores.filter(
-					(store) =>
-						store.vendor.vendorid !== updatedVendorStore.vendor.vendorid,
-				);
-				return updatedVendorStore.orders?.length
-					? [updatedVendorStore, ...withoutStore]
-					: withoutStore;
-			});
 			setUserVendorStore(updatedVendorStore);
+			setVendorsRefreshTick((prev) => prev + 1);
 		},
 		[],
 	);
