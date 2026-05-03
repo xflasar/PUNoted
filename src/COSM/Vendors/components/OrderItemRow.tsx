@@ -28,6 +28,7 @@ import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlineOutl
 import type { OrderItem, Location } from "../types";
 import { formatCurrency } from "../../../Dashboard/Financial/utils/financeUtils";
 import { formatAmount } from "../../../utils/formaters";
+import MaterialBadge from "../../components/MaterialBadge";
 
 /**
  * A debounced text field component used to prevent rapid state updates and potential focus loss.
@@ -267,7 +268,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 						{/* 1. Ticker */}
 						<Cell label="Ticker">
 							<Typography variant="body2" fontWeight="bold">
-								{material.materialticker}
+								<MaterialBadge ticker={material.materialticker} />
 							</Typography>
 						</Cell>
 
@@ -549,7 +550,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 					<Cell label="Ticker">
 						<Box sx={{ display: "flex", flexDirection: "column" }}>
 							<Typography variant="body2" fontWeight="bold">
-								{material.materialticker}
+								<MaterialBadge ticker={material.materialticker} />
 							</Typography>
 							{/* On mobile, show Price under ticker to save horizontal space */}
 							<Typography

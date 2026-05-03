@@ -34,10 +34,12 @@ import {
 	Target,
 	X,
 } from "lucide-react";
+import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./CreateVendorStoreModal";
 import EditVendorStoreModal from "./EditVendorStoreModal";
 import ShoppingListModal from "./ShoppingListModal";
+import MaterialBadge from "../components/MaterialBadge";
 import { formatAmount } from "../../utils/formaters";
 import type { Location, VendorStore } from "./types";
 import { getDiffStats } from "./utils/priceComparison";
@@ -541,7 +543,7 @@ const VendorCard = React.memo(
 														fontSize: "0.85rem",
 													}}
 												>
-													{item.materialticker}
+													<MaterialBadge ticker={item.materialticker} />
 												</Typography>
 											</Box>
 
@@ -746,6 +748,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [exactMatch, setExactMatch] = useState<boolean>(false);
 	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 	const [locationInputValue, setLocationInputValue] =
 		useState<string>("All Locations");
@@ -773,6 +776,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
 		null,
 	);
+	const [vendorsRefreshTick, setVendorsRefreshTick] = useState(0);
 
 	useEffect(() => {
 		if (querySubtab === vendorViewMode) {
@@ -868,7 +872,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			}
 		};
 		getVendorStores();
-	}, []);
+	}, [vendorsRefreshTick]);
 
 	// Handlers
 	const handleOpenCreateModal = useCallback(
@@ -900,16 +904,8 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	const handleOnVendorChanged = useCallback(
 		(updatedVendorStore: VendorStore) => {
-			setVendorStores((prevStores) => {
-				const withoutStore = prevStores.filter(
-					(store) =>
-						store.vendor.vendorid !== updatedVendorStore.vendor.vendorid,
-				);
-				return updatedVendorStore.orders?.length
-					? [updatedVendorStore, ...withoutStore]
-					: withoutStore;
-			});
 			setUserVendorStore(updatedVendorStore);
+			setVendorsRefreshTick((prev) => prev + 1);
 		},
 		[],
 	);
@@ -945,20 +941,30 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		[],
 	);
 
-	type SearchScope = "vendor" | "row";
+	const matchesSearchValue = useCallback(
+		(value: string, query: string) => {
+			const normalizedQuery = normalizeSearchQuery(query);
+			if (!normalizedQuery) return false;
+			const normalizedValue = normalizeSearchQuery(value);
+			return exactMatch
+				? normalizedValue === normalizedQuery
+				: normalizedValue.includes(normalizedQuery);
+		},
+		[exactMatch, normalizeSearchQuery],
+	);
 
 	const matchesVendorSearch = useCallback(
 		(vendor: VendorStore["vendor"], query: string) =>
-			vendor.companyname.toLowerCase().includes(query) ||
-			vendor.companycode.toLowerCase().includes(query) ||
-			vendor.gamename.toLowerCase().includes(query),
-		[],
+			[vendor.companyname, vendor.companycode, vendor.gamename].some((value) =>
+				matchesSearchValue(value, query),
+			),
+		[matchesSearchValue],
 	);
 
 	const matchesMaterialSearch = useCallback(
 		(materialTicker: string, query: string) =>
-			materialTicker.toLowerCase().includes(query),
-		[],
+			matchesSearchValue(materialTicker, query),
+		[matchesSearchValue],
 	);
 
 	const vendorsWithOrders = useMemo(
@@ -1255,6 +1261,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				flex: 1,
 				headerAlign: "center",
 				align: "center",
+				renderCell: ({ value }) => (
+					<MaterialBadge ticker={String(value ?? "")} />
+				),
 			},
 			{
 				field: "quantity",
@@ -1495,17 +1504,51 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										<Search size={20} color={theme.palette.primary.main} />
 									</InputAdornment>
 								),
-								endAdornment: searchQuery ? (
+								endAdornment: (
 									<InputAdornment position="end">
-										<IconButton
-											size="small"
-											aria-label="Clear material search"
-											onClick={() => setSearchQuery("")}
+										<Box
+											sx={{
+												display: "flex",
+												alignItems: "center",
+												gap: 0.5,
+											}}
 										>
-											<X size={16} />
-										</IconButton>
+											{searchQuery ? (
+												<>
+													<Tooltip title="Clear Search">
+														<IconButton
+															size="small"
+															aria-label="Clear material search"
+															onClick={() => setSearchQuery("")}
+														>
+															<X size={16} />
+														</IconButton>
+													</Tooltip>
+												</>
+											) : null}
+											<Tooltip
+												title={
+													exactMatch ? "Exact Match: ON" : "Exact Match: OFF"
+												}
+											>
+												<IconButton
+													size="small"
+													onClick={() => setExactMatch((prev) => !prev)}
+													sx={{
+														color: exactMatch
+															? "primary.main"
+															: "text.secondary",
+														bgcolor: exactMatch
+															? alpha(theme.palette.primary.main, 0.15)
+															: "transparent",
+													}}
+												>
+													<CenterFocusStrongIcon fontSize="small" />
+												</IconButton>
+											</Tooltip>
+										</Box>
 									</InputAdornment>
-								) : null,
+								),
 							},
 						}}
 					/>
