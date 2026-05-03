@@ -742,11 +742,7 @@ const VendorCard = React.memo(
  * @param {boolean} props.loggedIn - Indicates if the user is currently logged in.
  * @returns {React.ReactElement} The vendors list component.
  */
-const VendorsList = ({
-	loggedIn,
-}: {
-	loggedIn: boolean;
-}) => {
+const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [searchQuery, setSearchQuery] = useState<string>("");
