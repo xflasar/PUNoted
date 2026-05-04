@@ -10,6 +10,7 @@ import {
 	TableCell,
 	TableBody,
 } from "@mui/material";
+import MaterialBadge from "../components/MaterialBadge";
 
 /**
  * Represents the minimal details of a ship type used for filtering.
@@ -173,7 +174,7 @@ const ShipProductionTable: React.FC<ShipProductionTableProps> = ({
 										color: "#7B68EE",
 									}}
 								>
-									<span>{partName}</span>
+									<MaterialBadge ticker={partName} />
 								</TableCell>
 							))}
 						</TableRow>
