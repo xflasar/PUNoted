@@ -150,12 +150,7 @@ interface OrderItemRowProps {
 	/** Callback to update a field in the material. */
 	onEditMaterial?: (
 		frontendId: string | undefined,
-		field:
-			| "ordertype"
-			| "fixedprice"
-			| "reserved"
-			| "location"
-			| "priceLock",
+		field: "ordertype" | "fixedprice" | "reserved" | "location" | "priceLock",
 		value: any,
 	) => void;
 	/** Callback to add the material to active orders. */
@@ -196,7 +191,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		const corpPrice = material.price?.corpprice ?? 0;
 		const displayPrice = isPriceLocked
 			? corpPrice
-			: material.price?.fixedprice ?? material.fixedprice ?? 0;
+			: (material.price?.fixedprice ?? material.fixedprice ?? 0);
 		const totalAmount = currentLocations.reduce(
 			(sum: number, l: any) => sum + (l.amount || 0),
 			0,
@@ -366,11 +361,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 											type="number"
 											value={displayPrice}
 											onChange={(val) =>
-												onEditMaterial?.(
-													material.frontendId,
-													"fixedprice",
-													val,
-												)
+												onEditMaterial?.(material.frontendId, "fixedprice", val)
 											}
 											disabled={isPriceLocked}
 											InputProps={{
@@ -383,9 +374,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										/>
 									</Box>
 								</Tooltip>
-								<Tooltip
-									title={isPriceLocked ? "COSM Price" : "Custom Price"}
-								>
+								<Tooltip title={isPriceLocked ? "COSM Price" : "Custom Price"}>
 									<IconButton
 										size="small"
 										sx={{ flexShrink: 0 }}

@@ -21,12 +21,7 @@ interface MaterialTableProps {
 	/** Callback fired when editing a specific field of an order item. */
 	onEditMaterial: (
 		frontendId: string | undefined,
-		field:
-			| "ordertype"
-			| "fixedprice"
-			| "reserved"
-			| "location"
-			| "priceLock",
+		field: "ordertype" | "fixedprice" | "reserved" | "location" | "priceLock",
 		value: string | number | boolean | Location[] | null,
 	) => void;
 	/** Callback fired to add a new order item. */

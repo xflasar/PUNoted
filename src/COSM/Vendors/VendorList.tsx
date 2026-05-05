@@ -106,7 +106,9 @@ const prepareVendorStore = (
 					typeof available === "number" ? available : item.quantity;
 				const corpPrice = item.price?.corpprice ?? 0;
 				const fixedPrice =
-					item.price?.fixedprice === -1 ? corpPrice : (item.price?.fixedprice ?? 0);
+					item.price?.fixedprice === -1
+						? corpPrice
+						: (item.price?.fixedprice ?? 0);
 				const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
 				const rawCxValue =
 					cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[sideKey];
