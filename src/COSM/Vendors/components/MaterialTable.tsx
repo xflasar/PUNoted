@@ -21,8 +21,13 @@ interface MaterialTableProps {
 	/** Callback fired when editing a specific field of an order item. */
 	onEditMaterial: (
 		frontendId: string | undefined,
-		field: "ordertype" | "fixedprice" | "reserved" | "location",
-		value: string | number | Location[] | null,
+		field:
+			| "ordertype"
+			| "fixedprice"
+			| "reserved"
+			| "location"
+			| "priceLock",
+		value: string | number | boolean | Location[] | null,
 	) => void;
 	/** Callback fired to add a new order item. */
 	onAddMaterial: (material: OrderItem, type: "buy" | "sell") => void;
@@ -146,7 +151,7 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 						display: { sm: "grid", xs: "grid" },
 						gridTemplateColumns: {
 							xs: "40px 30px 40px 40px 40px 40px 40px",
-							sm: "80px 100px 130px 100px 100px 80px 50px",
+							sm: "80px 100px 145px 150px 100px 80px 50px",
 						},
 						alignItems: "center",
 						px: 2,
