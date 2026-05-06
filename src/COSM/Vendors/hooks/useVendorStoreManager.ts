@@ -11,7 +11,20 @@ import type { VendorStore, OrderItem, Location } from "../types";
  */
 export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 	const mapOrders = (orders: OrderItem[]) =>
-		orders.map((o) => ({ ...o, frontendId: o.orderid || uuidv4() }));
+		orders.map((o) => {
+			const corpPrice = o.price?.corpprice || 0;
+			const isPriceLocked = o.price?.fixedprice === -1;
+			return {
+				...o,
+				frontendId: o.orderid || uuidv4(),
+				isPriceLocked,
+				price: {
+					...o.price,
+					fixedprice: isPriceLocked ? corpPrice : o.price?.fixedprice || 0,
+				},
+				fixedprice: isPriceLocked ? corpPrice : o.price?.fixedprice || 0,
+			};
+		});
 
 	const [prevStore, setPrevStore] = useState(initialVendorStore);
 
@@ -135,11 +148,13 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 				...material,
 				ordertype: type,
 				frontendId: uuidv4(),
+				isPriceLocked: true,
 				price: {
-					fixedprice: material.price.fixedprice || 0,
+					fixedprice: material.price?.corpprice || 0,
 					corpprice: material.price?.corpprice || 0,
 					cxprice: material.price?.cxprice || 0,
 				},
+				fixedprice: material.price?.corpprice || 0,
 				reserved: 0,
 				orderid: undefined,
 				location: defaultLocation ? [defaultLocation] : [],
@@ -157,8 +172,8 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 	const handleEditMaterial = useCallback(
 		(
 			frontendId: string | undefined,
-			field: "ordertype" | "fixedprice" | "reserved" | "location",
-			value: string | number | null | Location[],
+			field: "ordertype" | "fixedprice" | "reserved" | "location" | "priceLock",
+			value: string | number | boolean | null | Location[],
 		) => {
 			const order = allOrders.find((o) => o.frontendId === frontendId);
 			if (!order) return;
@@ -192,6 +207,31 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 								}
 							: o,
 					);
+
+				if (order.ordertype === "buy") {
+					setBuyOrders(updateFn);
+				} else {
+					setSellOrders(updateFn);
+				}
+			} else if (field === "priceLock") {
+				const isLocked = Boolean(value);
+				const updateFn = (prev: OrderItem[]) =>
+					prev.map((o) => {
+						if (o.frontendId !== frontendId) return o;
+						const corpPrice = o.price?.corpprice || 0;
+						const nextFixedPrice = isLocked
+							? corpPrice
+							: o.price?.fixedprice || o.fixedprice || 0;
+						return {
+							...o,
+							isPriceLocked: isLocked,
+							price: {
+								...o.price,
+								fixedprice: nextFixedPrice,
+							},
+							fixedprice: nextFixedPrice,
+						};
+					});
 
 				if (order.ordertype === "buy") {
 					setBuyOrders(updateFn);

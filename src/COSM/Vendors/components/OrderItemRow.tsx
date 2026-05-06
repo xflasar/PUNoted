@@ -25,6 +25,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlineOutlined";
+import LockIcon from "@mui/icons-material/Lock";
+import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
 import type { OrderItem, Location } from "../types";
 import { formatCurrency } from "../../../Dashboard/Financial/utils/financeUtils";
 import { formatAmount } from "../../../utils/formaters";
@@ -148,7 +150,7 @@ interface OrderItemRowProps {
 	/** Callback to update a field in the material. */
 	onEditMaterial?: (
 		frontendId: string | undefined,
-		field: "ordertype" | "fixedprice" | "reserved" | "location",
+		field: "ordertype" | "fixedprice" | "reserved" | "location" | "priceLock",
 		value: any,
 	) => void;
 	/** Callback to add the material to active orders. */
@@ -185,6 +187,11 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		}, [material.location]);
 
 		const labelText = material.ordertype === "buy" ? "Demand" : "Reserve";
+		const isPriceLocked = Boolean(material.isPriceLocked);
+		const corpPrice = material.price?.corpprice ?? 0;
+		const displayPrice = isPriceLocked
+			? corpPrice
+			: (material.price?.fixedprice ?? material.fixedprice ?? 0);
 		const totalAmount = currentLocations.reduce(
 			(sum: number, l: any) => sum + (l.amount || 0),
 			0,
@@ -260,7 +267,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							...commonBoxSx,
 							gridTemplateColumns: {
 								xs: "1fr 1fr",
-								sm: "80px 100px 130px 100px 100px 80px 50px",
+								sm: "80px 100px 145px 150px 100px 80px 50px",
 							},
 							background: open ? theme.palette.background.paper : "transparent",
 						}}
@@ -334,17 +341,59 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 
 						{/* 4. Price */}
 						<Cell label="Price">
-							<DebouncedInput
-								size="small"
-								variant="outlined"
-								type="number"
-								value={material.price?.fixedprice ?? material.fixedprice ?? ""}
-								onChange={(val) =>
-									onEditMaterial?.(material.frontendId, "fixedprice", val)
-								}
-								InputProps={{ inputProps: { style: { textAlign: "center" } } }}
-								sx={{ width: "100%" }}
-							/>
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 0.5,
+									width: "100%",
+									minWidth: 0,
+								}}
+							>
+								<Tooltip
+									title={isPriceLocked ? "Auto COSM Price" : ""}
+									disableHoverListener={!isPriceLocked}
+								>
+									<Box sx={{ flex: 1, minWidth: 0 }}>
+										<DebouncedInput
+											size="small"
+											variant="outlined"
+											type="number"
+											value={displayPrice}
+											onChange={(val) =>
+												onEditMaterial?.(material.frontendId, "fixedprice", val)
+											}
+											disabled={isPriceLocked}
+											InputProps={{
+												inputProps: {
+													min: 0,
+													style: { textAlign: "center" },
+												},
+											}}
+											sx={{ width: "100%" }}
+										/>
+									</Box>
+								</Tooltip>
+								<Tooltip title={isPriceLocked ? "COSM Price" : "Custom Price"}>
+									<IconButton
+										size="small"
+										sx={{ flexShrink: 0 }}
+										onClick={() =>
+											onEditMaterial?.(
+												material.frontendId,
+												"priceLock",
+												!isPriceLocked,
+											)
+										}
+									>
+										{isPriceLocked ? (
+											<LockIcon fontSize="small" />
+										) : (
+											<LockOpenOutlinedIcon fontSize="small" />
+										)}
+									</IconButton>
+								</Tooltip>
+							</Box>
 						</Cell>
 
 						{/* 5. Total (Label text varies) */}

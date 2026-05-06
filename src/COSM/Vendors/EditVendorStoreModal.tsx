@@ -139,7 +139,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				orderid: order.orderid ? order.orderid : undefined,
 				materialticker: order.materialticker,
 				ordertype: order.ordertype,
-				fixedprice: order.price.fixedprice,
+				fixedprice: order.isPriceLocked ? -1 : order.price.fixedprice,
 				materialid: order.materialid,
 				reserved: order.reserved,
 				location: order.location.map((loc) => ({
@@ -302,7 +302,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								display: "flex",
 								flexDirection: "column",
 								gap: 1,
-								width: { xs: "100%", sm: "auto" },
+								width: { xs: "100%", sm: "auto", md: "50%" },
 								px: 1,
 								pb: 1,
 							}}

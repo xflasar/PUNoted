@@ -56,6 +56,8 @@ export interface OrderItem {
 	location: Location[];
 	/** Pricing information for the order */
 	price: ItemPrice;
+	/** True when listing price is locked to the corporation price */
+	isPriceLocked?: boolean;
 	/** Total quantity for the order */
 	quantity: number;
 	/** Optional identifier used on the frontend for tracking */
