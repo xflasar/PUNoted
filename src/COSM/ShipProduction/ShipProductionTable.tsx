@@ -181,7 +181,14 @@ const ShipProductionTable: React.FC<ShipProductionTableProps> = ({
 					</TableHead>
 					<TableBody>
 						{summaryData.map((order, index) => (
-							<TableRow key={index}>
+							<TableRow
+								key={index}
+								sx={{
+									"&:hover td": {
+										backgroundColor: "rgba(123, 104, 238, 0.12)",
+									},
+								}}
+							>
 								<TableCell
 									sx={{
 										fontWeight: "bold",
@@ -200,14 +207,17 @@ const ShipProductionTable: React.FC<ShipProductionTableProps> = ({
 								</TableCell>
 								{partNames.map((partName) => {
 									const partData = order[partName] as PartData;
+									const isSatisfied =
+										(partData?.value ?? 0) === 0 ||
+										Boolean(partData?.isAvailable);
 									return (
 										<TableCell
 											key={partName}
 											sx={{
 												textAlign: "center",
-												backgroundColor: partData?.isAvailable
-													? "#00ff00a9"
-													: "#ff2200d7",
+												backgroundColor: isSatisfied
+													? "transparent"
+													: "#c0392b !important",
 												p: 0,
 												overflow: "hidden",
 												whiteSpace: "nowrap",
