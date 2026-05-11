@@ -8,45 +8,23 @@ import type {
 	SummaryDataItem,
 } from "./ShipProductionTable";
 import { ShipOrders, type ShipOrdersProps } from "./ShipOrders";
+import BuilderOrdersDashboard from "./Dashboard/ShipProductionDashboard";
 
-/**
- * Props for the ShipProductionTabs component.
- * Combines the requirements for both the production table and the orders view.
- */
 export interface ShipProductionTabsProps extends ShipOrdersProps {
-	/** The list of available ship types used for filtering. */
 	MOCK_SHIP_TYPES: TableShipType[];
-	/** Callback fired when a ship type filter chip is clicked. */
 	handleFilterClick: (shipId: string | number) => void;
-	/** The currently active ship type filters. */
 	selectedShipTypes: (string | number)[];
-	/** The unique part names across all displayed orders, used as table columns. */
 	partNames: string[];
-	/** The summarized data rows for each order, including part availabilities. */
 	summaryData: SummaryDataItem[];
 }
 
-/**
- * Props for the internal TabPanel helper component.
- */
 interface TabPanelProps {
-	/** The content to be rendered within the panel. */
 	children?: React.ReactNode;
-	/** The index of this specific panel. */
 	index: number;
-	/** The currently selected tab value. */
 	value: number;
-	/** Optional styling properties for the panel container. */
 	sx?: BoxProps["sx"];
 }
 
-/**
- * Renders the content container for a specific tab.
- * Hides its content if it is not the currently active tab.
- *
- * @param props - The properties for the panel.
- * @returns The rendered tab panel.
- */
 function TabPanel(props: TabPanelProps) {
 	const { children, value, index, sx, ...other } = props;
 
@@ -60,14 +38,7 @@ function TabPanel(props: TabPanelProps) {
 			{...other}
 		>
 			{value === index && (
-				<Box
-					sx={{
-						height: "100%",
-						width: "100%",
-						overflow: "hidden",
-						p: 0,
-					}}
-				>
+				<Box sx={{ height: "100%", width: "100%", overflow: "hidden", p: 0 }}>
 					{children}
 				</Box>
 			)}
@@ -75,12 +46,6 @@ function TabPanel(props: TabPanelProps) {
 	);
 }
 
-/**
- * Generates the required accessibility attributes for a tab header.
- *
- * @param index - The index of the tab.
- * @returns An object containing the accessibility properties.
- */
 function a11yProps(index: number) {
 	return {
 		id: `simple-tab-${index}`,
@@ -88,23 +53,10 @@ function a11yProps(index: number) {
 	};
 }
 
-/**
- * A container component that provides a tabbed interface to switch between
- * the detailed production table and the high-level ship orders list.
- *
- * @param props - The properties required for rendering both views.
- * @returns The rendered tabbed interface.
- */
 const ShipProductionTabs: React.FC<ShipProductionTabsProps> = (props) => {
 	const { isMobile, processedOrders, ...tableProps } = props;
 	const [value, setValue] = useState(0);
 
-	/**
-	 * Handles the tab switching event.
-	 *
-	 * @param _event - The React synthetic event.
-	 * @param newValue - The index of the newly selected tab.
-	 */
 	const handleChange = useCallback(
 		(_event: React.SyntheticEvent, newValue: number) => {
 			setValue(newValue);
@@ -136,33 +88,35 @@ const ShipProductionTabs: React.FC<ShipProductionTabsProps> = (props) => {
 					onChange={handleChange}
 					aria-label="production tabs"
 					TabIndicatorProps={{
-						style: {
-							backgroundColor: "#7b68ee",
-						},
+						sx: { backgroundColor: "#7b68ee" },
 					}}
 					sx={{
-						"& .MuiTabs-flexContainer": {
-							justifyContent: "center",
-						},
+						"& .MuiTabs-flexContainer": { justifyContent: "center" },
 						"& .MuiTab-root": {
 							color: "rgba(255,255,255,0.7)",
 							fontWeight: "bold",
 						},
-						"& .Mui-selected": {
-							color: "#7b68ee",
-						},
+						"& .Mui-selected": { color: "#7b68ee" },
 					}}
 				>
 					<Tab label="Ship Production Table" {...a11yProps(0)} />
-					<Tab label="Ship Orders" {...a11yProps(1)} />
+					<Tab label="Builder Orders (New)" {...a11yProps(1)} />
+					<Tab label="Legacy Ship Orders" {...a11yProps(2)} />
 				</Tabs>
 			</Box>
 
+			{/* Tab 0: Original Data Matrix */}
 			<TabPanel value={value} index={0} sx={{ flexGrow: 1 }}>
 				<ShipProductionTable {...tableProps} />
 			</TabPanel>
 
+			{/* Tab 1: New Builder Dashboard */}
 			<TabPanel value={value} index={1} sx={{ flexGrow: 1 }}>
+				<BuilderOrdersDashboard />
+			</TabPanel>
+
+			{/* Tab 2: Original List View */}
+			<TabPanel value={value} index={2} sx={{ flexGrow: 1 }}>
 				<ShipOrders isMobile={isMobile} processedOrders={processedOrders} />
 			</TabPanel>
 		</Box>

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Box } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import { addDays } from "date-fns";
 import MaterialBalanceTable, { BalanceItem } from "./MaterialBalanceTable";
 import ShipProductionTabs from "./ShipProductionTabs";
 import { ShipOrder, ShipType, Part } from "./ShipOrders";
 import { SummaryDataItem } from "./ShipProductionTable";
+import ShipBuilder from "../../components/ShipBuilder/ShipBuilder";
+import { AddCircleOutlineOutlined } from "@mui/icons-material";
 
 /**
  * Array of part tickers that are explicitly filtered and tracked for production.
@@ -346,6 +348,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 	const [shipOrders, setShipOrders] = useState<ShipOrder[]>([]);
 	const [storageItems, setStorageItems] = useState<Part[]>([]);
 	const [selectedShipTypes, setSelectedShipTypes] = useState<string[]>(["all"]);
+	const [isBuildingView, setIsBuildingView] = useState(false);
 
 	/**
 	 * Fetches the current ship orders and available storage items from the API.
@@ -521,6 +524,14 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 		return balance;
 	}, [totalParts, storageItems]);
 
+	if (isBuildingView) {
+		return (
+			<Box sx={{ width: "100%", height: "100%", p: 2 }}>
+				<ShipBuilder onBack={() => setIsBuildingView(false)} />
+			</Box>
+		);
+	}
+
 	return (
 		<Box
 			id="Container-Box"
@@ -532,8 +543,24 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 				background: "transparent",
 			}}
 		>
-			<Box sx={{ height: "15%", minHeight: 0 }}>
+			<Box sx={{ minHeight: 0, mb: 2 }}>
 				<MaterialBalanceTable data={materialBalance} />
+			</Box>
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "center",
+					width: "100%",
+				}}
+			>
+				<Button
+					variant="contained"
+					color="primary"
+					startIcon={<AddCircleOutlineOutlined />}
+					onClick={() => setIsBuildingView(true)}
+				>
+					ORDER a Ship
+				</Button>
 			</Box>
 
 			<Box sx={{ height: "85%", minHeight: 0 }}>
