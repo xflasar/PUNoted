@@ -30,6 +30,7 @@ import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
 import type { OrderItem, Location } from "../types";
 import { formatCurrency } from "../../../Dashboard/Financial/utils/financeUtils";
 import { formatAmount } from "../../../utils/formaters";
+import { pickPrice } from "../utils/pickPrice";
 import MaterialBadge from "../../components/MaterialBadge";
 
 /**
@@ -188,10 +189,13 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 
 		const labelText = material.ordertype === "buy" ? "Demand" : "Reserve";
 		const isPriceLocked = Boolean(material.isPriceLocked);
-		const corpPrice = material.price?.corpprice ?? 0;
-		const displayPrice = isPriceLocked
-			? corpPrice
-			: (material.price?.fixedprice ?? material.fixedprice ?? 0);
+		const displayPrice = pickPrice({
+			fixedprice: isPriceLocked
+				? -1
+				: (material.price?.fixedprice ?? material.fixedprice),
+			corpprice: material.price?.corpprice,
+			cxprice: material.price?.cxprice,
+		}).price;
 		const totalAmount = currentLocations.reduce(
 			(sum: number, l: any) => sum + (l.amount || 0),
 			0,

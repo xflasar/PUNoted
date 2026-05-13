@@ -13,6 +13,7 @@ import { Search } from "@mui/icons-material";
 import OrderItemRow from "./OrderItemRow";
 import { useDebounce } from "../hooks/useDebounce";
 import type { OrderItem } from "../types";
+import { pickPrice } from "../utils/pickPrice";
 
 /**
  * Props for the AvailableMaterialsList component.
@@ -216,8 +217,11 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					</Box>
 				) : (
 					paginatedMaterials.map((material) => {
-						const corpPrice =
-							material.price?.corpprice ?? material.corpprice ?? 0;
+						const corpPrice = pickPrice({
+							fixedprice: -1,
+							corpprice: material.price?.corpprice ?? material.corpprice,
+							cxprice: material.price?.cxprice,
+						}).price;
 						const displayMaterial = {
 							...material,
 							fixedprice: corpPrice,

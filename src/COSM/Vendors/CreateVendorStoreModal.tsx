@@ -25,12 +25,14 @@ import { v4 as uuidv4 } from "uuid";
 import { PlusCircle } from "lucide-react";
 import React from "react";
 import MaterialBadge from "../components/MaterialBadge";
+import { pickPrice } from "./utils/pickPrice";
 
 // --- INTERFACES ---
 interface Material {
 	materialid: string;
 	ticker: string;
 	askprice: number;
+	corpprice?: number;
 	quantity: number;
 }
 
@@ -697,11 +699,16 @@ const VendorCreationModal: React.FC<{
 					const instoreMap = new Map<string, number>();
 					const availablematerials: OrderItem[] = data.materials.map(
 						(mat: Material) => {
+							const resolvedCorpPrice = pickPrice({
+								fixedprice: -1,
+								corpprice: mat.corpprice,
+								cxprice: mat.askprice,
+							}).price;
 							instoreMap.set(mat.materialid, mat.quantity); // Material ID -> Quantity
 							return {
 								materialid: mat.materialid,
 								materialticker: mat.ticker,
-								fixedprice: mat.askprice || 0,
+								fixedprice: resolvedCorpPrice,
 								frontendId: uuidv4(),
 								isDisabled: false,
 								instore: mat.quantity, // Initial quantity
