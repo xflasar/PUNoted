@@ -977,13 +977,7 @@ const ShoppingListModal: React.FC<{
 	vendors: VendorStore[];
 	isLoggedIn: boolean;
 	cxPriceLookup: CxPriceLookup;
-}> = ({
-	open,
-	handleClose,
-	vendors,
-	isLoggedIn,
-	cxPriceLookup,
-}) => {
+}> = ({ open, handleClose, vendors, isLoggedIn, cxPriceLookup }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
