@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import type { VendorStore, OrderItem, Location } from "../types";
+import { pickPrice } from "../utils/pickPrice";
 
 /**
  * Custom hook to manage the state of a vendor store, including its details, buy orders, and sell orders.
@@ -12,17 +13,21 @@ import type { VendorStore, OrderItem, Location } from "../types";
 export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 	const mapOrders = (orders: OrderItem[]) =>
 		orders.map((o) => {
-			const corpPrice = o.price?.corpprice || 0;
 			const isPriceLocked = o.price?.fixedprice === -1;
+			const resolvedPrice = pickPrice({
+				fixedprice: o.price?.fixedprice,
+				corpprice: o.price?.corpprice,
+				cxprice: o.price?.cxprice,
+			}).price;
 			return {
 				...o,
 				frontendId: o.orderid || uuidv4(),
 				isPriceLocked,
 				price: {
 					...o.price,
-					fixedprice: isPriceLocked ? corpPrice : o.price?.fixedprice || 0,
+					fixedprice: resolvedPrice,
 				},
-				fixedprice: isPriceLocked ? corpPrice : o.price?.fixedprice || 0,
+				fixedprice: resolvedPrice,
 			};
 		});
 
@@ -143,6 +148,11 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 				return;
 
 			const defaultLocation = CX_DEFAULT_LOCATIONS[localVendorDetails.cx] || "";
+			const defaultPrice = pickPrice({
+				fixedprice: -1,
+				corpprice: material.price?.corpprice,
+				cxprice: material.price?.cxprice,
+			}).price;
 
 			const newOrder: OrderItem = {
 				...material,
@@ -150,11 +160,11 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 				frontendId: uuidv4(),
 				isPriceLocked: true,
 				price: {
-					fixedprice: material.price?.corpprice || 0,
+					fixedprice: defaultPrice,
 					corpprice: material.price?.corpprice || 0,
 					cxprice: material.price?.cxprice || 0,
 				},
-				fixedprice: material.price?.corpprice || 0,
+				fixedprice: defaultPrice,
 				reserved: 0,
 				orderid: undefined,
 				location: defaultLocation ? [defaultLocation] : [],
@@ -218,9 +228,12 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 				const updateFn = (prev: OrderItem[]) =>
 					prev.map((o) => {
 						if (o.frontendId !== frontendId) return o;
-						const corpPrice = o.price?.corpprice || 0;
 						const nextFixedPrice = isLocked
-							? corpPrice
+							? pickPrice({
+									fixedprice: -1,
+									corpprice: o.price?.corpprice,
+									cxprice: o.price?.cxprice,
+								}).price
 							: o.price?.fixedprice || o.fixedprice || 0;
 						return {
 							...o,

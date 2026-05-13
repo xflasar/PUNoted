@@ -36,6 +36,7 @@ import { ContentCopy } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import PriceComparisonBadge from "./components/PriceComparisonBadge";
 import { getDiffStats } from "./utils/priceComparison";
+import { pickPrice } from "./utils/pickPrice";
 import MaterialBadge from "../components/MaterialBadge";
 
 // --- Types ---
@@ -120,6 +121,16 @@ const formatAmount = (a: number | null | undefined): string =>
 	a == null || isNaN(a)
 		? "N/A"
 		: new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(a);
+
+const getOrderPrice = (order: {
+	fixedprice?: number;
+	price?: { fixedprice?: number; corpprice?: number; cxprice?: number };
+}) =>
+	pickPrice({
+		fixedprice: order.price?.fixedprice ?? order.fixedprice,
+		corpprice: order.price?.corpprice,
+		cxprice: order.price?.cxprice,
+	});
 
 // --- COMPONENT: Debounced Input ---
 /**
@@ -206,7 +217,7 @@ const VendorPrioritySelector: React.FC<{
 			if (pA !== undefined && pB !== undefined) return pA - pB;
 			if (pA !== undefined) return -1;
 			if (pB !== undefined) return 1;
-			return a.fixedprice - b.fixedprice;
+			return getOrderPrice(a).price - getOrderPrice(b).price;
 		});
 	}, [availableVendors, currentPriority]);
 
@@ -236,9 +247,15 @@ const VendorPrioritySelector: React.FC<{
 		>
 			{sortedVendors.map((vendor, index) => {
 				const isFirst = index === 0;
+				const displayPrice = getOrderPrice(vendor).price;
 				const corpStats = getDiffStats(
-					vendor.fixedprice,
+					displayPrice,
 					vendor.price?.corpprice,
+					"ask",
+				);
+				const cxStats = getDiffStats(
+					displayPrice,
+					vendor.price?.cxprice,
 					"ask",
 				);
 				return (
@@ -290,13 +307,14 @@ const VendorPrioritySelector: React.FC<{
 								{corpStats && (
 									<PriceComparisonBadge label="COSM" stats={corpStats} />
 								)}
+								{cxStats && <PriceComparisonBadge label="CX" stats={cxStats} />}
 							</Box>
 							<Box sx={{ display: "flex", gap: 2 }}>
 								<Typography variant="caption" color="text.secondary">
 									Stock: {formatAmount(vendor.quantity)}
 								</Typography>
 								<Typography variant="caption" color="text.secondary">
-									Price: {formatPrice(vendor.fixedprice)}
+									Price: {formatPrice(displayPrice)}
 								</Typography>
 							</Box>
 						</Box>
@@ -366,7 +384,7 @@ const CompactListItem: React.FC<{
 				if (pA !== undefined && pB !== undefined) return pA - pB;
 				if (pA !== undefined) return -1;
 				if (pB !== undefined) return 1;
-				return a.fixedprice - b.fixedprice;
+				return getOrderPrice(a).price - getOrderPrice(b).price;
 			});
 
 			let remainingNeeded = item.quantity;
@@ -987,6 +1005,7 @@ const ShoppingListModal: React.FC<{
 					return {
 						...o,
 						quantity: actualAvailable,
+						fixedprice: getOrderPrice(o).price,
 						vendorid: v.vendor.vendorid,
 						vendorname: v.vendor.companyname,
 						gamename: v.vendor.gamename,
@@ -1003,7 +1022,7 @@ const ShoppingListModal: React.FC<{
 			map[o.materialticker].push(o);
 		});
 		Object.values(map).forEach((list) =>
-			list.sort((a, b) => a.fixedprice - b.fixedprice),
+			list.sort((a, b) => getOrderPrice(a).price - getOrderPrice(b).price),
 		);
 		return map;
 	}, [allSellOrders]);
@@ -1012,13 +1031,14 @@ const ShoppingListModal: React.FC<{
 	const availableMaterials = useMemo(() => {
 		const agg = allSellOrders.reduce(
 			(acc, order) => {
+				const orderPrice = getOrderPrice(order).price;
 				if (!acc[order.materialticker]) {
 					acc[order.materialticker] = {
 						...order,
 						total_instore: 0,
 						frontendId: uuidv4(),
-						minPrice: order.fixedprice,
-						maxPrice: order.fixedprice,
+						minPrice: orderPrice,
+						maxPrice: orderPrice,
 						vendors: new Set(), // Track unique vendors
 					};
 				}
@@ -1027,16 +1047,16 @@ const ShoppingListModal: React.FC<{
 				acc[order.materialticker].vendors.add(order.vendorid);
 
 				// Update Price Range
-				if (order.fixedprice < acc[order.materialticker].minPrice) {
-					acc[order.materialticker].minPrice = order.fixedprice;
+				if (orderPrice < acc[order.materialticker].minPrice) {
+					acc[order.materialticker].minPrice = orderPrice;
 				}
-				if (order.fixedprice > acc[order.materialticker].maxPrice) {
-					acc[order.materialticker].maxPrice = order.fixedprice;
+				if (orderPrice > acc[order.materialticker].maxPrice) {
+					acc[order.materialticker].maxPrice = orderPrice;
 				}
 
 				// Keep "fixedprice" as cheapest for default add
-				if (order.fixedprice < acc[order.materialticker].fixedprice) {
-					acc[order.materialticker].fixedprice = order.fixedprice;
+				if (orderPrice < acc[order.materialticker].fixedprice) {
+					acc[order.materialticker].fixedprice = orderPrice;
 				}
 				return acc;
 			},
@@ -1129,7 +1149,7 @@ const ShoppingListModal: React.FC<{
 						if (pA !== undefined && pB !== undefined) return pA - pB;
 						if (pA !== undefined) return -1;
 						if (pB !== undefined) return 1;
-						return a.fixedprice - b.fixedprice;
+						return getOrderPrice(a).price - getOrderPrice(b).price;
 					});
 				}
 
@@ -1139,14 +1159,15 @@ const ShoppingListModal: React.FC<{
 					if (order.quantity <= 0) continue;
 
 					const take = Math.min(needed, order.quantity);
+					const displayPrice = getOrderPrice(order).price;
 					summary.push({
 						vendorid: order.vendorid,
 						vendorname: order.vendorname,
 						gamename: order.gamename,
 						ticker: order.materialticker,
 						amount: take,
-						price: order.fixedprice,
-						totalPrice: take * order.fixedprice,
+						price: displayPrice,
+						totalPrice: take * displayPrice,
 					});
 					order.quantity -= take;
 					needed -= take;
