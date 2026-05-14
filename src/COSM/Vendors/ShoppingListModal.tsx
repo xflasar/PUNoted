@@ -69,9 +69,12 @@ export interface VendorStore {
 		vendorid: string;
 		companyname: string;
 		gamename: string;
+		cx?: string;
 	};
 	orders: OrderItem[];
 }
+
+type CxPriceLookup = Record<string, Record<string, unknown>>;
 
 /**
  * Represents an item added to the shopping list.
@@ -973,7 +976,8 @@ const ShoppingListModal: React.FC<{
 	handleClose: () => void;
 	vendors: VendorStore[];
 	isLoggedIn: boolean;
-}> = ({ open, handleClose, vendors, isLoggedIn }) => {
+	cxPriceLookup: CxPriceLookup;
+}> = ({ open, handleClose, vendors, isLoggedIn, cxPriceLookup }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -1001,6 +1005,10 @@ const ShoppingListModal: React.FC<{
 					const rawStock = o.available !== undefined ? o.available : o.quantity;
 					const reserved = o.reserved || 0;
 					const actualAvailable = Math.max(0, rawStock - reserved);
+					const sideKey = "IC1-AskPrice";
+					const rawCxValue =
+						cxPriceLookup[o.materialticker.trim().toUpperCase()]?.[sideKey];
+					const cxReferencePrice = Number(rawCxValue);
 
 					return {
 						...o,
@@ -1009,10 +1017,16 @@ const ShoppingListModal: React.FC<{
 						vendorid: v.vendor.vendorid,
 						vendorname: v.vendor.companyname,
 						gamename: v.vendor.gamename,
+						price: {
+							...o.price,
+							cxprice: Number.isFinite(cxReferencePrice)
+								? cxReferencePrice
+								: o.price?.cxprice,
+						},
 					};
 				}),
 		);
-	}, [vendors]);
+	}, [vendors, cxPriceLookup]);
 
 	// 2. Inventory Map Cache
 	const inventoryMap = useMemo(() => {

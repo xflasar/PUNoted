@@ -1862,6 +1862,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				handleClose={handleCloseShoppingListModal}
 				vendors={vendorStores}
 				isLoggedIn={loggedIn}
+				cxPriceLookup={cxPriceLookup}
 			/>
 		</Box>
 	);
