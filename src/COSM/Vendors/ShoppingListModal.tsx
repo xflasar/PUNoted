@@ -59,6 +59,13 @@ export interface OrderItem {
 		corpprice?: number;
 		cxprice?: number;
 	};
+	location?: Array<{
+		location_name?: string;
+		location_code?: string;
+		available?: number | null;
+		amount?: number | null;
+		storage_amount?: number | null;
+	}>;
 }
 
 /**
@@ -248,6 +255,13 @@ const VendorPrioritySelector: React.FC<{
 			{sortedVendors.map((vendor, index) => {
 				const isFirst = index === 0;
 				const displayPrice = getOrderPrice(vendor).price;
+				const locationEntries = (vendor.location || []).map((loc) => ({
+					label:
+						loc.location_name === loc.location_code
+							? loc.location_name
+							: `${loc.location_name} (${loc.location_code})`,
+					qty: loc.available ?? loc.amount ?? loc.storage_amount,
+				}));
 				const corpStats = getDiffStats(
 					displayPrice,
 					vendor.price?.corpprice,
@@ -309,13 +323,60 @@ const VendorPrioritySelector: React.FC<{
 								)}
 								{cxStats && <PriceComparisonBadge label="CX" stats={cxStats} />}
 							</Box>
-							<Box sx={{ display: "flex", gap: 2 }}>
+							<Box
+								sx={{
+									display: "flex",
+									gap: 2,
+									flexWrap: "wrap",
+									alignItems: "center",
+								}}
+							>
 								<Typography variant="caption" color="text.secondary">
-									Stock: {formatAmount(vendor.quantity)}
+									Price:{" "}
+									<Box
+										component="span"
+										sx={{
+											fontWeight: "bold",
+											color: theme.palette.warning.main,
+										}}
+									>
+										{displayPrice}
+									</Box>{" "}
+									ICA
 								</Typography>
-								<Typography variant="caption" color="text.secondary">
-									Price: {formatPrice(displayPrice)}
-								</Typography>
+								{locationEntries.length > 0 ? (
+									locationEntries.map((entry, entryIndex) => (
+										<Typography
+											key={`${vendor.vendorid}-${entryIndex}`}
+											variant="caption"
+											color="text.secondary"
+										>
+											{entry.label}:{" "}
+											<Box
+												component="span"
+												sx={{
+													fontWeight: "bold",
+													color: theme.palette.primary.light,
+												}}
+											>
+												{formatAmount(entry.qty)}
+											</Box>
+										</Typography>
+									))
+								) : (
+									<Typography variant="caption" color="text.secondary">
+										Stock:{" "}
+										<Box
+											component="span"
+											sx={{
+												fontWeight: "bold",
+												color: theme.palette.primary.light,
+											}}
+										>
+											{formatAmount(vendor.quantity)}
+										</Box>
+									</Typography>
+								)}
 							</Box>
 						</Box>
 
