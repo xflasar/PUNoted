@@ -186,7 +186,7 @@ const DebouncedInput: React.FC<{
 				}
 			}}
 			sx={{
-				width: "80px",
+				width: "128px",
 				"& .MuiInputBase-input": {
 					textAlign: "center",
 					py: 1,
