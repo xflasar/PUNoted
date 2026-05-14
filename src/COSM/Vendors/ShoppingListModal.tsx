@@ -1008,11 +1008,14 @@ const AvailableMaterialsPanel: React.FC<{
 						value={
 							selectedLocation === null
 								? null
-								: allLocations.find((option) => option.id === selectedLocation) ||
-									null
+								: allLocations.find(
+										(option) => option.id === selectedLocation,
+									) || null
 						}
 						onChange={(_e, newValue) => onChangeLocation(newValue?.id || null)}
-						getOptionLabel={(option) => formatLocationLabel(option.name, option.id)}
+						getOptionLabel={(option) =>
+							formatLocationLabel(option.name, option.id)
+						}
 						slotProps={{
 							paper: {
 								sx: {
@@ -1159,7 +1162,11 @@ const ShoppingListModal: React.FC<{
 				const locationMatches =
 					loc.location_code === selectedLocation ||
 					loc.location_name === selectedLocation;
-				return locationMatches && typeof loc.available === "number" && loc.available > 0;
+				return (
+					locationMatches &&
+					typeof loc.available === "number" &&
+					loc.available > 0
+				);
 			}),
 		);
 	}, [allSellOrders, selectedLocation]);
