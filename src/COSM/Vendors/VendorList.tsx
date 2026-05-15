@@ -43,6 +43,7 @@ import MaterialBadge from "../components/MaterialBadge";
 import { formatAmount } from "../../utils/formaters";
 import type { Location, VendorStore } from "./types";
 import { getDiffStats } from "./utils/priceComparison";
+import { pickPrice } from "./utils/pickPrice";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
 type LocationOption = { id: string; name: string };
@@ -104,11 +105,12 @@ const prepareVendorStore = (
 				const available = Reflect.get(item as object, "available");
 				const displayQuantity =
 					typeof available === "number" ? available : item.quantity;
-				const corpPrice = item.price?.corpprice ?? 0;
-				const fixedPrice =
-					item.price?.fixedprice === -1
-						? corpPrice
-						: (item.price?.fixedprice ?? 0);
+				const resolvedPrice = pickPrice({
+					fixedprice: item.price?.fixedprice,
+					corpprice: item.price?.corpprice,
+					cxprice: item.price?.cxprice,
+				});
+				const fixedPrice = resolvedPrice.price;
 				const sideKey = `${normalizedExchange}-${orderType === "sell" ? "AskPrice" : "BidPrice"}`;
 				const rawCxValue =
 					cxPriceLookup[item.materialticker.trim().toUpperCase()]?.[sideKey];
@@ -1860,6 +1862,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				handleClose={handleCloseShoppingListModal}
 				vendors={vendorStores}
 				isLoggedIn={loggedIn}
+				cxPriceLookup={cxPriceLookup}
 			/>
 		</Box>
 	);

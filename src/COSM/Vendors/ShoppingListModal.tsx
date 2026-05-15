@@ -4,6 +4,7 @@ import {
 	DialogTitle,
 	DialogContent,
 	DialogActions,
+	Autocomplete,
 	Box,
 	Typography,
 	TextField,
@@ -36,6 +37,7 @@ import { ContentCopy } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import PriceComparisonBadge from "./components/PriceComparisonBadge";
 import { getDiffStats } from "./utils/priceComparison";
+import { pickPrice } from "./utils/pickPrice";
 import MaterialBadge from "../components/MaterialBadge";
 
 // --- Types ---
@@ -58,6 +60,13 @@ export interface OrderItem {
 		corpprice?: number;
 		cxprice?: number;
 	};
+	location?: Array<{
+		location_name?: string;
+		location_code?: string;
+		available?: number | null;
+		amount?: number | null;
+		storage_amount?: number | null;
+	}>;
 }
 
 /**
@@ -68,9 +77,12 @@ export interface VendorStore {
 		vendorid: string;
 		companyname: string;
 		gamename: string;
+		cx?: string;
 	};
 	orders: OrderItem[];
 }
+
+type CxPriceLookup = Record<string, Record<string, unknown>>;
 
 /**
  * Represents an item added to the shopping list.
@@ -96,6 +108,7 @@ interface ShoppingSummaryItem {
 	price: number;
 	totalPrice: number;
 }
+type LocationOption = { id: string; name: string };
 
 // --- Formatters ---
 /**
@@ -120,6 +133,18 @@ const formatAmount = (a: number | null | undefined): string =>
 	a == null || isNaN(a)
 		? "N/A"
 		: new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(a);
+const formatLocationLabel = (name: string, id: string): string =>
+	name === id ? name : `${name} (${id})`;
+
+const getOrderPrice = (order: {
+	fixedprice?: number;
+	price?: { fixedprice?: number; corpprice?: number; cxprice?: number };
+}) =>
+	pickPrice({
+		fixedprice: order.price?.fixedprice ?? order.fixedprice,
+		corpprice: order.price?.corpprice,
+		cxprice: order.price?.cxprice,
+	});
 
 // --- COMPONENT: Debounced Input ---
 /**
@@ -164,7 +189,7 @@ const DebouncedInput: React.FC<{
 				}
 			}}
 			sx={{
-				width: "80px",
+				width: "128px",
 				"& .MuiInputBase-input": {
 					textAlign: "center",
 					py: 1,
@@ -206,7 +231,7 @@ const VendorPrioritySelector: React.FC<{
 			if (pA !== undefined && pB !== undefined) return pA - pB;
 			if (pA !== undefined) return -1;
 			if (pB !== undefined) return 1;
-			return a.fixedprice - b.fixedprice;
+			return getOrderPrice(a).price - getOrderPrice(b).price;
 		});
 	}, [availableVendors, currentPriority]);
 
@@ -236,9 +261,22 @@ const VendorPrioritySelector: React.FC<{
 		>
 			{sortedVendors.map((vendor, index) => {
 				const isFirst = index === 0;
+				const displayPrice = getOrderPrice(vendor).price;
+				const locationEntries = (vendor.location || []).map((loc) => ({
+					label:
+						loc.location_name === loc.location_code
+							? loc.location_name
+							: `${loc.location_name} (${loc.location_code})`,
+					qty: loc.available ?? loc.amount ?? loc.storage_amount,
+				}));
 				const corpStats = getDiffStats(
-					vendor.fixedprice,
+					displayPrice,
 					vendor.price?.corpprice,
+					"ask",
+				);
+				const cxStats = getDiffStats(
+					displayPrice,
+					vendor.price?.cxprice,
 					"ask",
 				);
 				return (
@@ -290,14 +328,62 @@ const VendorPrioritySelector: React.FC<{
 								{corpStats && (
 									<PriceComparisonBadge label="COSM" stats={corpStats} />
 								)}
+								{cxStats && <PriceComparisonBadge label="CX" stats={cxStats} />}
 							</Box>
-							<Box sx={{ display: "flex", gap: 2 }}>
+							<Box
+								sx={{
+									display: "flex",
+									gap: 2,
+									flexWrap: "wrap",
+									alignItems: "center",
+								}}
+							>
 								<Typography variant="caption" color="text.secondary">
-									Stock: {formatAmount(vendor.quantity)}
+									Price:{" "}
+									<Box
+										component="span"
+										sx={{
+											fontWeight: "bold",
+											color: theme.palette.warning.main,
+										}}
+									>
+										{displayPrice}
+									</Box>{" "}
+									ICA
 								</Typography>
-								<Typography variant="caption" color="text.secondary">
-									Price: {formatPrice(vendor.fixedprice)}
-								</Typography>
+								{locationEntries.length > 0 ? (
+									locationEntries.map((entry, entryIndex) => (
+										<Typography
+											key={`${vendor.vendorid}-${entryIndex}`}
+											variant="caption"
+											color="text.secondary"
+										>
+											{entry.label}:{" "}
+											<Box
+												component="span"
+												sx={{
+													fontWeight: "bold",
+													color: theme.palette.primary.light,
+												}}
+											>
+												{formatAmount(entry.qty)}
+											</Box>
+										</Typography>
+									))
+								) : (
+									<Typography variant="caption" color="text.secondary">
+										Stock:{" "}
+										<Box
+											component="span"
+											sx={{
+												fontWeight: "bold",
+												color: theme.palette.primary.light,
+											}}
+										>
+											{formatAmount(vendor.quantity)}
+										</Box>
+									</Typography>
+								)}
 							</Box>
 						</Box>
 
@@ -366,7 +452,7 @@ const CompactListItem: React.FC<{
 				if (pA !== undefined && pB !== undefined) return pA - pB;
 				if (pA !== undefined) return -1;
 				if (pB !== undefined) return 1;
-				return a.fixedprice - b.fixedprice;
+				return getOrderPrice(a).price - getOrderPrice(b).price;
 			});
 
 			let remainingNeeded = item.quantity;
@@ -791,6 +877,9 @@ const AvailableMaterialsPanel: React.FC<{
 	materials: any[];
 	selectedTickers: Set<string>;
 	onAdd: (m: any) => void;
+	allLocations: LocationOption[];
+	selectedLocation: string | null;
+	onChangeLocation: (next: string | null) => void;
 	isMobile?: boolean;
 	onCloseMobile?: () => void;
 	isCollapsed?: boolean;
@@ -800,6 +889,9 @@ const AvailableMaterialsPanel: React.FC<{
 		materials,
 		selectedTickers,
 		onAdd,
+		allLocations,
+		selectedLocation,
+		onChangeLocation,
 		isMobile,
 		onCloseMobile,
 		isCollapsed,
@@ -897,7 +989,7 @@ const AvailableMaterialsPanel: React.FC<{
 					<TextField
 						fullWidth
 						variant="outlined"
-						placeholder="Search ticker..."
+						placeholder="Search Materials..."
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						size="small"
@@ -905,8 +997,57 @@ const AvailableMaterialsPanel: React.FC<{
 							startAdornment: (
 								<Search size={16} style={{ marginRight: 8, opacity: 0.5 }} />
 							),
-							sx: { borderRadius: 4, bgcolor: "rgba(0,0,0,0.2)" },
 						}}
+						sx={{
+							"& .MuiOutlinedInput-root": {
+								bgcolor: "rgba(0,0,0,0.15)",
+								borderRadius: "12px",
+							},
+						}}
+					/>
+					<Autocomplete<LocationOption, false, false, false>
+						size="small"
+						options={allLocations}
+						value={
+							selectedLocation === null
+								? null
+								: allLocations.find(
+										(option) => option.id === selectedLocation,
+									) || null
+						}
+						onChange={(_e, newValue) => onChangeLocation(newValue?.id || null)}
+						getOptionLabel={(option) =>
+							formatLocationLabel(option.name, option.id)
+						}
+						slotProps={{
+							paper: {
+								sx: {
+									bgcolor: "background.default",
+									backgroundImage: "none",
+								},
+							},
+						}}
+						sx={{
+							mt: 1,
+							"& .MuiAutocomplete-clearIndicator": {
+								visibility: selectedLocation ? "visible" : "hidden",
+								opacity: selectedLocation ? 1 : 0,
+							},
+						}}
+						renderInput={(params) => (
+							<TextField
+								{...params}
+								variant="outlined"
+								placeholder="All Locations"
+								sx={{
+									"& .MuiOutlinedInput-root": {
+										height: 40,
+										bgcolor: "rgba(0,0,0,0.2)",
+										borderRadius: "12px",
+									},
+								}}
+							/>
+						)}
 					/>
 				</Box>
 
@@ -955,7 +1096,8 @@ const ShoppingListModal: React.FC<{
 	handleClose: () => void;
 	vendors: VendorStore[];
 	isLoggedIn: boolean;
-}> = ({ open, handleClose, vendors, isLoggedIn }) => {
+	cxPriceLookup: CxPriceLookup;
+}> = ({ open, handleClose, vendors, isLoggedIn, cxPriceLookup }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -973,6 +1115,7 @@ const ShoppingListModal: React.FC<{
 	const [isSelectionOpen, setIsSelectionOpen] = useState(true);
 	const [isSummaryOpen, setIsSummaryOpen] = useState(true);
 	const [isMaterialsOpen, setIsMaterialsOpen] = useState(true);
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
 	// 1. Memoize All Sell Orders
 	const allSellOrders = useMemo(() => {
@@ -983,17 +1126,64 @@ const ShoppingListModal: React.FC<{
 					const rawStock = o.available !== undefined ? o.available : o.quantity;
 					const reserved = o.reserved || 0;
 					const actualAvailable = Math.max(0, rawStock - reserved);
+					const sideKey = "IC1-AskPrice";
+					const rawCxValue =
+						cxPriceLookup[o.materialticker.trim().toUpperCase()]?.[sideKey];
+					const cxReferencePrice = Number(rawCxValue);
 
 					return {
 						...o,
 						quantity: actualAvailable,
+						fixedprice: getOrderPrice(o).price,
 						vendorid: v.vendor.vendorid,
 						vendorname: v.vendor.companyname,
 						gamename: v.vendor.gamename,
+						price: {
+							...o.price,
+							cxprice: Number.isFinite(cxReferencePrice)
+								? cxReferencePrice
+								: o.price?.cxprice,
+						},
 					};
 				}),
 		);
-	}, [vendors]);
+	}, [vendors, cxPriceLookup]);
+
+	const allLocations = useMemo(() => {
+		const locs = new Map<string, LocationOption>();
+		allSellOrders.forEach((order) => {
+			order.location?.forEach((loc) => {
+				if (!(typeof loc.available === "number" && loc.available > 0)) return;
+				const optionId = loc.location_code || loc.location_name;
+				if (!optionId) return;
+				locs.set(optionId, {
+					id: optionId,
+					name: loc.location_name || optionId,
+				});
+			});
+		});
+		return [...locs.values()].sort((a, b) =>
+			formatLocationLabel(a.name, a.id).localeCompare(
+				formatLocationLabel(b.name, b.id),
+			),
+		);
+	}, [allSellOrders]);
+
+	const locationFilteredSellOrders = useMemo(() => {
+		if (selectedLocation === null) return allSellOrders;
+		return allSellOrders.filter((order) =>
+			order.location?.some((loc) => {
+				const locationMatches =
+					loc.location_code === selectedLocation ||
+					loc.location_name === selectedLocation;
+				return (
+					locationMatches &&
+					typeof loc.available === "number" &&
+					loc.available > 0
+				);
+			}),
+		);
+	}, [allSellOrders, selectedLocation]);
 
 	// 2. Inventory Map Cache
 	const inventoryMap = useMemo(() => {
@@ -1003,22 +1193,23 @@ const ShoppingListModal: React.FC<{
 			map[o.materialticker].push(o);
 		});
 		Object.values(map).forEach((list) =>
-			list.sort((a, b) => a.fixedprice - b.fixedprice),
+			list.sort((a, b) => getOrderPrice(a).price - getOrderPrice(b).price),
 		);
 		return map;
 	}, [allSellOrders]);
 
 	// 3. Aggregate for Available Materials (Min/Max + Vendor Count)
 	const availableMaterials = useMemo(() => {
-		const agg = allSellOrders.reduce(
+		const agg = locationFilteredSellOrders.reduce(
 			(acc, order) => {
+				const orderPrice = getOrderPrice(order).price;
 				if (!acc[order.materialticker]) {
 					acc[order.materialticker] = {
 						...order,
 						total_instore: 0,
 						frontendId: uuidv4(),
-						minPrice: order.fixedprice,
-						maxPrice: order.fixedprice,
+						minPrice: orderPrice,
+						maxPrice: orderPrice,
 						vendors: new Set(), // Track unique vendors
 					};
 				}
@@ -1027,16 +1218,16 @@ const ShoppingListModal: React.FC<{
 				acc[order.materialticker].vendors.add(order.vendorid);
 
 				// Update Price Range
-				if (order.fixedprice < acc[order.materialticker].minPrice) {
-					acc[order.materialticker].minPrice = order.fixedprice;
+				if (orderPrice < acc[order.materialticker].minPrice) {
+					acc[order.materialticker].minPrice = orderPrice;
 				}
-				if (order.fixedprice > acc[order.materialticker].maxPrice) {
-					acc[order.materialticker].maxPrice = order.fixedprice;
+				if (orderPrice > acc[order.materialticker].maxPrice) {
+					acc[order.materialticker].maxPrice = orderPrice;
 				}
 
 				// Keep "fixedprice" as cheapest for default add
-				if (order.fixedprice < acc[order.materialticker].fixedprice) {
-					acc[order.materialticker].fixedprice = order.fixedprice;
+				if (orderPrice < acc[order.materialticker].fixedprice) {
+					acc[order.materialticker].fixedprice = orderPrice;
 				}
 				return acc;
 			},
@@ -1048,7 +1239,7 @@ const ShoppingListModal: React.FC<{
 			...item,
 			vendorCount: item.vendors.size,
 		}));
-	}, [allSellOrders]);
+	}, [locationFilteredSellOrders]);
 
 	// 4. Selected Tickers Set
 	const selectedTickers = useMemo(
@@ -1129,7 +1320,7 @@ const ShoppingListModal: React.FC<{
 						if (pA !== undefined && pB !== undefined) return pA - pB;
 						if (pA !== undefined) return -1;
 						if (pB !== undefined) return 1;
-						return a.fixedprice - b.fixedprice;
+						return getOrderPrice(a).price - getOrderPrice(b).price;
 					});
 				}
 
@@ -1139,14 +1330,15 @@ const ShoppingListModal: React.FC<{
 					if (order.quantity <= 0) continue;
 
 					const take = Math.min(needed, order.quantity);
+					const displayPrice = getOrderPrice(order).price;
 					summary.push({
 						vendorid: order.vendorid,
 						vendorname: order.vendorname,
 						gamename: order.gamename,
 						ticker: order.materialticker,
 						amount: take,
-						price: order.fixedprice,
-						totalPrice: take * order.fixedprice,
+						price: displayPrice,
+						totalPrice: take * displayPrice,
 					});
 					order.quantity -= take;
 					needed -= take;
@@ -1563,6 +1755,9 @@ const ShoppingListModal: React.FC<{
 									materials={availableMaterials}
 									selectedTickers={selectedTickers}
 									onAdd={handleAdd}
+									allLocations={allLocations}
+									selectedLocation={selectedLocation}
+									onChangeLocation={setSelectedLocation}
 									isCollapsed={!isMaterialsOpen}
 									onToggleCollapse={() => setIsMaterialsOpen(!isMaterialsOpen)}
 								/>
@@ -1592,6 +1787,9 @@ const ShoppingListModal: React.FC<{
 						materials={availableMaterials}
 						selectedTickers={selectedTickers}
 						onAdd={handleAdd}
+						allLocations={allLocations}
+						selectedLocation={selectedLocation}
+						onChangeLocation={setSelectedLocation}
 						isMobile
 						onCloseMobile={() => setShowMobileAdd(false)}
 					/>

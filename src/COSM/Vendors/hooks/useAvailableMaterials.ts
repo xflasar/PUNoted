@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { OrderItem } from "../types";
+import { pickPrice } from "../utils/pickPrice";
 
 /**
  * Parses the FIO inventory CSV based on the fixed column format provided:
@@ -75,11 +76,16 @@ export function useAvailableMaterials(
 				const instoreMap = new Map<string, number>();
 				const availableMaterials: OrderItem[] = data.materials.map(
 					(mat: any) => {
+						const resolvedCorpPrice = pickPrice({
+							fixedprice: -1,
+							corpprice: mat.corpprice,
+							cxprice: mat.askprice,
+						}).price;
 						instoreMap.set(mat.materialid, mat.quantity);
 						return {
 							materialid: mat.materialid,
 							materialticker: mat.ticker,
-							fixedprice: mat.askprice || 0,
+							fixedprice: resolvedCorpPrice,
 							corpprice: mat.corpprice || 0,
 							frontendId: mat.materialid,
 							isDisabled: false,
@@ -87,7 +93,7 @@ export function useAvailableMaterials(
 							reserved: 0,
 							quantity: 0,
 							price: {
-								fixedprice: mat.askprice || 0,
+								fixedprice: resolvedCorpPrice,
 								cxprice: mat.askprice || 0,
 								corpprice: mat.corpprice || 0,
 							},
