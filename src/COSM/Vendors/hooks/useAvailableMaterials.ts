@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "../../../config/api";
 import type { OrderItem } from "../types";
 import { pickPrice } from "../utils/pickPrice";
 
@@ -58,7 +59,7 @@ export function useAvailableMaterials(
 		const fetchMaterials = async () => {
 			try {
 				const response = await fetch(
-					"https://api.punoted.net/materials_price_list",
+					`${API_BASE_URL}materials_price_list`,
 					{
 						method: "POST",
 						headers: {

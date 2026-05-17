@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "../../../../config/api";
 import type {
 	MapPoint,
 	Sector,
@@ -61,7 +62,7 @@ export const useMapData = () => {
 			setIsLoading(true);
 			setFetchError(null);
 			try {
-				const res = await fetch(`https://api.punoted.net/dashboard_map`);
+				const res = await fetch(`${API_BASE_URL}dashboard_map`);
 				if (!res.ok) throw new Error(`status ${res.status}`);
 				const json = await res.json();
 				const data = json.data;

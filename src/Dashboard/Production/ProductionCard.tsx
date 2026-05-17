@@ -19,15 +19,13 @@ import {
 	Archive,
 	ArrowUpCircle,
 	ArrowDownCircle,
-	Clock,
 	Package,
+	Handshake,
 } from "lucide-react";
 import { SiteSummary, FlowData } from "./types";
 
-// --- HELPERS ---
 const formatFlow = (val: number) => `${val > 0 ? "+" : ""}${val.toFixed(1)}`;
 
-// Smart Formatter for Need values
 const smartFormat = (val: number) => {
 	if (val >= 1000000) {
 		return {
@@ -63,7 +61,6 @@ export const ProductionCard = React.memo(
 	}: ProductionCardProps) => {
 		const theme = useTheme();
 
-		// --- MEMOIZED CALCULATIONS ---
 		const {
 			productionList,
 			consumptionList,
@@ -76,7 +73,6 @@ export const ProductionCard = React.memo(
 			let minDays = 999;
 			const products = new Set<string>();
 
-			// 1. Process Flows
 			Object.values(richFlows)
 				.sort((a, b) => a.ticker.localeCompare(b.ticker))
 				.forEach((f) => {
@@ -87,19 +83,15 @@ export const ProductionCard = React.memo(
 						const daysLeft = f.currentAmount / dailyBurn;
 						const targetAmount = dailyBurn * targetDays;
 						const missing = Math.max(0, targetAmount - f.currentAmount);
-
 						if (daysLeft < minDays) minDays = daysLeft;
-
 						cons.push({ ...f, daysRemaining: daysLeft, missing });
 					}
 				});
 
-			// 2. Status Color
 			let color = theme.palette.success.main;
 			if (minDays < targetDays / 5) color = theme.palette.error.main;
 			else if (minDays < targetDays) color = theme.palette.warning.main;
 
-			// 3. Active Lines Summary
 			let linesCount = 0;
 			site.production_lines.forEach((l) => {
 				if (l.production_orders.length > 0) {
@@ -119,7 +111,7 @@ export const ProductionCard = React.memo(
 				consumptionList: cons,
 				statusColor: color,
 				activeLines: linesCount,
-				activeProducts: Array.from(products).slice(0, 5), // Limit to 5 products
+				activeProducts: Array.from(products).slice(0, 5),
 			};
 		}, [richFlows, site.production_lines, targetDays, theme]);
 
@@ -130,6 +122,10 @@ export const ProductionCard = React.memo(
 					? theme.palette.warning.main
 					: theme.palette.error.main;
 
+		// Make leased cards visually distinct with a dashed border
+		const borderStyle = site.isLeased ? "dashed" : "solid";
+		const borderWidth = site.isLeased ? "2px" : "1px";
+
 		return (
 			<Paper
 				onClick={() => onSelect(siteId)}
@@ -139,8 +135,11 @@ export const ProductionCard = React.memo(
 					flexDirection: "column",
 					borderRadius: 2,
 					overflow: "hidden",
-					border: `1px solid ${alpha(statusColor, 0.4)}`,
-					bgcolor: alpha(theme.palette.background.default, 0.6),
+					border: `${borderWidth} ${borderStyle} ${alpha(statusColor, site.isLeased ? 0.6 : 0.4)}`,
+					bgcolor: alpha(
+						theme.palette.background.default,
+						site.isLeased ? 0.4 : 0.6,
+					),
 					backdropFilter: "blur(12px)",
 					transition: "all 0.1s ease",
 					cursor: "pointer",
@@ -156,7 +155,7 @@ export const ProductionCard = React.memo(
 				<Box
 					sx={{
 						px: 1.5,
-						py: 0.75, // Extra compact header
+						py: 0.75,
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
@@ -170,6 +169,7 @@ export const ProductionCard = React.memo(
 							alignItems: "center",
 							gap: 1,
 							overflow: "hidden",
+							flexWrap: "wrap",
 						}}
 					>
 						<MapPin size={16} color={statusColor} />
@@ -184,6 +184,24 @@ export const ProductionCard = React.memo(
 								? site.planet_name
 								: `${site.planet_name_alt} (${site.planet_name})`}
 						</Typography>
+
+						{/* NEW: Tenant Indicator for Leased Sites */}
+						{site.isLeased && site.tenant && (
+							<Chip
+								icon={<Handshake size={12} />}
+								label={site.tenant}
+								size="small"
+								color="info"
+								variant="outlined"
+								sx={{
+									height: 20,
+									fontSize: "0.65rem",
+									fontWeight: 700,
+									bgcolor: alpha(theme.palette.info.main, 0.1),
+									border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
+								}}
+							/>
+						)}
 					</Box>
 					<Chip
 						icon={<Flame size={10} />}
@@ -303,7 +321,6 @@ export const ProductionCard = React.memo(
 
 					{/* --- DATA SECTION --- */}
 					<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-						{/* 1. PRODUCTION LIST */}
 						{productionList.length > 0 && (
 							<Box>
 								<Typography
@@ -321,7 +338,6 @@ export const ProductionCard = React.memo(
 								>
 									<ArrowUpCircle size={14} /> PRODUCTION
 								</Typography>
-
 								<Box sx={{ display: "grid", gap: 0.25 }}>
 									{productionList.map((p) => (
 										<Box
@@ -358,7 +374,6 @@ export const ProductionCard = React.memo(
 							</Box>
 						)}
 
-						{/* 2. CONSUMPTION LIST */}
 						{consumptionList.length > 0 && (
 							<Box>
 								<Typography
@@ -376,7 +391,6 @@ export const ProductionCard = React.memo(
 								>
 									<ArrowDownCircle size={14} /> CONSUMPTION
 								</Typography>
-
 								<Box sx={{ display: "grid", gap: 0.25 }}>
 									{consumptionList.map((c) => {
 										const isCritical = c.daysRemaining < targetDays / 5;
@@ -386,8 +400,6 @@ export const ProductionCard = React.memo(
 											: isWarning
 												? "warning.main"
 												: "success.main";
-
-										// Smart Format for Need
 										const {
 											text: needText,
 											full: needFull,
@@ -399,17 +411,14 @@ export const ProductionCard = React.memo(
 												key={c.ticker}
 												sx={{
 													display: "grid",
-													// COLUMNS: Ticker (3ch) | Flow (Flex) | Days (Compact) | Need (Flex)
-													// Using minmax(0, 1fr) for flex columns ensures they don't overflow
 													gridTemplateColumns:
 														"40px minmax(0, 1fr) min-content minmax(0, 1fr)",
 													alignItems: "center",
-													gap: 1, // Space between columns
+													gap: 1,
 													py: 0.15,
 													borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
 												}}
 											>
-												{/* 1. Ticker */}
 												<Typography
 													variant="caption"
 													fontWeight={600}
@@ -419,8 +428,6 @@ export const ProductionCard = React.memo(
 												>
 													{c.ticker}
 												</Typography>
-
-												{/* 2. Flow Rate (Responsive) */}
 												<Typography
 													variant="caption"
 													color="text.secondary"
@@ -430,8 +437,6 @@ export const ProductionCard = React.memo(
 												>
 													{formatFlow(c.flow)}
 												</Typography>
-
-												{/* 3. Days (Small fixed) */}
 												<Tooltip title="Days remaining">
 													<Typography
 														variant="caption"
@@ -449,8 +454,6 @@ export const ProductionCard = React.memo(
 															: `${c.daysRemaining.toFixed(1)}d`}
 													</Typography>
 												</Tooltip>
-
-												{/* 4. Need Value (Responsive) */}
 												<Box
 													sx={{ display: "flex", justifyContent: "flex-end" }}
 												>
@@ -524,7 +527,6 @@ export const ProductionCard = React.memo(
 							{site.production_lines.length} Lines
 						</Typography>
 					</Box>
-
 					{activeLines > 0 ? (
 						<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
 							<Box

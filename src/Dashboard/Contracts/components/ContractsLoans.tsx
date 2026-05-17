@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../../config/api";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
 	Box,
@@ -135,7 +136,7 @@ const ContractsLoans: React.FC<{ onViewDetail: (id: string) => void }> = ({
 			setLoading(true);
 			try {
 				const res = await fetch(
-					`https://punoted.ddns.net/dev/api/internal/contracts/loans?status=ALL`,
+					`${API_BASE_URL}api/internal/contracts/loans?status=ALL`,
 					{
 						method: "POST",
 						headers: {

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../../config/api";
 import { useState, useEffect, useMemo } from "react";
 import type {
 	FinancialPayload,
@@ -19,7 +20,7 @@ export const useFinancialData = () => {
 			if (!token) throw new Error("No authentication token found.");
 
 			const response = await fetch(
-				"https://api.punoted.net/dev/internal/finances/overview",
+				`${API_BASE_URL}internal/finances/overview`,
 				{
 					headers: { Authorization: `Bearer ${token}` },
 				},

@@ -1,6 +1,6 @@
+import { API_BASE_URL } from "../../../config/api";
 import type { Chain, FullGroupData, Group } from "./types";
 
-const API_BASE_URL = "https://api.punoted.net/groups";
 
 // Helper to handle standard fetch responses and throw errors
 const handleResponse = async (response: Response) => {
@@ -20,7 +20,7 @@ const handleResponse = async (response: Response) => {
 export const fetchAllGroups = async (): Promise<FullGroupData[]> => {
 	// NOTE: If your backend uses the user ID from a token, you can omit the query param.
 	// If your backend relies on the query param (as per the code shown), use it:
-	const response = await fetch(`${API_BASE_URL}`, {
+	const response = await fetch(`${API_BASE_URL}groups`, {
 		method: "GET",
 		headers: {
 			// Include Authorization header if using token-based auth
@@ -49,7 +49,7 @@ export const changeUserRole = async (
 	newRole: "editor" | "viewer",
 ) => {
 	const response = await fetch(
-		`https://api.punoted.net/groups/${groupId}/members/${memberId}/role`,
+		`${API_BASE_URL}groups/${groupId}/members/${memberId}/role`,
 		{
 			method: "PUT",
 			headers: {
@@ -76,7 +76,7 @@ export const changeUserRole = async (
  * Corresponds to POST /api/groups
  */
 export const createGroup = async (group: Group): Promise<Group> => {
-	const response = await fetch(`${API_BASE_URL}`, {
+	const response = await fetch(`${API_BASE_URL}groups`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -107,7 +107,7 @@ export const saveChainData = async (
 		chain_data: chainData, // Only send the chain data
 	};
 
-	const response = await fetch(`${API_BASE_URL}/${groupId}/save_chain`, {
+	const response = await fetch(`${API_BASE_URL}groups/${groupId}/save_chain`, {
 		// Updated endpoint
 		method: "POST",
 		headers: {
@@ -135,7 +135,7 @@ export const sendBeaconFinalSave = (groupId: string, chainData: Chain) => {
 
 	// NOTE: sendBeacon may require the backend to use cookie/session auth
 	// as custom headers (like Authorization) are often stripped during unload.
-	navigator.sendBeacon(`${API_BASE_URL}/${groupId}/save_chain`, blob);
+	navigator.sendBeacon(`${API_BASE_URL}groups/${groupId}/save_chain`, blob);
 };
 
 // --- Group Deletion ---
@@ -152,7 +152,7 @@ export const deleteGroup = async (
 		user_id: userId,
 	};
 
-	const response = await fetch(`${API_BASE_URL}/${groupId}`, {
+	const response = await fetch(`${API_BASE_URL}groups/${groupId}`, {
 		method: "DELETE",
 		headers: {
 			"Content-Type": "application/json",
@@ -167,7 +167,7 @@ export const deleteGroup = async (
  * Accepts a pending group invitation.
  */
 export const acceptGroupInvite = async (groupId: string): Promise<void> => {
-	const response = await fetch(`${API_BASE_URL}/${groupId}/invite/accept`, {
+	const response = await fetch(`${API_BASE_URL}groups/${groupId}/invite/accept`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -181,7 +181,7 @@ export const acceptGroupInvite = async (groupId: string): Promise<void> => {
  * Rejects a pending group invitation.
  */
 export const rejectGroupInvite = async (groupId: string): Promise<void> => {
-	const response = await fetch(`${API_BASE_URL}/${groupId}/invite/reject`, {
+	const response = await fetch(`${API_BASE_URL}groups/${groupId}/invite/reject`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -199,7 +199,7 @@ export const fetchNodeLiveData = async (
 	planetId: string,
 	materialTicker: string,
 ): Promise<{ userFlows: any[]; userStorage: any[] }> => {
-	const url = new URL(`${API_BASE_URL}/${groupId}/live-node-data`);
+	const url = new URL(`${API_BASE_URL}groups/${groupId}/live-node-data`);
 	url.searchParams.append("planet_id", planetId);
 	url.searchParams.append("material", materialTicker);
 

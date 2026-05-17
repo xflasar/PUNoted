@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../config/api";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
 	Box,
@@ -7,15 +8,25 @@ import {
 	TextField,
 	InputAdornment,
 	Drawer,
-	Grid,
 	useTheme,
 	alpha,
 	Divider,
 	Collapse,
 	Button,
+	ToggleButtonGroup,
+	ToggleButton,
+	Autocomplete,
+	Chip,
 } from "@mui/material";
 import { Masonry } from "@mui/lab";
-import { Search, Factory, ChevronDown, ChevronUp, Globe } from "lucide-react";
+import {
+	Search,
+	Factory,
+	ChevronDown,
+	ChevronUp,
+	Globe,
+	Handshake,
+} from "lucide-react";
 
 import { ProductionCard } from "./ProductionCard";
 import type {
@@ -43,6 +54,12 @@ const ProductionDashboard: React.FC = () => {
 	const [siteTargets, setSiteTargets] = useState<Record<string, number>>({});
 	const [summaryOpen, setSummaryOpen] = useState(false);
 
+	// --- FILTER STATE ---
+	const [leaseFilter, setLeaseFilter] = useState<"all" | "owned" | "leased">(
+		"all",
+	);
+	const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
+
 	// --- LOAD DATA ---
 	useEffect(() => {
 		const fetchData = async () => {
@@ -50,10 +67,13 @@ const ProductionDashboard: React.FC = () => {
 				const token = localStorage.getItem("authToken");
 				const headers = { Authorization: `Bearer ${token}` };
 				const [prodRes, workRes] = await Promise.all([
-					fetch("https://api.punoted.net/internal/production/user_production", {
-						headers,
-					}),
-					fetch("https://api.punoted.net/user_workforce_with_needs", {
+					fetch(
+						`${API_BASE_URL}internal/production/user_production`,
+						{
+							headers,
+						},
+					),
+					fetch(`${API_BASE_URL}user_workforce_with_needs`, {
 						headers,
 					}),
 				]);
@@ -118,38 +138,66 @@ const ProductionDashboard: React.FC = () => {
 				});
 			}
 
+			// NO MORE MOCKING. The backend now passes `isLeased` and `tenant` natively!
 			return { site: { ...site, siteid: siteId }, richFlows };
 		});
 	}, [data, workforce]);
+
+	// Extract unique tenants for the filter dropdown
+	const availableTenants = useMemo(() => {
+		const tenants = new Set<string>();
+		processedSites.forEach((s) => {
+			if (s.site.tenant) tenants.add(s.site.tenant);
+		});
+		return Array.from(tenants).sort();
+	}, [processedSites]);
 
 	// --- GLOBAL SUMMARY ---
 	const globalSummary = useMemo(() => {
 		const summary: Record<string, { prod: number; cons: number; net: number }> =
 			{};
-
 		processedSites.forEach(({ richFlows }) => {
 			Object.values(richFlows).forEach((f) => {
 				if (!summary[f.ticker])
 					summary[f.ticker] = { prod: 0, cons: 0, net: 0 };
-
 				if (f.flow > 0) summary[f.ticker].prod += f.flow;
 				else summary[f.ticker].cons += f.flow;
-
 				summary[f.ticker].net += f.flow;
 			});
 		});
-
 		return Object.entries(summary)
 			.filter(([_, s]) => Math.abs(s.net) > 0.1)
 			.sort((a, b) => a[1].net - b[1].net);
 	}, [processedSites]);
 
+	// --- FILTERING ---
 	const filteredSites = useMemo(() => {
-		if (!searchTerm) return processedSites;
-		return processedSites.filter(({ site }) =>
-			site.planet_name.toLowerCase().includes(searchTerm.toLowerCase()),
-		);
-	}, [processedSites, searchTerm]);
+		let result = processedSites;
+
+		// 1. Lease Filter
+		if (leaseFilter === "owned") {
+			result = result.filter((s) => !s.site.isLeased);
+		} else if (leaseFilter === "leased") {
+			result = result.filter((s) => s.site.isLeased);
+			if (selectedTenants.length > 0) {
+				result = result.filter(
+					(s) => s.site.tenant && selectedTenants.includes(s.site.tenant),
+				);
+			}
+		}
+
+		// 2. Search Filter
+		if (searchTerm) {
+			const term = searchTerm.toLowerCase();
+			result = result.filter(
+				({ site }) =>
+					site.planet_name.toLowerCase().includes(term) ||
+					(site.tenant && site.tenant.toLowerCase().includes(term)),
+			);
+		}
+
+		return result;
+	}, [processedSites, searchTerm, leaseFilter, selectedTenants]);
 
 	const handleTargetChange = useCallback((siteId: string, val: string) => {
 		const num = parseInt(val, 10);
@@ -212,69 +260,152 @@ const ProductionDashboard: React.FC = () => {
 						px: 3,
 						py: 2,
 						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
+						flexDirection: "column",
 						gap: 2,
 					}}
 				>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-							<Factory color={theme.palette.primary.main} size={28} />
-							<Typography
-								variant="h5"
-								fontWeight={800}
-								sx={{ letterSpacing: -0.5 }}
+					{/* Top Row: Title & Stats */}
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "space-between",
+							flexWrap: "wrap",
+							gap: 2,
+						}}
+					>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Factory color={theme.palette.primary.main} size={28} />
+								<Typography
+									variant="h5"
+									fontWeight={800}
+									sx={{ letterSpacing: -0.5 }}
+								>
+									PRODUCTION
+								</Typography>
+							</Box>
+
+							<Button
+								onClick={() => setSummaryOpen(!summaryOpen)}
+								variant={summaryOpen ? "tonal" : "text"}
+								startIcon={<Globe size={18} />}
+								endIcon={
+									summaryOpen ? (
+										<ChevronUp size={18} />
+									) : (
+										<ChevronDown size={18} />
+									)
+								}
+								sx={{ fontWeight: 700, color: "text.primary", borderRadius: 2 }}
 							>
-								PRODUCTION
+								GLOBAL SUMMARY
+							</Button>
+
+							<Divider
+								orientation="vertical"
+								flexItem
+								sx={{ height: 24, alignSelf: "center" }}
+							/>
+
+							<Typography
+								variant="body2"
+								color="text.secondary"
+								fontWeight={600}
+							>
+								{filteredSites.length} Sites &nbsp;•&nbsp;{" "}
+								{filteredSites.reduce(
+									(acc, s) => acc + s.site.production_lines.length,
+									0,
+								)}{" "}
+								Lines
 							</Typography>
 						</Box>
 
-						<Button
-							onClick={() => setSummaryOpen(!summaryOpen)}
-							variant={summaryOpen ? "tonal" : "text"}
-							startIcon={<Globe size={18} />}
-							endIcon={
-								summaryOpen ? (
-									<ChevronUp size={18} />
-								) : (
-									<ChevronDown size={18} />
-								)
-							}
-							sx={{ fontWeight: 700, color: "text.primary", borderRadius: 2 }}
+						{/* Bottom Row / Right Side: Filters */}
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 2,
+								flexWrap: "wrap",
+							}}
 						>
-							GLOBAL SUMMARY
-						</Button>
+							<ToggleButtonGroup
+								size="small"
+								value={leaseFilter}
+								exclusive
+								onChange={(_, newVal) => {
+									if (newVal !== null) {
+										setLeaseFilter(newVal);
+										if (newVal !== "leased") setSelectedTenants([]); // Clear tenants if not looking at leased
+									}
+								}}
+								sx={{
+									height: 36,
+									bgcolor: alpha(theme.palette.background.default, 0.5),
+								}}
+							>
+								<ToggleButton
+									value="all"
+									sx={{ px: 2, fontWeight: 600, fontSize: "0.75rem" }}
+								>
+									All
+								</ToggleButton>
+								<ToggleButton
+									value="owned"
+									sx={{ px: 2, fontWeight: 600, fontSize: "0.75rem" }}
+								>
+									Owned
+								</ToggleButton>
+								<ToggleButton
+									value="leased"
+									sx={{ px: 2, fontWeight: 600, fontSize: "0.75rem", gap: 1 }}
+								>
+									<Handshake size={14} /> Loaned
+								</ToggleButton>
+							</ToggleButtonGroup>
 
-						<Divider
-							orientation="vertical"
-							flexItem
-							sx={{ height: 24, alignSelf: "center" }}
-						/>
+							{leaseFilter === "leased" && (
+								<Autocomplete
+									multiple
+									limitTags={2}
+									size="small"
+									options={availableTenants}
+									value={selectedTenants}
+									onChange={(_, newValue) => setSelectedTenants(newValue)}
+									renderInput={(params) => (
+										<TextField
+											{...params}
+											placeholder="Filter Tenants..."
+											sx={{
+												minWidth: 200,
+												"& .MuiOutlinedInput-root": { borderRadius: 2 },
+											}}
+										/>
+									)}
+								/>
+							)}
 
-						<Typography variant="body2" color="text.secondary" fontWeight={600}>
-							{processedSites.length} Sites &nbsp;•&nbsp;{" "}
-							{processedSites.reduce(
-								(acc, s) => acc + s.site.production_lines.length,
-								0,
-							)}{" "}
-							Lines
-						</Typography>
+							<TextField
+								size="small"
+								placeholder="Search planets..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								InputProps={{
+									startAdornment: (
+										<InputAdornment position="start">
+											<Search size={18} />
+										</InputAdornment>
+									),
+								}}
+								sx={{
+									width: 250,
+									"& .MuiOutlinedInput-root": { borderRadius: 2 },
+								}}
+							/>
+						</Box>
 					</Box>
-
-					<TextField
-						size="small"
-						placeholder="Search planets..."
-						value={searchTerm}
-						onChange={(e) => setSearchTerm(e.target.value)}
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<Search size={18} />
-								</InputAdornment>
-							),
-						}}
-						sx={{ width: 280, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-					/>
 				</Box>
 
 				{/* COLLAPSIBLE SUMMARY (REWORKED) */}
@@ -297,7 +428,6 @@ const ProductionDashboard: React.FC = () => {
 							AGGREGATED FLOWS / DAY
 						</Typography>
 
-						{/* Compact CSS Grid */}
 						<Box
 							sx={{
 								display: "grid",
@@ -329,7 +459,6 @@ const ProductionDashboard: React.FC = () => {
 											},
 										}}
 									>
-										{/* Header: Ticker & Net */}
 										<Box
 											sx={{
 												display: "flex",
@@ -355,8 +484,6 @@ const ProductionDashboard: React.FC = () => {
 												{s.net.toFixed(1)}
 											</Typography>
 										</Box>
-
-										{/* Footer: Prod / Cons */}
 										<Box
 											sx={{
 												display: "flex",

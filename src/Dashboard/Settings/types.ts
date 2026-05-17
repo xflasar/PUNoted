@@ -19,12 +19,19 @@ export interface GlobalSettings {
 	internal_leased_sites: LeasedSite[]; // List of Objects
 }
 
-export interface LeasedSite {
-	siteId: string;
-	description: string; // e.g. "Leased to X"
+export interface BasicUser {
+  accountid: string;
+  username: string;
+  companyCode?: string;
 }
 
-// NEW: Reference Data Types
+export interface LeasedSite {
+  siteId: string;
+  description: string;
+  tenant: string; // The username, company code, or account ID
+}
+
+// Reference Data Types
 export interface CommodityExchange {
 	code: string;
 	name: string;

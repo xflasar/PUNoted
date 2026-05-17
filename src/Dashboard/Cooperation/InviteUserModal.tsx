@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../config/api";
 import React, { useState, useEffect } from "react";
 import {
 	Box,
@@ -31,7 +32,7 @@ const fetchUserSuggestions = async (): Promise<UserSuggestion[]> => {
 	];
 	/*
     // Simulate API delay
-    const response = await fetch('https://api.punoted.net/groups/all_users')
+    const response = await fetch(`${API_BASE_URL}groups/all_users`)
 
     if (response.ok) {
       return await response.json()
@@ -106,7 +107,7 @@ const InviteUserModal: React.FC<{
 			setSuggestions([]);
 			/*
             // NOTE: The API endpoint structure remains the same as your original plan.
-            const response = await fetch(`https://api.punoted.net/groups/${group.id}/invite`, {
+            const response = await fetch(`${API_BASE_URL}groups/${group.id}/invite`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('authToken')}`

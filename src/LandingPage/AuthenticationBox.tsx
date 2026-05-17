@@ -13,6 +13,7 @@ import {
 	AlertTitle,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/system";
+import { API_BASE_URL } from "../config/api";
 import {
 	FaUserPlus,
 	FaSignInAlt,
@@ -151,7 +152,7 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 
 		try {
 			if (authFlow === "login") {
-				const response = await fetch("https://api.punoted.net/auth/login", {
+				const response = await fetch(`${API_BASE_URL}auth/login`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ username, password, isWebsite: "true" }),
@@ -188,7 +189,7 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 
 					try {
 						const response = await fetch(
-							"https://api.punoted.net/auth/register",
+							`${API_BASE_URL}auth/register`,
 							{
 								method: "POST",
 								headers: {
@@ -237,7 +238,7 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 
 					try {
 						const response = await fetch(
-							`https://api.punoted.net/auth/verify_email`,
+							`${API_BASE_URL}auth/verify_email`,
 							{
 								method: "POST",
 								headers: {
@@ -282,7 +283,7 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 			} else if (authFlow === "forgotPassword") {
 				if (forgotPasswordStep === "email") {
 					const response = await fetch(
-						"https://api.punoted.net/auth/forget_password",
+						`${API_BASE_URL}auth/forget_password`,
 						{
 							method: "POST",
 							headers: { "Content-Type": "application/json" },
@@ -303,7 +304,7 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 					}
 				} else if (forgotPasswordStep === "code") {
 					const response = await fetch(
-						"https://api.punoted.net/auth/code_verification",
+						`${API_BASE_URL}auth/code_verification`,
 						{
 							method: "POST",
 							headers: { "Content-Type": "application/json" },
@@ -324,7 +325,7 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 						return;
 					}
 					const response = await fetch(
-						"https://api.punoted.net/auth/forget_password_set_new_password",
+						`${API_BASE_URL}auth/forget_password_set_new_password`,
 						{
 							method: "POST",
 							headers: { "Content-Type": "application/json" },

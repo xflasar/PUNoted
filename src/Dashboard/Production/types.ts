@@ -45,6 +45,8 @@ export interface SiteSummary {
 	storage_items: StorageItem[];
 	overall_platform_condition: number;
 	warning_level: number;
+	isLeased?: boolean;
+	tenant?: string;
 }
 
 export interface SiteWithFlows {

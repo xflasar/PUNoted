@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "../../../../config/api";
 import type { FlightPlan } from "../types/mapTypes";
 
 interface ShipFlightsResponse {
@@ -17,7 +18,7 @@ export const useShipFlights = () => {
 			setError(null);
 			try {
 				const response = await fetch(
-					"https://api.punoted.net/user_ships_flights",
+					`${API_BASE_URL}user_ships_flights`,
 					{
 						headers: {
 							Authorization: `Bearer ${localStorage.getItem("authToken")}`,

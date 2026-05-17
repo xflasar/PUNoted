@@ -12,6 +12,7 @@ import {
 	useTheme,
 	Paper,
 } from "@mui/material";
+import { API_BASE_URL } from "../../config/api";
 import { DeleteIcon, PlusCircle, X } from "lucide-react";
 import AvailableMaterialsList from "./components/AvailableMaterialsList";
 import MaterialTable from "./components/MaterialTable";
@@ -93,7 +94,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 		const fetchLocations = async () => {
 			try {
 				const response = await fetch(
-					"https://api.punoted.net/vendor/locations_list",
+					`${API_BASE_URL}vendor/locations_list`,
 					{
 						method: "GET",
 						headers: {
@@ -152,7 +153,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 
 		try {
 			const response = await fetch(
-				`https://api.punoted.net/vendor_stores/edit_orders`,
+				`${API_BASE_URL}vendor_stores/edit_orders`,
 				{
 					method: "POST",
 					headers: {
@@ -200,7 +201,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 
 		try {
 			const response = await fetch(
-				`https://api.punoted.net/vendor_stores/${vendorStore.vendor.vendorid}`,
+				`${API_BASE_URL}vendor_stores/${vendorStore.vendor.vendorid}`,
 				{
 					method: "DELETE",
 					headers: {

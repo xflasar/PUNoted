@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../config/api";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
 	Box,
@@ -1292,7 +1293,7 @@ const Governance = () => {
 			setIsPlanetsLoading(true);
 			try {
 				const res = await fetch(
-					"https://api.punoted.net/planets/planets_names",
+					`${API_BASE_URL}planets/planets_names`,
 					{
 						headers: {
 							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -1322,7 +1323,7 @@ const Governance = () => {
 			}
 			setIsDataLoading(true);
 			try {
-				const res = await fetch("https://api.punoted.net/governance/", {
+				const res = await fetch(`${API_BASE_URL}governance/`, {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",

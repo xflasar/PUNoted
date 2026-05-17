@@ -6,6 +6,7 @@ import {
 	Container,
 	Typography,
 } from "@mui/material";
+import { API_BASE_URL } from "../config/api";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import MarketPricesTab from "../COSM/PriceList/PriceList";
@@ -20,7 +21,7 @@ const CX = () => {
 
 	const fetchMarketData = useCallback(async () => {
 		try {
-			const response = await fetch("https://api.punoted.net/market_price_all");
+			const response = await fetch(`${API_BASE_URL}market_price_all`);
 			if (!response.ok) {
 				throw new Error("Network response was not ok");
 			}

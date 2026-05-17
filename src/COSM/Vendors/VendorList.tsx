@@ -5,6 +5,7 @@ import React, {
 	useEffect,
 	useCallback,
 } from "react";
+import { API_BASE_URL } from "../../config/api";
 import { Masonry } from "@mui/lab";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
@@ -813,7 +814,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		const checkVendorStore = async () => {
 			try {
 				const response = await fetch(
-					"https://api.punoted.net/user_vendor_store",
+					`${API_BASE_URL}user_vendor_store`,
 					{
 						method: "GET",
 						headers: {
@@ -845,8 +846,8 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			setIsLoadingVendors(true);
 			try {
 				const [storesResponse, pricesResponse] = await Promise.all([
-					fetch("https://api.punoted.net/vendor_stores"),
-					fetch("https://api.punoted.net/market_price_all"),
+					fetch(`${API_BASE_URL}vendor_stores`),
+					fetch(`${API_BASE_URL}market_price_all`),
 				]);
 				if (storesResponse.ok) {
 					const data = await storesResponse.json();

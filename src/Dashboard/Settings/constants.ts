@@ -1,6 +1,7 @@
+import { API_BASE_URL } from "../../config/api";
 import type { GuideStep } from "../../helpers/GlobalGuide";
 
-export const API_BASE = "https://api.punoted.net/internal";
+export const API_BASE = `${API_BASE_URL}internal`;
 export const WS_URL = "wss://a";
 
 export const PAGE_CONTEXTS = {

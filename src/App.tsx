@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
+import { API_BASE_URL } from "./config/api";
 import AppShell from "./AppShell";
 import LandingPage from "./LandingPage/LandingPage";
 import PrivacyPolicy from "./PrivacyPolicy/PrivacyPolicy";
@@ -108,7 +109,7 @@ function App() {
 
 			try {
 				const response = await fetch(
-					`https://api.punoted.net/users/${userId}/synchronized`,
+					`${API_BASE_URL}users/${userId}/synchronized`,
 					{
 						method: "GET",
 						headers: {

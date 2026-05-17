@@ -1,16 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { API_BASE_URL } from "../../config/api";
 import type { BaseManagerApiResponse } from "./types";
-
-// temporary api_base_url until we set up env vars
-const FALLBACK_API_BASE_URL = "https://api.punoted.net/dev/";
-const API_BASE_URL = String(
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	(import.meta as any)?.env?.VITE_API_BASE_URL || FALLBACK_API_BASE_URL,
-).endsWith("/")
-	? String(
-			(import.meta as any)?.env?.VITE_API_BASE_URL || FALLBACK_API_BASE_URL,
-		)
-	: `${String((import.meta as any)?.env?.VITE_API_BASE_URL || FALLBACK_API_BASE_URL)}/`;
 
 export const useBaseManagerData = (cx: string = "IC1") => {
 	const [data, setData] = useState<BaseManagerApiResponse | null>(null);

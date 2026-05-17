@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../../config/api";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
 	Box,
@@ -132,7 +133,6 @@ const TabPanel = (props: TabPanelProps) => {
 // ----------------------------
 
 // --- Base URL for Planet API ---
-const API_BASE_URL = "https://api.punoted.net"; // Updated base URL
 
 const NodeBaseModal: React.FC<NodeBaseModalProps> = ({
 	open,

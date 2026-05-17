@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { Box, CircularProgress } from "@mui/material";
+import { API_BASE_URL } from "../../config/api";
 import CorpPricesTab from "./CorpPricesTab";
 
 const MemoizedCorpTab = memo(CorpPricesTab);
@@ -24,7 +25,7 @@ const MainDashboard: React.FC = () => {
 	 */
 	const fetchMarketData = useCallback(async () => {
 		try {
-			const response = await fetch("https://api.punoted.net/market_price_all");
+			const response = await fetch(`${API_BASE_URL}market_price_all`);
 			if (!response.ok) {
 				throw new Error("Network response was not ok");
 			}

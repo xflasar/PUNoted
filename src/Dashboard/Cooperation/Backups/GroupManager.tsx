@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../../config/api";
 import React, { useState, useEffect, useMemo } from "react";
 import {
 	Box,
@@ -171,7 +172,7 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
 	const handleRemoveMember = async (memberId: string) => {
 		try {
 			const response = await fetch(
-				`https://api.punoted.net/groups/${activeGroup.id}/member`,
+				`${API_BASE_URL}groups/${activeGroup.id}/member`,
 				{
 					method: "DELETE",
 					headers: {

@@ -30,6 +30,9 @@ export const getAppTheme = (mode: PaletteMode) =>
 			primary: {
 				main: "rgba(123, 104, 238, 1)",
 			},
+			tertiary: {
+				main: "rgba(247, 168, 5, 0.8)",
+			},
 			text: {
 				primary: "rgba(200,200,200,0.9)",
 			},

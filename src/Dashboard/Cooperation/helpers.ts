@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../config/api";
 import { MarkerType, type Edge, type Node } from "reactflow";
 import type {
 	Chain,
@@ -446,7 +447,7 @@ export const fetchMaterials = async (
     for (let i = 0; i < retries; i++) {
         try {
             // Note: Using a POST endpoint with an empty body as per your original file
-            const response = await fetch("https://api.punoted.net/materials");
+            const response = await fetch(`${API_BASE_URL}materials`);
             if(response.ok) {
               const data = await response.json();
               

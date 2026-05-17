@@ -6,6 +6,7 @@ import React, {
 	useCallback,
 	ReactNode,
 } from "react";
+import { API_BASE_URL } from "../config/api";
 import { useGlobalWsContext } from "../Dashboard/websocket/GlobalWsContext";
 import { DashboardPayload, DashboardFilter } from "../Dashboard/CX/types";
 import type {
@@ -14,12 +15,15 @@ import type {
 } from "../components/common/StarMap/types/mapTypes";
 import type { ShipmentState } from "../Dashboard/Shipping/types";
 import type { StorageState, StorageUnit } from "../Dashboard/Storage/types";
+import type { MaterialData } from "./types";
 
 /**
  * Defines the structure of the Global Data Context.
  * This context provides application-wide state for dashboards, ships, shipments, and storage.
  */
 interface GlobalDataContextState {
+	materialData: Record<string, MaterialData>;
+	getMatProps: (ticker: string) => { weight: number; volume: number };
 	/** Current dashboard analytics data payload */
 	dashboardData: DashboardPayload | null;
 	/** Indicates if the dashboard data is currently being fetched */
@@ -91,6 +95,65 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		ships: {},
 	});
 
+	const [materialData, setMaterialData] = useState<
+		Record<string, MaterialData>
+	>({});
+
+	const fetchMaterials = useCallback(async () => {
+		try {
+			// 1. Load from cache for zero-latency UI
+			const cached = localStorage.getItem("global_materials_json_cache");
+			if (cached) {
+				setMaterialData(JSON.parse(cached));
+				setIsLoading(false);
+			}
+
+			// 2. Fetch fresh JSON from the new backend endpoint
+			const res = await fetch(`${API_BASE_URL}v1/materials/list`, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+				},
+			});
+
+			// Because your backend returns a JSON array directly:
+			const data: MaterialData[] = await res.json();
+
+			if (data && Array.isArray(data)) {
+				// 3. Map the array into a quick-lookup dictionary
+				const matDict: Record<string, MaterialData> = {};
+
+				data.forEach((m) => {
+					matDict[m.ticker] = {
+						ticker: m.ticker,
+						name: m.name,
+						category: m.category,
+						weight: m.weight || 1, // Fallback to 1 to prevent division by zero
+						volume: m.volume || 1,
+					};
+				});
+
+				setMaterialData(matDict);
+				localStorage.setItem(
+					"global_materials_json_cache",
+					JSON.stringify(matDict),
+				);
+			}
+		} catch (e) {
+			console.error("Failed to fetch global materials", e);
+		} finally {
+			setIsLoading(false);
+		}
+	}, []);
+
+	// Helper function exposed to all components
+	const getMatProps = (ticker: string) => {
+		return materialData[ticker] || { weight: 1, volume: 1 };
+	};
+
+	useEffect(() => {
+		fetchMaterials();
+	}, [fetchMaterials]);
+
 	const [storageState, setStorageState] = useState<StorageState | null>(null);
 
 	/**
@@ -103,7 +166,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 			if (!token) return;
 
 			const res = await fetch(
-				"https://api.punoted.net/internal/storage/user_storage",
+				`${API_BASE_URL}internal/storage/user_storage`,
 				{
 					headers: { Authorization: `Bearer ${token}` },
 				},
@@ -302,6 +365,8 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	return (
 		<GlobalDataContext.Provider
 			value={{
+				materialData,
+				getMatProps,
 				dashboardData,
 				isLoading,
 				fetchDashboard,
@@ -337,6 +402,8 @@ export const useGlobalData = (): GlobalDataContextState => {
 
 	if (!ctx) {
 		return {
+			materialData: {},
+			getMatProps: () => ({ weight: 1, volume: 1 }),
 			dashboardData: null,
 			isLoading: false,
 			fetchDashboard: () => {},
