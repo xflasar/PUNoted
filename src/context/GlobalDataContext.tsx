@@ -18,6 +18,15 @@ import type { StorageState, StorageUnit } from "../Dashboard/Storage/types";
 import type { MaterialData } from "./types";
 
 /**
+ * Cache structure for map data stored in localStorage
+ */
+interface MapDataCache {
+	timestamp: number;
+	data: any;
+	version: string;
+}
+
+/**
  * Defines the structure of the Global Data Context.
  * This context provides application-wide state for dashboards, ships, shipments, and storage.
  */
@@ -52,6 +61,16 @@ interface GlobalDataContextState {
 	storageState?: StorageState | null;
 	/** Triggers a manual refresh of the user's storage data via REST API */
 	refreshStorage: () => Promise<void>;
+	/** Map data for the galaxy map (systems, planets, stations, gateways, sectors) */
+	mapData: any | null;
+	/** Indicates if the map data is currently being fetched */
+	isMapLoading: boolean;
+	/** Fetch error message for map data if any */
+	mapFetchError: string | null;
+	/** Triggers a fetch/update of the map data */
+	fetchMapData: () => Promise<void>;
+	/** Manually refresh map data and clear cache */
+	refreshMapData: () => Promise<void>;
 }
 
 /**
@@ -156,6 +175,133 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 	const [storageState, setStorageState] = useState<StorageState | null>(null);
 
+	// --- Map Data State ---
+	const [mapData, setMapData] = useState<any | null>(null);
+	const [isMapLoading, setIsMapLoading] = useState<boolean>(false);
+	const [mapFetchError, setMapFetchError] = useState<string | null>(null);
+	const [lastDashboardSessionId, setLastDashboardSessionId] = useState<
+		string | null
+	>(null);
+
+	/**
+	 * Cache utilities for map data
+	 */
+	const CACHE_KEY = "global_map_data_cache";
+	const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+	const getCachedMapData = (): any | null => {
+		try {
+			const cached = localStorage.getItem(CACHE_KEY);
+			if (!cached) return null;
+
+			const cacheData: MapDataCache = JSON.parse(cached);
+			const now = Date.now();
+			const age = now - cacheData.timestamp;
+
+			// Return cache if still valid
+			if (age < CACHE_TTL) {
+				console.log(`Map data cache HIT (age: ${Math.round(age / 1000)}s)`);
+				return cacheData.data;
+			} else {
+				console.log("Map data cache expired");
+				localStorage.removeItem(CACHE_KEY);
+				return null;
+			}
+		} catch (e) {
+			console.error("Failed to parse cached map data:", e);
+			localStorage.removeItem(CACHE_KEY);
+			return null;
+		}
+	};
+
+	const setCachedMapData = (data: any): void => {
+		try {
+			const cacheData: MapDataCache = {
+				timestamp: Date.now(),
+				data,
+				version: "1.0", // Bump this on breaking schema changes
+			};
+			localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+			console.log("Map data cached successfully");
+		} catch (e) {
+			console.error("Failed to cache map data:", e);
+			// Gracefully continue even if caching fails
+		}
+	};
+
+	/**
+	 * Fetches map data from API with caching strategy
+	 * Tries cache first, then fetches fresh data if cache miss or expired
+	 * Only fetches if session ID has changed (prevents redundant refetches)
+	 */
+	const fetchMapData = useCallback(
+		async (sessionId?: string) => {
+			// If sessionId provided and matches last one, skip fetch
+			if (sessionId && lastDashboardSessionId === sessionId && mapData) {
+				console.log("Map data already loaded for this session, skipping fetch");
+				return;
+			}
+
+			// Update session ID
+			if (sessionId) {
+				setLastDashboardSessionId(sessionId);
+			}
+
+			try {
+				// 1. Load from cache first for instant UI
+				const cachedData = getCachedMapData();
+				if (cachedData) {
+					setMapData(cachedData);
+					setIsMapLoading(false);
+					setMapFetchError(null);
+					return; // Return early with cached data
+				}
+
+				// 2. Fetch fresh data from API if cache miss
+				setIsMapLoading(true);
+				setMapFetchError(null);
+
+				const res = await fetch(`${API_BASE_URL}dashboard_map`);
+				if (!res.ok) {
+					throw new Error(`API returned ${res.status}`);
+				}
+
+				const json = await res.json();
+				const freshData = json.data;
+
+				if (freshData) {
+					setMapData(freshData);
+					setCachedMapData(freshData);
+					setMapFetchError(null);
+				}
+
+				setIsMapLoading(false);
+			} catch (err: any) {
+				console.error("Map data fetch error:", err);
+				setMapFetchError(String(err?.message ?? err));
+				setIsMapLoading(false);
+
+				// If fetch fails but we have cached data, use it
+				const cachedData = getCachedMapData();
+				if (cachedData && !mapData) {
+					setMapData(cachedData);
+					setMapFetchError(null);
+				}
+			}
+		},
+		[mapData, lastDashboardSessionId],
+	);
+
+	/**
+	 * Manually refresh map data - clears cache and fetches fresh
+	 */
+	const refreshMapData = useCallback(async () => {
+		localStorage.removeItem(CACHE_KEY);
+		setMapData(null);
+		setMapFetchError(null);
+		await fetchMapData();
+	}, [fetchMapData]);
+
 	/**
 	 * Fetches user storage data directly from the REST API.
 	 * Called on initial load and can be triggered manually via refreshStorage.
@@ -165,12 +311,9 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 			const token = localStorage.getItem("authToken");
 			if (!token) return;
 
-			const res = await fetch(
-				`${API_BASE_URL}internal/storage/user_storage`,
-				{
-					headers: { Authorization: `Bearer ${token}` },
-				},
-			);
+			const res = await fetch(`${API_BASE_URL}internal/storage/user_storage`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
 
 			const json = await res.json();
 
@@ -381,6 +524,11 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				currentCXDashboardFilters,
 				storageState,
 				refreshStorage: fetchStorageData,
+				mapData,
+				isMapLoading,
+				mapFetchError,
+				fetchMapData,
+				refreshMapData,
 			}}
 		>
 			{children}
@@ -418,6 +566,11 @@ export const useGlobalData = (): GlobalDataContextState => {
 			setShipmentState: () => {},
 			storageState: null,
 			refreshStorage: async () => {},
+			mapData: null,
+			isMapLoading: false,
+			mapFetchError: null,
+			fetchMapData: async () => {},
+			refreshMapData: async () => {},
 		} as GlobalDataContextState;
 	}
 

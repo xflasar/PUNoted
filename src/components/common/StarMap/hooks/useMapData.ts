@@ -22,7 +22,7 @@ import {
 import type { XY } from "../types/mapTypes";
 import { BASE_PLANET_SIZE } from "../constants/map";
 
-export const useMapData = () => {
+export const useMapData = (mapDataFromContext: any = null) => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [fetchError, setFetchError] = useState<string | null>(null);
 	const [systemsPoints, setSystemsPoints] = useState<MapPoint[]>([]);
@@ -62,10 +62,16 @@ export const useMapData = () => {
 			setIsLoading(true);
 			setFetchError(null);
 			try {
-				const res = await fetch(`${API_BASE_URL}dashboard_map`);
-				if (!res.ok) throw new Error(`status ${res.status}`);
-				const json = await res.json();
-				const data = json.data;
+				// Use data from context if available, otherwise fetch from API
+				let data: any;
+				if (mapDataFromContext) {
+					data = mapDataFromContext;
+				} else {
+					const res = await fetch(`${API_BASE_URL}dashboard_map`);
+					if (!res.ok) throw new Error(`status ${res.status}`);
+					const json = await res.json();
+					data = json.data;
+				}
 
 				// 1. Process Systems (Base Map)
 				const systemPointsMap = new Map<string, MapPoint>();
@@ -477,7 +483,7 @@ export const useMapData = () => {
 		return () => {
 			mounted = false;
 		};
-	}, []);
+	}, [mapDataFromContext]);
 
 	return {
 		isLoading,

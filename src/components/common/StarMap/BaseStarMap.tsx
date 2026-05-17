@@ -33,6 +33,7 @@ import { useShipWebSocket } from "./hooks/useShipWebSocket";
 import ShipListComponent from "./components/shipListComponent";
 import SearchBar from "./components/SearchBar/SearchBar";
 import SearchResultsPanel from "./components/SearchResultsPanel/SearchResultsPanel";
+import MapLoadingOverlay from "../MapLoadingOverlay";
 import { GlobalDataContext } from "../../../context/GlobalDataContext";
 
 function deepCompareLayers(prevLayers: any[] = [], nextLayers: any[] = []) {
@@ -173,7 +174,14 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		return () => clearInterval(id);
 	}, []);
 
-	// Map data hook
+	// Map data from GlobalDataContext
+	const {
+		mapData,
+		isMapLoading: isGlobalMapLoading,
+		mapFetchError: globalMapFetchError,
+	} = React.useContext(GlobalDataContext) || {};
+
+	// Map data hook (processes raw API response)
 	const {
 		isLoading,
 		fetchError,
@@ -187,7 +195,7 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		allGatewaysData,
 		maxSystemPopulation,
 		contentBounds: fetchedContentBounds,
-	} = useMapData();
+	} = useMapData(mapData);
 
 	useEffect(() => {
 		contentBounds.current = fetchedContentBounds;
@@ -917,6 +925,12 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 					controller={controller as any}
 					layers={layers}
 					isInteracting={isInteracting}
+				/>
+
+				{/* Loading overlay with cached data indicator */}
+				<MapLoadingOverlay
+					isVisible={isLoading}
+					isLoadingFromCache={!isLoading && !!mapData && isGlobalMapLoading}
 				/>
 
 				<div
