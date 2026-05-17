@@ -88,20 +88,17 @@ const InviteUserModal: React.FC<{
 
 		try {
 			// NOTE: The API endpoint structure remains the same as your original plan.
-			const response = await fetch(
-				`${API_BASE_URL}groups/${group.id}/invite`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-					},
-					body: JSON.stringify({
-						invitee_username: selectedUser.displayname,
-						group_id: group.id,
-					}),
+			const response = await fetch(`${API_BASE_URL}groups/${group.id}/invite`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 				},
-			);
+				body: JSON.stringify({
+					invitee_username: selectedUser.displayname,
+					group_id: group.id,
+				}),
+			});
 
 			const data = await response.json();
 

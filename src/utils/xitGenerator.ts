@@ -71,7 +71,7 @@ export const generateSupplyXit = (config: XitSupplyConfig): string => {
 
 	if (includeTransport) {
 		if (fleetMapping.length > 0) {
-			fleetMapping.forEach(mapping => {
+			fleetMapping.forEach((mapping) => {
 				actions.push({
 					type: "MTRA",
 					name: "Transport",

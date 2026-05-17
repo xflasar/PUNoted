@@ -1,12 +1,5 @@
 import React, { useState, useMemo } from "react";
-import {
-	Box,
-	Typography,
-	Stack,
-	Button,
-	useTheme,
-	alpha,
-} from "@mui/material";
+import { Box, Typography, Stack, Button, useTheme, alpha } from "@mui/material";
 import { CheckSquare, Square } from "lucide-react";
 import { FleetPlannerWidget } from "./FleetPlannerWidget";
 import { LogisticsRowComponent } from "./LogisticsRowComponent";
@@ -45,7 +38,9 @@ export const LogisticsTabContent: React.FC<any> = ({
 	// --- XIT CONFIGURATION STATE ---
 	const [xitAnchorEl, setXitAnchorEl] = useState<HTMLElement | null>(null);
 	const [useMyFleet, setUseMyFleet] = useState(false);
-	const [fleetMappingConfig, setFleetMappingConfig] = useState<Record<string, string>>({});
+	const [fleetMappingConfig, setFleetMappingConfig] = useState<
+		Record<string, string>
+	>({});
 
 	const handleOpenXitSettings = (event: React.MouseEvent<HTMLElement>) => {
 		if (Object.keys(cargoPlan.allocatedResults).length === 0) {

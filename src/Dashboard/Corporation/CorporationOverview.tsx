@@ -78,14 +78,11 @@ export const CorporationOverview: React.FC = () => {
 		(async () => {
 			try {
 				setIsLoading(true);
-				const res = await fetch(
-					`${API_BASE_URL}internal/corporation/`,
-					{
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-						},
+				const res = await fetch(`${API_BASE_URL}internal/corporation/`, {
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 					},
-				);
+				});
 				if (!res.ok) throw new Error();
 				const data = await res.json();
 

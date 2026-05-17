@@ -813,16 +813,13 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		if (!loggedIn) return;
 		const checkVendorStore = async () => {
 			try {
-				const response = await fetch(
-					`${API_BASE_URL}user_vendor_store`,
-					{
-						method: "GET",
-						headers: {
-							"Content-Type": "application/json",
-							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-						},
+				const response = await fetch(`${API_BASE_URL}user_vendor_store`, {
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 					},
-				);
+				});
 				if (response.ok) {
 					const data = await response.json();
 					if (data.data) setHasVendorStore(true);

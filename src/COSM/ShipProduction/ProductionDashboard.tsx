@@ -355,16 +355,13 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 	 */
 	const fetchShipProduction = useCallback(async (useFio: boolean) => {
 		try {
-			const response = await fetch(
-				`${API_BASE_URL}get_ship_production`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({ fio: useFio }),
+			const response = await fetch(`${API_BASE_URL}get_ship_production`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
 				},
-			);
+				body: JSON.stringify({ fio: useFio }),
+			});
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}

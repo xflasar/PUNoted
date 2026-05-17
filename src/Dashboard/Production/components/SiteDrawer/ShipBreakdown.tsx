@@ -28,7 +28,9 @@ export const ShipBreakdown = ({
 	useMyFleet?: boolean;
 	animatedShipData?: any[];
 	fleetMappingConfig?: Record<string, string>;
-	setFleetMappingConfig?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+	setFleetMappingConfig?: React.Dispatch<
+		React.SetStateAction<Record<string, string>>
+	>;
 }) => {
 	const theme = useTheme();
 
@@ -213,7 +215,10 @@ export const ShipBreakdown = ({
 									"& .MuiSelect-select": { py: 0, px: 1 },
 								}}
 							>
-								<MenuItem value="" sx={{ fontSize: "0.8rem", fontStyle: "italic" }}>
+								<MenuItem
+									value=""
+									sx={{ fontSize: "0.8rem", fontStyle: "italic" }}
+								>
 									Select Ship...
 								</MenuItem>
 								{animatedShipData?.map((realShip: any) => (
@@ -230,7 +235,9 @@ export const ShipBreakdown = ({
 					</Box>
 				)}
 
-				<Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, pt: 1, pl: "66px" }}>
+				<Box
+					sx={{ display: "flex", flexWrap: "wrap", gap: 1, pt: 1, pl: "66px" }}
+				>
 					{inventoryItems.length > 0 ? (
 						inventoryItems.map(([ticker, amt]) => (
 							<Box

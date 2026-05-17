@@ -1292,14 +1292,11 @@ const Governance = () => {
 		const fetchPlanetNames = async () => {
 			setIsPlanetsLoading(true);
 			try {
-				const res = await fetch(
-					`${API_BASE_URL}planets/planets_names`,
-					{
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-						},
+				const res = await fetch(`${API_BASE_URL}planets/planets_names`, {
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 					},
-				);
+				});
 				if (Array.isArray(await res.clone().json()))
 					setAllPlanetsList(await res.json());
 				else {

@@ -92,9 +92,13 @@ export const useLogisticsManager = (
 			if (savedStrat) setAllocationStrategy(savedStrat as any);
 			const savedOpt = localStorage.getItem(`site_logistics_opt_${siteId}`);
 			if (savedOpt) setAssumeOptimal(savedOpt === "true");
-			const savedMaxShips = localStorage.getItem(`site_logistics_max_ships_${siteId}`);
+			const savedMaxShips = localStorage.getItem(
+				`site_logistics_max_ships_${siteId}`,
+			);
 			if (savedMaxShips) setMaxShips(parseInt(savedMaxShips) || 0);
-			const savedBuffer = localStorage.getItem(`site_logistics_buffer_${siteId}`);
+			const savedBuffer = localStorage.getItem(
+				`site_logistics_buffer_${siteId}`,
+			);
 			if (savedBuffer) setFlightBufferDays(parseInt(savedBuffer) || 0);
 		} catch {}
 
@@ -109,9 +113,14 @@ export const useLogisticsManager = (
 		// Calculate the average efficiency of all running lines to upscale inputs
 		let avgEfficiency = 1;
 		if (assumeOptimal && site?.production_lines) {
-			const activeLines = site.production_lines.filter((l: any) => l.efficiency > 0);
+			const activeLines = site.production_lines.filter(
+				(l: any) => l.efficiency > 0,
+			);
 			if (activeLines.length > 0) {
-				const totalEff = activeLines.reduce((acc: number, l: any) => acc + l.efficiency, 0);
+				const totalEff = activeLines.reduce(
+					(acc: number, l: any) => acc + l.efficiency,
+					0,
+				);
 				avgEfficiency = totalEff / activeLines.length;
 			}
 		}
@@ -153,12 +162,19 @@ export const useLogisticsManager = (
 				let dailyBurn = Math.abs(data.flow);
 				const isWorkforce = (data.workforceFlow || 0) < 0;
 
-				if (assumeOptimal && !isWorkforce && avgEfficiency > 0 && avgEfficiency < 1) {
+				if (
+					assumeOptimal &&
+					!isWorkforce &&
+					avgEfficiency > 0 &&
+					avgEfficiency < 1
+				) {
 					dailyBurn = dailyBurn / avgEfficiency;
 				}
 
-				const target = (materialTargets[ticker] ?? globalTargetDays) + flightBufferDays;
-				const currentFullDays = dailyBurn > 0 ? data.currentAmount / dailyBurn : 0;
+				const target =
+					(materialTargets[ticker] ?? globalTargetDays) + flightBufferDays;
+				const currentFullDays =
+					dailyBurn > 0 ? data.currentAmount / dailyBurn : 0;
 				const missingDays = Math.max(0, target - currentFullDays);
 				const missing = missingDays * (dailyBurn > 0 ? dailyBurn : 1); // fallback to 1 if burn is 0 just to allow sending raw amounts
 
@@ -172,44 +188,61 @@ export const useLogisticsManager = (
 					isWorkforce,
 				};
 			})
-			.filter(r => r.dailyBurn > 0 || r.target > 0); // Hide completely empty ones unless targeted
+			.filter((r) => r.dailyBurn > 0 || r.target > 0); // Hide completely empty ones unless targeted
 
 		// Dynamic Prioritization Logic
-		const workforceRows = baseRows.filter(r => r.isWorkforce && r.dailyBurn > 0);
-		const inputRows = baseRows.filter(r => !r.isWorkforce && r.dailyBurn > 0);
+		const workforceRows = baseRows.filter(
+			(r) => r.isWorkforce && r.dailyBurn > 0,
+		);
+		const inputRows = baseRows.filter((r) => !r.isWorkforce && r.dailyBurn > 0);
 
-		const minWorkforceDays = workforceRows.length > 0 ? Math.min(...workforceRows.map(r => r.currentFullDays)) : Infinity;
-		const minInputDays = inputRows.length > 0 ? Math.min(...inputRows.map(r => r.currentFullDays)) : Infinity;
+		const minWorkforceDays =
+			workforceRows.length > 0
+				? Math.min(...workforceRows.map((r) => r.currentFullDays))
+				: Infinity;
+		const minInputDays =
+			inputRows.length > 0
+				? Math.min(...inputRows.map((r) => r.currentFullDays))
+				: Infinity;
 
 		const workforceIsCritical = minWorkforceDays <= minInputDays;
 
-		return baseRows.map(r => {
-			let autoPriority = 3;
-			
-			if (r.dailyBurn === 0) {
-				autoPriority = 3; // Default for manually added things
-			} else if (r.isWorkforce) {
-				if (workforceIsCritical) {
-					autoPriority = r.currentFullDays <= minWorkforceDays + 2 ? 1 : 2;
-				} else {
-					autoPriority = r.currentFullDays <= minWorkforceDays + 2 ? 3 : 4;
-				}
-			} else {
-				if (!workforceIsCritical) {
-					autoPriority = r.currentFullDays <= minInputDays + 2 ? 1 : 2;
-				} else {
-					autoPriority = r.currentFullDays <= minInputDays + 2 ? 3 : 4;
-				}
-			}
+		return baseRows
+			.map((r) => {
+				let autoPriority = 3;
 
-			if (r.missing <= 0) autoPriority = 5;
+				if (r.dailyBurn === 0) {
+					autoPriority = 3; // Default for manually added things
+				} else if (r.isWorkforce) {
+					if (workforceIsCritical) {
+						autoPriority = r.currentFullDays <= minWorkforceDays + 2 ? 1 : 2;
+					} else {
+						autoPriority = r.currentFullDays <= minWorkforceDays + 2 ? 3 : 4;
+					}
+				} else {
+					if (!workforceIsCritical) {
+						autoPriority = r.currentFullDays <= minInputDays + 2 ? 1 : 2;
+					} else {
+						autoPriority = r.currentFullDays <= minInputDays + 2 ? 3 : 4;
+					}
+				}
 
-			return {
-				...r,
-				autoPriority,
-			};
-		}).sort((a, b) => a.ticker.localeCompare(b.ticker));
-	}, [richFlows, materialTargets, globalTargetDays, assumeOptimal, site, flightBufferDays]);
+				if (r.missing <= 0) autoPriority = 5;
+
+				return {
+					...r,
+					autoPriority,
+				};
+			})
+			.sort((a, b) => a.ticker.localeCompare(b.ticker));
+	}, [
+		richFlows,
+		materialTargets,
+		globalTargetDays,
+		assumeOptimal,
+		site,
+		flightBufferDays,
+	]);
 
 	const handleTargetChange = (ticker: string, val: string) => {
 		const num = parseInt(val);
@@ -228,7 +261,7 @@ export const useLogisticsManager = (
 
 	const handleAddDaysToAll = (days: number) => {
 		const next = { ...materialTargets };
-		logisticsRows.forEach(r => {
+		logisticsRows.forEach((r) => {
 			const currentTarget = next[r.ticker] ?? globalTargetDays;
 			next[r.ticker] = Math.max(0, currentTarget + days);
 		});
@@ -238,7 +271,7 @@ export const useLogisticsManager = (
 
 	const handleSyncAllTargets = (targetDays: number) => {
 		const next = { ...materialTargets };
-		logisticsRows.forEach(r => {
+		logisticsRows.forEach((r) => {
 			next[r.ticker] = targetDays;
 		});
 		setMaterialTargets(next);
@@ -362,7 +395,7 @@ export const useCargoPlanner = (
 			allowedShipTypes,
 			allocationStrategy,
 			getMatProps,
-			maxShips
+			maxShips,
 		);
 
 		return {
@@ -380,4 +413,3 @@ export const useCargoPlanner = (
 		maxShips,
 	]);
 };
-

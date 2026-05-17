@@ -67,12 +67,9 @@ const ProductionDashboard: React.FC = () => {
 				const token = localStorage.getItem("authToken");
 				const headers = { Authorization: `Bearer ${token}` };
 				const [prodRes, workRes] = await Promise.all([
-					fetch(
-						`${API_BASE_URL}internal/production/user_production`,
-						{
-							headers,
-						},
-					),
+					fetch(`${API_BASE_URL}internal/production/user_production`, {
+						headers,
+					}),
 					fetch(`${API_BASE_URL}user_workforce_with_needs`, {
 						headers,
 					}),

@@ -113,7 +113,15 @@ export const SiteDrawerContent: React.FC<Props> = ({
 				)}
 
 				{tabValue === 1 && (
-					<Box sx={{ flex: 1, overflow: "hidden", p: { xs: 1.5, sm: 2 }, display: "flex", flexDirection: "column" }}>
+					<Box
+						sx={{
+							flex: 1,
+							overflow: "hidden",
+							p: { xs: 1.5, sm: 2 },
+							display: "flex",
+							flexDirection: "column",
+						}}
+					>
 						<LogisticsTabContent
 							siteName={site.planet_name}
 							{...logistics}

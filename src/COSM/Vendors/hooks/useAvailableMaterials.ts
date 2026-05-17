@@ -58,17 +58,14 @@ export function useAvailableMaterials(
 		let isMounted = true;
 		const fetchMaterials = async () => {
 			try {
-				const response = await fetch(
-					`${API_BASE_URL}materials_price_list`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-						},
-						body: JSON.stringify({ cx }),
+				const response = await fetch(`${API_BASE_URL}materials_price_list`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 					},
-				);
+					body: JSON.stringify({ cx }),
+				});
 
 				if (!response.ok) throw new Error("Failed to fetch materials");
 

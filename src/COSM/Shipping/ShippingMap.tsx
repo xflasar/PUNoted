@@ -461,13 +461,11 @@ const ShippingMap: React.FC = () => {
 
 		const results = await Promise.allSettled(
 			ids.map((id) =>
-				fetch(`${API_BASE_URL}contracts/shipments/${id}`).then(
-					(res) => {
-						if (!res.ok)
-							throw new Error(`Contract ${id} not found or failed to load.`);
-						return res.json();
-					},
-				),
+				fetch(`${API_BASE_URL}contracts/shipments/${id}`).then((res) => {
+					if (!res.ok)
+						throw new Error(`Contract ${id} not found or failed to load.`);
+					return res.json();
+				}),
 			),
 		);
 

@@ -20,15 +20,15 @@ export interface GlobalSettings {
 }
 
 export interface BasicUser {
-  accountid: string;
-  username: string;
-  companyCode?: string;
+	accountid: string;
+	username: string;
+	companyCode?: string;
 }
 
 export interface LeasedSite {
-  siteId: string;
-  description: string;
-  tenant: string; // The username, company code, or account ID
+	siteId: string;
+	description: string;
+	tenant: string; // The username, company code, or account ID
 }
 
 // Reference Data Types

@@ -1,7 +1,6 @@
 import { API_BASE_URL } from "../../../config/api";
 import type { Chain, FullGroupData, Group } from "./types";
 
-
 // Helper to handle standard fetch responses and throw errors
 const handleResponse = async (response: Response) => {
 	const data = response.status === 204 ? {} : await response.json();
@@ -167,13 +166,16 @@ export const deleteGroup = async (
  * Accepts a pending group invitation.
  */
 export const acceptGroupInvite = async (groupId: string): Promise<void> => {
-	const response = await fetch(`${API_BASE_URL}groups/${groupId}/invite/accept`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+	const response = await fetch(
+		`${API_BASE_URL}groups/${groupId}/invite/accept`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+			},
 		},
-	});
+	);
 	await handleResponse(response);
 };
 
@@ -181,13 +183,16 @@ export const acceptGroupInvite = async (groupId: string): Promise<void> => {
  * Rejects a pending group invitation.
  */
 export const rejectGroupInvite = async (groupId: string): Promise<void> => {
-	const response = await fetch(`${API_BASE_URL}groups/${groupId}/invite/reject`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+	const response = await fetch(
+		`${API_BASE_URL}groups/${groupId}/invite/reject`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+			},
 		},
-	});
+	);
 	await handleResponse(response);
 };
 

@@ -46,7 +46,15 @@ export const SiteDrawerHeader: React.FC<Props> = ({ site, onClose }) => {
 				gap: 1,
 			}}
 		>
-			<Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", flex: 1 }}>
+			<Box
+				sx={{
+					display: "flex",
+					alignItems: "center",
+					gap: 1.5,
+					flexWrap: "wrap",
+					flex: 1,
+				}}
+			>
 				<Typography
 					variant="subtitle1"
 					fontWeight={900}
@@ -72,7 +80,14 @@ export const SiteDrawerHeader: React.FC<Props> = ({ site, onClose }) => {
 					/>
 				)}
 
-				<Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "nowrap" }}>
+				<Box
+					sx={{
+						display: "flex",
+						gap: 1,
+						alignItems: "center",
+						flexWrap: "nowrap",
+					}}
+				>
 					<Box
 						sx={{
 							px: 0.75,

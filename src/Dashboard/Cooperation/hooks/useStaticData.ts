@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { StaticData } from "../types";
 
 const CACHE_KEY = "pu_static_data_cache";
- // Make sure this matches your backend port!
+// Make sure this matches your backend port!
 
 export const useStaticData = () => {
 	const [staticData, setStaticData] = useState<StaticData | null>(null);

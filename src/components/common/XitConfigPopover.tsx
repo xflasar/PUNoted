@@ -49,10 +49,11 @@ export const XitConfigPopover: React.FC<XitConfigPopoverProps> = ({
 		const fleetMapping: { fleetId: string; userShipReg: string }[] = [];
 		if (cargoPlanFleet) {
 			cargoPlanFleet.forEach((ship: any) => {
-				const mappedReg = (useMyFleet && fleetMappingConfig[ship.fleetId]) 
-					? fleetMappingConfig[ship.fleetId] 
-					: "Configure on Execution";
-					
+				const mappedReg =
+					useMyFleet && fleetMappingConfig[ship.fleetId]
+						? fleetMappingConfig[ship.fleetId]
+						: "Configure on Execution";
+
 				fleetMapping.push({
 					fleetId: ship.fleetId,
 					userShipReg: mappedReg,
@@ -147,7 +148,7 @@ export const XitConfigPopover: React.FC<XitConfigPopoverProps> = ({
 						}
 					/>
 				</Stack>
-				
+
 				{includeTransport && (
 					<>
 						<TextField
@@ -160,7 +161,7 @@ export const XitConfigPopover: React.FC<XitConfigPopoverProps> = ({
 						/>
 					</>
 				)}
-				
+
 				<Button
 					onClick={handleCopy}
 					variant="contained"

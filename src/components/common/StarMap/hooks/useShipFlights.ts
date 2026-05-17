@@ -17,15 +17,12 @@ export const useShipFlights = () => {
 			setLoading(true);
 			setError(null);
 			try {
-				const response = await fetch(
-					`${API_BASE_URL}user_ships_flights`,
-					{
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-							"Content-Type": "application/json",
-						},
+				const response = await fetch(`${API_BASE_URL}user_ships_flights`, {
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+						"Content-Type": "application/json",
 					},
-				);
+				});
 
 				if (!response.ok) {
 					throw new Error(`Failed to fetch ship flights: ${response.status}`);

@@ -188,20 +188,17 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 					}
 
 					try {
-						const response = await fetch(
-							`${API_BASE_URL}auth/register`,
-							{
-								method: "POST",
-								headers: {
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({
-									username,
-									email,
-									password,
-								}),
+						const response = await fetch(`${API_BASE_URL}auth/register`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
 							},
-						);
+							body: JSON.stringify({
+								username,
+								email,
+								password,
+							}),
+						});
 
 						const data = await response.json();
 
@@ -237,19 +234,16 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 					}
 
 					try {
-						const response = await fetch(
-							`${API_BASE_URL}auth/verify_email`,
-							{
-								method: "POST",
-								headers: {
-									"Content-Type": "application/json",
-								},
-								body: JSON.stringify({
-									email: email,
-									code: verificationCode,
-								}),
+						const response = await fetch(`${API_BASE_URL}auth/verify_email`, {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
 							},
-						);
+							body: JSON.stringify({
+								email: email,
+								code: verificationCode,
+							}),
+						});
 
 						const data = await response.json();
 
@@ -282,14 +276,11 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 				}
 			} else if (authFlow === "forgotPassword") {
 				if (forgotPasswordStep === "email") {
-					const response = await fetch(
-						`${API_BASE_URL}auth/forget_password`,
-						{
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({ email }),
-						},
-					);
+					const response = await fetch(`${API_BASE_URL}auth/forget_password`, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ email }),
+					});
 					if (response.ok) {
 						const data = await response.json();
 						openSnackbar(
