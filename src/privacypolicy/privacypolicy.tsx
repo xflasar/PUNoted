@@ -15,18 +15,19 @@ import { FaArrowLeft } from "react-icons/fa";
 
 const BackgroundBox = styled(Box)(({ theme }) => ({
 	width: "100vw",
-	minHeight: "100vh",
+	height: "100vh",
 	display: "flex",
 	flexDirection: "column",
-	justifyContent: "center",
+	justifyContent: "flex-start",
 	alignItems: "center",
 	textAlign: "center",
 	color: theme.palette.common.white,
 	background:
 		"radial-gradient(at 50% 0%, rgba(20, 20, 40, 0.8) 0%, rgba(10, 10, 20, 0.9) 70%, rgba(0, 0, 0, 1) 100%)",
 	position: "fixed",
-	top: 0,
-	left: 0,
+	inset: 0,
+	overflowY: "auto",
+	WebkitOverflowScrolling: "touch",
 	zIndex: 1,
 	animation: "none",
 	backgroundSize: "100% 100%",
