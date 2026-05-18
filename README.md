@@ -1,41 +1,17 @@
 # PUNoted Frontend
 
-A comprehensive web application frontend for managing and analyzing game data, shipments, market prices, and corporate bases. Built with React, TypeScript, and Vite.
+Frontend for https://github.com/xflasar/PUNoted-API
+Built with React, TypeScript, and Vite.
 
-> **Note on Testing and Code Style:** This project is currently in early development and does not have any automated testing (Unit or E2E) set up yet. The codebase is actively evolving, and you may encounter relaxed TypeScript typings (e.g., `any`) and varying code styles as features are being prototyped and built.
+## Development
 
-## 🚀 Fast Start
+Install dependencies: `npm install`
 
-### Prerequisites
-
-- Node.js (v18 or higher recommended)
-- npm (v9 or higher recommended)
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/xflasar/PUNoted.git
-   cd punoted
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-### Running the Project
-
-To start the development server with Hot Module Replacement (HMR):
-
-```bash
-npm run dev
-```
+Start the development server with Hot Module Replacement (HMR): `npm run dev`
 
 The application will be available at `http://localhost:5173` by default.
 
-### Building for Production
-
-To build the application for production:
+## Building for Production
 
 ```bash
 npm run build
@@ -47,7 +23,7 @@ To preview the production build locally:
 npm run preview
 ```
 
-## 🛠️ Development & Tech Stack
+## Tech Stack
 
 - **Framework:** React 19
 - **Language:** TypeScript
@@ -55,10 +31,6 @@ npm run preview
 - **UI/Styling:** Material UI (MUI), Emotion, Lucide React
 - **Data Visualization:** Deck.gl, Recharts, React Flow
 - **State/Data Management:** React Query, React Router DOM
-
-## Contributing
-
-Before submitting a PR, please format the code with `npm run fmt`.
 
 ## 📄 License
 
