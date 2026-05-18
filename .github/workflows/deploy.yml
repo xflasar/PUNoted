@@ -1,0 +1,40 @@
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches:
+      - main
+
+jobs:
+  build-publish-deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun run build
+
+      - name: deploy
+        run: |
+          install --directory --mode=700 ~/.ssh
+          install --mode=600 /dev/null ~/.ssh/id_ed25519
+          echo "${{ secrets.FOOR_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          echo "foor.raylu.net ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID05p9Iwshxedsw0ggneT0R3La6DFVFe8Igdb6Kaz/75" >> ~/.ssh/known_hosts
+          tar --zstd -cf dist.tar.zstd -C dist .
+          scp dist.tar.zstd xflasar@foor.raylu.net:
+          ssh xflasar@foor.raylu.net '
+            mkdir PUNoted-FE-deploy &&
+            tar -xf dist.tar.zstd -C PUNoted-FE-deploy &&
+            rm dist.tar.zstd &&
+            mv PUNoted-FE PUNoted-FE-old &&
+            mv PUNoted-FE-deploy PUNoted-FE &&
+            rm -r PUNoted-FE-old
+          '
