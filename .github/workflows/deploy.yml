@@ -20,6 +20,8 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - run: bun install --production --frozen-lockfile
+
       - run: bun run build
 
       - name: deploy
