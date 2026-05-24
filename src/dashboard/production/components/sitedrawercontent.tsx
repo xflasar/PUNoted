@@ -51,7 +51,7 @@ export const SiteDrawerContent: React.FC<Props> = ({
 		logistics.allowedShipTypes,
 		logistics.allocationStrategy,
 		logistics.maxShips,
-		logistics.manualFleet
+		logistics.manualFleet,
 	);
 
 	const surplusCargoPlan = useCargoPlanner(
@@ -62,7 +62,7 @@ export const SiteDrawerContent: React.FC<Props> = ({
 		logistics.allowedShipTypes,
 		logistics.allocationStrategy,
 		logistics.maxShips,
-		logistics.manualFleet
+		logistics.manualFleet,
 	);
 
 	if (!site) return null;

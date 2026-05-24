@@ -74,7 +74,9 @@ export const ShipBreakdown = ({
 
 	const handleRemoveShip = () => {
 		if (setManualFleet) {
-			setManualFleet((prev) => prev.filter((mShip) => mShip.id !== ship.fleetId));
+			setManualFleet((prev) =>
+				prev.filter((mShip) => mShip.id !== ship.fleetId),
+			);
 		}
 	};
 
@@ -106,7 +108,14 @@ export const ShipBreakdown = ({
 					}}
 				>
 					{isManual ? (
-						<Box sx={{ display: "flex", alignItems: "center", width: 60, gap: 0.5 }}>
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								width: 60,
+								gap: 0.5,
+							}}
+						>
 							<Typography
 								variant="caption"
 								sx={{ color: "text.primary", pt: 0.25, fontWeight: 800 }}
@@ -127,7 +136,11 @@ export const ShipBreakdown = ({
 								}}
 							>
 								{CARGO_BAYS.map((bay) => (
-									<MenuItem key={bay.id} value={bay.id} sx={{ fontSize: "0.75rem" }}>
+									<MenuItem
+										key={bay.id}
+										value={bay.id}
+										sx={{ fontSize: "0.75rem" }}
+									>
 										{bay.id}
 									</MenuItem>
 								))}
@@ -136,7 +149,12 @@ export const ShipBreakdown = ({
 					) : (
 						<Typography
 							variant="caption"
-							sx={{ width: 50, color: "text.primary", pt: 0.25, fontWeight: 800 }}
+							sx={{
+								width: 50,
+								color: "text.primary",
+								pt: 0.25,
+								fontWeight: 800,
+							}}
 						>
 							{index + 1}. {ship.id}
 						</Typography>
@@ -246,7 +264,11 @@ export const ShipBreakdown = ({
 					</Box>
 
 					{isManual && (
-						<IconButton size="small" onClick={handleRemoveShip} sx={{ ml: 1, color: "error.main" }}>
+						<IconButton
+							size="small"
+							onClick={handleRemoveShip}
+							sx={{ ml: 1, color: "error.main" }}
+						>
 							<X size={16} />
 						</IconButton>
 					)}

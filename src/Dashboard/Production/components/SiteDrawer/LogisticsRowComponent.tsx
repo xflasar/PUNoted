@@ -199,17 +199,18 @@ export const LogisticsRowComponent = ({
 							slotProps={{
 								input: {
 									inputMode: "numeric",
-									endAdornment: viewMode === "pickup" ? null : (
-										<InputAdornment position="end" sx={{ ml: 0.5 }}>
-											<Typography
-												variant="body2"
-												fontWeight={800}
-												color="text.secondary"
-											>
-												d
-											</Typography>
-										</InputAdornment>
-									),
+									endAdornment:
+										viewMode === "pickup" ? null : (
+											<InputAdornment position="end" sx={{ ml: 0.5 }}>
+												<Typography
+													variant="body2"
+													fontWeight={800}
+													color="text.secondary"
+												>
+													d
+												</Typography>
+											</InputAdornment>
+										),
 									sx: {
 										fontSize: "0.85rem",
 										fontWeight: 800,
