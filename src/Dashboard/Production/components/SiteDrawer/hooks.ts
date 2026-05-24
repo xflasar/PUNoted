@@ -79,6 +79,10 @@ export const useLogisticsManager = (
 	const [manualFleet, setManualFleet] = useState<
 		{ id: string; bayId: string }[]
 	>([]);
+	const [enableSurplus, setEnableSurplus] = useState<boolean>(false);
+	const [selectedSurplusMaterials, setSelectedSurplusMaterials] = useState<
+		Set<string>
+	>(new Set());
 
 	useEffect(() => {
 		if (!siteId) return;
@@ -107,14 +111,39 @@ export const useLogisticsManager = (
 				`site_logistics_manual_${siteId}`,
 			);
 			if (savedManual) setManualFleet(JSON.parse(savedManual));
+			const savedSurplus = localStorage.getItem(
+				`site_logistics_surplus_${siteId}`,
+			);
+			if (savedSurplus) setEnableSurplus(savedSurplus === "true");
 		} catch {}
 
 		const initialSelection = new Set<string>();
+		const initialSurplusSelection = new Set<string>();
 		Object.entries(richFlows).forEach(([ticker, data]) => {
 			if (data.flow < 0 && !data.isProduction) initialSelection.add(ticker);
+			if (data.flow > 0) initialSurplusSelection.add(ticker);
 		});
 		setSelectedMaterials(initialSelection);
+		setSelectedSurplusMaterials(initialSurplusSelection);
 	}, [siteId, richFlows]);
+
+	const surplusRows = useMemo(() => {
+		return Object.entries(richFlows)
+			.filter(([ticker, data]) => data.flow > 0)
+			.map(([ticker, data]) => {
+				return {
+					ticker,
+					dailyBurn: data.flow, // Daily production
+					current: data.currentAmount || 0,
+					target: 0,
+					missing: data.currentAmount || 0, // Pick up current inventory
+					currentFullDays: 0,
+					isWorkforce: false,
+					autoPriority: 3,
+				};
+			})
+			.sort((a, b) => a.ticker.localeCompare(b.ticker));
+	}, [richFlows]);
 
 	const logisticsRows = useMemo(() => {
 		// Calculate the average efficiency of all running lines to upscale inputs
@@ -313,6 +342,19 @@ export const useLogisticsManager = (
 		setSelectedMaterials(next);
 	};
 
+	const toggleSurplusMaterial = (ticker: string) => {
+		const next = new Set(selectedSurplusMaterials);
+		if (next.has(ticker)) next.delete(ticker);
+		else next.add(ticker);
+		setSelectedSurplusMaterials(next);
+	};
+
+	const toggleAllSurplus = () => {
+		if (selectedSurplusMaterials.size === surplusRows.length)
+			setSelectedSurplusMaterials(new Set());
+		else setSelectedSurplusMaterials(new Set(surplusRows.map((r) => r.ticker)));
+	};
+
 	const toggleAllLogistics = () => {
 		if (selectedMaterials.size === logisticsRows.length)
 			setSelectedMaterials(new Set());
@@ -325,6 +367,12 @@ export const useLogisticsManager = (
 		localStorage.setItem(`site_logistics_opt_${siteId}`, String(next));
 	};
 
+	const toggleEnableSurplus = () => {
+		const next = !enableSurplus;
+		setEnableSurplus(next);
+		localStorage.setItem(`site_logistics_surplus_${siteId}`, String(next));
+	};
+
 	const handleMaxShipsChange = (val: string) => {
 		const num = parseInt(val) || 0;
 		setMaxShips(num);
@@ -333,7 +381,10 @@ export const useLogisticsManager = (
 
 	return {
 		logisticsRows,
+		surplusRows,
 		selectedMaterials,
+		selectedSurplusMaterials,
+		enableSurplus,
 		materialTargets,
 		materialPriorities,
 		allowedShipTypes,
@@ -346,7 +397,10 @@ export const useLogisticsManager = (
 		handleAllowedShipsChange,
 		handleStrategyChange,
 		toggleMaterial,
+		toggleSurplusMaterial,
+		toggleEnableSurplus,
 		toggleAllLogistics,
+		toggleAllSurplus,
 		toggleAssumeOptimal,
 		handleMaxShipsChange,
 		handleFlightBufferChange,

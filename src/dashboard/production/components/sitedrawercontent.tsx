@@ -51,6 +51,18 @@ export const SiteDrawerContent: React.FC<Props> = ({
 		logistics.allowedShipTypes,
 		logistics.allocationStrategy,
 		logistics.maxShips,
+		logistics.manualFleet
+	);
+
+	const surplusCargoPlan = useCargoPlanner(
+		logistics.surplusRows,
+		logistics.selectedSurplusMaterials,
+		logistics.materialPriorities,
+		shipOverride,
+		logistics.allowedShipTypes,
+		logistics.allocationStrategy,
+		logistics.maxShips,
+		logistics.manualFleet
 	);
 
 	if (!site) return null;
@@ -126,6 +138,7 @@ export const SiteDrawerContent: React.FC<Props> = ({
 							siteName={site.planet_name}
 							{...logistics}
 							cargoPlan={cargoPlan}
+							surplusCargoPlan={surplusCargoPlan}
 							shipOverride={shipOverride}
 							setShipOverride={setShipOverride}
 							onShowSnackbar={(msg: string) =>

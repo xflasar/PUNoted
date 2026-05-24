@@ -38,6 +38,7 @@ export const FleetPlannerWidget = ({
 	setFleetMappingConfig,
 	manualFleet,
 	setManualFleet,
+	isReturnTrip,
 }: any) => {
 	const theme = useTheme();
 
@@ -89,191 +90,200 @@ export const FleetPlannerWidget = ({
 					justifyContent: "space-between",
 				}}
 			>
-				{/* Top Header & Main Actions */}
-				<Box
-					sx={{
-						display: "flex",
-						gap: 1,
-						flexWrap: "wrap",
-						alignItems: "center",
-					}}
-				>
-					<FormControl size="small">
-						<Select
-							MenuProps={{
-								slotProps: {
-									paper: {
-										sx: {
-											background: theme.palette.background.default,
-											backgroundImage: "none",
-											color: theme.palette.text.primary,
-										},
-									},
-								},
-							}}
-							value={shipOverride}
-							onChange={(e) => setShipOverride(e.target.value as string)}
-							sx={{
-								height: 28,
-								fontSize: "0.75rem",
-								fontWeight: 700,
-								background: theme.palette.background.default,
-								"& .MuiSelect-select": { py: 0, px: 1.5 },
-							}}
-						>
-							<MenuItem value="auto" sx={{ fontSize: "0.8rem" }}>
-								Auto Fleet
-							</MenuItem>
-							<MenuItem value="manual" sx={{ fontSize: "0.8rem" }}>
-								Manual Fleet
-							</MenuItem>
-							{CARGO_BAYS.map((s) => (
-								<MenuItem key={s.id} value={s.id} sx={{ fontSize: "0.8rem" }}>
-									Force {s.id}
-								</MenuItem>
-							))}
-						</Select>
-					</FormControl>
-
-					<FormControl size="small">
-						<Select
-							MenuProps={{
-								slotProps: {
-									paper: {
-										sx: {
-											background: theme.palette.background.default,
-											backgroundImage: "none",
-											color: theme.palette.text.primary,
-										},
-									},
-								},
-							}}
-							value={String(maxShips || 0)}
-							onChange={(e) => handleMaxShipsChange(e.target.value)}
-							sx={{
-								height: 28,
-								fontSize: "0.75rem",
-								fontWeight: 700,
-								background: theme.palette.background.default,
-								"& .MuiSelect-select": { py: 0, px: 1.5 },
-							}}
-						>
-							<MenuItem value="0" sx={{ fontSize: "0.8rem", fontWeight: 600 }}>
-								Max Ships: {shipOverride === "auto" ? "Auto" : "1"}
-							</MenuItem>
-							{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-								<MenuItem
-									key={num}
-									value={String(num)}
-									sx={{ fontSize: "0.8rem", fontWeight: 600 }}
-								>
-									Max Ships: {num}
-								</MenuItem>
-							))}
-						</Select>
-					</FormControl>
-
-					<FormControl size="small">
-						<Select
-							MenuProps={{
-								slotProps: {
-									paper: {
-										sx: {
-											background: theme.palette.background.default,
-											backgroundImage: "none",
-											color: theme.palette.text.primary,
-										},
-									},
-								},
-							}}
-							value={allocationStrategy}
-							onChange={(e) => handleStrategyChange(e.target.value as any)}
-							sx={{
-								height: 28,
-								fontSize: "0.75rem",
-								fontWeight: 700,
-								bgcolor: theme.palette.background.paper,
-								"& .MuiSelect-select": { py: 0, px: 1.5 },
-							}}
-						>
-							<MenuItem
-								value="together"
-								sx={{ fontSize: "0.8rem", fontWeight: 600 }}
-							>
-								Keep Together
-							</MenuItem>
-							<MenuItem
-								value="balance"
-								sx={{ fontSize: "0.8rem", fontWeight: 600 }}
-							>
-								Balance Load
-							</MenuItem>
-							<MenuItem
-								value="categorized"
-								sx={{ fontSize: "0.8rem", fontWeight: 600 }}
-							>
-								Group by Category
-							</MenuItem>
-						</Select>
-					</FormControl>
-
-					{shipOverride === "manual" && (
-						<FormControl size="small">
-							<Button onClick={() => handleAddShip()}>Ater</Button>
-						</FormControl>
-					)}
-
-					{shipOverride === "auto" && (
-						<FormControl size="small">
-							<Select
-								MenuProps={{
-									slotProps: {
-										paper: {
-											sx: {
-												background: theme.palette.background.default,
-												backgroundImage: "none",
-												color: theme.palette.text.primary,
+					{/* Top Header & Main Actions */}
+					<Box
+						sx={{
+							display: "flex",
+							gap: 1,
+							flexWrap: "wrap",
+							alignItems: "center",
+						}}
+					>
+							<FormControl size="small">
+								<Select
+									MenuProps={{
+										slotProps: {
+											paper: {
+												sx: {
+													background: theme.palette.background.default,
+													backgroundImage: "none",
+													color: theme.palette.text.primary,
+												},
 											},
 										},
-									},
-								}}
-								multiple
-								displayEmpty
-								value={allowedShipTypes}
-								onChange={(e) =>
-									handleAllowedShipsChange(e.target.value as string[])
-								}
-								renderValue={(selected) =>
-									(selected as string[]).length === CARGO_BAYS.length
-										? "All Ships"
-										: `${(selected as string[]).length} Allowed`
-								}
-								sx={{
-									height: 28,
-									fontSize: "0.75rem",
-									fontWeight: 600,
-									bgcolor: theme.palette.background.paper,
-									"& .MuiSelect-select": { py: 0, px: 1.5 },
-								}}
-							>
-								{CARGO_BAYS.map((s) => (
-									<MenuItem
-										key={s.id}
-										value={s.id}
-										sx={{ minHeight: "auto", p: 0.5 }}
-									>
-										<Checkbox
-											size="small"
-											checked={allowedShipTypes.includes(s.id)}
-											sx={{ p: 0.5 }}
-										/>
-										<Typography variant="body2">{s.id}</Typography>
+									}}
+									value={shipOverride}
+									onChange={(e) => setShipOverride(e.target.value as string)}
+									sx={{
+										height: 28,
+										fontSize: "0.75rem",
+										fontWeight: 700,
+										background: theme.palette.background.default,
+										"& .MuiSelect-select": { py: 0, px: 1.5 },
+									}}
+								>
+									<MenuItem value="auto" sx={{ fontSize: "0.8rem" }}>
+										Auto Fleet
 									</MenuItem>
-								))}
-							</Select>
-						</FormControl>
-					)}
-				</Box>
+									<MenuItem value="manual" sx={{ fontSize: "0.8rem" }}>
+										Manual Fleet
+									</MenuItem>
+									{CARGO_BAYS.map((s) => (
+										<MenuItem key={s.id} value={s.id} sx={{ fontSize: "0.8rem" }}>
+											Force {s.id}
+										</MenuItem>
+									))}
+								</Select>
+							</FormControl>
+
+							{shipOverride !== "manual" && (
+								<FormControl size="small">
+									<Select
+										MenuProps={{
+											slotProps: {
+												paper: {
+													sx: {
+														background: theme.palette.background.default,
+														backgroundImage: "none",
+														color: theme.palette.text.primary,
+													},
+												},
+											},
+										}}
+										value={String(maxShips || 0)}
+										onChange={(e) => handleMaxShipsChange(e.target.value)}
+										sx={{
+											height: 28,
+											fontSize: "0.75rem",
+											fontWeight: 700,
+											background: theme.palette.background.default,
+											"& .MuiSelect-select": { py: 0, px: 1.5 },
+										}}
+									>
+										<MenuItem value="0" sx={{ fontSize: "0.8rem", fontWeight: 600 }}>
+											Max Ships: {shipOverride === "auto" ? "Auto" : "1"}
+										</MenuItem>
+										{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+											<MenuItem
+												key={num}
+												value={String(num)}
+												sx={{ fontSize: "0.8rem", fontWeight: 600 }}
+											>
+												Max Ships: {num}
+											</MenuItem>
+										))}
+									</Select>
+								</FormControl>
+							)}
+
+							<FormControl size="small">
+								<Select
+									MenuProps={{
+										slotProps: {
+											paper: {
+												sx: {
+													background: theme.palette.background.default,
+													backgroundImage: "none",
+													color: theme.palette.text.primary,
+												},
+											},
+										},
+									}}
+									value={allocationStrategy}
+									onChange={(e) => handleStrategyChange(e.target.value as any)}
+									sx={{
+										height: 28,
+										fontSize: "0.75rem",
+										fontWeight: 700,
+										bgcolor: theme.palette.background.paper,
+										"& .MuiSelect-select": { py: 0, px: 1.5 },
+									}}
+								>
+									<MenuItem
+										value="together"
+										sx={{ fontSize: "0.8rem", fontWeight: 600 }}
+									>
+										Keep Together
+									</MenuItem>
+									<MenuItem
+										value="balance"
+										sx={{ fontSize: "0.8rem", fontWeight: 600 }}
+									>
+										Balance Load
+									</MenuItem>
+									<MenuItem
+										value="categorized"
+										sx={{ fontSize: "0.8rem", fontWeight: 600 }}
+									>
+										Group by Category
+									</MenuItem>
+								</Select>
+							</FormControl>
+
+							{shipOverride === "manual" && (
+								<FormControl size="small">
+									<Button 
+										variant="contained" 
+										color="primary" 
+										onClick={() => handleAddShip()}
+										sx={{ height: 28, fontSize: "0.75rem", fontWeight: 700 }}
+									>
+										Add Ship
+									</Button>
+								</FormControl>
+							)}
+
+							{shipOverride === "auto" && (
+								<FormControl size="small">
+									<Select
+										MenuProps={{
+											slotProps: {
+												paper: {
+													sx: {
+														background: theme.palette.background.default,
+														backgroundImage: "none",
+														color: theme.palette.text.primary,
+													},
+												},
+											},
+										}}
+										multiple
+										displayEmpty
+										value={allowedShipTypes}
+										onChange={(e) =>
+											handleAllowedShipsChange(e.target.value as string[])
+										}
+										renderValue={(selected) =>
+											(selected as string[]).length === CARGO_BAYS.length
+												? "All Ships"
+												: `${(selected as string[]).length} Allowed`
+										}
+										sx={{
+											height: 28,
+											fontSize: "0.75rem",
+											fontWeight: 600,
+											bgcolor: theme.palette.background.paper,
+											"& .MuiSelect-select": { py: 0, px: 1.5 },
+										}}
+									>
+										{CARGO_BAYS.map((s) => (
+											<MenuItem
+												key={s.id}
+												value={s.id}
+												sx={{ minHeight: "auto", p: 0.5 }}
+											>
+												<Checkbox
+													size="small"
+													checked={allowedShipTypes.includes(s.id)}
+													sx={{ p: 0.5 }}
+												/>
+												<Typography variant="body2">{s.id}</Typography>
+											</MenuItem>
+										))}
+									</Select>
+								</FormControl>
+							)}
+					</Box>
 
 				<Box
 					sx={{
@@ -480,6 +490,9 @@ export const FleetPlannerWidget = ({
 									animatedShipData={animatedShipData}
 									fleetMappingConfig={fleetMappingConfig}
 									setFleetMappingConfig={setFleetMappingConfig}
+									isManual={isManual}
+									manualFleet={manualFleet}
+									setManualFleet={setManualFleet}
 								/>
 							);
 						})}

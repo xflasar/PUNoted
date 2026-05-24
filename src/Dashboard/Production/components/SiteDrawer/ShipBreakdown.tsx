@@ -7,8 +7,10 @@ import {
 	Select,
 	MenuItem,
 	FormControl,
+	IconButton,
 } from "@mui/material";
-import { smartFormat } from "./utils.ts";
+import { X } from "lucide-react";
+import { smartFormat, CARGO_BAYS } from "./utils.ts";
 import MaterialBadge from "../../../../COSM/components/MaterialBadge.tsx";
 
 export const ShipBreakdown = ({
@@ -20,6 +22,9 @@ export const ShipBreakdown = ({
 	animatedShipData,
 	fleetMappingConfig,
 	setFleetMappingConfig,
+	isManual,
+	manualFleet,
+	setManualFleet,
 }: {
 	ship: any;
 	index: number;
@@ -31,6 +36,9 @@ export const ShipBreakdown = ({
 	setFleetMappingConfig?: React.Dispatch<
 		React.SetStateAction<Record<string, string>>
 	>;
+	isManual?: boolean;
+	manualFleet?: any[];
+	setManualFleet?: React.Dispatch<React.SetStateAction<any[]>>;
 }) => {
 	const theme = useTheme();
 
@@ -49,6 +57,24 @@ export const ShipBreakdown = ({
 				...prev,
 				[ship.fleetId]: e.target.value,
 			}));
+		}
+	};
+
+	const handleTypeChange = (e: any) => {
+		if (setManualFleet) {
+			setManualFleet((prev) =>
+				prev.map((mShip) =>
+					mShip.id === ship.fleetId
+						? { ...mShip, bayId: e.target.value }
+						: mShip,
+				),
+			);
+		}
+	};
+
+	const handleRemoveShip = () => {
+		if (setManualFleet) {
+			setManualFleet((prev) => prev.filter((mShip) => mShip.id !== ship.fleetId));
 		}
 	};
 
@@ -79,12 +105,42 @@ export const ShipBreakdown = ({
 						gap: 2,
 					}}
 				>
-					<Typography
-						variant="caption"
-						sx={{ width: 50, color: "text.primary", pt: 0.25, fontWeight: 800 }}
-					>
-						{index + 1}. {ship.id}
-					</Typography>
+					{isManual ? (
+						<Box sx={{ display: "flex", alignItems: "center", width: 60, gap: 0.5 }}>
+							<Typography
+								variant="caption"
+								sx={{ color: "text.primary", pt: 0.25, fontWeight: 800 }}
+							>
+								{index + 1}.
+							</Typography>
+							<Select
+								value={ship.id}
+								onChange={handleTypeChange}
+								size="small"
+								variant="standard"
+								disableUnderline
+								sx={{
+									fontSize: "0.75rem",
+									fontWeight: 800,
+									color: "text.primary",
+									"& .MuiSelect-select": { py: 0, px: 0.5 },
+								}}
+							>
+								{CARGO_BAYS.map((bay) => (
+									<MenuItem key={bay.id} value={bay.id} sx={{ fontSize: "0.75rem" }}>
+										{bay.id}
+									</MenuItem>
+								))}
+							</Select>
+						</Box>
+					) : (
+						<Typography
+							variant="caption"
+							sx={{ width: 50, color: "text.primary", pt: 0.25, fontWeight: 800 }}
+						>
+							{index + 1}. {ship.id}
+						</Typography>
+					)}
 
 					<Box
 						sx={{
@@ -188,6 +244,12 @@ export const ShipBreakdown = ({
 							</Typography>
 						</Box>
 					</Box>
+
+					{isManual && (
+						<IconButton size="small" onClick={handleRemoveShip} sx={{ ml: 1, color: "error.main" }}>
+							<X size={16} />
+						</IconButton>
+					)}
 				</Box>
 
 				{useMyFleet && (

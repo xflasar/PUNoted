@@ -14,6 +14,7 @@ export const calculateCargoPlan = (
 	allocationStrategy: "together" | "balance" | "categorized",
 	getMatProps: (ticker: string) => MaterialProps,
 	maxShips: number = 0, // 0 means unlimited
+	manualFleet: { id: string; bayId: string }[] = [],
 ): CargoPlanResult => {
 	let idealW = 0;
 	let idealV = 0;

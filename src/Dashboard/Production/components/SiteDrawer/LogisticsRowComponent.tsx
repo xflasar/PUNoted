@@ -25,6 +25,7 @@ export const LogisticsRowComponent = ({
 	handlePriorityChange,
 	handleTargetChange,
 	toggleMaterial,
+	viewMode = "dropoff",
 }: any) => {
 	const theme = useTheme();
 	const isTruncated = isSelected && row.missing > 0 && allocated < row.missing;
@@ -153,8 +154,17 @@ export const LogisticsRowComponent = ({
 								gap: 0.5,
 							}}
 						>
-							<span>Stock: {formatNumber(currentDays)}d</span>
-							<span>({smartFormat(row.current).text})</span>
+							{viewMode === "pickup" ? (
+								<>
+									<span>Prod: {formatNumber(row.dailyBurn)}/d</span>
+									<span>Stock: {smartFormat(row.current).text}</span>
+								</>
+							) : (
+								<>
+									<span>Stock: {formatNumber(currentDays)}d</span>
+									<span>({smartFormat(row.current).text})</span>
+								</>
+							)}
 						</Typography>
 					</Box>
 				</Box>
@@ -189,7 +199,7 @@ export const LogisticsRowComponent = ({
 							slotProps={{
 								input: {
 									inputMode: "numeric",
-									endAdornment: (
+									endAdornment: viewMode === "pickup" ? null : (
 										<InputAdornment position="end" sx={{ ml: 0.5 }}>
 											<Typography
 												variant="body2"
@@ -225,77 +235,89 @@ export const LogisticsRowComponent = ({
 							}}
 						/>
 
-						<Box
-							sx={{
-								display: "flex",
-								flexWrap: "wrap",
-								gap: 0.5,
-								flex: 1,
-							}}
-						>
-							<Button
-								size="small"
-								variant="outlined"
+						{viewMode !== "pickup" && (
+							<Box
 								sx={{
-									minWidth: 0,
-									px: 0.5,
-									py: 0,
-									height: 22,
-									fontSize: "0.65rem",
-									color: "text.secondary",
-									...hintBorderStyle, // Spread the hint style here
+									display: "flex",
+									flexWrap: "wrap",
+									gap: 0.5,
+									flex: 1,
 								}}
-								onClick={(e) => handleAddDays(1, e)}
 							>
-								+1d
-							</Button>
-							<Button
-								size="small"
-								variant="outlined"
-								sx={{
-									minWidth: 0,
-									px: 0.5,
-									py: 0,
-									height: 22,
-									fontSize: "0.65rem",
-									color: "text.secondary",
-									...hintBorderStyle,
-								}}
-								onClick={(e) => handleAddDays(7, e)}
-							>
-								+7d
-							</Button>
-							<Button
-								size="small"
-								variant="outlined"
-								sx={{
-									minWidth: 0,
-									px: 0.5,
-									py: 0,
-									height: 22,
-									fontSize: "0.65rem",
-									color: "text.secondary",
-									...hintBorderStyle,
-								}}
-								onClick={(e) => handleSync(30, e)}
-							>
-								30d
-							</Button>
-							<Button
-								size="small"
-								variant="contained"
-								color="info"
-								sx={{
-									px: 0.5,
-									py: 0,
-									height: 22,
-									fontSize: "0.65rem",
-								}}
-								onClick={handleTopOff}
-							>
-								TOP OFF
-							</Button>
-						</Box>
+								<Button
+									size="small"
+									variant="outlined"
+									sx={{
+										minWidth: 0,
+										px: 0.5,
+										py: 0,
+										height: 22,
+										fontSize: "0.65rem",
+										color: "text.secondary",
+										...hintBorderStyle, // Spread the hint style here
+									}}
+									onClick={(e) => handleAddDays(1, e)}
+								>
+									+1d
+								</Button>
+								<Button
+									size="small"
+									variant="outlined"
+									sx={{
+										minWidth: 0,
+										px: 0.5,
+										py: 0,
+										height: 22,
+										fontSize: "0.65rem",
+										color: "text.secondary",
+										...hintBorderStyle,
+									}}
+									onClick={(e) => handleAddDays(7, e)}
+								>
+									+7d
+								</Button>
+								<Button
+									size="small"
+									variant="outlined"
+									sx={{
+										minWidth: 0,
+										px: 0.5,
+										py: 0,
+										height: 22,
+										fontSize: "0.65rem",
+										color: "text.secondary",
+										...hintBorderStyle,
+									}}
+									onClick={(e) => handleSync(30, e)}
+								>
+									30d Sync
+								</Button>
+
+								{isSelected && (
+									<Button
+										size="small"
+										variant="outlined"
+										color="info"
+										sx={{
+											minWidth: 0,
+											px: 0.5,
+											py: 0,
+											height: 22,
+											fontSize: "0.65rem",
+											borderColor: alpha(theme.palette.info.main, 0.3),
+											transition: "border-color 0.2s, background-color 0.2s",
+											"&:hover": {
+												borderColor: theme.palette.info.main,
+												bgcolor: alpha(theme.palette.info.main, 0.05),
+											},
+										}}
+										onClick={handleTopOff}
+									>
+										Top Off Space
+									</Button>
+								)}
+							</Box>
+						)}
 					</Box>
 				</Box>
 
