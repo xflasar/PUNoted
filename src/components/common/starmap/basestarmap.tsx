@@ -34,6 +34,7 @@ import ShipListComponent from "./components/shiplistcomponent";
 import SearchBar from "./components/searchbar/searchbar";
 import SearchResultsPanel from "./components/searchresultspanel/searchresultspanel";
 import { GlobalDataContext } from "../../../context/globaldatacontext";
+import MapLoadingOverlay from "../maploadingoverlay";
 
 function deepCompareLayers(prevLayers: any[] = [], nextLayers: any[] = []) {
 	if (prevLayers.length !== nextLayers.length) return false;

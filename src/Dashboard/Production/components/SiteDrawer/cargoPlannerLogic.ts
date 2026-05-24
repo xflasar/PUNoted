@@ -74,7 +74,20 @@ export const calculateCargoPlan = (
 	};
 
 	// 1. Initial Fleet Setup
-	if (shipOverride !== "auto") {
+	if (shipOverride === "manual") {
+		manualFleet.forEach((mShip) => {
+			let manualShipInfo = CARGO_BAYS.find((s) => s.id === mShip.bayId);
+			if (!manualShipInfo) manualShipInfo = CARGO_BAYS[0]; // fallback
+			fleet.push({
+				...manualShipInfo,
+				fleetId: mShip.id,
+				loadedW: 0,
+				loadedV: 0,
+				inventory: {},
+				primaryCategory: null,
+			});
+		});
+	} else if (shipOverride !== "auto") {
 		const manualShip = CARGO_BAYS.find((s) => s.id === shipOverride);
 		if (manualShip) {
 			const count = maxShips > 0 ? maxShips : 1;

@@ -13,7 +13,7 @@ import {
 	InputAdornment,
 	Button,
 } from "@mui/material";
-import { smartFormat, formatNumber } from "./utils";
+import { smartFormat, formatNumber } from "./utils.ts";
 import MaterialBadge from "../../../../COSM/components/MaterialBadge.tsx";
 
 export const LogisticsRowComponent = ({

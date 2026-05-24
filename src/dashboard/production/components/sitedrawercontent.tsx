@@ -8,10 +8,10 @@ import {
 	useLogisticsManager,
 	useCargoPlanner,
 } from "./SiteDrawer/hooks";
-import { SiteDrawerHeader } from "./SiteDrawer/SiteDrawerHeader";
-import { ProductionTabContent } from "./SiteDrawer/ProductionTabContent";
-import { LogisticsTabContent } from "./SiteDrawer/LogisticsTabContent";
-import { InfraTabContent } from "./SiteDrawer/InfraTabContent";
+import { SiteDrawerHeader } from "./SiteDrawer/sitedrawerheader";
+import { ProductionTabContent } from "./SiteDrawer/productiontabcontent";
+import { LogisticsTabContent } from "./SiteDrawer/logisticstabcontent";
+import { InfraTabContent } from "./SiteDrawer/infratabcontent";
 
 interface Props {
 	siteFlow?: SiteSummary;
@@ -131,6 +131,8 @@ export const SiteDrawerContent: React.FC<Props> = ({
 							onShowSnackbar={(msg: string) =>
 								setSnackbar({ open: true, message: msg })
 							}
+							manualFleet={logistics.manualFleet}
+							setManualFleet={logistics.setManualFleet}
 						/>
 					</Box>
 				)}

@@ -43,17 +43,17 @@ import {
 	ResponsiveContainer,
 } from "recharts";
 
-import { BaseManager } from "../../components/BaseManager/BaseManager";
-import { useStaticData } from "../Cooperation/hooks/useStaticData";
-import type { NodeAssignedUser } from "../Cooperation/types";
-import { calculateBaseMetrics } from "../../components/BaseManager/helpers";
+import { BaseManager } from "../../components/basemanager/basemanager";
+import { useStaticData } from "../Cooperation/hooks/usestaticdata";
+import type { NodeAssignedUser } from "../cooperation/types";
+import { calculateBaseMetrics } from "../../components/basemanager/helpers";
 import {
 	FALLBACK_BUILDINGS,
 	FALLBACK_NEEDS,
 	FALLBACK_RECIPES,
 	FALLBACK_PRICES,
-} from "../../components/BaseManager/constants";
-import { useBaseManagerData } from "../../components/BaseManager/api";
+} from "../../components/basemanager/constants";
+import { useBaseManagerData } from "../../components/basemanager/api";
 
 const COLORS = [
 	"#0088FE",

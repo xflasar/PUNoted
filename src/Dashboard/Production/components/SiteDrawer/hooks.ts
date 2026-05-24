@@ -2,7 +2,7 @@ import { API_BASE_URL } from "../../../../config/api";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { CARGO_BAYS } from "./utils";
 import { useGlobalData } from "../../../../context/GlobalDataContext";
-import { calculateCargoPlan, type LogisticsRow } from "./cargoPlannerLogic";
+import { calculateCargoPlan, type LogisticsRow } from "./cargoplannerlogic";
 
 export const useSiteInfrastructure = (siteId?: string) => {
 	const [platforms, setPlatforms] = useState<any[]>([]);
@@ -76,6 +76,9 @@ export const useLogisticsManager = (
 	const [assumeOptimal, setAssumeOptimal] = useState<boolean>(false);
 	const [maxShips, setMaxShips] = useState<number>(0);
 	const [flightBufferDays, setFlightBufferDays] = useState<number>(0);
+	const [manualFleet, setManualFleet] = useState<
+		{ id: string; bayId: string }[]
+	>([]);
 
 	useEffect(() => {
 		if (!siteId) return;
@@ -100,6 +103,10 @@ export const useLogisticsManager = (
 				`site_logistics_buffer_${siteId}`,
 			);
 			if (savedBuffer) setFlightBufferDays(parseInt(savedBuffer) || 0);
+			const savedManual = localStorage.getItem(
+				`site_logistics_manual_${siteId}`,
+			);
+			if (savedManual) setManualFleet(JSON.parse(savedManual));
 		} catch {}
 
 		const initialSelection = new Set<string>();
@@ -345,6 +352,8 @@ export const useLogisticsManager = (
 		handleFlightBufferChange,
 		handleAddDaysToAll,
 		handleSyncAllTargets,
+		manualFleet,
+		setManualFleet,
 	};
 };
 
@@ -356,6 +365,7 @@ export const useCargoPlanner = (
 	allowedShipTypes: string[],
 	allocationStrategy: "together" | "balance" | "categorized",
 	maxShips: number,
+	manualFleet: { id: string; bayId: string }[] = [],
 ) => {
 	const { materialData } = useGlobalData();
 
@@ -396,6 +406,7 @@ export const useCargoPlanner = (
 			allocationStrategy,
 			getMatProps,
 			maxShips,
+			manualFleet,
 		);
 
 		return {
@@ -411,5 +422,6 @@ export const useCargoPlanner = (
 		allocationStrategy,
 		getMatProps,
 		maxShips,
+		manualFleet,
 	]);
 };

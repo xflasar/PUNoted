@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { Box, Typography, Stack, Button, useTheme, alpha } from "@mui/material";
 import { CheckSquare, Square } from "lucide-react";
-import { FleetPlannerWidget } from "./FleetPlannerWidget";
-import { LogisticsRowComponent } from "./LogisticsRowComponent";
-import { XitConfigPopover } from "../../../../components/common/XitConfigPopover";
+import { FleetPlannerWidget } from "./fleetplannerwidget";
+import { LogisticsRowComponent } from "./logisticsrowcomponent";
+import { XitConfigPopover } from "../../../../components/common/xitconfigpopover";
 import { useGlobalData } from "../../../../context/GlobalDataContext";
 
 export const LogisticsTabContent: React.FC<any> = ({
@@ -41,6 +41,28 @@ export const LogisticsTabContent: React.FC<any> = ({
 	const [fleetMappingConfig, setFleetMappingConfig] = useState<
 		Record<string, string>
 	>({});
+
+	React.useEffect(() => {
+		if (shipOverride === "manual" && setManualFleet) {
+			setManualFleet((prev: any[]) => {
+				let changed = false;
+				const next = prev.map((mShip: any) => {
+					const mappedReg = fleetMappingConfig[mShip.id];
+					if (mappedReg) {
+						const realShip = animatedShipData?.find(
+							(s: any) => s.registration === mappedReg,
+						);
+						if (realShip && realShip.type && realShip.type !== mShip.bayId) {
+							changed = true;
+							return { ...mShip, bayId: realShip.type };
+						}
+					}
+					return mShip;
+				});
+				return changed ? next : prev;
+			});
+		}
+	}, [fleetMappingConfig, animatedShipData, shipOverride, setManualFleet]);
 
 	const handleOpenXitSettings = (event: React.MouseEvent<HTMLElement>) => {
 		if (Object.keys(cargoPlan.allocatedResults).length === 0) {
@@ -86,6 +108,8 @@ export const LogisticsTabContent: React.FC<any> = ({
 				animatedShipData={animatedShipData}
 				fleetMappingConfig={fleetMappingConfig}
 				setFleetMappingConfig={setFleetMappingConfig}
+				manualFleet={manualFleet}
+				setManualFleet={setManualFleet}
 			/>
 
 			{/* --- GLOBAL SELECT/DESELECT & QUICK ACTIONS --- */}

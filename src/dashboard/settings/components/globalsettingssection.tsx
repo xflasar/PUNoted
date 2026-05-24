@@ -6,10 +6,10 @@ import type { GlobalSettings } from "../types";
 import { globalConfigurationGuideSteps } from "../constants";
 import { SectionHeader, transparentCardStyle } from "../styles";
 
-import { useReferenceData } from "./GlobalSettingsSection/hooks/useReferenceData";
-import { DefaultsSection } from "./GlobalSettingsSection/components/DefaultsSection";
-import { ExcludedSitesSection } from "./GlobalSettingsSection/components/ExcludedSitesSection";
-import { LeasedSitesSection } from "./GlobalSettingsSection/components/LeasedSitesSection";
+import { useReferenceData } from "./globalsettingssection/hooks/usereferencedata";
+import { DefaultsSection } from "./globalsettingssection/components/defaultssection";
+import { ExcludedSitesSection } from "./globalsettingssection/components/excludedsitessection";
+import { LeasedSitesSection } from "./globalsettingssection/components/leasedsitessection";
 
 interface Props {
 	initialSettings: GlobalSettings;

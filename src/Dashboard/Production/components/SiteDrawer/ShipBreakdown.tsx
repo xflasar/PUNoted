@@ -8,7 +8,7 @@ import {
 	MenuItem,
 	FormControl,
 } from "@mui/material";
-import { smartFormat } from "./utils";
+import { smartFormat } from "./utils.ts";
 import MaterialBadge from "../../../../COSM/components/MaterialBadge.tsx";
 
 export const ShipBreakdown = ({

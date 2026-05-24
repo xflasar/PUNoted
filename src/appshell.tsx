@@ -17,7 +17,10 @@ import { GlobalWsProvider } from "./dashboard/websocket/globalwscontext";
 import { navItems } from "./navitems.tsx";
 import TopNavbar from "./components/common/topnavbar/topnavbar";
 import WsReconnectionOverlay from "./dashboard/websocket/websocketreconnectoverlay.tsx";
-import { GlobalDataProvider } from "./context/globaldatacontext.tsx";
+import {
+	GlobalDataProvider,
+	useGlobalData,
+} from "./context/globaldatacontext.tsx";
 
 const drawerWidth = 240;
 

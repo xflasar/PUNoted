@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
 	Box,
 	Typography,
@@ -13,9 +13,9 @@ import {
 	Collapse,
 	IconButton,
 } from "@mui/material";
-import { Calculator, ChevronUp, ChevronDown, Settings2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Settings2 } from "lucide-react";
 import { CARGO_BAYS } from "./utils";
-import { ShipBreakdown } from "./ShipBreakdown";
+import { ShipBreakdown } from "./shipbreakdown";
 
 export const FleetPlannerWidget = ({
 	cargoPlan,
@@ -36,10 +36,24 @@ export const FleetPlannerWidget = ({
 	animatedShipData,
 	fleetMappingConfig,
 	setFleetMappingConfig,
+	manualFleet,
+	setManualFleet,
 }: any) => {
 	const theme = useTheme();
 
 	const [fleetExpanded, setFleetExpanded] = useState(false);
+
+	const handleAddShip = useCallback(() => {
+		if (setManualFleet) {
+			setManualFleet((prev: any[]) => [
+				...prev,
+				{
+					id: `manual-ship-${Date.now()}`,
+					bayId: "LCB", // Default
+				},
+			]);
+		}
+	}, [setManualFleet]);
 
 	const pctW =
 		cargoPlan.idealW > 0
@@ -109,6 +123,9 @@ export const FleetPlannerWidget = ({
 						>
 							<MenuItem value="auto" sx={{ fontSize: "0.8rem" }}>
 								Auto Fleet
+							</MenuItem>
+							<MenuItem value="manual" sx={{ fontSize: "0.8rem" }}>
+								Manual Fleet
 							</MenuItem>
 							{CARGO_BAYS.map((s) => (
 								<MenuItem key={s.id} value={s.id} sx={{ fontSize: "0.8rem" }}>
@@ -199,6 +216,12 @@ export const FleetPlannerWidget = ({
 							</MenuItem>
 						</Select>
 					</FormControl>
+
+					{shipOverride === "manual" && (
+						<FormControl size="small">
+							<Button onClick={() => handleAddShip()}>Ater</Button>
+						</FormControl>
+					)}
 
 					{shipOverride === "auto" && (
 						<FormControl size="small">

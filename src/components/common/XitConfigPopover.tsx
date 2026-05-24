@@ -10,7 +10,7 @@ import {
 	alpha,
 	useTheme,
 } from "@mui/material";
-import { generateSupplyXit } from "../../utils/xitGenerator";
+import { generateSupplyXit } from "../../utils/xitgenerator";
 
 interface XitConfigPopoverProps {
 	anchorEl: HTMLElement | null;
