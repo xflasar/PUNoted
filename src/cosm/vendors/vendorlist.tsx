@@ -1591,7 +1591,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									"&.Mui-selected": {
 										background: alpha(theme.palette.background.default, 0.8),
 										color: theme.palette.primary.light,
-										pointerEvents: "none",
 										"&:hover": {
 											background: alpha(theme.palette.background.default, 1),
 										},
@@ -1599,30 +1598,36 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								},
 							}}
 						>
-							<ToggleButton
-								value="ASK"
-								size="small"
-								aria-label="Show only ask"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Ask
-							</ToggleButton>
-							<ToggleButton
-								value="BID"
-								size="small"
-								aria-label="Show only bid"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Bid
-							</ToggleButton>
-							<ToggleButton
-								value="BOTH"
-								size="small"
-								aria-label="Show both ask and bid"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Both
-							</ToggleButton>
+							<Tooltip title="You buy from the vendor">
+								<ToggleButton
+									value="ASK"
+									size="small"
+									aria-label="Show only ask"
+									sx={{ px: 1.5, textTransform: "none" }}
+								>
+									Ask
+								</ToggleButton>
+							</Tooltip>
+							<Tooltip title="You sell to the vendor">
+								<ToggleButton
+									value="BID"
+									size="small"
+									aria-label="Show only bid"
+									sx={{ px: 1.5, textTransform: "none" }}
+									>
+									Bid
+								</ToggleButton>
+							</Tooltip>
+							<Tooltip title="Asks and Bids together">
+								<ToggleButton
+									value="BOTH"
+									size="small"
+									aria-label="Show both ask and bid"
+									sx={{ px: 1.5, textTransform: "none" }}
+									>
+									Both
+								</ToggleButton>
+							</Tooltip>
 						</ToggleButtonGroup>
 						<Autocomplete<LocationOption, false, false, false>
 							size="small"
