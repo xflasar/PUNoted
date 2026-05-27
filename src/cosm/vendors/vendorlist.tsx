@@ -185,7 +185,11 @@ const PriceComparisonBadge = ({
 			}}
 		>
 			<Chip
-				icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+				icon={
+					stats.color === "neutral" ? (
+						<Target size={12} style={{ marginLeft: "5px" }} />
+					) : undefined
+				}
 				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
 				size="small"
 				variant="outlined"
