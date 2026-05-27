@@ -760,7 +760,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		useState<string>("All Locations");
 	const [orderTypeFilter, setOrderTypeFilter] = useState<
 		"ASK" | "BID" | "BOTH"
-	>("BOTH");
+	>("ASK");
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const querySubtab = searchParams.get("subtab");
 	const vendorViewMode: "grid" | "table" =
@@ -1596,14 +1596,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							}}
 						>
 							<ToggleButton
-								value="BOTH"
-								size="small"
-								aria-label="Show both ask and bid"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Both
-							</ToggleButton>
-							<ToggleButton
 								value="ASK"
 								size="small"
 								aria-label="Show only ask"
@@ -1618,6 +1610,14 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								sx={{ px: 1.5, textTransform: "none" }}
 							>
 								Bid
+							</ToggleButton>
+							<ToggleButton
+								value="BOTH"
+								size="small"
+								aria-label="Show both ask and bid"
+								sx={{ px: 1.5, textTransform: "none" }}
+							>
+								Both
 							</ToggleButton>
 						</ToggleButtonGroup>
 						<Autocomplete<LocationOption, false, false, false>
