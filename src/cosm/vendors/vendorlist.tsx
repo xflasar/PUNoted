@@ -1614,7 +1614,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									size="small"
 									aria-label="Show only bid"
 									sx={{ px: 1.5, textTransform: "none" }}
-									>
+								>
 									Bid
 								</ToggleButton>
 							</Tooltip>
@@ -1624,7 +1624,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									size="small"
 									aria-label="Show both ask and bid"
 									sx={{ px: 1.5, textTransform: "none" }}
-									>
+								>
 									Both
 								</ToggleButton>
 							</Tooltip>
