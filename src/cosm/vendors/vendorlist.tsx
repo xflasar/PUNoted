@@ -765,7 +765,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		useState<string>("All Locations");
 	const [orderTypeFilter, setOrderTypeFilter] = useState<
 		"ASK" | "BID" | "BOTH"
-	>("ASK");
+	>("BOTH");
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const querySubtab = searchParams.get("subtab");
 	const vendorViewMode: "grid" | "table" =
@@ -1602,6 +1602,16 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								},
 							}}
 						>
+							<Tooltip title="Asks and Bids together">
+								<ToggleButton
+									value="BOTH"
+									size="small"
+									aria-label="Show both ask and bid"
+									sx={{ px: 1.5, textTransform: "none" }}
+								>
+									All
+								</ToggleButton>
+							</Tooltip>
 							<Tooltip title="You buy from the vendor">
 								<ToggleButton
 									value="ASK"
@@ -1620,16 +1630,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									sx={{ px: 1.5, textTransform: "none" }}
 								>
 									Bid
-								</ToggleButton>
-							</Tooltip>
-							<Tooltip title="Asks and Bids together">
-								<ToggleButton
-									value="BOTH"
-									size="small"
-									aria-label="Show both ask and bid"
-									sx={{ px: 1.5, textTransform: "none" }}
-								>
-									Both
 								</ToggleButton>
 							</Tooltip>
 						</ToggleButtonGroup>
