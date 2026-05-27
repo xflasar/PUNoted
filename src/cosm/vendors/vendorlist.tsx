@@ -1262,6 +1262,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const tableColumns = useMemo<GridColDef[]>(
 		() => [
 			{
+				field: "typeLabel",
+				headerName: "Side",
+				flex: 1,
+				align: "center",
+				headerAlign: "center",
+				renderCell: ({ row }) =>
+					row.orderType === "sell" ? <ChipAsk /> : <ChipBid />,
+			},
+			{
 				field: "material",
 				headerName: "Material",
 				flex: 1,
@@ -1289,15 +1298,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						{formatAmount(Number(value))}
 					</Typography>
 				),
-			},
-			{
-				field: "typeLabel",
-				headerName: "Type",
-				flex: 1,
-				align: "right",
-				headerAlign: "right",
-				renderCell: ({ row }) =>
-					row.orderType === "sell" ? <ChipAsk /> : <ChipBid />,
 			},
 			{
 				field: "ica",
