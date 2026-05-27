@@ -1292,12 +1292,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				flex: 1,
 				headerAlign: "right",
 				align: "right",
-				renderCell: ({ value }) => (
+				renderCell: ({ value, row }) => (
 					<Typography
 						variant="body2"
 						sx={{
-							color: theme.palette.primary.light,
 							fontWeight: "bold",
+							color:
+								row.orderType === "sell"
+									? theme.palette.warning.main
+									: theme.palette.info.main,
 						}}
 					>
 						{formatAmount(Number(value))}
