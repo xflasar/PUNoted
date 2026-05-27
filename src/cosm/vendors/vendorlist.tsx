@@ -233,13 +233,13 @@ const ChipSmall = ({
 			size="small"
 			label={text}
 			sx={{
-				height: 18,
-				fontSize: "0.65rem",
+				fontSize: "0.7rem",
 				fontWeight: "bold",
 				color: badgeColour,
 				bgcolor: alpha(badgeColour, 0.1),
 				border: `1px solid ${alpha(badgeColour, 0.3)}`,
 				cursor: tooltip ? "help" : "default",
+				textDecoration: tooltip ? "underline dotted" : "none",
 			}}
 		/>
 	);
@@ -275,7 +275,7 @@ const ChipAsk = () => {
 		<ChipSmall
 			text="ASK"
 			colour={theme.palette.warning.light}
-			tooltip="Buy from the vendor"
+			tooltip="You buy from the vendor"
 		/>
 	);
 };
@@ -286,7 +286,7 @@ const ChipBid = () => {
 		<ChipSmall
 			text="BID"
 			colour={theme.palette.info.light}
-			tooltip="Sell to the vendor"
+			tooltip="You sell to the vendor"
 		/>
 	);
 };
