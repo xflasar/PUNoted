@@ -509,6 +509,7 @@ const VendorCard = React.memo(
 									displayQuantity,
 								} = preparedOrder;
 								const isBuying = orderType === "buy";
+								const quantityLabel = isBuying ? "Wants" : "Has";
 
 								return (
 									<Box
@@ -639,7 +640,7 @@ const VendorCard = React.memo(
 																fontWeight: "medium",
 															}}
 														>
-															Qty:{" "}
+															{quantityLabel}:{" "}
 															{formatAmount(
 																(
 																	l as typeof l & {
@@ -690,7 +691,7 @@ const VendorCard = React.memo(
 														fontWeight: "medium",
 													}}
 												>
-													Qty: {formatAmount(displayQuantity)}
+													{quantityLabel}: {formatAmount(displayQuantity)}
 												</Typography>
 											</Box>
 										)}
