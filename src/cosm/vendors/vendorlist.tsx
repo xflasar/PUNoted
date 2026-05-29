@@ -186,7 +186,11 @@ const PriceComparisonBadge = ({
 			}}
 		>
 			<Chip
-				icon={stats.color === "neutral" ? <Target size={12} /> : undefined}
+				icon={
+					stats.color === "neutral" ? (
+						<Target size={12} style={{ marginLeft: "5px" }} />
+					) : undefined
+				}
 				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
 				size="small"
 				variant="outlined"
@@ -234,13 +238,13 @@ const ChipSmall = ({
 			size="small"
 			label={text}
 			sx={{
-				height: 18,
-				fontSize: "0.65rem",
+				fontSize: "0.7rem",
 				fontWeight: "bold",
 				color: badgeColour,
 				bgcolor: alpha(badgeColour, 0.1),
 				border: `1px solid ${alpha(badgeColour, 0.3)}`,
 				cursor: tooltip ? "help" : "default",
+				textDecoration: tooltip ? "underline dotted" : "none",
 			}}
 		/>
 	);
@@ -276,7 +280,7 @@ const ChipAsk = () => {
 		<ChipSmall
 			text="ASK"
 			colour={theme.palette.warning.light}
-			tooltip="Buy from the vendor"
+			tooltip="You buy from the vendor"
 		/>
 	);
 };
@@ -287,7 +291,7 @@ const ChipBid = () => {
 		<ChipSmall
 			text="BID"
 			colour={theme.palette.info.light}
-			tooltip="Sell to the vendor"
+			tooltip="You sell to the vendor"
 		/>
 	);
 };
@@ -506,6 +510,7 @@ const VendorCard = React.memo(
 									displayQuantity,
 								} = preparedOrder;
 								const isBuying = orderType === "buy";
+								const quantityLabel = isBuying ? "Wants" : "Has";
 
 								return (
 									<Box
@@ -636,7 +641,7 @@ const VendorCard = React.memo(
 																fontWeight: "medium",
 															}}
 														>
-															Qty:{" "}
+															{quantityLabel}:{" "}
 															{formatAmount(
 																(
 																	l as typeof l & {
@@ -687,7 +692,7 @@ const VendorCard = React.memo(
 														fontWeight: "medium",
 													}}
 												>
-													Qty: {formatAmount(displayQuantity)}
+													{quantityLabel}: {formatAmount(displayQuantity)}
 												</Typography>
 											</Box>
 										)}
@@ -1260,6 +1265,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const tableColumns = useMemo<GridColDef[]>(
 		() => [
 			{
+				field: "typeLabel",
+				headerName: "Side",
+				flex: 1,
+				align: "center",
+				headerAlign: "center",
+				renderCell: ({ row }) =>
+					row.orderType === "sell" ? <ChipAsk /> : <ChipBid />,
+			},
+			{
 				field: "material",
 				headerName: "Material",
 				flex: 1,
@@ -1276,26 +1290,20 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				flex: 1,
 				headerAlign: "right",
 				align: "right",
-				renderCell: ({ value }) => (
+				renderCell: ({ value, row }) => (
 					<Typography
 						variant="body2"
 						sx={{
-							color: theme.palette.primary.light,
 							fontWeight: "bold",
+							color:
+								row.orderType === "sell"
+									? theme.palette.warning.main
+									: theme.palette.info.main,
 						}}
 					>
 						{formatAmount(Number(value))}
 					</Typography>
 				),
-			},
-			{
-				field: "typeLabel",
-				headerName: "Type",
-				flex: 1,
-				align: "right",
-				headerAlign: "right",
-				renderCell: ({ row }) =>
-					row.orderType === "sell" ? <ChipAsk /> : <ChipBid />,
 			},
 			{
 				field: "ica",
@@ -1585,7 +1593,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									"&.Mui-selected": {
 										background: alpha(theme.palette.background.default, 0.8),
 										color: theme.palette.primary.light,
-										pointerEvents: "none",
 										"&:hover": {
 											background: alpha(theme.palette.background.default, 1),
 										},
@@ -1593,30 +1600,36 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								},
 							}}
 						>
-							<ToggleButton
-								value="BOTH"
-								size="small"
-								aria-label="Show both ask and bid"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Both
-							</ToggleButton>
-							<ToggleButton
-								value="ASK"
-								size="small"
-								aria-label="Show only ask"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Ask
-							</ToggleButton>
-							<ToggleButton
-								value="BID"
-								size="small"
-								aria-label="Show only bid"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Bid
-							</ToggleButton>
+							<Tooltip title="Asks and Bids together">
+								<ToggleButton
+									value="BOTH"
+									size="small"
+									aria-label="Show both ask and bid"
+									sx={{ px: 1.5, textTransform: "none" }}
+								>
+									All
+								</ToggleButton>
+							</Tooltip>
+							<Tooltip title="You buy from the vendor">
+								<ToggleButton
+									value="ASK"
+									size="small"
+									aria-label="Show only ask"
+									sx={{ px: 1.5, textTransform: "none" }}
+								>
+									Ask
+								</ToggleButton>
+							</Tooltip>
+							<Tooltip title="You sell to the vendor">
+								<ToggleButton
+									value="BID"
+									size="small"
+									aria-label="Show only bid"
+									sx={{ px: 1.5, textTransform: "none" }}
+								>
+									Bid
+								</ToggleButton>
+							</Tooltip>
 						</ToggleButtonGroup>
 						<Autocomplete<LocationOption, false, false, false>
 							size="small"

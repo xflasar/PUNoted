@@ -132,7 +132,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 						}}
 					/>
 					<Tab
-						label="Vendors"
+						label="Market"
 						icon={<Store />}
 						iconPosition="start"
 						value="vendors"
