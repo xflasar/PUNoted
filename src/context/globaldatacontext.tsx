@@ -6,6 +6,7 @@ import React, {
 	useCallback,
 	ReactNode,
 } from "react";
+import { openDB } from "idb";
 import { API_BASE_URL } from "../config/api";
 import { useGlobalWsContext } from "../dashboard/websocket/globalwscontext";
 import { DashboardPayload, DashboardFilter } from "../dashboard/cx/types";
@@ -17,8 +18,19 @@ import type { ShipmentState } from "../dashboard/shipping/types";
 import type { StorageState, StorageUnit } from "../dashboard/storage/types";
 import type { MaterialData } from "./types";
 
+// --- IndexedDB Configuration ---
+const DB_NAME = "PUNotedDB";
+const STORE_NAME = "app-cache";
+
+// Initialize IndexedDB
+const dbPromise = openDB(DB_NAME, 1, {
+	upgrade(db) {
+		db.createObjectStore(STORE_NAME);
+	},
+});
+
 /**
- * Cache structure for map data stored in localStorage
+ * Cache structure for map data
  */
 interface MapDataCache {
 	timestamp: number;
@@ -118,47 +130,68 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		Record<string, MaterialData>
 	>({});
 
-	const fetchMaterials = useCallback(async () => {
-		try {
-			// 1. Load from cache for zero-latency UI
-			const cached = localStorage.getItem("global_materials_json_cache");
-			if (cached) {
-				setMaterialData(JSON.parse(cached));
-				setIsLoading(false);
-			}
+	const [storageState, setStorageState] = useState<StorageState | null>(null);
 
-			// 2. Fetch fresh JSON from the new backend endpoint
+	// --- Map Data State ---
+	const [mapData, setMapData] = useState<any | null>(null);
+	const [isMapLoading, setIsMapLoading] = useState<boolean>(false);
+	const [mapFetchError, setMapFetchError] = useState<string | null>(null);
+	const [lastDashboardSessionId, setLastDashboardSessionId] = useState<
+		string | null
+	>(null);
+
+	// --- IndexedDB Helper Methods ---
+	const getCachedData = async (key: string): Promise<any | null> => {
+		const db = await dbPromise;
+		return await db.get(STORE_NAME, key);
+	};
+
+	const setCachedData = async (key: string, data: any): Promise<void> => {
+		const db = await dbPromise;
+		await db.put(STORE_NAME, data, key);
+	};
+
+	const deleteCachedData = async (key: string): Promise<void> => {
+		const db = await dbPromise;
+		await db.delete(STORE_NAME, key);
+	};
+
+	// --- Materials Fetching (Stale-While-Revalidate) ---
+	const fetchMaterials = useCallback(async () => {
+		// 1. Instant Cache Load
+		const cached = await getCachedData("global_materials");
+		if (cached) {
+			setMaterialData(cached);
+			setIsLoading(false); // Stop loader immediately
+		}
+
+		// 2. Background Revalidation
+		try {
 			const res = await fetch(`${API_BASE_URL}v1/materials/list`, {
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 				},
 			});
 
-			// Because your backend returns a JSON array directly:
 			const data: MaterialData[] = await res.json();
 
 			if (data && Array.isArray(data)) {
-				// 3. Map the array into a quick-lookup dictionary
 				const matDict: Record<string, MaterialData> = {};
-
 				data.forEach((m) => {
 					matDict[m.ticker] = {
 						ticker: m.ticker,
 						name: m.name,
 						category: m.category,
-						weight: m.weight || 1, // Fallback to 1 to prevent division by zero
+						weight: m.weight || 1,
 						volume: m.volume || 1,
 					};
 				});
 
 				setMaterialData(matDict);
-				localStorage.setItem(
-					"global_materials_json_cache",
-					JSON.stringify(matDict),
-				);
+				await setCachedData("global_materials", matDict);
 			}
 		} catch (e) {
-			console.error("Failed to fetch global materials", e);
+			console.error("Background materials update failed", e);
 		} finally {
 			setIsLoading(false);
 		}
@@ -173,139 +206,61 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		fetchMaterials();
 	}, [fetchMaterials]);
 
-	const [storageState, setStorageState] = useState<StorageState | null>(null);
+	// --- Map Data Fetching (Stale-While-Revalidate) ---
+	const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
-	// --- Map Data State ---
-	const [mapData, setMapData] = useState<any | null>(null);
-	const [isMapLoading, setIsMapLoading] = useState<boolean>(false);
-	const [mapFetchError, setMapFetchError] = useState<string | null>(null);
-	const [lastDashboardSessionId, setLastDashboardSessionId] = useState<
-		string | null
-	>(null);
-
-	/**
-	 * Cache utilities for map data
-	 */
-	const CACHE_KEY = "global_map_data_cache";
-	const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
-	const getCachedMapData = (): any | null => {
-		try {
-			const cached = localStorage.getItem(CACHE_KEY);
-			if (!cached) return null;
-
-			const cacheData: MapDataCache = JSON.parse(cached);
-			const now = Date.now();
-			const age = now - cacheData.timestamp;
-
-			// Return cache if still valid
-			if (age < CACHE_TTL) {
-				console.log(`Map data cache HIT (age: ${Math.round(age / 1000)}s)`);
-				return cacheData.data;
-			} else {
-				console.log("Map data cache expired");
-				localStorage.removeItem(CACHE_KEY);
-				return null;
-			}
-		} catch (e) {
-			console.error("Failed to parse cached map data:", e);
-			localStorage.removeItem(CACHE_KEY);
-			return null;
-		}
-	};
-
-	const setCachedMapData = (data: any): void => {
-		try {
-			const cacheData: MapDataCache = {
-				timestamp: Date.now(),
-				data,
-				version: "1.0", // Bump this on breaking schema changes
-			};
-			localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-			console.log("Map data cached successfully");
-		} catch (e) {
-			console.error("Failed to cache map data:", e);
-			// Gracefully continue even if caching fails
-		}
-	};
-
-	/**
-	 * Fetches map data from API with caching strategy
-	 * Tries cache first, then fetches fresh data if cache miss or expired
-	 * Only fetches if session ID has changed (prevents redundant refetches)
-	 */
 	const fetchMapData = useCallback(
 		async (sessionId?: string) => {
-			// If sessionId provided and matches last one, skip fetch
 			if (sessionId && lastDashboardSessionId === sessionId && mapData) {
-				console.log("Map data already loaded for this session, skipping fetch");
 				return;
 			}
 
-			// Update session ID
-			if (sessionId) {
-				setLastDashboardSessionId(sessionId);
+			if (sessionId) setLastDashboardSessionId(sessionId);
+
+			// 1. Instant Cache Load
+			const cachedData: MapDataCache | null = await getCachedData("map_data");
+			if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
+				setMapData(cachedData.data);
 			}
 
+			// 2. Background Revalidation
 			try {
-				// 1. Load from cache first for instant UI
-				const cachedData = getCachedMapData();
-				if (cachedData) {
-					setMapData(cachedData);
-					setIsMapLoading(false);
-					setMapFetchError(null);
-					return; // Return early with cached data
-				}
-
-				// 2. Fetch fresh data from API if cache miss
-				setIsMapLoading(true);
+				// Don't show loading spinner if we already have data
+				if (!mapData && !cachedData) setIsMapLoading(true);
 				setMapFetchError(null);
 
 				const res = await fetch(`${API_BASE_URL}dashboard_map`);
-				if (!res.ok) {
-					throw new Error(`API returned ${res.status}`);
-				}
+				if (!res.ok) throw new Error(`API returned ${res.status}`);
 
 				const json = await res.json();
 				const freshData = json.data;
 
 				if (freshData) {
 					setMapData(freshData);
-					setCachedMapData(freshData);
-					setMapFetchError(null);
+					await setCachedData("map_data", {
+						timestamp: Date.now(),
+						data: freshData,
+						version: "1.0",
+					});
 				}
-
-				setIsMapLoading(false);
 			} catch (err: any) {
-				console.error("Map data fetch error:", err);
+				console.error("Map background update failed:", err);
 				setMapFetchError(String(err?.message ?? err));
+			} finally {
 				setIsMapLoading(false);
-
-				// If fetch fails but we have cached data, use it
-				const cachedData = getCachedMapData();
-				if (cachedData && !mapData) {
-					setMapData(cachedData);
-					setMapFetchError(null);
-				}
 			}
 		},
 		[mapData, lastDashboardSessionId],
 	);
 
-	/**
-	 * Manually refresh map data - clears cache and fetches fresh
-	 */
 	const refreshMapData = useCallback(async () => {
-		localStorage.removeItem(CACHE_KEY);
+		await deleteCachedData("map_data");
 		setMapData(null);
 		setMapFetchError(null);
 		await fetchMapData();
 	}, [fetchMapData]);
 
-	/**
-	 * Fetches user storage data directly from the REST API.
-	 * Called on initial load and can be triggered manually via refreshStorage.
-	 */
+	// --- Storage ---
 	const fetchStorageData = useCallback(async () => {
 		try {
 			const token = localStorage.getItem("authToken");
@@ -319,9 +274,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 			if (json.success && json.data) {
 				const unitsMap: Record<string, StorageUnit> = {};
-
-				// The API might return an array of units or a dictionary of units.
-				// We normalize it to an array here to safely iterate over it.
 				const rawData = Array.isArray(json.data)
 					? json.data
 					: Object.values(json.data);
@@ -342,26 +294,21 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		}
 	}, []);
 
-	// Initial storage fetch
 	useEffect(() => {
 		fetchStorageData();
 	}, [fetchStorageData]);
 
-	/**
-	 * Updates local filters and requests fresh dashboard data from the WebSocket server.
-	 * Uses a functional state update to ensure the latest filters are merged correctly.
-	 */
+	// --- Dashboard Logic ---
 	const fetchDashboard = useCallback(
 		(partialFilters: Partial<DashboardFilter> = {}) => {
 			setIsLoading(true);
 
 			setCurrentCXDashboardFilters((prevFilters) => {
 				const mergedFilters = {
-					...prevFilters, // Retain existing parameters (e.g., exchange)
-					...partialFilters, // Overwrite updated parameters (e.g., range)
+					...prevFilters,
+					...partialFilters,
 				};
 
-				// Request the updated dashboard payload via WebSocket
 				sendJson({
 					action: "FETCH_DASHBOARD",
 					filters: mergedFilters,
@@ -373,23 +320,44 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		[sendJson],
 	);
 
-	/**
-	 * Centralized WebSocket message handler.
-	 * Routes incoming messages to the appropriate state setters based on the message 'type'.
-	 */
+	const fetchShipData = useCallback(async () => {
+		try {
+			const token = localStorage.getItem("authToken");
+			if (!token) return;
+
+			const res = await fetch(`${API_BASE_URL}internal/ships/`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+
+			const json = await res.json();
+			if (json.success && json.data) {
+				setRawInitialShips(json.data);
+			} else {
+				console.error(
+					"Failed to fetch ship data: API returned unsuccessful response",
+				);
+			}
+		} catch (error) {
+			console.error("Failed to fetch ship data:", error);
+		}
+	}, []);
+
+	useEffect(() => {
+		fetchShipData();
+	}, [fetchShipData]);
+
+	// --- WebSocket Handler ---
 	useEffect(() => {
 		const handleMessage = (msg: WsMessage) => {
 			switch (msg.type) {
 				case "DASHBOARD_UPDATE":
 					if (msg.data?.cx_analytics) {
-						// Spread into a new object to ensure React detects the state change
 						setDashboardData({ ...msg.data.cx_analytics });
 					}
 					setIsLoading(false);
 					break;
 
 				case "REFRESH_DASHBOARD":
-					// Triggered by backend to force clients to request fresh data
 					fetchDashboard(currentCXDashboardFilters);
 					break;
 
@@ -399,7 +367,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 				case "INITIAL_SHIPMENT_DATA":
 				case "SHIPMENT_DATA_UPDATE":
-					// Entire shipment state replacement (contracts and ships)
 					setShipmentState(msg.data);
 					break;
 
@@ -411,7 +378,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 						const nextUnits = prev ? { ...prev.units } : {};
 						const updates = Array.isArray(msg.data) ? msg.data : [msg.data];
 
-						// Merge incoming storage updates into the existing dictionary
 						updates.forEach((updatedUnit: StorageUnit) => {
 							if (updatedUnit.storageid) {
 								nextUnits[updatedUnit.storageid] = updatedUnit;
@@ -426,7 +392,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					break;
 
 				case "SHIPMENT_POSITION_UPDATE":
-					// Granular update for a specific ship's flight status
 					setShipmentState((prev) => ({
 						...prev,
 						ships: {
@@ -447,7 +412,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 						return Array.from(map.values());
 					});
 
-					// Attach the new flight plan to the corresponding animated ship
 					setAnimatedShipData((prev) =>
 						prev.map((ship) =>
 							ship.id === plan.shipid ? { ...ship, plan: { ...plan } } : ship,
@@ -463,7 +427,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 						const shipMap = new Map(prev.map((s) => [s.id, s]));
 						const existing = shipMap.get(shipId);
 
-						// Merge the new ship data with existing data, or create a default structure if new
 						shipMap.set(shipId, {
 							...(existing || {
 								id: shipId,
@@ -479,7 +442,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				}
 
 				case "CONTRACTS_UPDATE":
-					// Placeholder for future contract-specific handling
 					console.log("WS: General Contract Update");
 					break;
 			}
@@ -494,9 +456,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		currentCXDashboardFilters,
 	]);
 
-	/**
-	 * Automatically requests initial context data once the WebSocket connects successfully.
-	 */
 	useEffect(() => {
 		if (status === "connected") {
 			console.log("GlobalData: Connected, requesting initial data...");
@@ -540,10 +499,6 @@ export { GlobalDataContext };
 
 /**
  * Custom hook to safely consume the GlobalDataContext.
- * If used outside of a provider (e.g., in a public-facing page without auth),
- * it returns a safe, empty fallback object instead of throwing an error.
- *
- * @returns {GlobalDataContextState} The current global state and actions.
  */
 export const useGlobalData = (): GlobalDataContextState => {
 	const ctx = useContext(GlobalDataContext);

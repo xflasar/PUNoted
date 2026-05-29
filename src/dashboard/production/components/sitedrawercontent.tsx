@@ -8,10 +8,10 @@ import {
 	useLogisticsManager,
 	useCargoPlanner,
 } from "./SiteDrawer/hooks";
-import { SiteDrawerHeader } from "./SiteDrawer/sitedrawerheader";
-import { ProductionTabContent } from "./SiteDrawer/productiontabcontent";
-import { LogisticsTabContent } from "./SiteDrawer/logisticstabcontent";
-import { InfraTabContent } from "./SiteDrawer/infratabcontent";
+import { SiteDrawerHeader } from "./sitedrawer/sitedrawerheader";
+import { ProductionTabContent } from "./sitedrawer/productiontabcontent";
+import { LogisticsTabContent } from "./sitedrawer/logisticstabcontent";
+import { InfraTabContent } from "./sitedrawer/infratabcontent";
 
 interface Props {
 	siteFlow?: SiteSummary;
