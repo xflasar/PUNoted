@@ -17,7 +17,7 @@ export const useSiteInfrastructure = (siteId?: string) => {
 			setLoading(true);
 			try {
 				const res = await fetch(
-					`${API_BASE_URL}user_site_platforms/${siteId}`,
+					`${API_BASE_URL}internal/sites/user_site_platforms/${siteId}`,
 					{
 						headers: {
 							Authorization: `Bearer ${localStorage.getItem("authToken")}`,

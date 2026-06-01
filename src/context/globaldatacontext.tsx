@@ -17,6 +17,10 @@ import type {
 import type { ShipmentState } from "../dashboard/shipping/types";
 import type { StorageState, StorageUnit } from "../dashboard/storage/types";
 import type { MaterialData } from "./types";
+import type {
+	SiteSummary,
+	GroupedWorkforceData,
+} from "../dashboard/production/types";
 
 // --- IndexedDB Configuration ---
 const DB_NAME = "PUNotedDB";
@@ -73,6 +77,14 @@ interface GlobalDataContextState {
 	storageState?: StorageState | null;
 	/** Triggers a manual refresh of the user's storage data via REST API */
 	refreshStorage: () => Promise<void>;
+	/** Production sites data */
+	productionData: Record<string, SiteSummary>;
+	/** Workforce data */
+	workforceData: GroupedWorkforceData | null;
+	/** Loading state for production/workforce data */
+	isProductionLoading: boolean;
+	/** Triggers a manual refresh of the user's production data via REST API */
+	refreshProduction: () => Promise<void>;
 	/** Map data for the galaxy map (systems, planets, stations, gateways, sectors) */
 	mapData: any | null;
 	/** Indicates if the map data is currently being fetched */
@@ -83,6 +95,8 @@ interface GlobalDataContextState {
 	fetchMapData: () => Promise<void>;
 	/** Manually refresh map data and clear cache */
 	refreshMapData: () => Promise<void>;
+	/** Market data for the application */
+	marketData: Record<string, any>;
 }
 
 /**
@@ -130,7 +144,16 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		Record<string, MaterialData>
 	>({});
 
+	const [marketData, setMarketData] = useState<Record<string, any>>({});
+
 	const [storageState, setStorageState] = useState<StorageState | null>(null);
+
+	const [productionData, setProductionData] = useState<
+		Record<string, SiteSummary>
+	>({});
+	const [workforceData, setWorkforceData] =
+		useState<GroupedWorkforceData | null>(null);
+	const [isProductionLoading, setIsProductionLoading] = useState<boolean>(true);
 
 	// --- Map Data State ---
 	const [mapData, setMapData] = useState<any | null>(null);
@@ -155,6 +178,28 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		const db = await dbPromise;
 		await db.delete(STORE_NAME, key);
 	};
+
+	const fetchMarketData = useCallback(async () => {
+		try {
+			const res = await fetch(`${API_BASE_URL}v1/cx/prices`, {
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+				},
+			});
+
+			const data = await res.json();
+
+			if (data) {
+				setMarketData(data);
+			}
+		} catch (e) {
+			console.error("Background market update failed", e);
+		}
+	}, []);
+
+	useEffect(() => {
+		fetchMarketData();
+	}, [fetchMarketData]);
 
 	// --- Materials Fetching (Stale-While-Revalidate) ---
 	const fetchMaterials = useCallback(async () => {
@@ -297,6 +342,38 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	useEffect(() => {
 		fetchStorageData();
 	}, [fetchStorageData]);
+
+	const fetchProductionData = useCallback(async () => {
+		try {
+			setIsProductionLoading(true);
+			const token = localStorage.getItem("authToken");
+			if (!token) return;
+
+			const headers = { Authorization: `Bearer ${token}` };
+			const [prodRes, workRes] = await Promise.all([
+				fetch(`${API_BASE_URL}internal/production/user_production`, {
+					headers,
+				}),
+				fetch(`${API_BASE_URL}user_workforce_with_needs`, {
+					headers,
+				}),
+			]);
+
+			const prodJson = await prodRes.json();
+			const workJson = await workRes.json();
+
+			if (prodJson.success) setProductionData(prodJson.data);
+			if (workJson.success) setWorkforceData(workJson.data);
+		} catch (error) {
+			console.error("Failed to fetch production data:", error);
+		} finally {
+			setIsProductionLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		fetchProductionData();
+	}, [fetchProductionData]);
 
 	// --- Dashboard Logic ---
 	const fetchDashboard = useCallback(
@@ -441,6 +518,32 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					break;
 				}
 
+				case "PRODUCTION_UPDATE":
+					if (!msg.data) return;
+					setProductionData((prev) => {
+						const updates = Array.isArray(msg.data) ? msg.data : [msg.data];
+						const next = { ...prev };
+						updates.forEach((site: SiteSummary) => {
+							if (site.siteid) {
+								next[site.siteid] = site;
+							}
+						});
+						return next;
+					});
+					break;
+
+				case "WORKFORCE_UPDATE":
+					if (!msg.data) return;
+					setWorkforceData((prev) => {
+						const next = prev ? { ...prev } : {};
+						// Assuming msg.data is a Record<string, WorkforceLevel[]>
+						Object.entries(msg.data).forEach(([siteId, levels]) => {
+							next[siteId] = levels as any;
+						});
+						return next;
+					});
+					break;
+
 				case "CONTRACTS_UPDATE":
 					console.log("WS: General Contract Update");
 					break;
@@ -483,11 +586,16 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				currentCXDashboardFilters,
 				storageState,
 				refreshStorage: fetchStorageData,
+				productionData,
+				workforceData,
+				isProductionLoading,
+				refreshProduction: fetchProductionData,
 				mapData,
 				isMapLoading,
 				mapFetchError,
 				fetchMapData,
 				refreshMapData,
+				marketData,
 			}}
 		>
 			{children}
@@ -521,11 +629,16 @@ export const useGlobalData = (): GlobalDataContextState => {
 			setShipmentState: () => {},
 			storageState: null,
 			refreshStorage: async () => {},
+			productionData: {},
+			workforceData: null,
+			isProductionLoading: false,
+			refreshProduction: async () => {},
 			mapData: null,
 			isMapLoading: false,
 			mapFetchError: null,
 			fetchMapData: async () => {},
 			refreshMapData: async () => {},
+			marketData: {},
 		} as GlobalDataContextState;
 	}
 

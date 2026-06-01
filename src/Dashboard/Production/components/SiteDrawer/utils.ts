@@ -61,8 +61,6 @@ export const MATERIAL_PROPS: Record<
 	COF: { weight: 5, volume: 5 },
 };
 
-export const getMatProps = (ticker: string) =>
-	MATERIAL_PROPS[ticker] || { weight: 1, volume: 1 };
 
 export const copyToClipboard = (text: string) => {
 	if (navigator.clipboard && window.isSecureContext) {
@@ -80,14 +78,14 @@ export const copyToClipboard = (text: string) => {
 };
 
 export const formatNumber = (val: number) =>
-	val >= 1000
-		? `${(val / 1000).toFixed(1)}k`
+	val >= 100000
+		? `${(val / 1000).toFixed(1)} k`
 		: val.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 export const smartFormat = (val: number) => {
 	if (val >= 1000000) {
 		return {
-			text: `${(val / 1000000).toFixed(1)}M`,
+			text: `${(val / 1000000).toFixed(1)} M`,
 			full: val.toLocaleString("en-US", { maximumFractionDigits: 0 }),
 			isAbbreviated: true,
 		};

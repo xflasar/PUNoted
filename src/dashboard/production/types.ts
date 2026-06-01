@@ -32,6 +32,7 @@ export interface StorageItem {
 	ticker: string;
 	amount: number;
 	material_id: string;
+	type?: string;
 }
 
 export interface SiteSummary {

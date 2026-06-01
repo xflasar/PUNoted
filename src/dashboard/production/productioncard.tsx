@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
 	Box,
 	Typography,
@@ -11,6 +11,8 @@ import {
 	alpha,
 	TextField,
 	InputAdornment,
+	Tabs,
+	Tab,
 } from "@mui/material";
 import {
 	MapPin,
@@ -21,22 +23,39 @@ import {
 	ArrowDownCircle,
 	Package,
 	Handshake,
+	Layers,
+	Warehouse,
+	ChevronRight,
 } from "lucide-react";
+import MaterialBadge from "../../cosm/components/materialbadge";
 import { SiteSummary, FlowData } from "./types";
 
-const formatFlow = (val: number) => `${val > 0 ? "+" : ""}${val.toFixed(1)}`;
+const formatFlow = (val: number) => {
+	const sign = val > 0 ? "+" : "";
+	return `${sign}${val.toLocaleString("en-US", { maximumFractionDigits: 1 })}`;
+};
 
-const smartFormat = (val: number) => {
-	if (val >= 1000000) {
+const smartFormat = (val: number, isFlow: boolean = false) => {
+	const absVal = Math.abs(val);
+	const sign = isFlow && val > 0 ? "+" : "";
+	const fullStr = isFlow
+		? formatFlow(val)
+		: val.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+	if (absVal >= 1000000) {
 		return {
-			text: `${(val / 1000000).toFixed(1)}M`,
-			full: val.toLocaleString("en-US", { maximumFractionDigits: 0 }),
+			text: `${sign}${(val / 1000000).toFixed(1)}M`,
+			full: fullStr,
 			isAbbreviated: true,
 		};
 	}
+
+	const formatted = isFlow
+		? formatFlow(val)
+		: val.toLocaleString("en-US", { maximumFractionDigits: 0 });
 	return {
-		text: val.toLocaleString("en-US", { maximumFractionDigits: 0 }),
-		full: "",
+		text: formatted,
+		full: fullStr,
 		isAbbreviated: false,
 	};
 };
@@ -60,6 +79,7 @@ export const ProductionCard = React.memo(
 		onSelect,
 	}: ProductionCardProps) => {
 		const theme = useTheme();
+		const [tab, setTab] = useState<"production" | "storage" | "both">("both");
 
 		const {
 			productionList,
@@ -67,6 +87,7 @@ export const ProductionCard = React.memo(
 			statusColor,
 			activeLines,
 			activeProducts,
+			storageList,
 		} = useMemo(() => {
 			const prod: FlowData[] = [];
 			const cons: FlowData[] = [];
@@ -93,10 +114,10 @@ export const ProductionCard = React.memo(
 			else if (minDays < targetDays) color = theme.palette.warning.main;
 
 			let linesCount = 0;
-			site.production_lines.forEach((l) => {
-				if (l.production_orders.length > 0) {
+			site.production_lines?.forEach((l) => {
+				if (l.queue && l.queue.length > 0) {
 					linesCount++;
-					for (const f of l.production_orders || []) {
+					for (const f of l.queue) {
 						if (f.production_recipe) {
 							f.production_recipe.outputs?.forEach((out) => {
 								products.add(out.ticker);
@@ -106,47 +127,423 @@ export const ProductionCard = React.memo(
 				}
 			});
 
+			const storage = [...(site.storage_items || [])].sort((a, b) =>
+				a.ticker.localeCompare(b.ticker),
+			);
+
 			return {
 				productionList: prod,
 				consumptionList: cons,
 				statusColor: color,
 				activeLines: linesCount,
 				activeProducts: Array.from(products).slice(0, 5),
+				storageList: storage,
 			};
-		}, [richFlows, site.production_lines, targetDays, theme]);
+		}, [
+			richFlows,
+			site.production_lines,
+			site.storage_items,
+			targetDays,
+			theme,
+		]);
+
+		const siteOverallCondition =
+			site.production_lines
+				.map((line) => line.condition || 0)
+				.reduce((a, b) => a + b, 0) / (site.production_lines.length || 1);
 
 		const conditionColor =
-			site.overall_platform_condition > 0.9
+			siteOverallCondition > 0.99
 				? theme.palette.success.main
-				: site.overall_platform_condition > 0.5
+				: siteOverallCondition > 0.8
 					? theme.palette.warning.main
 					: theme.palette.error.main;
 
 		// Make leased cards visually distinct with a dashed border
 		const borderStyle = site.isLeased ? "dashed" : "solid";
 		const borderWidth = site.isLeased ? "2px" : "1px";
+		const isDark = theme.palette.mode === "dark";
+
+		// Prevent click on text selection
+		const handleClick = (e: React.MouseEvent) => {
+			const selection = window.getSelection();
+			if (selection && selection.toString().length > 0) {
+				return; // Don't trigger if user is copying text
+			}
+			onSelect(siteId);
+		};
+
+		const renderProductionFlows = () => (
+			<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+				{productionList.length > 0 && (
+					<Box>
+						<Typography
+							variant="subtitle2"
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 0.5,
+								mb: 0.25,
+								color: theme.palette.success.main,
+								fontWeight: 700,
+								fontSize: "0.65rem",
+							}}
+						>
+							<ArrowUpCircle size={12} /> PROD
+						</Typography>
+						<Box sx={{ display: "grid", gap: 0.25 }}>
+							{productionList.map((p) => (
+								<Box
+									key={p.ticker}
+									sx={{
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "center",
+										gap: 1,
+										py: 0.15,
+										borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
+									}}
+								>
+									<Box
+										sx={{
+											fontSize: "0.75em",
+											display: "flex",
+											alignItems: "center",
+										}}
+									>
+										<MaterialBadge ticker={p.ticker} />
+									</Box>
+									<Tooltip
+										title={
+											smartFormat(p.flow, true).isAbbreviated
+												? smartFormat(p.flow, true).full
+												: ""
+										}
+										disableHoverListener={
+											!smartFormat(p.flow, true).isAbbreviated
+										}
+									>
+										<Typography
+											variant="caption"
+											fontWeight={500}
+											color="success.main"
+											textAlign="right"
+											fontSize="0.75rem"
+											sx={{
+												fontFamily: "monospace",
+												fontVariantNumeric: "tabular-nums",
+												textDecoration: smartFormat(p.flow, true).isAbbreviated
+													? "underline dotted"
+													: "none",
+												textUnderlineOffset: "2px",
+												cursor: smartFormat(p.flow, true).isAbbreviated
+													? "help"
+													: "text",
+											}}
+										>
+											{smartFormat(p.flow, true).text}/d
+										</Typography>
+									</Tooltip>
+								</Box>
+							))}
+						</Box>
+					</Box>
+				)}
+
+				{consumptionList.length > 0 && (
+					<Box sx={{ mt: productionList.length ? 0.5 : 0 }}>
+						<Typography
+							variant="subtitle2"
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 0.5,
+								mb: 0.25,
+								color: theme.palette.warning.main,
+								fontWeight: 700,
+								fontSize: "0.65rem",
+							}}
+						>
+							<ArrowDownCircle size={12} /> CONS
+						</Typography>
+						<Box sx={{ display: "grid", gap: 0.25 }}>
+							{consumptionList.map((c) => {
+								const isCritical = c.daysRemaining < targetDays / 5;
+								const isWarning = c.daysRemaining < targetDays;
+								const daysColor = isCritical
+									? "error.main"
+									: isWarning
+										? "warning.main"
+										: "success.main";
+								const {
+									text: needText,
+									full: needFull,
+									isAbbreviated,
+								} = smartFormat(c.missing);
+
+								return (
+									<Box
+										key={c.ticker}
+										sx={{
+											display: "grid",
+											gridTemplateColumns:
+												"min-content 1fr min-content min-content",
+											alignItems: "center",
+											gap: 0.5,
+											py: 0.15,
+											borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
+										}}
+									>
+										<Box
+											sx={{
+												fontSize: "0.75em",
+												display: "flex",
+												alignItems: "center",
+											}}
+										>
+											<MaterialBadge ticker={c.ticker} />
+										</Box>
+										<Tooltip
+											title={
+												smartFormat(c.flow, true).isAbbreviated
+													? smartFormat(c.flow, true).full
+													: ""
+											}
+											disableHoverListener={
+												!smartFormat(c.flow, true).isAbbreviated
+											}
+										>
+											<Typography
+												variant="caption"
+												color="text.secondary"
+												textAlign="right"
+												fontSize="0.75rem"
+												sx={{
+													fontFamily: "monospace",
+													fontVariantNumeric: "tabular-nums",
+													opacity: 0.9,
+													textDecoration: smartFormat(c.flow, true)
+														.isAbbreviated
+														? "underline dotted"
+														: "none",
+													textUnderlineOffset: "2px",
+													cursor: smartFormat(c.flow, true).isAbbreviated
+														? "help"
+														: "text",
+												}}
+											>
+												{smartFormat(c.flow, true).text}/d
+											</Typography>
+										</Tooltip>
+										<Tooltip title="Days remaining">
+											<Typography
+												variant="caption"
+												fontWeight={500}
+												sx={{
+													color: daysColor,
+													cursor: "help",
+													whiteSpace: "nowrap",
+													fontFamily: "monospace",
+													fontVariantNumeric: "tabular-nums",
+													pr: 3,
+												}}
+												textAlign="right"
+												fontSize="0.75rem"
+											>
+												{c.daysRemaining > 999
+													? "∞"
+													: `${c.daysRemaining.toFixed(1)}d`}
+											</Typography>
+										</Tooltip>
+										<Box
+											sx={{
+												display: "flex",
+												justifyContent: "flex-end",
+												width: 36,
+											}}
+										>
+											{c.missing > 0 && (
+												<Tooltip
+													title={isAbbreviated ? `Need ${needFull}` : ""}
+													disableHoverListener={!isAbbreviated}
+												>
+													<Typography
+														variant="caption"
+														fontWeight={500}
+														color={daysColor}
+														sx={{
+															fontSize: "0.75rem",
+															textAlign: "right",
+															cursor: isAbbreviated ? "help" : "text",
+															textDecoration: isAbbreviated
+																? "underline dotted"
+																: "none",
+															textUnderlineOffset: "2px",
+															fontFamily: "monospace",
+															fontVariantNumeric: "tabular-nums",
+														}}
+													>
+														{needText}
+													</Typography>
+												</Tooltip>
+											)}
+										</Box>
+									</Box>
+								);
+							})}
+						</Box>
+					</Box>
+				)}
+
+				{!productionList.length && !consumptionList.length && (
+					<Typography
+						variant="caption"
+						color="text.disabled"
+						fontStyle="italic"
+						textAlign="center"
+						sx={{ py: 1, fontSize: "0.7rem" }}
+					>
+						No active flow
+					</Typography>
+				)}
+			</Box>
+		);
+
+		const renderStorage = () => {
+			const siteStorage = storageList.filter(
+				(s) => !s.type || s.type === "STORE",
+			);
+			const warehouseStorage = storageList.filter(
+				(s) => s.type && s.type.includes("WAREHOUSE"),
+			);
+
+			const renderStorageSection = (
+				title: string,
+				icon: React.ReactNode,
+				list: typeof storageList,
+				color: string,
+			) => (
+				<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+					<Typography
+						variant="subtitle2"
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 0.5,
+							mb: 0.25,
+							color: color,
+							fontWeight: 700,
+							fontSize: "0.65rem",
+						}}
+					>
+						{icon} {title}
+					</Typography>
+					{list.length > 0 ? (
+						<Box sx={{ display: "grid", gap: 0.25 }}>
+							{list.map((s) => (
+								<Box
+									key={s.ticker}
+									sx={{
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "center",
+										gap: 1,
+										py: 0.15,
+										borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
+									}}
+								>
+									<Box
+										sx={{
+											fontSize: "0.75em",
+											display: "flex",
+											alignItems: "center",
+										}}
+									>
+										<MaterialBadge ticker={s.ticker} />
+									</Box>
+									<Tooltip
+										title={
+											smartFormat(s.amount).isAbbreviated
+												? smartFormat(s.amount).full
+												: ""
+										}
+										disableHoverListener={!smartFormat(s.amount).isAbbreviated}
+									>
+										<Typography
+											variant="caption"
+											fontWeight={500}
+											color="text.primary"
+											textAlign="right"
+											fontSize="0.75rem"
+											sx={{
+												fontFamily: "monospace",
+												fontVariantNumeric: "tabular-nums",
+												textDecoration: smartFormat(s.amount).isAbbreviated
+													? "underline dotted"
+													: "none",
+												textUnderlineOffset: "2px",
+												cursor: smartFormat(s.amount).isAbbreviated
+													? "help"
+													: "default",
+											}}
+										>
+											{smartFormat(s.amount).text}
+										</Typography>
+									</Tooltip>
+								</Box>
+							))}
+						</Box>
+					) : (
+						<Typography
+							variant="caption"
+							color="text.disabled"
+							fontStyle="italic"
+							textAlign="center"
+							sx={{ py: 1, fontSize: "0.7rem" }}
+						>
+							Empty storage
+						</Typography>
+					)}
+				</Box>
+			);
+
+			return (
+				<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+					{renderStorageSection(
+						"SITE",
+						<Layers size={12} />,
+						siteStorage,
+						theme.palette.info.main,
+					)}
+					{renderStorageSection(
+						"WAREHOUSE",
+						<Warehouse size={12} />,
+						warehouseStorage,
+						theme.palette.warning.main,
+					)}
+				</Box>
+			);
+		};
 
 		return (
 			<Paper
-				onClick={() => onSelect(siteId)}
+				onClick={handleClick}
 				elevation={2}
 				sx={{
 					display: "flex",
 					flexDirection: "column",
 					borderRadius: 2,
 					overflow: "hidden",
-					border: `${borderWidth} ${borderStyle} ${alpha(statusColor, site.isLeased ? 0.6 : 0.4)}`,
-					bgcolor: alpha(
-						theme.palette.background.default,
-						site.isLeased ? 0.4 : 0.6,
-					),
+					border: `${borderWidth} ${borderStyle} ${alpha(statusColor, site.isLeased ? 0.6 : 0.3)}`,
+					bgcolor: isDark
+						? alpha("#000000", 0.4)
+						: alpha(theme.palette.background.paper, 0.9),
 					backdropFilter: "blur(12px)",
 					transition: "all 0.1s ease",
 					cursor: "pointer",
 					width: "100%",
 					"&:hover": {
-						transform: "translateY(-2px)",
-						boxShadow: `0 4px 12px -2px ${alpha(statusColor, 0.2)}`,
+						boxShadow: `0 4px 12px -2px ${alpha(statusColor, 0.3)}`,
 						borderColor: statusColor,
 					},
 				}}
@@ -159,7 +556,7 @@ export const ProductionCard = React.memo(
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
-						bgcolor: alpha(statusColor, 0.08),
+						bgcolor: alpha(statusColor, 0.1),
 						borderBottom: `1px solid ${alpha(statusColor, 0.15)}`,
 					}}
 				>
@@ -172,30 +569,29 @@ export const ProductionCard = React.memo(
 							flexWrap: "wrap",
 						}}
 					>
-						<MapPin size={16} color={statusColor} />
+						<MapPin size={14} color={statusColor} />
 						<Typography
 							variant="body1"
 							fontWeight={700}
 							color="text.primary"
 							noWrap
-							sx={{ fontSize: "1rem" }}
+							sx={{ fontSize: "0.9rem" }}
 						>
 							{site.planet_name_alt === site.planet_name
 								? site.planet_name
 								: `${site.planet_name_alt} (${site.planet_name})`}
 						</Typography>
 
-						{/* NEW: Tenant Indicator for Leased Sites */}
 						{site.isLeased && site.tenant && (
 							<Chip
-								icon={<Handshake size={12} />}
+								icon={<Handshake size={10} />}
 								label={site.tenant}
 								size="small"
 								color="info"
 								variant="outlined"
 								sx={{
-									height: 20,
-									fontSize: "0.65rem",
+									height: 18,
+									fontSize: "0.6rem",
 									fontWeight: 700,
 									bgcolor: alpha(theme.palette.info.main, 0.1),
 									border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
@@ -203,20 +599,27 @@ export const ProductionCard = React.memo(
 							/>
 						)}
 					</Box>
-					<Chip
-						icon={<Flame size={10} />}
-						label={`${(site.overall_platform_condition * 100).toFixed(0)}%`}
-						size="medium"
-						sx={{
-							height: 18,
-							fontSize: "0.7rem",
-							fontWeight: 600,
-							bgcolor: alpha(conditionColor, 0.1),
-							color: conditionColor,
-							border: `1px solid ${alpha(conditionColor, 0.25)}`,
-							"& .MuiChip-icon": { color: conditionColor },
-						}}
-					/>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+						<Chip
+							icon={<Flame size={10} />}
+							label={`${(siteOverallCondition * 100).toFixed(0)}%`}
+							size="small"
+							sx={{
+								height: 18,
+								fontSize: "0.65rem",
+								fontWeight: 600,
+								bgcolor: alpha(conditionColor, 0.1),
+								color: conditionColor,
+								border: `1px solid ${alpha(conditionColor, 0.25)}`,
+								"& .MuiChip-icon": { color: conditionColor },
+							}}
+						/>
+						<ChevronRight
+							size={14}
+							color={theme.palette.text.secondary}
+							style={{ opacity: 0.5 }}
+						/>
+					</Box>
 				</Box>
 
 				{/* --- BODY --- */}
@@ -226,7 +629,7 @@ export const ProductionCard = React.memo(
 						flex: 1,
 						display: "flex",
 						flexDirection: "column",
-						gap: 1,
+						gap: 0.75,
 					}}
 				>
 					{/* Permits & Target Input */}
@@ -247,11 +650,11 @@ export const ProductionCard = React.memo(
 										opacity: 0.7,
 									}}
 								>
-									<Archive size={12} />
+									<Archive size={10} />
 									<Typography
 										variant="caption"
 										fontWeight={600}
-										fontSize="0.65rem"
+										fontSize="0.6rem"
 									>
 										PERMITS
 									</Typography>
@@ -260,7 +663,7 @@ export const ProductionCard = React.memo(
 									variant="caption"
 									fontWeight={600}
 									color="text.primary"
-									fontSize="0.75rem"
+									fontSize="0.7rem"
 								>
 									{site.invested_permits} / {site.maximum_permits}
 								</Typography>
@@ -270,7 +673,7 @@ export const ProductionCard = React.memo(
 								value={
 									(site.invested_permits / (site.maximum_permits || 1)) * 100
 								}
-								sx={{ height: 3, borderRadius: 1.5 }}
+								sx={{ height: 2, borderRadius: 1 }}
 								color="primary"
 							/>
 						</Box>
@@ -279,7 +682,7 @@ export const ProductionCard = React.memo(
 							label="Target"
 							type="number"
 							variant="outlined"
-							size="medium"
+							size="small"
 							value={targetDays}
 							onChange={(e) => onTargetDaysChange(e.target.value)}
 							onClick={(e) => e.stopPropagation()}
@@ -289,7 +692,7 @@ export const ProductionCard = React.memo(
 										<Typography
 											variant="subtitle2"
 											color="text.secondary"
-											sx={{ fontSize: "0.8rem", marginRight: 1 }}
+											sx={{ fontSize: "0.7rem", marginRight: 0.5 }}
 										>
 											d
 										</Typography>
@@ -297,209 +700,77 @@ export const ProductionCard = React.memo(
 								),
 							}}
 							sx={{
-								width: 70,
+								width: 60,
 								flexShrink: 0,
 								"& .MuiInputBase-root": {
-									fontSize: "0.8rem",
+									fontSize: "0.75rem",
 									borderRadius: 1,
-									height: 26,
+									height: 24,
 									paddingRight: 0,
 								},
 								"& .MuiInputLabel-root": {
-									fontSize: "0.8rem",
-									transform: "translate(8px, 5px) scale(1)",
+									fontSize: "0.7rem",
+									transform: "translate(6px, 4px) scale(1)",
 								},
 								"& .MuiInputLabel-shrink": {
-									transform: "translate(8px, -8px) scale(0.85)",
+									transform: "translate(6px, -6px) scale(0.85)",
 								},
-								"& .MuiOutlinedInput-input": { p: "2px 6px" },
+								"& .MuiOutlinedInput-input": { p: "2px 4px" },
 							}}
 						/>
 					</Box>
 
-					<Divider sx={{ opacity: 0.2 }} />
+					<Divider sx={{ opacity: 0.2, my: 0.25 }} />
+
+					<Box
+						sx={{ borderBottom: 1, borderColor: "divider" }}
+						onClick={(e) => e.stopPropagation()}
+					>
+						<Tabs
+							value={tab}
+							onChange={(_, newValue) => setTab(newValue)}
+							centered
+							aria-label="site data tabs"
+							sx={{
+								minHeight: 24,
+								"& .MuiTab-root": {
+									minHeight: 24,
+									py: 0,
+									px: 1,
+									fontSize: "0.65rem",
+									fontWeight: 600,
+									transition: "0.2s",
+									"&:hover": {
+										bgcolor: alpha(theme.palette.primary.main, 0.1),
+										borderRadius: 1,
+									},
+								},
+							}}
+						>
+							<Tab label="Both" value="both" />
+							<Tab label="Production" value="production" />
+							<Tab label="Storage" value="storage" />
+						</Tabs>
+					</Box>
 
 					{/* --- DATA SECTION --- */}
-					<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-						{productionList.length > 0 && (
-							<Box>
-								<Typography
-									variant="subtitle2"
+					<Box sx={{ flex: 1, minHeight: 60, mt: 0.5 }}>
+						{tab === "production" && renderProductionFlows()}
+						{tab === "storage" && renderStorage()}
+						{tab === "both" && (
+							<Box sx={{ display: "flex", gap: 1 }}>
+								<Box
 									sx={{
-										display: "flex",
-										justifyContent: "center",
-										alignItems: "center",
-										gap: 0.5,
-										mb: 0.25,
-										color: theme.palette.success.main,
-										fontWeight: 700,
-										fontSize: "0.7rem",
+										flex: 1.8,
+										minWidth: 0,
+										borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+										pr: 1,
 									}}
 								>
-									<ArrowUpCircle size={14} /> PRODUCTION
-								</Typography>
-								<Box sx={{ display: "grid", gap: 0.25 }}>
-									{productionList.map((p) => (
-										<Box
-											key={p.ticker}
-											sx={{
-												display: "grid",
-												gridTemplateColumns: "40px 1fr",
-												alignItems: "center",
-												gap: 1,
-												py: 0.15,
-												borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
-											}}
-										>
-											<Typography
-												variant="caption"
-												fontWeight={600}
-												color="text.primary"
-												fontSize="0.85rem"
-											>
-												{p.ticker}
-											</Typography>
-											<Typography
-												variant="caption"
-												fontWeight={400}
-												color="success.main"
-												textAlign="right"
-												fontSize="0.85rem"
-											>
-												{formatFlow(p.flow)}
-											</Typography>
-										</Box>
-									))}
+									{renderProductionFlows()}
 								</Box>
+								<Box sx={{ flex: 1, minWidth: 0 }}>{renderStorage()}</Box>
 							</Box>
-						)}
-
-						{consumptionList.length > 0 && (
-							<Box>
-								<Typography
-									variant="subtitle2"
-									sx={{
-										display: "flex",
-										justifyContent: "center",
-										alignItems: "center",
-										gap: 0.5,
-										mb: 0.25,
-										color: theme.palette.warning.main,
-										fontWeight: 700,
-										fontSize: "0.7rem",
-									}}
-								>
-									<ArrowDownCircle size={14} /> CONSUMPTION
-								</Typography>
-								<Box sx={{ display: "grid", gap: 0.25 }}>
-									{consumptionList.map((c) => {
-										const isCritical = c.daysRemaining < targetDays / 5;
-										const isWarning = c.daysRemaining < targetDays;
-										const daysColor = isCritical
-											? "error.main"
-											: isWarning
-												? "warning.main"
-												: "success.main";
-										const {
-											text: needText,
-											full: needFull,
-											isAbbreviated,
-										} = smartFormat(c.missing);
-
-										return (
-											<Box
-												key={c.ticker}
-												sx={{
-													display: "grid",
-													gridTemplateColumns:
-														"40px minmax(0, 1fr) min-content minmax(0, 1fr)",
-													alignItems: "center",
-													gap: 1,
-													py: 0.15,
-													borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
-												}}
-											>
-												<Typography
-													variant="caption"
-													fontWeight={600}
-													color="text.primary"
-													fontSize="0.85rem"
-													noWrap
-												>
-													{c.ticker}
-												</Typography>
-												<Typography
-													variant="caption"
-													color="text.secondary"
-													textAlign="center"
-													fontSize="0.85rem"
-													sx={{ opacity: 0.9 }}
-												>
-													{formatFlow(c.flow)}
-												</Typography>
-												<Tooltip title="Days remaining">
-													<Typography
-														variant="caption"
-														fontWeight={500}
-														sx={{
-															color: daysColor,
-															cursor: "help",
-															whiteSpace: "nowrap",
-														}}
-														textAlign="right"
-														fontSize="0.85rem"
-													>
-														{c.daysRemaining > 999
-															? "∞"
-															: `${c.daysRemaining.toFixed(1)}d`}
-													</Typography>
-												</Tooltip>
-												<Box
-													sx={{ display: "flex", justifyContent: "flex-end" }}
-												>
-													{c.missing > 0 ? (
-														<Tooltip
-															title={isAbbreviated ? `Need ${needFull}` : ""}
-															disableHoverListener={!isAbbreviated}
-														>
-															<Typography
-																variant="caption"
-																fontWeight={500}
-																color="error.main"
-																sx={{
-																	fontSize: "0.85rem",
-																	textAlign: "right",
-																	cursor: isAbbreviated ? "help" : "default",
-																	textDecoration: isAbbreviated
-																		? "underline dotted"
-																		: "none",
-																	textUnderlineOffset: "2px",
-																}}
-															>
-																{needText}
-															</Typography>
-														</Tooltip>
-													) : (
-														<Box />
-													)}
-												</Box>
-											</Box>
-										);
-									})}
-								</Box>
-							</Box>
-						)}
-
-						{!productionList.length && !consumptionList.length && (
-							<Typography
-								variant="caption"
-								color="text.disabled"
-								fontStyle="italic"
-								textAlign="center"
-								sx={{ py: 1 }}
-							>
-								No active flow data
-							</Typography>
 						)}
 					</Box>
 				</Box>
@@ -517,18 +788,18 @@ export const ProductionCard = React.memo(
 					}}
 				>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-						<Factory size={12} color={theme.palette.text.secondary} />
+						<Factory size={10} color={theme.palette.text.secondary} />
 						<Typography
 							variant="caption"
 							fontWeight={600}
 							color="text.secondary"
-							fontSize="0.7rem"
+							fontSize="0.65rem"
 						>
-							{site.production_lines.length} Lines
+							{site.production_lines?.length || 0} Lines
 						</Typography>
 					</Box>
 					{activeLines > 0 ? (
-						<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
 							<Box
 								sx={{
 									display: "flex",
@@ -544,8 +815,8 @@ export const ProductionCard = React.memo(
 										size="small"
 										variant="outlined"
 										sx={{
-											height: 16,
-											fontSize: "0.6rem",
+											height: 14,
+											fontSize: "0.55rem",
 											fontWeight: 600,
 											borderColor: alpha(theme.palette.info.main, 0.3),
 											color: theme.palette.text.primary,
@@ -555,13 +826,13 @@ export const ProductionCard = React.memo(
 									/>
 								))}
 							</Box>
-							<Package size={12} color={theme.palette.info.main} />
+							<Package size={10} color={theme.palette.info.main} />
 						</Box>
 					) : (
 						<Typography
 							variant="caption"
 							color="text.disabled"
-							fontSize="0.7rem"
+							fontSize="0.65rem"
 						>
 							Idle
 						</Typography>

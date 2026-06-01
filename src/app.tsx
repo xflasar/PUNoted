@@ -10,6 +10,7 @@ import "./app.css";
 import { getApiStatus } from "./components/common/apistatusservice";
 import StoragePage from "./dashboard/storagepage";
 import DashboardPage from "./dashboard/dashboardpage";
+import SitesPage from "./dashboard/sites/sitespage";
 import GalaxyMap from "./galaxymap/galaxymap";
 import CX from "./cx/cx";
 import Settings from "./dashboard/settings/settings";
@@ -20,7 +21,6 @@ import Logistics from "./dashboard/logistics/logistics";
 import Governance from "./dashboard/governance/governancepage";
 import { CorporationOverview } from "./dashboard/corporation/corporationoverview";
 import ShipmentPage from "./dashboard/shipping/shipmentpage";
-import ProductionDashboard from "./dashboard/production/productiondashboard";
 import { ProductionLeaderboard } from "./public/leaderboard";
 import FinancialOverview from "./dashboard/financial/financialoverview";
 import { API_BASE_URL } from "./config/api";
@@ -211,10 +211,7 @@ function App() {
 							path="/dashboard/cooperation"
 							element={<>Cooperation (WIP)</>}
 						/>
-						<Route
-							path="/dashboard/production"
-							element={<ProductionDashboard />}
-						/>
+						<Route path="/dashboard/sites" element={<SitesPage />} />
 						<Route path="/dashboard/planner" element={<BasePlanner />} />
 						<Route
 							path="/dashboard/planner/:planId"

@@ -16,6 +16,9 @@ import {
 	TextField,
 	useTheme,
 	CircularProgress,
+	Select,
+	SelectChangeEvent,
+	MenuItem,
 } from "@mui/material";
 import {
 	Handshake,
@@ -45,10 +48,11 @@ export const LeasedSitesSection: React.FC<Props> = ({
 	const [dialogOpen, setDialogOpen] = useState(false);
 
 	const [newLease, setNewLease] = useState<{
+		type: "Loaned" | "Leased";
 		site: UserSite | null;
 		tenant: string | BasicUser | null;
 		desc: string;
-	}>({ site: null, tenant: null, desc: "" });
+	}>({ type: "Loaned", site: null, tenant: null, desc: "" });
 
 	const [openSearch, setOpenSearch] = useState(false);
 	const [options, setOptions] = useState<BasicUser[]>([]);
@@ -86,6 +90,7 @@ export const LeasedSitesSection: React.FC<Props> = ({
 		(s) => !leasedSites.some((l) => l.siteId === s.siteId),
 	);
 
+	// Fix Mockings
 	const handleAdd = () => {
 		if (newLease.site && newLease.desc && newLease.tenant) {
 			// 1. Determine if they picked an object or typed a string
@@ -110,21 +115,29 @@ export const LeasedSitesSection: React.FC<Props> = ({
 			onChange([
 				...leasedSites,
 				{
+					type: newLease.type,
 					siteId: newLease.site.siteId,
-					tenant: identifierStr as string,
+					tenant: identifierStr,
 					tenant_data: mockTenantData, // Inject the mock data for immediate UI rendering
 					description: newLease.desc,
 				},
 			]);
 
 			setDialogOpen(false);
-			setNewLease({ site: null, tenant: null, desc: "" });
+			setNewLease({ type: "Loaned", site: null, tenant: null, desc: "" });
 			setInputValue("");
 		}
 	};
 
 	const handleRemove = (siteId: string) => {
 		onChange(leasedSites.filter((item) => item.siteId !== siteId));
+	};
+
+	const handleTypeChange = (event: SelectChangeEvent) => {
+		setNewLease((prev) => ({
+			...prev,
+			type: event.target.value as "Loaned" | "Leased",
+		}));
 	};
 
 	return (
@@ -139,9 +152,13 @@ export const LeasedSitesSection: React.FC<Props> = ({
 			>
 				<Typography
 					variant="caption"
-					fontWeight="bold"
 					color="text.secondary"
-					sx={{ display: "flex", alignItems: "center", gap: 1 }}
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1,
+						fontWeight: 600,
+					}}
 				>
 					<Handshake fontSize="inherit" /> LOANED / LEASED SITES
 				</Typography>
@@ -212,10 +229,29 @@ export const LeasedSitesSection: React.FC<Props> = ({
 				fullWidth
 			>
 				<DialogTitle sx={{ bgcolor: theme.palette.background.default }}>
-					Add Loaned Site
+					Add Loaned / Leased Site
 				</DialogTitle>
 				<DialogContent sx={{ bgcolor: theme.palette.background.default }}>
 					<Stack spacing={2} sx={{ mt: 1 }}>
+						<Select
+							value={newLease.type}
+							size="small"
+							onChange={(e) => handleTypeChange(e)}
+							MenuProps={{
+								slotProps: {
+									paper: {
+										sx: {
+											bgcolor: "background.default",
+											backgroundImage: "none",
+										},
+									},
+								},
+							}}
+						>
+							<MenuItem value="Loaned">Loaned</MenuItem>
+							<MenuItem value="Leased">Leased</MenuItem>
+						</Select>
+
 						<Autocomplete
 							options={availableSites}
 							getOptionLabel={(option) =>
@@ -271,8 +307,7 @@ export const LeasedSitesSection: React.FC<Props> = ({
 												{loading ? (
 													<CircularProgress color="inherit" size={20} />
 												) : null}
-												{params.InputProps?.endAdornment}{" "}
-												{/* Add the question mark here */}
+												{params.InputProps?.endAdornment}
 											</React.Fragment>
 										),
 									}}
@@ -305,7 +340,12 @@ export const LeasedSitesSection: React.FC<Props> = ({
 					<Button
 						variant="contained"
 						onClick={handleAdd}
-						disabled={!newLease.site || !newLease.desc || !newLease.tenant}
+						disabled={
+							!newLease.site ||
+							!newLease.desc ||
+							!newLease.tenant ||
+							!newLease.type
+						}
 					>
 						Add
 					</Button>

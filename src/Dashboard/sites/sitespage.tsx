@@ -21,14 +21,14 @@ import {
 import { Masonry } from "@mui/lab";
 import {
 	Search,
-	Factory,
+	Map as MapIcon,
 	ChevronDown,
 	ChevronUp,
 	Globe,
 	Handshake,
 } from "lucide-react";
 
-import { ProductionCard } from "./productioncard";
+import { ProductionCard } from "../production/productioncard";
 import type {
 	SiteSummary,
 	ApiResponse,
@@ -36,19 +36,23 @@ import type {
 	GroupedWorkforceData,
 	FlowData,
 	SiteWithFlows,
-} from "./types";
-import { SiteDrawerContent } from "./components/sitedrawercontent";
+} from "../production/types";
+import { SiteDrawerContent } from "../production/components/sitedrawercontent";
+
+import { useGlobalData } from "../../context/globaldatacontext";
 
 const LOCAL_STORAGE_KEY = "siteTargetSupplyDays";
 const DEFAULT_DAYS = 30;
 
-const ProductionDashboard: React.FC = () => {
+const SitesPage: React.FC = () => {
 	const theme = useTheme();
+	const {
+		productionData: data,
+		workforceData: workforce,
+		isProductionLoading: loading,
+	} = useGlobalData();
 
 	// --- STATE ---
-	const [data, setData] = useState<Record<string, SiteSummary>>({});
-	const [workforce, setWorkforce] = useState<GroupedWorkforceData | null>(null);
-	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [selectedSite, setSelectedSite] = useState<SiteWithFlows | null>(null);
 	const [siteTargets, setSiteTargets] = useState<Record<string, number>>({});
@@ -65,34 +69,10 @@ const ProductionDashboard: React.FC = () => {
 
 	// --- LOAD DATA ---
 	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				const token = localStorage.getItem("authToken");
-				const headers = { Authorization: `Bearer ${token}` };
-				const [prodRes, workRes] = await Promise.all([
-					fetch(`${API_BASE_URL}internal/production/user_production`, {
-						headers,
-					}),
-					fetch(`${API_BASE_URL}user_workforce_with_needs`, {
-						headers,
-					}),
-				]);
-				const prodJson: ApiResponse = await prodRes.json();
-				const workJson: ApiResponseWorkforce = await workRes.json();
-				if (prodJson.success) setData(prodJson.data);
-				if (workJson.success) setWorkforce(workJson.data);
-
-				try {
-					const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-					if (stored) setSiteTargets(JSON.parse(stored));
-				} catch {}
-			} catch (e) {
-				console.error(e);
-			} finally {
-				setLoading(false);
-			}
-		};
-		fetchData();
+		try {
+			const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+			if (stored) setSiteTargets(JSON.parse(stored));
+		} catch {}
 	}, []);
 
 	// --- PROCESSING ---
@@ -138,6 +118,7 @@ const ProductionDashboard: React.FC = () => {
 				});
 			}
 
+			// NO MORE MOCKING. The backend now passes `isLeased` and `tenant` natively!
 			return { site: { ...site, siteid: siteId }, richFlows };
 		});
 	}, [data, workforce]);
@@ -328,6 +309,30 @@ const ProductionDashboard: React.FC = () => {
 			</Box>
 		);
 
+	if (selectedSite) {
+		return (
+			<Box
+				sx={{
+					display: "flex",
+					flexDirection: "column",
+					height: "100vh",
+					bgcolor: theme.palette.background.default,
+					overflow: "hidden",
+				}}
+			>
+				<Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+					<SiteDrawerContent
+						siteFlow={selectedSite}
+						globalTargetDays={
+							siteTargets[selectedSite.siteid || ""] || DEFAULT_DAYS
+						}
+						onClose={() => setSelectedSite(null)}
+					/>
+				</Box>
+			</Box>
+		);
+	}
+
 	return (
 		<Box
 			sx={{
@@ -369,13 +374,13 @@ const ProductionDashboard: React.FC = () => {
 					>
 						<Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
 							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-								<Factory color={theme.palette.primary.main} size={28} />
+								<MapIcon color={theme.palette.primary.main} size={28} />
 								<Typography
 									variant="h5"
 									fontWeight={800}
 									sx={{ letterSpacing: -0.5 }}
 								>
-									PRODUCTION
+									SITES OVERVIEW
 								</Typography>
 							</Box>
 
@@ -733,37 +738,10 @@ const ProductionDashboard: React.FC = () => {
 							</Collapse>
 						</Box>
 					))}
-				<Box sx={{ height: 80 }} />{" "}
+				<Box sx={{ height: 80 }} />
 			</Box>
-
-			{/* --- DRAWER --- */}
-			<Drawer
-				anchor="right"
-				open={!!selectedSite}
-				onClose={() => setSelectedSite(null)}
-				slotProps={{
-					paper: {
-						sx: {
-							width: { xs: "100%", md: 600 },
-							bgcolor: "background.default",
-							borderLeft: `1px solid ${theme.palette.divider}`,
-							backgroundImage: "none",
-						},
-					},
-				}}
-			>
-				{selectedSite && (
-					<SiteDrawerContent
-						siteFlow={selectedSite}
-						globalTargetDays={
-							siteTargets[selectedSite.siteid || ""] || DEFAULT_DAYS
-						}
-						onClose={() => setSelectedSite(null)}
-					/>
-				)}
-			</Drawer>
 		</Box>
 	);
 };
 
-export default ProductionDashboard;
+export default SitesPage;
