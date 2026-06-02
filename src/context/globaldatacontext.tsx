@@ -453,13 +453,37 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 					setStorageState((prev) => {
 						const nextUnits = prev ? { ...prev.units } : {};
-						const updates = Array.isArray(msg.data) ? msg.data : [msg.data];
 
-						updates.forEach((updatedUnit: StorageUnit) => {
-							if (updatedUnit.storageid) {
-								nextUnits[updatedUnit.storageid] = updatedUnit;
-							}
-						});
+						if (Array.isArray(msg.data)) {
+							msg.data.forEach((updatedUnit: StorageUnit) => {
+								const unitId = updatedUnit.storageid || updatedUnit.id;
+								if (unitId) {
+									nextUnits[unitId] = {
+										...(nextUnits[unitId] || {}),
+										...updatedUnit,
+										storageid: unitId,
+									};
+								}
+							});
+						} else if (msg.data.storageid || msg.data.id) {
+							const unitId = msg.data.storageid || msg.data.id;
+							nextUnits[unitId] = {
+								...(nextUnits[unitId] || {}),
+								...msg.data,
+								storageid: unitId,
+							};
+						} else {
+							Object.entries(msg.data).forEach(
+								([key, updatedUnit]: [string, any]) => {
+									const unitId = updatedUnit.storageid || updatedUnit.id || key;
+									nextUnits[unitId] = {
+										...(nextUnits[unitId] || {}),
+										...updatedUnit,
+										storageid: unitId,
+									};
+								},
+							);
+						}
 
 						return {
 							units: nextUnits,
@@ -521,13 +545,28 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				case "PRODUCTION_UPDATE":
 					if (!msg.data) return;
 					setProductionData((prev) => {
-						const updates = Array.isArray(msg.data) ? msg.data : [msg.data];
 						const next = { ...prev };
-						updates.forEach((site: SiteSummary) => {
-							if (site.siteid) {
-								next[site.siteid] = site;
-							}
-						});
+						if (Array.isArray(msg.data)) {
+							msg.data.forEach((site: SiteSummary) => {
+								if (site.siteid) {
+									next[site.siteid] = { ...(next[site.siteid] || {}), ...site };
+								}
+							});
+						} else if (msg.data.siteid) {
+							next[msg.data.siteid] = {
+								...(next[msg.data.siteid] || {}),
+								...msg.data,
+							};
+						} else {
+							Object.entries(msg.data).forEach(([key, site]: [string, any]) => {
+								const siteId = site.siteid || key;
+								next[siteId] = {
+									...(next[siteId] || {}),
+									...site,
+									siteid: siteId,
+								};
+							});
+						}
 						return next;
 					});
 					break;

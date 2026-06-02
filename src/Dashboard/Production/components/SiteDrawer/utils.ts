@@ -61,7 +61,6 @@ export const MATERIAL_PROPS: Record<
 	COF: { weight: 5, volume: 5 },
 };
 
-
 export const copyToClipboard = (text: string) => {
 	if (navigator.clipboard && window.isSecureContext) {
 		navigator.clipboard.writeText(text);

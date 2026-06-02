@@ -301,7 +301,7 @@ export const LeasedSitesSection: React.FC<Props> = ({
 									size="small"
 									placeholder="Search database or type manually..."
 									InputProps={{
-										...(params.InputProps || {}), // Safely spread
+										...(params.InputProps || {}),
 										endAdornment: (
 											<React.Fragment>
 												{loading ? (

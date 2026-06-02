@@ -75,8 +75,11 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 		}
 
 		intentionalClose.current = false;
-		const protocol = "wss:";
-		const host = "api.punoted.net";
+
+		const isDev =
+			process.env.NODE_ENV === "development" || (import.meta as any).env?.DEV;
+		const protocol = isDev ? "ws:" : "wss:";
+		const host = isDev ? "localhost:9900" : "api.punoted.net";
 		const path = "/ws/global";
 		const url = `${protocol}//${host}${path}?token=${token}`;
 

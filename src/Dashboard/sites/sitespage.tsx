@@ -50,6 +50,7 @@ const SitesPage: React.FC = () => {
 		productionData: data,
 		workforceData: workforce,
 		isProductionLoading: loading,
+		storageState,
 	} = useGlobalData();
 
 	// --- STATE ---
@@ -78,6 +79,10 @@ const SitesPage: React.FC = () => {
 	// --- PROCESSING ---
 	const processedSites = useMemo(() => {
 		if (Object.keys(data).length === 0) return [];
+
+		const storageUnits = storageState?.units
+			? Object.values(storageState.units)
+			: [];
 
 		return Object.entries(data).map(([siteId, site]) => {
 			const richFlows: Record<string, FlowData> = {};
@@ -118,10 +123,81 @@ const SitesPage: React.FC = () => {
 				});
 			}
 
-			// NO MORE MOCKING. The backend now passes `isLeased` and `tenant` natively!
-			return { site: { ...site, siteid: siteId }, richFlows };
+			const siteStorage = storageUnits.find(
+				(u) => u.addressableid === site.siteid,
+			);
+			const siteOwner = siteStorage?.owner;
+
+			const matchingUnits = storageUnits.filter((u) => {
+				const isSiteStorage = u.addressableid === site.siteid;
+
+				const isOwnerWarehouse =
+					u.storageplanetid === site.planetid &&
+					(u.type === "WAREHOUSE" || u.type === "WAREHOUSE_STORE") &&
+					u.owner === siteOwner;
+
+				return isSiteStorage || isOwnerWarehouse;
+			});
+
+			let finalStorageItems: any[];
+
+			if (matchingUnits.length > 0) {
+				const aggregatedItems = new Map<string, any>();
+				matchingUnits.forEach((u) => {
+					const displayType =
+						u.type === "WAREHOUSE_STORE" ? "warehouse" : "site";
+					(u.items || []).forEach((item: any) => {
+						const key = `${item.name}-${displayType}`;
+						if (aggregatedItems.has(key)) {
+							aggregatedItems.get(key)!.amount += item.quantity;
+						} else {
+							aggregatedItems.set(key, {
+								ticker: item.name,
+								amount: item.quantity,
+								type: displayType,
+								material_id: item.id || "",
+							});
+						}
+					});
+				});
+				finalStorageItems = Array.from(aggregatedItems.values());
+			} else {
+				// Fallback to deduplicating existing site.storage_items provided directly by the backend if storageState is empty
+				const aggregatedItems = new Map<string, any>();
+				(site.storage_items || []).forEach((item) => {
+					const displayType =
+						item.type && item.type.includes("WAREHOUSE") ? "warehouse" : "site";
+					const key = `${item.ticker}-${displayType}`;
+					if (aggregatedItems.has(key)) {
+						aggregatedItems.get(key)!.amount += item.amount;
+					} else {
+						aggregatedItems.set(key, { ...item, type: displayType });
+					}
+				});
+				finalStorageItems = Array.from(aggregatedItems.values());
+			}
+
+			// Sync richFlows currentAmount with live storage data from both warehouse and site inventories
+			Object.keys(richFlows).forEach((ticker) => {
+				const siteStored = finalStorageItems
+					.filter((item) => item.ticker === ticker && item.type === "site")
+					.reduce((acc, item) => acc + (item.amount || 0), 0);
+
+				const warehouseStored = finalStorageItems
+					.filter((item) => item.ticker === ticker && item.type === "warehouse")
+					.reduce((acc, item) => acc + (item.amount || 0), 0);
+
+				richFlows[ticker].siteAmount = siteStored;
+				richFlows[ticker].warehouseAmount = warehouseStored;
+				richFlows[ticker].currentAmount = siteStored + warehouseStored;
+			});
+
+			return {
+				site: { ...site, siteid: siteId, storage_items: finalStorageItems },
+				richFlows,
+			};
 		});
-	}, [data, workforce]);
+	}, [data, workforce, storageState]);
 
 	// Initialize selected sites for the Empire Summary
 	useEffect(() => {

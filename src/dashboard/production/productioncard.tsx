@@ -101,9 +101,11 @@ export const ProductionCard = React.memo(
 						prod.push(f);
 					} else if (f.flow < 0) {
 						const dailyBurn = Math.abs(f.flow);
-						const daysLeft = f.currentAmount / dailyBurn;
+						const siteAvailable =
+							f.siteAmount !== undefined ? f.siteAmount : f.currentAmount;
+						const daysLeft = siteAvailable / dailyBurn;
 						const targetAmount = dailyBurn * targetDays;
-						const missing = Math.max(0, targetAmount - f.currentAmount);
+						const missing = Math.max(0, targetAmount - siteAvailable);
 						if (daysLeft < minDays) minDays = daysLeft;
 						cons.push({ ...f, daysRemaining: daysLeft, missing });
 					}
@@ -335,7 +337,7 @@ export const ProductionCard = React.memo(
 												{smartFormat(c.flow, true).text}/d
 											</Typography>
 										</Tooltip>
-										<Tooltip title="Days remaining">
+										<Tooltip title="Days remaining in Site (and Warehouse equivalent)">
 											<Typography
 												variant="caption"
 												fontWeight={500}
@@ -353,6 +355,20 @@ export const ProductionCard = React.memo(
 												{c.daysRemaining > 999
 													? "∞"
 													: `${c.daysRemaining.toFixed(1)}d`}
+												{c.warehouseAmount &&
+												c.warehouseAmount > 0 &&
+												Math.abs(c.flow) > 0 ? (
+													<Typography
+														component="span"
+														variant="caption"
+														color="text.secondary"
+														sx={{ fontSize: "0.65rem", ml: 0.5 }}
+													>
+														(+
+														{(c.warehouseAmount / Math.abs(c.flow)).toFixed(1)}
+														d)
+													</Typography>
+												) : null}
 											</Typography>
 										</Tooltip>
 										<Box
@@ -411,10 +427,10 @@ export const ProductionCard = React.memo(
 
 		const renderStorage = () => {
 			const siteStorage = storageList.filter(
-				(s) => !s.type || s.type === "STORE",
+				(s) => !s.type || s.type === "site",
 			);
 			const warehouseStorage = storageList.filter(
-				(s) => s.type && s.type.includes("WAREHOUSE"),
+				(s) => s.type && s.type.includes("warehouse"),
 			);
 
 			const renderStorageSection = (

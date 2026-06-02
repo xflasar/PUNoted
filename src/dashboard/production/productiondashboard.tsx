@@ -38,6 +38,7 @@ import type {
 	SiteWithFlows,
 } from "./types";
 import { SiteDrawerContent } from "./components/sitedrawercontent";
+import { useGlobalData } from "../../context/globaldatacontext";
 
 const LOCAL_STORAGE_KEY = "siteTargetSupplyDays";
 const DEFAULT_DAYS = 30;
@@ -46,9 +47,8 @@ const ProductionDashboard: React.FC = () => {
 	const theme = useTheme();
 
 	// --- STATE ---
-	const [data, setData] = useState<Record<string, SiteSummary>>({});
-	const [workforce, setWorkforce] = useState<GroupedWorkforceData | null>(null);
-	const [loading, setLoading] = useState(true);
+	const { productionData, workforceData, isProductionLoading, storageState } =
+		useGlobalData();
 	const [searchTerm, setSearchTerm] = useState("");
 	const [selectedSite, setSelectedSite] = useState<SiteWithFlows | null>(null);
 	const [siteTargets, setSiteTargets] = useState<Record<string, number>>({});
@@ -65,39 +65,20 @@ const ProductionDashboard: React.FC = () => {
 
 	// --- LOAD DATA ---
 	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				const token = localStorage.getItem("authToken");
-				const headers = { Authorization: `Bearer ${token}` };
-				const [prodRes, workRes] = await Promise.all([
-					fetch(`${API_BASE_URL}internal/production/user_production`, {
-						headers,
-					}),
-					fetch(`${API_BASE_URL}user_workforce_with_needs`, {
-						headers,
-					}),
-				]);
-				const prodJson: ApiResponse = await prodRes.json();
-				const workJson: ApiResponseWorkforce = await workRes.json();
-				if (prodJson.success) setData(prodJson.data);
-				if (workJson.success) setWorkforce(workJson.data);
-
-				try {
-					const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-					if (stored) setSiteTargets(JSON.parse(stored));
-				} catch {}
-			} catch (e) {
-				console.error(e);
-			} finally {
-				setLoading(false);
-			}
-		};
-		fetchData();
+		try {
+			const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+			if (stored) setSiteTargets(JSON.parse(stored));
+		} catch {}
 	}, []);
 
 	// --- PROCESSING ---
 	const processedSites = useMemo(() => {
+		const data = productionData || {};
 		if (Object.keys(data).length === 0) return [];
+
+		const storageUnits = storageState?.units
+			? Object.values(storageState.units)
+			: [];
 
 		return Object.entries(data).map(([siteId, site]) => {
 			const richFlows: Record<string, FlowData> = {};
@@ -115,7 +96,7 @@ const ProductionDashboard: React.FC = () => {
 				};
 			});
 
-			const siteWorkforce = workforce ? workforce[siteId] : null;
+			const siteWorkforce = workforceData ? workforceData[siteId] : null;
 			if (siteWorkforce) {
 				siteWorkforce.forEach((level) => {
 					level.needs.forEach((need) => {
@@ -138,9 +119,49 @@ const ProductionDashboard: React.FC = () => {
 				});
 			}
 
-			return { site: { ...site, siteid: siteId }, richFlows };
+			// Gather storage items for this site from storageState
+			// Match by storagelocation === site.planet_name
+			const matchingUnits = storageUnits.filter(
+				(u) =>
+					u.storagelocation === site.planet_name &&
+					(u.type === "STORE" || u.type === "WAREHOUSE_STORE"),
+			);
+
+			const aggregatedItems = new Map<
+				string,
+				{ ticker: string; amount: number; type: string; material_id: string }
+			>();
+
+			matchingUnits.forEach((u) => {
+				const displayType = u.type === "WAREHOUSE_STORE" ? "warehouse" : "site";
+				(u.items || []).forEach((item) => {
+					// Group by ticker AND displayType to preserve the separation of site and warehouse inventory
+					const key = `${item.name}-${displayType}`;
+					if (aggregatedItems.has(key)) {
+						aggregatedItems.get(key)!.amount += item.quantity;
+					} else {
+						aggregatedItems.set(key, {
+							ticker: item.name,
+							amount: item.quantity,
+							type: displayType,
+							material_id: item.id || "",
+						});
+					}
+				});
+			});
+
+			const siteStorageItems = Array.from(aggregatedItems.values());
+
+			return {
+				site: {
+					...site,
+					siteid: siteId,
+					storage_items: siteStorageItems,
+				},
+				richFlows,
+			};
 		});
-	}, [data, workforce]);
+	}, [productionData, workforceData, storageState]);
 
 	// Initialize selected sites for the Empire Summary
 	useEffect(() => {
@@ -314,7 +335,7 @@ const ProductionDashboard: React.FC = () => {
 
 	// --- RENDERING ---
 
-	if (loading)
+	if (isProductionLoading)
 		return (
 			<Box
 				sx={{

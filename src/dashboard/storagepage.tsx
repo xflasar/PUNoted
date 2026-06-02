@@ -255,7 +255,10 @@ const UnifiedStorageCard = React.memo(({ group }: { group: CombinedGroup }) => {
 				overflow: "hidden",
 				minWidth: 300,
 				border: `1px solid ${alpha(color, 0.3)}`,
-				bgcolor: theme.palette.mode === "dark" ? alpha("#000000", 0.4) : alpha(theme.palette.background.paper, 0.9),
+				bgcolor:
+					theme.palette.mode === "dark"
+						? alpha("#000000", 0.4)
+						: alpha(theme.palette.background.paper, 0.9),
 				backdropFilter: "blur(12px)",
 				transition: "all 0.1s ease",
 				width: "100%",
