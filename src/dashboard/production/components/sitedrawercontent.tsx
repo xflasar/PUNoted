@@ -99,14 +99,18 @@ export const SiteDrawerContent: React.FC<Props> = ({
 				<Tab
 					icon={<Factory size={14} />}
 					iconPosition="start"
-					label="Production"
+					label="Production (ALPHA)"
 				/>
 				<Tab
 					icon={<Globe size={14} />}
 					iconPosition="start"
-					label="Logistics"
+					label="Logistics (ALPHA)"
 				/>
-				<Tab icon={<Wrench size={14} />} iconPosition="start" label="Infra" />
+				<Tab
+					icon={<Wrench size={14} />}
+					iconPosition="start"
+					label="Repair (ALPHA)"
+				/>
 			</Tabs>
 
 			<Box
