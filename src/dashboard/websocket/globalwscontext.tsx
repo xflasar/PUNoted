@@ -8,6 +8,8 @@ import React, {
 	ReactNode,
 } from "react";
 
+import { baseURL } from "../../utils/apiClient";
+
 type WsStatus = "connecting" | "connected" | "disconnected";
 
 interface GlobalWsContextState {
@@ -55,7 +57,6 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 		}
 
 		// --- DEFENSE LAYER 1: Decode JWT locally before connecting ---
-		// This catches the expiration without even asking the server.
 		try {
 			const tokenParts = token.split(".");
 			if (tokenParts.length === 3) {
@@ -63,11 +64,8 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 				const now = Math.floor(Date.now() / 1000);
 				if (payload.exp && payload.exp < now) {
 					console.warn(
-						"WS: Token expired locally. Redirecting to landing page...",
+						"WS: Token expired locally. Proceeding to trigger server-side refresh...",
 					);
-					localStorage.removeItem("authToken");
-					window.location.href = "/";
-					return;
 				}
 			}
 		} catch (e) {
@@ -78,10 +76,10 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 
 		const isDev =
 			process.env.NODE_ENV === "development" || (import.meta as any).env?.DEV;
-		const protocol = isDev ? "ws:" : "wss:";
-		const host = isDev ? "localhost:9900" : "api.punoted.net";
+		const wsBaseURL = baseURL.replace(/^http/, isDev ? "ws" : "wss");
+
 		const path = "/ws/global";
-		const url = `${protocol}//${host}${path}?token=${token}`;
+		const url = `${wsBaseURL}${path}?token=${token}`;
 
 		console.log("WS: Attempting single connection...");
 		setStatus("connecting");
@@ -110,11 +108,9 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 				// --- DEFENSE LAYER 2: Backend sends an error JSON payload before disconnecting ---
 				if (data.error && data.error.toLowerCase().includes("expire")) {
 					console.warn(
-						"WS: Server reported token expiry via message. Redirecting...",
+						"WS: Server reported token expiry via message. Triggering refresh...",
 					);
-					localStorage.removeItem("authToken");
-					intentionalClose.current = true;
-					window.location.href = "/";
+					ws.close(4001, "expire");
 					return;
 				}
 
@@ -125,7 +121,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 			}
 		};
 
-		ws.onclose = (event) => {
+		ws.onclose = async (event) => {
 			if (wsRef.current === ws) {
 				console.log(
 					`WS: Socket Closed (Code: ${event.code}, Reason: ${event.reason})`,
@@ -133,8 +129,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 				setStatus("disconnected");
 				wsRef.current = null;
 
-				// --- DEFENSE LAYER 3: Backend closes connection with specific auth-failure code/reason ---
-				// 1008 = standard Policy Violation. 4000-4999 = typical custom app error codes.
+				// --- DEFENSE LAYER 3: Backend closes connection with specific auth-failure code ---
 				const isAuthError =
 					event.code === 1008 ||
 					event.code === 4001 ||
@@ -143,12 +138,36 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 
 				if (isAuthError) {
 					console.warn(
-						"WS: Server rejected auth via close event. Redirecting...",
+						"WS: Server rejected auth. Attempting silent refresh...",
 					);
-					localStorage.removeItem("authToken");
-					intentionalClose.current = true;
-					window.location.href = "/";
-					return;
+					try {
+						const refreshUrl = `${baseURL}/auth/refresh`;
+
+						// Execute the native fetch request to get a new token
+						const refreshRes = await fetch(refreshUrl, {
+							method: "POST",
+							credentials: "include",
+							headers: { "Content-Type": "application/json" },
+						});
+
+						if (!refreshRes.ok) {
+							throw new Error("Refresh token expired or invalid");
+						}
+
+						const refreshData = await refreshRes.json();
+						console.log("WS: Token refreshed successfully! Reconnecting...");
+
+						localStorage.setItem("authToken", refreshData.token);
+
+						setTimeout(connect, 500);
+						return;
+					} catch (e) {
+						console.warn("WS: Refresh cookie invalid/expired. Forcing logout.");
+						localStorage.removeItem("authToken");
+						intentionalClose.current = true;
+						window.location.href = "/";
+						return;
+					}
 				}
 
 				if (!intentionalClose.current) {

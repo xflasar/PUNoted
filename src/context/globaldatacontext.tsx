@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { openDB } from "idb";
 import { API_BASE_URL } from "../config/api";
+import { fetchClient } from "../utils/apiClient";
 import { useGlobalWsContext } from "../dashboard/websocket/globalwscontext";
 import { DashboardPayload, DashboardFilter } from "../dashboard/cx/types";
 import type {
@@ -181,11 +182,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 	const fetchMarketData = useCallback(async () => {
 		try {
-			const res = await fetch(`${API_BASE_URL}v1/cx/prices`, {
-				headers: {
-					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-				},
-			});
+			const res = await fetchClient("/v1/cx/prices");
 
 			const data = await res.json();
 
@@ -212,11 +209,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 		// 2. Background Revalidation
 		try {
-			const res = await fetch(`${API_BASE_URL}v1/materials/list`, {
-				headers: {
-					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-				},
-			});
+			const res = await fetchClient("/v1/materials/list");
 
 			const data: MaterialData[] = await res.json();
 
@@ -274,7 +267,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				if (!mapData && !cachedData) setIsMapLoading(true);
 				setMapFetchError(null);
 
-				const res = await fetch(`${API_BASE_URL}dashboard_map`);
+				const res = await fetchClient("/dashboard_map");
 				if (!res.ok) throw new Error(`API returned ${res.status}`);
 
 				const json = await res.json();
@@ -308,12 +301,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	// --- Storage ---
 	const fetchStorageData = useCallback(async () => {
 		try {
-			const token = localStorage.getItem("authToken");
-			if (!token) return;
-
-			const res = await fetch(`${API_BASE_URL}internal/storage/user_storage`, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
+			const res = await fetchClient("/internal/storage/user_storage");
 
 			const json = await res.json();
 
@@ -346,17 +334,10 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	const fetchProductionData = useCallback(async () => {
 		try {
 			setIsProductionLoading(true);
-			const token = localStorage.getItem("authToken");
-			if (!token) return;
 
-			const headers = { Authorization: `Bearer ${token}` };
 			const [prodRes, workRes] = await Promise.all([
-				fetch(`${API_BASE_URL}internal/production/user_production`, {
-					headers,
-				}),
-				fetch(`${API_BASE_URL}user_workforce_with_needs`, {
-					headers,
-				}),
+				fetchClient("/internal/production/user_production"),
+				fetchClient("/user_workforce_with_needs"),
 			]);
 
 			const prodJson = await prodRes.json();
@@ -399,12 +380,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 	const fetchShipData = useCallback(async () => {
 		try {
-			const token = localStorage.getItem("authToken");
-			if (!token) return;
-
-			const res = await fetch(`${API_BASE_URL}internal/ships/`, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
+			const res = await fetchClient("/internal/ships/");
 
 			const json = await res.json();
 			if (json.success && json.data) {
