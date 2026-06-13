@@ -28,13 +28,13 @@ import { useMapData } from "./hooks/usemapdata";
 import { useSystemViewSetup } from "./hooks/usesystemviewsetup";
 import { useViewNavigation } from "./hooks/useviewnavigation";
 import { useMapLayers } from "./hooks/usemaplayers";
-import { useShipWebSocket } from "./hooks/useshipwebsocket";
 // Components
 import ShipListComponent from "./components/shiplistcomponent";
 import SearchBar from "./components/searchbar/searchbar";
 import SearchResultsPanel from "./components/searchresultspanel/searchresultspanel";
-import { GlobalDataContext } from "../../../context/globaldatacontext";
 import MapLoadingOverlay from "../maploadingoverlay";
+import { useGlobalData } from "../../../context/globaldatacontext";
+import { useShipDataProcessor } from "./hooks/useShipDataProcessor";
 
 function deepCompareLayers(prevLayers: any[] = [], nextLayers: any[] = []) {
 	if (prevLayers.length !== nextLayers.length) return false;
@@ -109,6 +109,15 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		maxY: number;
 	} | null>(null);
 
+	const {
+		allShips,
+		ownerShips,
+		otherShips,
+		activeFlightPlans,
+		mapData,
+		isMapLoading: isGlobalMapLoading,
+	} = useGlobalData();
+
 	// render counter (debug)
 	const renderCountRef = useRef(0);
 	renderCountRef.current++;
@@ -174,13 +183,6 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		return () => clearInterval(id);
 	}, []);
 
-	// Map data from GlobalDataContext
-	const {
-		mapData,
-		isMapLoading: isGlobalMapLoading,
-		mapFetchError: globalMapFetchError,
-	} = React.useContext(GlobalDataContext) || {};
-
 	// Map data hook (processes raw API response)
 	const {
 		isLoading,
@@ -213,6 +215,12 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 	const [orbitLinesStatic, setOrbitLinesStatic] = useState<any[]>([]);
 	const [maxAllowedRadius, setMaxAllowedRadius] = useState(12);
 
+	// PATH VISIBILITY
+	const [visiblePathShipIds, setVisiblePathShipIds] = useState<Set<string>>(
+		new Set(),
+	);
+	const hasInitializedPaths = useRef(false);
+
 	// List / grouping state
 	const [expandedCorpGroups, setExpandedCorpGroups] = useState<
 		Record<string, boolean>
@@ -221,6 +229,8 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		Record<string, boolean>
 	>({});
 	const [ownShipsVisible, setOwnShipsVisible] = useState(true); // New State
+
+	// Handlers
 
 	const handleToggleCorpGroup = useCallback((group: string) => {
 		setExpandedCorpGroups((prev) => ({ ...prev, [group]: !prev[group] }));
@@ -249,12 +259,6 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		},
 		[],
 	);
-
-	// PATH VISIBILITY
-	const [visiblePathShipIds, setVisiblePathShipIds] = useState<Set<string>>(
-		new Set(),
-	);
-	const hasInitializedPaths = useRef(false);
 
 	const handleTogglePath = useCallback((id: string) => {
 		setVisiblePathShipIds((prev) => {
@@ -448,94 +452,19 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		[currentViewMode, navigationHandleViewStateChange, isInteracting],
 	);
 
-	// Global data context usage: safe destructure
-	const context = React.useContext(GlobalDataContext);
 	const {
-		animatedShipData: globalShips = [],
-		activeFlightPlans: globalPlans = [],
-		setActiveFlightPlans: setGlobalActiveFlightPlans = () => {},
-	} = mode === "public" || !context ? ({} as any) : (context as any);
+		ownShips,
+		corpShipsGrouped,
+		visibleAnimatedShipData,
+		effectiveFlightPlans,
+	} = useShipDataProcessor(
+		ownerShips,
+		otherShips,
+		visibleCorpGroups,
+		ownShipsVisible,
+		visiblePathShipIds,
+	);
 
-	// effective ships (handles overrideShips for 'shipping' mode)
-	const effectiveShips = useMemo(() => {
-		if (mode === "public") return [];
-		if (mode === "shipping" && overrideShips) {
-			return Object.values(overrideShips).map((s: any) => ({
-				id: s.id,
-				name: s.name,
-				registration: s.registration,
-				ownerName: s.ownerName,
-				ownerId: s.ownerId,
-				type: s.type,
-				addressplanetid: s.addressplanetid,
-				addresssystemid: s.addresssystemid,
-				addressstationid: s.addressstationid,
-				position: [0, 0] as [number, number],
-				progress: 0,
-				plan: s.flight ? ({ ...s.flight, isOwn: true } as FlightPlan) : null,
-				visible: true,
-				is_owner_ship: true,
-			}));
-		}
-		return globalShips || [];
-	}, [mode, overrideShips, globalShips]);
-
-	// fleet categorization
-	const { ownShips, corpShipsGrouped, visibleAnimatedShipData } =
-		useMemo(() => {
-			const currentUserId =
-				typeof window !== "undefined"
-					? localStorage.getItem("currentUserId")
-					: null;
-			const own: AnimatedShipData[] = [];
-			const allVisible: AnimatedShipData[] = [];
-			const corpGroupsMap = new Map<
-				string,
-				{ name: string; ships: AnimatedShipData[] }
-			>();
-
-			for (const ship of effectiveShips) {
-				const isMine =
-					ship.is_owner_ship ||
-					(currentUserId && String(ship.ownerId) === String(currentUserId));
-				let shouldRender = true;
-				const mapShip = { ...ship, visible: true };
-
-				if (isMine) {
-					own.push(ship);
-					(mapShip as any).color = [0, 255, 127];
-					if (!ownShipsVisible) shouldRender = false;
-				} else {
-					const ownerId = String(ship.ownerId || "unknown");
-					const displayName = ship.ownerName || "Unknown Owner";
-					if (!corpGroupsMap.has(ownerId)) {
-						corpGroupsMap.set(ownerId, { name: displayName, ships: [] });
-					}
-					corpGroupsMap.get(ownerId)!.ships.push(ship);
-					(mapShip as any).color = [0, 100, 255];
-					if (visibleCorpGroups[displayName] !== true) {
-						shouldRender = false;
-					}
-				}
-				if (shouldRender) allVisible.push(mapShip);
-			}
-
-			const sortedOwnerIds = Array.from(corpGroupsMap.keys()).sort();
-			const finalCorpGroups: Record<string, AnimatedShipData[]> = {};
-			for (const uid of sortedOwnerIds) {
-				const group = corpGroupsMap.get(uid)!;
-				if (!finalCorpGroups[group.name]) finalCorpGroups[group.name] = [];
-				finalCorpGroups[group.name].push(...group.ships);
-			}
-
-			return {
-				ownShips: own,
-				corpShipsGrouped: finalCorpGroups,
-				visibleAnimatedShipData: allVisible,
-			};
-		}, [effectiveShips, visibleCorpGroups, ownShipsVisible]);
-
-	// auto-enable paths for own ships on first data arrival
 	useEffect(() => {
 		if (!hasInitializedPaths.current && ownShips.length > 0) {
 			setVisiblePathShipIds(new Set(ownShips.map((s) => s.id)));
@@ -543,50 +472,13 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 		}
 	}, [ownShips]);
 
-	// effective flight plans derived from visible ships
-	const effectiveFlightPlans = useMemo(() => {
-		if (visiblePathShipIds.size === 0) return [];
-
-		const extractPlans = (ships: AnimatedShipData[], isOwn: boolean) => {
-			const plans: any[] = [];
-			for (const ship of ships) {
-				if (visiblePathShipIds.has(ship.id)) {
-					const rawPlan = (ship as any).plan || (ship as any).flight;
-					if (rawPlan) {
-						plans.push({
-							...rawPlan,
-							isOwn,
-							shipid: ship.id,
-						});
-					}
-				}
-			}
-			return plans;
-		};
-
-		const myPlans = extractPlans(ownShips, true);
-		const allCorpShips = Object.values(corpShipsGrouped).flat();
-		const corporatePlans = extractPlans(allCorpShips, false);
-		return [...myPlans, ...corporatePlans];
-	}, [ownShips, corpShipsGrouped, visiblePathShipIds]);
-
 	const effectiveSetFlightPlans =
-		mode === "shipping" ? () => {} : setGlobalActiveFlightPlans;
+		mode === "shipping" ? () => {} : activeFlightPlans;
 
-	// ship websocket hookup (passes worker ref; the hook should guard usage)
-	useShipWebSocket({
-		mode,
-		systemsPoints,
-		allPlanetsData,
-		allStationsData,
-		animationWorker: animationWorkerRef.current,
-	});
-
-	// keep a live ref for updatedShips from layers hook
-	const animatedShipDataRef = useRef(effectiveShips);
+	const animatedShipDataRef = useRef(allShips);
 	useLayoutEffect(() => {
-		animatedShipDataRef.current = effectiveShips;
-	}, [effectiveShips]);
+		animatedShipDataRef.current = allShips;
+	}, [allShips]);
 
 	// system view setup
 	const { orbitLines, systemBoundingBox, systemStats } = useSystemViewSetup(
@@ -843,7 +735,7 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 				if (sys && centeredSystem?.originalSystemId !== sys.originalSystemId)
 					onSystemClick(sys);
 			} else if (focusTarget.type === "SHIP") {
-				const ship = effectiveShips.find((s) => s.id === focusTarget.id);
+				const ship = allShips.find((s) => s.id === focusTarget.id);
 				if (ship) {
 					if (ship.addresssystemid && !ship.plan) {
 						const sys = systemsPoints?.find(
@@ -876,7 +768,7 @@ const BaseStarMap: React.FC<BaseStarMapProps> = ({
 	}, [
 		focusTarget,
 		systemsPoints,
-		effectiveShips,
+		allShips,
 		centeredSystem,
 		onSystemClick,
 		handleShipSelect,

@@ -243,9 +243,10 @@ export interface AnimatedShipData {
 	id: string;
 	registration: string;
 	name: string;
-	ownerName: string;
-	ownerId: string;
-	is_owner_ship: boolean;
+	display_name: string;
+	company_code: string;
+	user_id: string;
+	is_owner: boolean;
 	addressplanetid: string;
 	addresssystemid: string;
 	addressstationid: string;

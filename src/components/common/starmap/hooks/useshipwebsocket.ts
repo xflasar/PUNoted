@@ -9,7 +9,7 @@ import {
 } from "../types/maptypes";
 
 export const useShipWebSocket = ({
-	mode, // Add mode to props
+	mode,
 	systemsPoints,
 	allPlanetsData,
 	allStationsData,

@@ -80,7 +80,6 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 							</IconButton>
 						</Box>
 
-						{/* Sub-Components handle their own internal data/api logic */}
 						{authFlow === "login" && (
 							<LoginForm
 								isLoading={isLoading}
@@ -113,7 +112,6 @@ const AuthenticationBox: React.FC<AuthenticationBoxProps> = ({
 				</ContentContainer>
 			</BackgroundBox>
 
-			{/* Global Snackbar for the Auth Modal */}
 			<Snackbar
 				open={snackbar.open}
 				autoHideDuration={3000}

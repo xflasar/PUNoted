@@ -4,13 +4,13 @@ import React, {
 	useState,
 	useEffect,
 	useCallback,
-	ReactNode,
+	useMemo,
 } from "react";
+import type { ReactNode } from "react";
 import { openDB } from "idb";
-import { API_BASE_URL } from "../config/api";
 import { fetchClient } from "../utils/apiClient";
 import { useGlobalWsContext } from "../dashboard/websocket/globalwscontext";
-import { DashboardPayload, DashboardFilter } from "../dashboard/cx/types";
+import type { DashboardPayload, DashboardFilter } from "../dashboard/cx/types";
 import type {
 	AnimatedShipData,
 	FlightPlan,
@@ -59,17 +59,19 @@ interface GlobalDataContextState {
 	/** The currently active filters applied to the dashboard */
 	currentCXDashboardFilters: DashboardFilter;
 	/** Array of active ships with their current animation/position states */
-	animatedShipData: AnimatedShipData[];
-	/** State setter for animated ship data */
-	setAnimatedShipData: React.Dispatch<React.SetStateAction<AnimatedShipData[]>>;
+	ownerShips: AnimatedShipData[];
+	/** Array of non-owner ships with their current animation/position states */
+	otherShips: AnimatedShipData[];
+	/** All Ships State */
+	allShips: Map<string, AnimatedShipData>;
+	/** State setter for all ships data */
+	setAllShips: React.Dispatch<
+		React.SetStateAction<Map<string, AnimatedShipData>>
+	>;
 	/** Array of active flight plans for ships in transit */
 	activeFlightPlans: FlightPlan[];
 	/** State setter for active flight plans */
 	setActiveFlightPlans: React.Dispatch<React.SetStateAction<FlightPlan[]>>;
-	/** Raw initial ship data received from the backend on connection */
-	rawInitialShips: any[] | null;
-	/** State setter for raw initial ship data */
-	setRawInitialShips: (data: any[] | null) => void;
 	/** Current state of user shipments and contracts */
 	shipmentState: ShipmentState;
 	/** State setter for user shipments and contracts */
@@ -130,11 +132,11 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		useState<DashboardFilter>({ range: "7D", exchange: "IC1" });
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 
-	const [animatedShipData, setAnimatedShipData] = useState<AnimatedShipData[]>(
-		[],
+	const [allShips, setAllShips] = useState<Map<string, AnimatedShipData>>(
+		new Map(),
 	);
+
 	const [activeFlightPlans, setActiveFlightPlans] = useState<FlightPlan[]>([]);
-	const [rawInitialShips, setRawInitialShips] = useState<any[] | null>(null);
 
 	const [shipmentState, setShipmentState] = useState<ShipmentState>({
 		contracts: [],
@@ -378,13 +380,13 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		[sendJson],
 	);
 
-	const fetchShipData = useCallback(async () => {
+	const fetchShipsData = useCallback(async () => {
 		try {
 			const res = await fetchClient("/internal/ships/");
 
 			const json = await res.json();
-			if (json.success && json.data) {
-				setRawInitialShips(json.data);
+			if (json.ships && json) {
+				setAllShips(json.ships);
 			} else {
 				console.error(
 					"Failed to fetch ship data: API returned unsuccessful response",
@@ -396,8 +398,18 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	}, []);
 
 	useEffect(() => {
-		fetchShipData();
-	}, [fetchShipData]);
+		fetchShipsData();
+	}, [fetchShipsData]);
+
+	const ownerShips = useMemo(
+		() => Array.from(allShips.values()).filter((s) => s.is_owner),
+		[allShips],
+	);
+
+	const otherShips = useMemo(
+		() => Array.from(allShips.values()).filter((s) => !s.is_owner),
+		[allShips],
+	);
 
 	// --- WebSocket Handler ---
 	useEffect(() => {
@@ -412,10 +424,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 				case "REFRESH_DASHBOARD":
 					fetchDashboard(currentCXDashboardFilters);
-					break;
-
-				case "INITIAL_SHIP_DATA":
-					setRawInitialShips(msg.data);
 					break;
 
 				case "INITIAL_SHIPMENT_DATA":
@@ -483,28 +491,39 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 				case "FLIGHT_PLAN_UPDATE": {
 					const plan: FlightPlan = msg.data;
+
+					if (!plan.shipid) {
+						console.warn("Received FlightPlan without shipid", plan);
+						break;
+					}
+
 					setActiveFlightPlans((prev) => {
 						const map = new Map(prev.map((p) => [p.shipid, p]));
-						map.set(plan.shipid, { ...plan });
+						map.set(plan.shipid, plan);
 						return Array.from(map.values());
 					});
 
-					setAnimatedShipData((prev) =>
-						prev.map((ship) =>
-							ship.id === plan.shipid ? { ...ship, plan: { ...plan } } : ship,
-						),
-					);
+					setAllShips((prev) => {
+						const nextMap = new Map(prev);
+						const ship = nextMap.get(plan.shipid!);
+
+						if (ship) {
+							nextMap.set(plan.shipid!, { ...ship, plan: { ...plan } });
+						}
+						return nextMap;
+					});
 					break;
 				}
 
 				case "SHIP_DATA_UPDATE": {
 					const shipUpdate = msg.data;
 					const shipId = shipUpdate.shipid || shipUpdate.id;
-					setAnimatedShipData((prev) => {
-						const shipMap = new Map(prev.map((s) => [s.id, s]));
-						const existing = shipMap.get(shipId);
 
-						shipMap.set(shipId, {
+					setAllShips((prev) => {
+						const nextMap = new Map(prev);
+						const existing = nextMap.get(shipId);
+
+						nextMap.set(shipId, {
 							...(existing || {
 								id: shipId,
 								position: [0, 0],
@@ -513,7 +532,8 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 							}),
 							...shipUpdate,
 						});
-						return Array.from(shipMap.values());
+
+						return nextMap;
 					});
 					break;
 				}
@@ -551,7 +571,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					if (!msg.data) return;
 					setWorkforceData((prev) => {
 						const next = prev ? { ...prev } : {};
-						// Assuming msg.data is a Record<string, WorkforceLevel[]>
 						Object.entries(msg.data).forEach(([siteId, levels]) => {
 							next[siteId] = levels as any;
 						});
@@ -590,12 +609,12 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				dashboardData,
 				isLoading,
 				fetchDashboard,
-				animatedShipData,
-				setAnimatedShipData,
+				ownerShips,
+				otherShips,
 				activeFlightPlans,
 				setActiveFlightPlans,
-				rawInitialShips,
-				setRawInitialShips,
+				allShips,
+				setAllShips,
 				shipmentState,
 				setShipmentState,
 				currentCXDashboardFilters,
@@ -634,12 +653,12 @@ export const useGlobalData = (): GlobalDataContextState => {
 			isLoading: false,
 			fetchDashboard: () => {},
 			currentCXDashboardFilters: { range: "7D" },
-			animatedShipData: [],
-			setAnimatedShipData: () => {},
+			ownerShips: [],
+			otherShips: [],
+			allShips: new Map(),
+			setAllShips: () => {},
 			activeFlightPlans: [],
 			setActiveFlightPlans: () => {},
-			rawInitialShips: null,
-			setRawInitialShips: () => {},
 			shipmentState: { contracts: [], ships: {} },
 			setShipmentState: () => {},
 			storageState: null,
