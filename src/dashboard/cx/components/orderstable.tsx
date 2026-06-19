@@ -201,6 +201,11 @@ export const ActiveOrdersTable = ({ orders }: { orders: CxOrder[] }) => {
 				columns={columns}
 				getRowId={(row) => row.orderid}
 				density="compact"
+				initialState={{
+					pagination: {
+						paginationModel: { page: 0, pageSize: -1 },
+					},
+				}}
 				hideFooter
 				disableRowSelectionOnClick
 				sx={{
