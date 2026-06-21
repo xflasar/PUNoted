@@ -38,8 +38,10 @@ export interface PartData {
 export interface SummaryDataItem {
 	/** A combined string representing the ship type and customer name. */
 	combinedHeader: string | number;
+	/** Indicates whether every tracked material requirement in the row is satisfied. */
+	rowSatisfied: boolean;
 	/** Dynamic keys representing part names, mapped to their required data. */
-	[key: string]: PartData | string | number;
+	[key: string]: PartData | string | number | boolean;
 }
 
 /**
@@ -187,6 +189,11 @@ const ShipProductionTable: React.FC<ShipProductionTableProps> = ({
 									"&:hover td": {
 										backgroundColor: "rgba(123, 104, 238, 0.12)",
 									},
+									"&:hover td:first-of-type": {
+										backgroundColor: order.rowSatisfied
+											? "#256428 !important"
+											: "#1c1b27",
+									},
 								}}
 							>
 								<TableCell
@@ -196,11 +203,15 @@ const ShipProductionTable: React.FC<ShipProductionTableProps> = ({
 										p: 0.5,
 										position: "sticky",
 										left: 0,
-										bgcolor: "#1c1b27",
+										bgcolor: order.rowSatisfied
+											? "#2e7d32 !important"
+											: "#1c1b27",
 										zIndex: 3,
 										border: "none",
 										textAlign: "center",
-										color: "rgba(200,200,200,0.9)",
+										color: order.rowSatisfied
+											? "rgba(255,255,255,0.95)"
+											: "rgba(200,200,200,0.9)",
 									}}
 								>
 									{order.combinedHeader.toString()}
