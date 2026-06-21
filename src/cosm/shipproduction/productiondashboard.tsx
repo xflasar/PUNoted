@@ -296,23 +296,19 @@ const getSummaryDataWithAvailability = (
 		);
 		const row: SummaryDataItem = {
 			combinedHeader: `${order.shipType.name} (${order.customer})`,
+			rowSatisfied: true,
 		};
 
 		partNames.forEach((partName) => {
 			const requiredQuantity = partsMap.get(partName) || 0;
 			const availableQuantity = availableParts.get(partName) || 0;
-			let isAvailable = false;
-
-			if (availableQuantity >= requiredQuantity) {
-				if (availableQuantity === 0) {
-					isAvailable = false;
-				} else {
-					isAvailable = true;
-				}
-			}
+			const isAvailable =
+				requiredQuantity === 0 || availableQuantity >= requiredQuantity;
 
 			if (isAvailable) {
 				availableParts.set(partName, availableQuantity - requiredQuantity);
+			} else {
+				row.rowSatisfied = false;
 			}
 
 			row[partName] = {

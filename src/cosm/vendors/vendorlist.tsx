@@ -1780,6 +1780,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							rows={tableRows}
 							columns={tableColumns}
 							density="compact"
+							initialState={{
+								pagination: {
+									paginationModel: { page: 0, pageSize: -1 },
+								},
+							}}
 							hideFooter
 							disableColumnMenu
 							disableColumnSorting
