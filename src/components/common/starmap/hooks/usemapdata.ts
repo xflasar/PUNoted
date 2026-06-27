@@ -28,7 +28,7 @@ let processedDataCache: any = null;
 let processingPromise: Promise<any> | null = null;
 let lastRawDataRef: any = null;
 
-const processMapDataSingleton = async (mapDataFromContext: any) => {
+export const processMapDataSingleton = async (mapDataFromContext: any) => {
 	// If we already have processed data
 	if (processedDataCache) {
 		// If context data was provided and it matches the last processed data
@@ -82,6 +82,7 @@ const processMapDataSingleton = async (mapDataFromContext: any) => {
 					systemtype: s.systemtype,
 					x: s.positionx * 3,
 					y: -s.positiony * 3,
+					z: (s.positionz ?? 0) * 3,
 					color: "#95a5a6",
 					outlineColor: "#ffffff",
 					population: 0,
@@ -175,6 +176,11 @@ const processMapDataSingleton = async (mapDataFromContext: any) => {
 					type: p.planet_type,
 					resources: p.resources,
 					updatedat: p.updatedat,
+					gravity: p.gravity,
+					pressure: p.pressure,
+					temperature: p.temperature,
+					fertility: p.fertility,
+					cogc: p.cogc,
 				};
 				if (!fullPlanetDataMap[sid]) fullPlanetDataMap[sid] = [];
 				fullPlanetDataMap[sid].push(orbitData);
@@ -437,6 +443,7 @@ const processMapDataSingleton = async (mapDataFromContext: any) => {
 				allGatewaysData: fullGatewayDataMap,
 				maxSystemPopulation: globalMaxPop,
 				contentBounds: bounds,
+				rawConnections: mapDataFromContext?.system_connections || data.system_connections || [],
 			};
 
 			processedDataCache = result;
@@ -484,6 +491,8 @@ export const useMapData = (mapDataFromContext: any = null) => {
 		maxY: number;
 	} | null>(null);
 
+	const [rawConnections, setRawConnections] = useState<any[]>([]);
+
 	useEffect(() => {
 		let mounted = true;
 		const fetchData = async () => {
@@ -504,6 +513,7 @@ export const useMapData = (mapDataFromContext: any = null) => {
 				setAllGatewaysData(processed.allGatewaysData);
 				setMaxSystemPopulation(processed.maxSystemPopulation);
 				setContentBounds(processed.contentBounds);
+				setRawConnections(processed.rawConnections || []);
 				
 				setIsLoading(false);
 			} catch (err: any) {
@@ -533,5 +543,6 @@ export const useMapData = (mapDataFromContext: any = null) => {
 		allGatewaysData,
 		maxSystemPopulation,
 		contentBounds,
+		rawConnections,
 	};
 };

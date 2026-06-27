@@ -45,6 +45,7 @@ interface UseViewNavigationProps {
 	viewportHeight: number;
 	mode: string;
 	systemExitZoomRef: React.MutableRefObject<number | null>;
+	onSystemDoubleClick: (sys: MapPoint | null) => void;
 }
 
 function viewStateChanged(a: any, b: any) {
@@ -73,6 +74,7 @@ export const useViewNavigation = ({
 	viewStateRef,
 	mode,
 	systemExitZoomRef,
+	onSystemDoubleClick,
 }: UseViewNavigationProps) => {
 	// --- Transition Logic ---
 
@@ -86,8 +88,8 @@ export const useViewNavigation = ({
 		setGalaxyViewState((v: any) => ({
 			...v,
 			target: [centeredSystem.x, centeredSystem.y],
-			zoom: GALAXY_TO_SYSTEM_ZOOM_IN_THRESHOLD - 1,
-			transitionDuration: 0,
+			zoom: 1.9,
+			transitionDuration: 300,
 			transitionInterpolator: new CartesianInterpolator(),
 		}));
 	}, [
@@ -141,17 +143,11 @@ export const useViewNavigation = ({
 			}
 		}
 	};
+	const getConstrainedSystemViewState = (next: any, isUserInteracting = false) => {
+		const exitZoom = systemExitZoomRef.current ?? 2.0;
 
-	/**
-	 * Calculates the constrained view state for System Mode.
-	 * Returns the valid next state, or null if no change is needed.
-	 */
-	const getConstrainedSystemViewState = (next: any) => {
-		// 1. Check Exit Threshold (Zoom Out)
-		// We do this first to catch the exit intent immediately
-		const exitThreshold = systemExitZoomRef?.current ?? -1;
-
-		if (next.zoom < exitThreshold) {
+		// 1. Check Exit Threshold (Zoom Out below dynamic exitZoom boundary)
+		if (isUserInteracting && next.zoom < exitZoom) {
 			if (currentViewMode === "system") {
 				transitionToGalaxyView();
 			}
@@ -159,6 +155,7 @@ export const useViewNavigation = ({
 		}
 
 		const bounds = systemBoundsRef.current;
+		const clampedZoom = Math.max(exitZoom, Math.min(8.0, next.zoom));
 
 		if (bounds) {
 			// 2. Pan Clamping (Stay within system bounds)
@@ -175,22 +172,24 @@ export const useViewNavigation = ({
 			return {
 				...next,
 				target: [clampedX, clampedY],
-				zoom: next.zoom,
+				zoom: clampedZoom,
 			};
 		} else if (centeredSystem) {
 			// 3. Initial Load / No Bounds Yet
-			const initialZoom = initialPlanetZoomRef.current ?? next.zoom;
-			// Don't let user zoom out past the initial "fit" zoom until bounds are loaded
-			const clampedZoom = Math.min(initialZoom, next.zoom);
+			const initialZoom = initialPlanetZoomRef.current ?? clampedZoom;
+			const safeZoom = Math.max(exitZoom, Math.min(8.0, Math.max(initialZoom, next.zoom)));
 
 			return {
 				...next,
 				target: [centeredSystem.x, centeredSystem.y],
-				zoom: clampedZoom,
+				zoom: safeZoom,
 			};
 		}
 
-		return next;
+		return {
+			...next,
+			zoom: clampedZoom,
+		};
 	};
 
 	// --- Lifecycle Effects ---
@@ -213,8 +212,9 @@ export const useViewNavigation = ({
 	 * Handles the view state change.
 	 * THROTTLE REMOVED: Clamping logic must run synchronously to prevent visual jitter or boundary leaks.
 	 */
+	// check for Compilation Skipped: Existing memoization could not be preserved
 	const handleViewStateChange = useCallback(
-		({ viewState: next }: any) => {
+		({ viewState: next, isUserInteracting = false }: any) => {
 			// Priority 1: Handle ongoing programmatic transitions (animations)
 			if (ignoreOnViewStateChangeRef.current) {
 				handleIgnoredViewStateChange(next);
@@ -223,25 +223,33 @@ export const useViewNavigation = ({
 
 			// Priority 2: System View Logic
 			if (currentViewMode === "system" && centeredSystem) {
-				const constrainedState = getConstrainedSystemViewState(next);
-				if (!constrainedState) return;
+				const constrainedState = getConstrainedSystemViewState(next, isUserInteracting);
+				if (constrainedState) {
+					const old = viewStateRef.current || {};
+					const changed =
+						!approxEqual(old.target?.[0] ?? 0, constrainedState.target[0]) ||
+						!approxEqual(old.target?.[1] ?? 0, constrainedState.target[1]) ||
+						!approxEqual(old.zoom ?? 0, constrainedState.zoom);
 
-				// Only update state if something actually changed (performance optimization)
-				const old = viewStateRef.current || {};
-				const changed =
-					!approxEqual(old.target?.[0] ?? 0, constrainedState.target[0]) ||
-					!approxEqual(old.target?.[1] ?? 0, constrainedState.target[1]) ||
-					!approxEqual(old.zoom ?? 0, constrainedState.zoom);
-
-				if (changed) {
-					setSystemViewState(constrainedState);
+					if (changed) {
+						setSystemViewState(constrainedState);
+					}
 				}
 			}
 			// Priority 3: Galaxy View Logic
 			else {
+				const clampedZoom = Math.max(-3.0, Math.min(2.0, next.zoom));
 				const old = viewStateRef.current || {};
-				if (viewStateChanged(old, next)) {
-					setGalaxyViewState(next);
+				const changed =
+					!approxEqual(old.target?.[0] ?? 0, next.target[0]) ||
+					!approxEqual(old.target?.[1] ?? 0, next.target[1]) ||
+					!approxEqual(old.zoom ?? 0, clampedZoom);
+
+				if (changed) {
+					setGalaxyViewState({
+						...next,
+						zoom: clampedZoom,
+					});
 				}
 			}
 		},
@@ -255,7 +263,7 @@ export const useViewNavigation = ({
 			initialPlanetZoomRef,
 			viewStateRef,
 			transitionToGalaxyView,
-			systemExitZoomRef, // Ensure this dependency is present
+			systemExitZoomRef,
 		],
 	);
 
@@ -266,7 +274,7 @@ export const useViewNavigation = ({
 
 		const z = galaxyViewState.zoom ?? -Infinity;
 
-		if (z >= GALAXY_TO_SYSTEM_ZOOM_IN_THRESHOLD) {
+		if (z >= 2.0) {
 			const tgt = galaxyViewState.target ?? [0, 0];
 			if (!systemsPoints || systemsPoints.length === 0) return;
 
@@ -283,17 +291,14 @@ export const useViewNavigation = ({
 			}
 
 			if (best) {
-				if (!centeredSystem || centeredSystem.id !== best.id) {
-					onSystemClick(best);
-				}
+				onSystemDoubleClick(best);
 			}
 		}
 	}, [
 		galaxyViewState.zoom,
 		isGalaxyView,
 		systemsPoints,
-		centeredSystem,
-		onSystemClick,
+		onSystemDoubleClick,
 		mode,
 	]);
 

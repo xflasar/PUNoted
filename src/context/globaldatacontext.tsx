@@ -14,7 +14,12 @@ import type { DashboardPayload, DashboardFilter } from "../dashboard/cx/types";
 import type {
 	AnimatedShipData,
 	FlightPlan,
+	ShipData,
+	MapPoint,
+	PlanetData,
+	StationData,
 } from "../components/common/starmap/types/maptypes";
+import { processMapDataSingleton } from "../components/common/starmap/hooks/usemapdata";
 import type { ShipmentState } from "../dashboard/shipping/types";
 import type { StorageState, StorageUnit } from "../dashboard/storage/types";
 import type { MaterialData } from "./types";
@@ -59,15 +64,13 @@ interface GlobalDataContextState {
 	/** The currently active filters applied to the dashboard */
 	currentCXDashboardFilters: DashboardFilter;
 	/** Array of active ships with their current animation/position states */
-	ownerShips: AnimatedShipData[];
+	ownerShips: ShipData[];
 	/** Array of non-owner ships with their current animation/position states */
-	otherShips: AnimatedShipData[];
+	otherShips: ShipData[];
 	/** All Ships State */
-	allShips: Map<string, AnimatedShipData>;
+	allShips: Map<string, ShipData>;
 	/** State setter for all ships data */
-	setAllShips: React.Dispatch<
-		React.SetStateAction<Map<string, AnimatedShipData>>
-	>;
+	setAllShips: React.Dispatch<React.SetStateAction<Map<string, ShipData>>>;
 	/** Array of active flight plans for ships in transit */
 	activeFlightPlans: FlightPlan[];
 	/** State setter for active flight plans */
@@ -98,6 +101,12 @@ interface GlobalDataContextState {
 	fetchMapData: () => Promise<void>;
 	/** Manually refresh map data and clear cache */
 	refreshMapData: () => Promise<void>;
+	/** Processed Map Points */
+	systemsPoints: MapPoint[];
+	/** Processed Planet Data */
+	allPlanetsData: Record<string, PlanetData[]>;
+	/** Processed Station Data */
+	allStationsData: Record<string, StationData[]>;
 	/** Market data for the application */
 	marketData: Record<string, any>;
 }
@@ -132,9 +141,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		useState<DashboardFilter>({ range: "7D", exchange: "IC1" });
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 
-	const [allShips, setAllShips] = useState<Map<string, AnimatedShipData>>(
-		new Map(),
-	);
+	const [allShips, setAllShips] = useState<Map<string, ShipData>>(new Map());
 
 	const [activeFlightPlans, setActiveFlightPlans] = useState<FlightPlan[]>([]);
 
@@ -160,6 +167,20 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 	// --- Map Data State ---
 	const [mapData, setMapData] = useState<any | null>(null);
+	const [systemsPoints, setSystemsPoints] = useState<MapPoint[]>([]);
+	const [allPlanetsData, setAllPlanetsData] = useState<Record<string, PlanetData[]>>({});
+	const [allStationsData, setAllStationsData] = useState<Record<string, StationData[]>>({});
+
+	useEffect(() => {
+		if (mapData) {
+			processMapDataSingleton(mapData).then((processed) => {
+				setSystemsPoints(processed.systemsPoints);
+				setAllPlanetsData(processed.allPlanetsData);
+				setAllStationsData(processed.allStationsData);
+			}).catch(err => console.error("Failed to process map data globally:", err));
+		}
+	}, [mapData]);
+
 	const [isMapLoading, setIsMapLoading] = useState<boolean>(false);
 	const [mapFetchError, setMapFetchError] = useState<string | null>(null);
 	const [lastDashboardSessionId, setLastDashboardSessionId] = useState<
@@ -383,14 +404,13 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	const fetchShipsData = useCallback(async () => {
 		try {
 			const res = await fetchClient("/internal/ships/");
-
 			const json = await res.json();
-			if (json.ships && json) {
-				setAllShips(json.ships);
-			} else {
-				console.error(
-					"Failed to fetch ship data: API returned unsuccessful response",
+
+			if (json && Array.isArray(json.ships)) {
+				const shipMap = new Map<string, ShipData>(
+					json.ships.map((s: ShipData) => [s.ship_id, s]),
 				);
+				setAllShips(shipMap);
 			}
 		} catch (error) {
 			console.error("Failed to fetch ship data:", error);
@@ -516,23 +536,28 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				}
 
 				case "SHIP_DATA_UPDATE": {
-					const shipUpdate = msg.data;
-					const shipId = shipUpdate.shipid || shipUpdate.id;
+					const shipUpdates = Array.isArray(msg.data) ? msg.data : [msg.data];
 
 					setAllShips((prev) => {
 						const nextMap = new Map(prev);
-						const existing = nextMap.get(shipId);
 
-						nextMap.set(shipId, {
-							...(existing || {
-								id: shipId,
-								position: [0, 0],
-								progress: 0,
-								plan: null,
-							}),
-							...shipUpdate,
-						});
+						for (const shipUpdate of shipUpdates) {
+							const shipId = shipUpdate.ship_id;
+							if (!shipId) continue;
 
+							const existing = nextMap.get(shipId);
+
+							nextMap.set(shipId, {
+								...(existing || {
+									ship_id: shipId,
+									position: [0, 0],
+									progress: 0,
+									plan: null,
+									is_owner: false,
+								}),
+								...shipUpdate,
+							});
+						}
 						return nextMap;
 					});
 					break;
@@ -629,6 +654,9 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				mapFetchError,
 				fetchMapData,
 				refreshMapData,
+				systemsPoints,
+				allPlanetsData,
+				allStationsData,
 				marketData,
 			}}
 		>
@@ -672,6 +700,9 @@ export const useGlobalData = (): GlobalDataContextState => {
 			mapFetchError: null,
 			fetchMapData: async () => {},
 			refreshMapData: async () => {},
+			systemsPoints: [],
+			allPlanetsData: {},
+			allStationsData: {},
 			marketData: {},
 		} as GlobalDataContextState;
 	}

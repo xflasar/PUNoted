@@ -13,9 +13,157 @@ import type {
 	PlanetPosition,
 	AnimatedShipData,
 	StationPosition,
+	ShipData,
+	GatewayData,
+	PlanetData,
+	StationData,
 } from "../types/maptypes";
 import { hexToRgba } from "../utils/colors";
-import { BASE_PLANET_SIZE, SYSTEM_BASE_RADIUS } from "../constants/map";
+import { SYSTEM_BASE_RADIUS } from "../constants/map";
+import { FilterState } from "../components/filter/FilterContext";
+
+export function checkSystemMatch(
+	sys: MapPoint,
+	filter: FilterState | undefined,
+	searchQuery: string | undefined,
+	allPlanetsData: Record<string, PlanetData[]>,
+	systemsPoints: MapPoint[],
+	shortestPathDistances?: Record<string, number>
+): boolean {
+	const query = searchQuery?.trim().toLowerCase() || "";
+	if (query) {
+		const systemName = (sys.label || sys.name || "").toLowerCase();
+		let matchesQuery = systemName.includes(query);
+		
+		if (!matchesQuery && allPlanetsData) {
+			const planets = allPlanetsData[sys.originalSystemId || sys.id] || [];
+			matchesQuery = planets.some((p) => (p.planetname || p.planetid || "").toLowerCase().includes(query));
+		}
+		
+		if (!matchesQuery) {
+			return false;
+		}
+	}
+
+	if (!filter) return true;
+
+	const hasResources = filter.resources && filter.resources.size > 0;
+	const hasRadius = filter.filterRadius > 0 && filter.originSystemId != null;
+	const hasPlanetType = filter.planetType !== 'all';
+	const hasFertile = filter.fertileOnly;
+	const hasGravity = filter.gravity !== 'all';
+	const hasTemperature = filter.temperature !== 'all';
+	const hasPressure = filter.pressure !== 'all';
+	const hasCogc = filter.cogcEnabled;
+
+	const isFilterActive = hasResources || hasRadius || hasPlanetType || hasFertile || hasGravity || hasTemperature || hasPressure || hasCogc;
+
+	if (!isFilterActive) {
+		return true;
+	}
+
+	const sysPop = sys.population || 0;
+	if (sysPop < filter.populationRange[0] || sysPop > filter.populationRange[1]) {
+		return false;
+	}
+
+	// Radius filter: uses shortest path distance (parsec connections) if available, otherwise fallback to Euclidean
+	if (hasRadius && filter.originSystemId) {
+		const systemId = sys.originalSystemId || sys.id;
+		if (shortestPathDistances && shortestPathDistances[systemId] !== undefined) {
+			if (shortestPathDistances[systemId] > filter.filterRadius) {
+				return false;
+			}
+		} else {
+			// Fallback to Euclidean (3D parsecs)
+			const originSys = systemsPoints.find((s) => s.originalSystemId === filter.originSystemId || s.id === filter.originSystemId);
+			if (originSys) {
+				const dx = sys.x - originSys.x;
+				const dy = sys.y - originSys.y;
+				const dz = (sys.z ?? 0) - (originSys.z ?? 0);
+				const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) / 36;
+				if (dist > filter.filterRadius) {
+					return false;
+				}
+			}
+		}
+	}
+
+	// Planet-specific filters: Rocky/Gaseous, Fertile, Gravity, Temperature, Pressure, COGC, Resources.
+	// A system matches if AT LEAST ONE planet in the system satisfies ALL of these active planet filters.
+	const planets = allPlanetsData[sys.originalSystemId || sys.id] || [];
+	
+	const matchingPlanet = planets.some((p) => {
+		// 1. Planet Type
+		if (hasPlanetType) {
+			const typeStr = (p.type || '').toUpperCase();
+			const isRocky = typeStr.includes('EARTH') || typeStr.includes('ROCKY');
+			const isGas = typeStr.includes('GAS');
+			if (filter.planetType === 'rocky' && !isRocky) return false;
+			if (filter.planetType === 'gaseous' && !isGas) return false;
+		}
+
+		// 2. Fertility
+		if (hasFertile) {
+			if (!p.fertility || p.fertility <= 0) return false;
+		}
+
+		// 3. Gravity
+		if (hasGravity) {
+			const grav = p.gravity || 0;
+			if (filter.gravity === 'low' && grav > 1.0) return false;
+			if (filter.gravity === 'high' && grav <= 1.0) return false;
+		}
+
+		// 4. Temperature
+		if (hasTemperature) {
+			const temp = p.temperature || 0;
+			if (filter.temperature === 'low' && temp >= 273.15) return false;
+			if (filter.temperature === 'high' && temp < 273.15) return false;
+		}
+
+		// 5. Pressure
+		if (hasPressure) {
+			const press = p.pressure || 0;
+			if (filter.pressure === 'low' && press > 1.0) return false;
+			if (filter.pressure === 'high' && press <= 1.0) return false;
+		}
+
+		// 6. COGC Program
+		if (hasCogc) {
+			const prog = (p.cogc || '').toUpperCase();
+			const selectedProg = filter.cogcProgram.toUpperCase();
+			const hasActiveProgram = prog && prog !== 'NONE';
+			if (selectedProg === 'ALL') {
+				if (!hasActiveProgram) return false;
+			} else if (selectedProg === 'NONE') {
+				if (hasActiveProgram) return false;
+			} else {
+				if (!prog.includes(selectedProg)) return false;
+			}
+		}
+
+		// 7. Resources (Chips act as OR selector: matches if planet has any of the selected resources)
+		if (hasResources) {
+			const hasMatch = p.resources?.some((r: any) => {
+				const ticker = (r.material || r.name || '').toUpperCase();
+				return ticker && filter.resources.has(ticker);
+			});
+			if (!hasMatch) return false;
+		}
+
+		return true;
+	});
+
+	// If we are filtering by planet attributes or resources, we must have at least one matching planet in the system
+	const hasPlanetFilter = hasPlanetType || hasFertile || hasGravity || hasTemperature || hasPressure || hasCogc || hasResources;
+	if (hasPlanetFilter && !matchingPlanet) {
+		return false;
+	}
+
+	return true;
+}
+
 import ShipIconAtlas from "../../../../assets/ship_icons.png";
 import starO from "../../../../assets/stars/O_star.png";
 import starB from "../../../../assets/stars/B_star.png";
@@ -41,7 +189,7 @@ import vcb from "../../../../assets/ships/VCB.png";
 import hcb from "../../../../assets/ships/HCB.png";
 import { buildStarAtlas } from "../utils/buildstaratlas";
 import { useAnimation } from "./useanimation";
-import { useTheme } from "@emotion/react";
+
 
 // --- CONSTANTS ---
 const STAR_ICONS = [
@@ -87,6 +235,7 @@ interface UseMapLayersProps {
 	ZOOM_SENSITIVITY: number;
 	MAX_ALLOWED_RADIUS: number;
 	onSystemClick: (sys: MapPoint | null) => void;
+	onSystemDoubleClick?: (sys: MapPoint | null) => void;
 	isPlanetModeActive: boolean;
 	setTooltip: (
 		tooltip: { x: number; y: number; content: string } | null,
@@ -107,7 +256,8 @@ interface UseMapLayersProps {
 	allStationsData: Record<string, StationData[]>;
 	allGatewaysData: Record<string, GatewayData[]>;
 	setSelectedPlanet: (planet: PlanetPosition | null) => void;
-	animatedShipData: AnimatedShipData[];
+	setSelectedStation?: (station: StationPosition | null) => void;
+	animatedShipData: ShipData[];
 	activeFlightPlans: any[];
 	ownFlightPlans: any[];
 	corpFlightPlans: any[];
@@ -122,6 +272,11 @@ interface UseMapLayersProps {
 	isInteracting: boolean;
 	visiblePathShipIds: Set<string>;
 	selectedShipId: string | null;
+	productionData?: Record<string, any>;
+	filter?: FilterState;
+	searchQuery?: string;
+	rawConnections?: any[];
+	microAsteroids?: any[];
 }
 
 // --- STATIC ACCESSORS (Performance Optimization) ---
@@ -129,17 +284,20 @@ interface UseMapLayersProps {
 const getPlanetPosition = (d: any) => [d.x, d.y];
 const getStationPosition = (d: any) => [d.x, d.y];
 const getShipPosition = (d: any) => d.position;
-const getShipIconType = (d: any) => d.type;
+const getShipIconType = (d: any) => {
+  if (d.isCluster) return "cluster";
+  return d.ship_type || d.type || "LCB"; // Fallback to LCB if missing
+};
 const getShipSize = (d: any) => (d.isCluster ? 40 : 33);
-const getPlanetIcon = (d: any) => "EARTH";
-const getStationIcon = (d: any) => "IC";
+const getPlanetIcon = () => "EARTH";
+const getStationIcon = () => "IC";
 const getGatewayPosition = (d: any) => [d.x, d.y];
 const getGatewayColor = [180, 0, 255];
 const getClusterBadgeText = (d: any) => `${d.count}`;
 const getClusterBadgePos = (d: any) => d.position;
 const getClusterBadgeColor = [250, 250, 0, 255];
 const getClusterBadgeBg = [15, 15, 15, 200];
-const getShipLabelText = (d: any) => d.name;
+const getShipLabelText = (d: any) => d.name || d.display_name;
 const getShipLabelPos = (d: any) => d.position;
 const getShipLabelColor = [255, 100, 255, 255];
 const getShipLabelBg = [0, 0, 0, 180];
@@ -150,8 +308,8 @@ const getLabelText = (d: any) => d.label;
 const getLabelColor = [255, 255, 255, 255];
 const getLabelBgColor = [0, 0, 0, 160];
 const getPathData = (d: any) => d.path;
-const getPathColor = (d: any) => d.color;
-const getConnectionColor = [255, 255, 255, 40];
+const getPathColor = (d: any) => d.color ?? [0, 229, 255, d.alpha ?? 60];
+const getConnectionColor = [255, 255, 255, 10];
 const getGatewayConnectionColor = [180, 0, 255, 100];
 const getGatewayConnectionPath = (d: any) => [
 	d.sourcePosition,
@@ -173,111 +331,105 @@ function useDebouncedZoom(zoom: number, delay: number = 200) {
 }
 
 // --- CLUSTERING HELPER ---
-function clusterShipsByRadius(
-	ships: any[],
-	zoom: number,
-	isGalaxyView: boolean,
-	systemId: string | null,
-): any[] {
-	if (!ships || ships.length === 0) return [];
+function clusterShipsByRadius(ships: any[], zoom: number, isGalaxyView: boolean, systemId: string | null): any[] {
+  if (!ships || ships.length === 0) return [];
 
-	const screenPixelRadius = !isGalaxyView && systemId ? 20 : 40;
-	const scale = Math.pow(2, zoom);
-	const worldDist = screenPixelRadius / scale;
-	const worldDistSq = worldDist * worldDist;
-	const cellSize = worldDist;
+  const screenPixelRadius = !isGalaxyView && systemId ? 2 : 40;
+  const scale = Math.pow(2, zoom);
+  const worldDist = screenPixelRadius / scale;
+  const worldDistSq = worldDist * worldDist;
+  const cellSize = worldDist;
 
-	const grid = new Map<string, any[]>();
-	for (const ship of ships) {
-		if (!ship.position) continue;
-		const [x, y] = ship.position;
-		const key = `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
-		if (!grid.has(key)) grid.set(key, []);
-		grid.get(key)!.push(ship);
-	}
+  const grid = new Map<string, any[]>();
+  for (const ship of ships) {
+    if (!ship.position) continue;
+    const [x, y] = ship.position;
+    const key = `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+    if (!grid.has(key)) grid.set(key, []);
+    grid.get(key)!.push(ship);
+  }
 
-	const clusters: any[] = [];
-	const processedShips = new Set<string>();
+  const clusters: any[] = [];
+  const processedShips = new Set<string>();
 
-	for (const ship of ships) {
-		if (processedShips.has(ship.id) || !ship.position) continue;
+  for (const ship of ships) {
+    // 🚀 FIX: Support normalized ship_id
+    const shipId = ship.ship_id || ship.id; 
+    if (processedShips.has(shipId) || !ship.position) continue;
 
-		const cluster = {
-			id: `c-${ship.id}`,
-			position: [...ship.position],
-			count: 1,
-			ships: [ship],
-			type: ship.type,
-			name: ship.name ?? ship.id,
-			bearing: ship.bearing,
-			color: ship.color,
-			isCluster: false,
-		};
-		processedShips.add(ship.id);
+    const cluster = {
+      id: `c-${shipId}`,
+      position: [...ship.position],
+      count: 1,
+      ships: [ship],
+      ship_type: ship.ship_type || ship.type, // Maintain correct type
+      name: ship.name || ship.display_name || shipId,
+      bearing: ship.bearing,
+      color: ship.color,
+      isCluster: false,
+    };
+    processedShips.add(shipId);
 
-		const [x, y] = ship.position;
-		const gx = Math.floor(x / cellSize),
-			gy = Math.floor(y / cellSize);
+    const [x, y] = ship.position;
+    const gx = Math.floor(x / cellSize), gy = Math.floor(y / cellSize);
 
-		for (let dx = -1; dx <= 1; dx++) {
-			for (let dy = -1; dy <= 1; dy++) {
-				const cellShips = grid.get(`${gx + dx},${gy + dy}`);
-				if (cellShips) {
-					for (const neighbor of cellShips) {
-						if (processedShips.has(neighbor.id)) continue;
-						const d2 =
-							(neighbor.position[0] - x) ** 2 + (neighbor.position[1] - y) ** 2;
-						if (d2 <= worldDistSq) {
-							cluster.ships.push(neighbor);
-							cluster.count++;
-							cluster.isCluster = true;
-							cluster.color = [255, 255, 0];
-							cluster.name = `${cluster.count} Ships`;
-							processedShips.add(neighbor.id);
-						}
-					}
-				}
-			}
-		}
-		clusters.push(cluster);
-	}
-	return clusters;
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const cellShips = grid.get(`${gx + dx},${gy + dy}`);
+        if (cellShips) {
+          for (const neighbor of cellShips) {
+            const neighborId = neighbor.ship_id || neighbor.id;
+            if (processedShips.has(neighborId)) continue;
+            
+            const d2 = (neighbor.position[0] - x) ** 2 + (neighbor.position[1] - y) ** 2;
+            if (d2 <= worldDistSq) {
+              cluster.ships.push(neighbor);
+              cluster.count++;
+              cluster.isCluster = true;
+              cluster.color = [255, 255, 0];
+              cluster.name = `${cluster.count} Ships`;
+              processedShips.add(neighborId);
+            }
+          }
+        }
+      }
+    }
+    clusters.push(cluster);
+  }
+  return clusters;
 }
 
 export const useMapLayers = (props: UseMapLayersProps) => {
 	const {
 		sectors,
 		empireLegend,
-		viewportInstance,
 		systemsPoints,
 		maxSystemPopulation,
 		onSystemClick,
+		onSystemDoubleClick,
 		isPlanetModeActive,
 		setTooltip,
 		isGalaxyView,
-		popFilterSetting,
 		systemConnections,
 		gatewayConnections,
 		allGatewaysData,
-		animatedShipData,
-		activeFlightPlans,
 		ownFlightPlans,
 		corpFlightPlans,
-		setActiveFlightPlans,
 		visiblePathShipIds,
 		mode,
 		onShipHover,
 		onShipClick,
 		currentSystem,
 		setSelectedPlanet,
-		deckRef,
-		animationWorker,
 		galaxyViewState,
 		SYSTEMS_VISIBLE_ZOOM,
-		visibilityVersion,
-		isInteracting,
 		systemBoundingBox,
 		selectedShipId,
+		productionData,
+		allPlanetsData,
+		filter,
+		searchQuery,
+		rawConnections,
 	} = props;
 
 	// --- REFS FOR STABLE CALLBACKS ---
@@ -285,6 +437,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		onShipClick,
 		onShipHover,
 		onSystemClick,
+		onSystemDoubleClick,
 		setTooltip,
 		setSelectedPlanet,
 	});
@@ -294,10 +447,11 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			onShipClick,
 			onShipHover,
 			onSystemClick,
+			onSystemDoubleClick,
 			setTooltip,
 			setSelectedPlanet,
 		};
-	}, [onShipClick, onShipHover, onSystemClick, setTooltip, setSelectedPlanet]);
+	}, [onShipClick, onShipHover, onSystemClick, onSystemDoubleClick, setTooltip, setSelectedPlanet]);
 
 	// --- STABLE HANDLERS ---
 	const handleShipClick = useCallback((info: any) => {
@@ -331,6 +485,13 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		},
 		[mode],
 	);
+	const handleSystemDoubleClick = useCallback(
+		(info: any) => {
+			if (mode !== "shipping" && info.object && callbacksRef.current.onSystemDoubleClick)
+				callbacksRef.current.onSystemDoubleClick(info.object);
+		},
+		[mode],
+	);
 	const handleSystemHover = useCallback(
 		(info: any) => {
 			if (mode !== "shipping" && info.object)
@@ -350,7 +511,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				return [55, 55, 80, alpha];
 			try {
 				return hexToRgba(empireLegend[empireCode], alpha);
-			} catch (e) {
+			} catch {
 				return [100, 100, 150, alpha];
 			}
 		},
@@ -369,26 +530,27 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 	// --- ANIMATION HOOK ---
 	const {
-		activePlanets,
-		activeStations,
-		updatedShips,
-		orbitTrails,
-		workerDebugStats,
-	} = useAnimation(
-		currentSystem,
-		isPlanetModeActive,
-		props.allPlanetsData,
-		props.allStationsData,
-		allGatewaysData,
-		animatedShipData,
-		activeFlightPlans,
-		setActiveFlightPlans,
-		systemsPoints,
-		isGalaxyView,
-		deckRef,
-		animationWorker,
-		isInteracting,
-	);
+    activePlanets,
+    activeStations,
+    updatedShips,
+    orbitTrails,
+    workerDebugStats,
+  } = useAnimation(
+    props.currentSystem,
+    props.isPlanetModeActive,
+    props.allPlanetsData,
+    props.allStationsData,
+    props.allGatewaysData,
+    props.animatedShipData,
+    props.activeFlightPlans,
+    props.setActiveFlightPlans,
+    props.systemsPoints,
+    props.isGalaxyView,
+    props.deckRef,
+    props.animationWorker,
+    props.isInteracting,
+    props.mode
+  );
 
 	// --- ATLAS LOADING ---
 	const [starAtlas, setStarAtlas] = useState<ImageBitmap | null>(null);
@@ -408,19 +570,19 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					// free resources if produced after unmount
 					try {
 						(d.atlas as any)?.close?.();
-					} catch {}
+					} catch { /* ignore */ }
 					return;
 				}
 				setStarAtlas(d.atlas);
 				setStarMapping(d.mapping);
 			})
-			.catch(() => {});
+			.catch(() => { /* ignore */ });
 		return () => {
 			cancelled = true;
 			setStarAtlas((prev) => {
 				try {
 					(prev as any)?.close?.();
-				} catch {}
+				} catch { /* ignore */ }
 				return null;
 			});
 			setStarMapping(null);
@@ -434,19 +596,19 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				if (cancelled) {
 					try {
 						(d.atlas as any)?.close?.();
-					} catch {}
+					} catch { /* ignore */ }
 					return;
 				}
 				setStationsAtlas(d.atlas);
 				setStationsMapping(d.mapping);
 			})
-			.catch(() => {});
+			.catch(() => { /* ignore */ });
 		return () => {
 			cancelled = true;
 			setStationsAtlas((prev) => {
 				try {
 					(prev as any)?.close?.();
-				} catch {}
+				} catch { /* ignore */ }
 				return null;
 			});
 			setStationsMapping(null);
@@ -460,19 +622,19 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				if (cancelled) {
 					try {
 						(d.atlas as any)?.close?.();
-					} catch {}
+					} catch { /* ignore */ }
 					return;
 				}
 				setShipAtlas(d.atlas);
 				setShipMapping(d.mapping);
 			})
-			.catch(() => {});
+			.catch(() => { /* ignore */ });
 		return () => {
 			cancelled = true;
 			setShipAtlas((prev) => {
 				try {
 					(prev as any)?.close?.();
-				} catch {}
+				} catch { /* ignore */ }
 				return null;
 			});
 			setShipMapping(null);
@@ -486,19 +648,19 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				if (cancelled) {
 					try {
 						(d.atlas as any)?.close?.();
-					} catch {}
+					} catch { /* ignore */ }
 					return;
 				}
 				setPlanetAtlas(d.atlas);
 				setPlanetMapping(d.mapping);
 			})
-			.catch(() => {});
+			.catch(() => { /* ignore */ });
 		return () => {
 			cancelled = true;
 			setPlanetAtlas((prev) => {
 				try {
 					(prev as any)?.close?.();
-				} catch {}
+				} catch { /* ignore */ }
 				return null;
 			});
 			setPlanetMapping(null);
@@ -510,50 +672,134 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 	const debouncedZoom = useDebouncedZoom(currentZoom, 200);
 	const showLabels = currentZoom >= SYSTEMS_VISIBLE_ZOOM;
 
+	// Dijkstra Shortest Path calculation from Origin system
+	const shortestPathData = useMemo(() => {
+		if (!filter?.originSystemId || !rawConnections || rawConnections.length === 0 || !systemsPoints) {
+			return { distances: {} as Record<string, number>, pathEdges: new Set<string>(), pathSystemIds: new Set<string>() };
+		}
+
+		const adj = new Map<string, string[]>();
+		rawConnections.forEach((conn: any) => {
+			const u = String(conn.systemidorigin || conn.systemIdOrigin || conn.origin || '');
+			const v = String(conn.systemiddestination || conn.systemIdDestination || conn.destination || '');
+			if (u && v) {
+				if (!adj.has(u)) adj.set(u, []);
+				if (!adj.has(v)) adj.set(v, []);
+				adj.get(u)!.push(v);
+				adj.get(v)!.push(u);
+			}
+		});
+
+		const sysMap = new Map<string, MapPoint>();
+		systemsPoints.forEach((s) => {
+			const id = s.originalSystemId || s.id;
+			if (id) sysMap.set(String(id), s);
+		});
+
+		const originId = String(filter.originSystemId);
+		const distances: Record<string, number> = {};
+		const predecessors: Record<string, string> = {};
+		const unvisited = new Set<string>();
+
+		sysMap.forEach((_, id) => {
+			distances[id] = Infinity;
+			unvisited.add(id);
+		});
+		distances[originId] = 0;
+
+		while (unvisited.size > 0) {
+			let u: string | null = null;
+			let minDist = Infinity;
+			unvisited.forEach((id) => {
+				if (distances[id] < minDist) {
+					minDist = distances[id];
+					u = id;
+				}
+			});
+
+			if (u === null || minDist === Infinity) break;
+			unvisited.delete(u);
+
+			const neighbors = adj.get(u) || [];
+			neighbors.forEach((v) => {
+				if (!unvisited.has(v)) return;
+				const nodeU = sysMap.get(u!);
+				const nodeV = sysMap.get(v);
+				if (nodeU && nodeV) {
+					const dx = nodeU.x - nodeV.x;
+					const dy = nodeU.y - nodeV.y;
+					const dz = (nodeU.z ?? 0) - (nodeV.z ?? 0);
+					const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) / 36;
+					const alt = distances[u!] + dist;
+					if (alt < distances[v]) {
+						distances[v] = alt;
+						predecessors[v] = u!;
+					}
+				}
+			});
+		}
+
+		const pathEdges = new Set<string>();
+		const pathSystemIds = new Set<string>();
+		if (filter.destinationSystemId) {
+			let curr = String(filter.destinationSystemId);
+			pathSystemIds.add(curr);
+			while (predecessors[curr]) {
+				const pred = predecessors[curr];
+				const edgeKey = [curr, pred].sort().join('-');
+				pathEdges.add(edgeKey);
+				pathSystemIds.add(pred);
+				curr = pred;
+			}
+		}
+
+		return { distances, pathEdges, pathSystemIds };
+	}, [filter?.originSystemId, filter?.destinationSystemId, rawConnections, systemsPoints]);
+
+	// Coordinates lookup map to find system ID for connections highlight
+	const coordToSystemId = useMemo(() => {
+		const m = new Map<string, string>();
+		if (!systemsPoints) return m;
+		systemsPoints.forEach((s) => {
+			m.set(`${s.x.toFixed(1)},${s.y.toFixed(1)}`, s.originalSystemId || s.id);
+		});
+		return m;
+	}, [systemsPoints]);
+
 	// --- 1. CLUSTERING ---
 	const [clusteredData, setClusteredData] = useState<any[]>([]);
-	const lastClusteredShipsRef = useRef<any[]>([]);
-	const lastZoomRef = useRef<number>(currentZoom);
-
-	// small checksum for ships to avoid recompute when ref changes but content is same
-	const lastClusterChecksumRef = useRef<number>(0);
-	function computeShipsChecksum(ships: any[]): number {
-		// simple non-cryptographic checksum of positions and length — fast
-		let h = ships.length | 0;
-		for (let i = 0; i < ships.length; i++) {
-			const p = ships[i].position;
-			if (!p) continue;
-			// quantize to reduce sensitivity to tiny changes
-			const x = Math.round(p[0] * 1000);
-			const y = Math.round(p[1] * 1000);
-			h = ((h * 31) ^ (x + (y << 3))) >>> 0;
-		}
-		return h;
-	}
 
 	useEffect(() => {
-		if (isInteracting) return;
-		const ships = updatedShips || [];
-		const checksum = computeShipsChecksum(ships);
-		if (
-			checksum === lastClusterChecksumRef.current &&
-			debouncedZoom === lastZoomRef.current
-		)
-			return;
+    if (props.isInteracting) return; 
 
-		const visibleShips = ships.filter((s: any) => s.visible !== false);
-		const newClusters = clusterShipsByRadius(
-			visibleShips,
-			debouncedZoom,
-			isGalaxyView,
-			currentSystem?.originalSystemId || null,
-		);
+    const ships = updatedShips || [];
+    let visibleShips = ships.filter((s: any) => s.visible !== false);
+    if (!props.isGalaxyView && props.currentSystem?.originalSystemId) {
+      visibleShips = visibleShips.filter((s: any) => {
+        const sysId = s.addresssystemid || s.address_system_id || (s.plan?.segments && s.plan.segments[s.plan.segments.length - 1]?.destination_system_id);
+        if (sysId !== props.currentSystem?.originalSystemId) return false;
+        
+        // Hide stationary/docked ships
+        const isMoving = s.plan && s.plan.segments && s.plan.segments.length > 0 && (() => {
+          const segments = s.plan.segments;
+          const arrival = segments[segments.length - 1].arrival;
+          const departure = segments[0].departure;
+          const now = Date.now();
+          return now >= departure && now <= arrival;
+        })();
+        return isMoving;
+      });
+    }
+    
+    const newClusters = clusterShipsByRadius(
+      visibleShips,
+      debouncedZoom,
+      props.isGalaxyView,
+      props.currentSystem?.originalSystemId || null,
+    );
 
-		setClusteredData(newClusters);
-		lastClusteredShipsRef.current = ships;
-		lastClusterChecksumRef.current = checksum;
-		lastZoomRef.current = debouncedZoom;
-	}, [updatedShips, debouncedZoom, isGalaxyView, currentSystem, isInteracting]);
+    setClusteredData(newClusters);
+  }, [updatedShips, debouncedZoom, props.isGalaxyView, props.currentSystem, props.isInteracting]);
 
 	// --- MEMOIZED FLIGHT DATA (NO ZOOM DEPENDENCY) ---
 	const memoizedFlightPaths = useMemo(() => {
@@ -660,26 +906,78 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		];
 	}, [memoizedFlightPaths, galaxyViewState?.zoom, selectedShipId]);
 
+	// Map planet IDs to system IDs
+	const planetToSystemMap = useMemo(() => {
+		const m = new Map<string, string>();
+		for (const [sysId, plist] of Object.entries(props.allPlanetsData || {})) {
+			for (const p of plist) {
+				if (p.planetid) m.set(p.planetid, sysId);
+			}
+		}
+		return m;
+	}, [props.allPlanetsData]);
+
+	// Identify systems with owned sites
+	const ownedSystemsData = useMemo(() => {
+		if (!isGalaxyView || !productionData) return [];
+		const systemIds = new Set<string>();
+		for (const site of Object.values(productionData)) {
+			const isMine = !site.isLeased && !site.tenant;
+			if (isMine && site.planetid) {
+				const sysId = planetToSystemMap.get(site.planetid);
+				if (sysId) systemIds.add(sysId);
+			}
+		}
+		return systemsPoints.filter((p) => p.originalSystemId && systemIds.has(p.originalSystemId));
+	}, [productionData, planetToSystemMap, systemsPoints, isGalaxyView]);
+
 	// --- STATIC GALAXY LAYERS ---
 	const staticGalaxyLayers = useMemo(() => {
 		if (!isGalaxyView) return [];
 		const layers: any[] = [];
 
 		if (systemConnections && systemConnections.length > 0) {
-			const connectionData = systemConnections.map((c: any) => ({
-				path: [c.sourcePosition, c.targetPosition],
-			}));
+			const connectionData = systemConnections.map((c: any) => {
+				const keyA = `${c.sourcePosition[0].toFixed(1)},${c.sourcePosition[1].toFixed(1)}`;
+				const keyB = `${c.targetPosition[0].toFixed(1)},${c.targetPosition[1].toFixed(1)}`;
+				const idA = coordToSystemId.get(keyA);
+				const idB = coordToSystemId.get(keyB);
+				const isHighlighted = idA && idB && shortestPathData.pathEdges.has([idA, idB].sort().join('-'));
+				return {
+					path: [c.sourcePosition, c.targetPosition],
+					isHighlighted,
+				};
+			});
+
+			const regularConnections = connectionData.filter((c) => !c.isHighlighted);
+			const highlightedConnections = connectionData.filter((c) => c.isHighlighted);
+
 			layers.push(
 				new PathLayer({
 					id: "static-connections",
-					data: connectionData,
+					data: regularConnections,
 					getPath: getPathData,
 					getColor: getConnectionColor,
-					getWidth: 1.5,
+					getWidth: 0.8,
 					widthUnits: "pixels",
 					pickable: false,
 				}),
 			);
+
+			if (highlightedConnections.length > 0) {
+				layers.push(
+					new PathLayer({
+						id: "highlighted-connections",
+						data: highlightedConnections,
+						getPath: getPathData,
+						getColor: [255, 120, 0, 255],
+						getWidth: 3.5,
+						widthUnits: "pixels",
+						pickable: false,
+						parameters: { depthTest: false },
+					}),
+				);
+			}
 		}
 
 		if (gatewayConnections && gatewayConnections.length > 0) {
@@ -696,7 +994,95 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			);
 		}
 
+		// Draw semi-transparent orange radius circle around origin system
+		if (filter?.originSystemId && filter.filterRadius > 0) {
+			const originSys = systemsPoints.find((s) => s.originalSystemId === filter.originSystemId || s.id === filter.originSystemId);
+			if (originSys) {
+				layers.push(
+					new ScatterplotLayer({
+						id: "filter-radius-circle",
+						data: [originSys],
+						getPosition: (d: any) => [d.x, d.y],
+						getRadius: () => filter.filterRadius * 36, // 1 parsec = 36 units - check this
+						radiusUnits: "meters",
+						getLineColor: [255, 120, 0, 180],
+						getFillColor: [255, 120, 0, 15],
+						lineWidthMinPixels: 2.0,
+						stroked: true,
+						filled: true,
+						pickable: false,
+					})
+				);
+			}
+		}
+
+		// Highlight matching systems on galaxy view when filters/search is active
+		const isFilterActive = 
+			(filter?.resources && filter.resources.size > 0) || 
+			(filter?.filterRadius && filter.filterRadius > 0) ||
+			(filter?.planetType && filter.planetType !== 'all') ||
+			(filter?.fertileOnly) ||
+			(filter?.gravity && filter.gravity !== 'all') ||
+			(filter?.temperature && filter.temperature !== 'all') ||
+			(filter?.pressure && filter.pressure !== 'all') ||
+			(filter?.cogcEnabled);
+		const hasSearch = !!searchQuery;
+
+		if (isGalaxyView && (isFilterActive || hasSearch)) {
+			const matchedSystems = systemsPoints.filter((s) => checkSystemMatch(s, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathData.distances));
+			if (matchedSystems.length > 0) {
+				layers.push(
+					new ScatterplotLayer({
+						id: "systems-filtered-highlight",
+						data: matchedSystems,
+						getPosition: (d: any) => [d.x, d.y],
+						getRadius: (d: any) => {
+							const popRatio =
+								maxSystemPopulation > 1
+									? Math.log1p(d.population ?? 0) /
+										Math.log1p(maxSystemPopulation)
+									: 0;
+							return 30 * (1 + popRatio * 2);
+						},
+						radiusUnits: "meters",
+						getLineColor: [255, 120, 0, 240], // Bright orange outline
+						getFillColor: [255, 120, 0, 25],   // Semi-transparent orange fill
+						lineWidthMinPixels: 3.0,
+						stroked: true,
+						filled: true,
+						pickable: false,
+					})
+				);
+			}
+		}
+
+		if (isGalaxyView && ownedSystemsData.length > 0) {
+			layers.push(
+				new ScatterplotLayer({
+					id: "systems-owned-sites-highlight",
+					data: ownedSystemsData,
+					getPosition: (d: any) => [d.x, d.y],
+					getRadius: (d: any) => {
+						const popRatio =
+							maxSystemPopulation > 1
+								? Math.log1p(d.population ?? 0) /
+									Math.log1p(maxSystemPopulation)
+								: 0;
+						return 22 * (1 + popRatio * 2) * 0.75;
+					},
+					radiusUnits: "meters",
+					getLineColor: [0, 229, 255, 220],
+					getFillColor: [0, 229, 255, 45],
+					lineWidthMinPixels: 2.5,
+					stroked: true,
+					filled: true,
+					pickable: false,
+				})
+			);
+		}
+
 		if (isGalaxyView && starAtlas) {
+			// Check ref error here
 			layers.push(
 				new IconLayer({
 					id: "systems-icons",
@@ -719,7 +1105,28 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						return 22 * (1 + popRatio * 2);
 					},
 					onClick: handleSystemClick,
+					onDoubleClick: handleSystemDoubleClick,
 					onHover: handleSystemHover,
+					getColor: (d: any) => {
+						const isFilterActive = 
+							(filter?.resources && filter.resources.size > 0) || 
+							(filter?.filterRadius && filter.filterRadius > 0) ||
+							(filter?.planetType && filter.planetType !== 'all') ||
+							(filter?.fertileOnly) ||
+							(filter?.gravity && filter.gravity !== 'all') ||
+							(filter?.temperature && filter.temperature !== 'all') ||
+							(filter?.pressure && filter.pressure !== 'all') ||
+							(filter?.cogcEnabled);
+						const hasSearch = !!searchQuery;
+						if (!isFilterActive && !hasSearch) {
+							return [255, 255, 255, 255];
+						}
+						const isMatch = checkSystemMatch(d, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathData.distances);
+						return isMatch ? [255, 120, 0, 255] : [255, 255, 255, 45];
+					},
+					updateTriggers: {
+						getColor: [filter, searchQuery, shortestPathData],
+					},
 				}),
 			);
 		}
@@ -737,15 +1144,51 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					getPosition: getLabelPos,
 					getText: getLabelText,
 					getSize: 12,
-					getColor: getLabelColor,
+					getColor: (d: any) => {
+						const isFilterActive = 
+							(filter?.resources && filter.resources.size > 0) || 
+							(filter?.filterRadius && filter.filterRadius > 0) ||
+							(filter?.planetType && filter.planetType !== 'all') ||
+							(filter?.fertileOnly) ||
+							(filter?.gravity && filter.gravity !== 'all') ||
+							(filter?.temperature && filter.temperature !== 'all') ||
+							(filter?.pressure && filter.pressure !== 'all') ||
+							(filter?.cogcEnabled);
+						const hasSearch = !!searchQuery;
+						if (!isFilterActive && !hasSearch) {
+							return [255, 255, 255, 255];
+						}
+						const isMatch = checkSystemMatch(d, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathData.distances);
+						return isMatch ? [255, 160, 0, 255] : [255, 255, 255, 45];
+					},
 					billboard: true,
 					background: true,
-					getBackgroundColor: getLabelBgColor,
+					getBackgroundColor: (d: any) => {
+						const isFilterActive = 
+							(filter?.resources && filter.resources.size > 0) || 
+							(filter?.filterRadius && filter.filterRadius > 0) ||
+							(filter?.planetType && filter.planetType !== 'all') ||
+							(filter?.fertileOnly) ||
+							(filter?.gravity && filter.gravity !== 'all') ||
+							(filter?.temperature && filter.temperature !== 'all') ||
+							(filter?.pressure && filter.pressure !== 'all') ||
+							(filter?.cogcEnabled);
+						const hasSearch = !!searchQuery;
+						if (!isFilterActive && !hasSearch) {
+							return [0, 0, 0, 160];
+						}
+						const isMatch = checkSystemMatch(d, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathData.distances);
+						return isMatch ? [40, 20, 0, 180] : [0, 0, 0, 30];
+					},
 					backgroundPadding: [4, 2],
 					getPixelOffset: [0, 22],
 					sizeUnits: "pixels",
 					pickable: false,
-					updateTriggers: { data: [showLabels] },
+					updateTriggers: {
+						data: [showLabels],
+						getColor: [filter, searchQuery, shortestPathData],
+						getBackgroundColor: [filter, searchQuery, shortestPathData],
+					},
 				}),
 			);
 		}
@@ -760,7 +1203,14 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		starMapping,
 		maxSystemPopulation,
 		handleSystemClick,
+		handleSystemDoubleClick,
 		handleSystemHover,
+		ownedSystemsData,
+		filter,
+		searchQuery,
+		allPlanetsData,
+		shortestPathData,
+		coordToSystemId,
 	]);
 
 	// --- DYNAMIC LAYERS ---
@@ -770,6 +1220,25 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 		// System Mode
 		if (isPlanetModeActive && planetAtlas && stationsAtlas) {
+			// Calculate docked ships map
+			const dockedShipsMap = new Map<string, any[]>();
+			const allSystemShips = props.animatedShipData || [];
+			allSystemShips.forEach((s: any) => {
+				const isMoving = s.plan && s.plan.segments && s.plan.segments.length > 0 && (() => {
+					const segments = s.plan.segments;
+					const arrival = segments[segments.length - 1].arrival;
+					const departure = segments[0].departure;
+					const now = Date.now();
+					return now >= departure && now <= arrival;
+				})();
+				if (!isMoving) {
+					const locId = s.addressplanetid || s.addressstationid;
+					if (locId) {
+						if (!dockedShipsMap.has(locId)) dockedShipsMap.set(locId, []);
+						dockedShipsMap.get(locId)!.push(s);
+					}
+				}
+			});
 			// Gateways
 			const activeGateways =
 				allGatewaysData[currentSystem?.originalSystemId ?? ""] || [];
@@ -807,46 +1276,257 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					}),
 				);
 			}
+
+			// Micro Asteroids
+			if (props.microAsteroids && props.microAsteroids.length > 0) {
+				dLayers.push(
+					new ScatterplotLayer({
+						id: "micro-asteroids",
+						data: props.microAsteroids,
+						getPosition: (d: any) => d.position,
+						getRadius: (d: any) => d.size,
+						radiusUnits: "pixels",
+						getFillColor: (d: any) => d.color,
+						pickable: false,
+					})
+				);
+			}
 			// Flight Paths
 			if (flightPathLayers.length > 0) dLayers.push(...flightPathLayers);
 
 			// Planets
+			// check ref error here
 			dLayers.push(
 				new IconLayer<PlanetPosition>({
-					id: "planets-dynamic",
+					id: `planets-dynamic-${currentSystem?.originalSystemId || 'none'}`,
 					data: activePlanets,
 					iconAtlas: planetAtlas,
 					iconMapping: planetMapping,
 					getIcon: getPlanetIcon,
 					getPosition: getPlanetPosition,
-					getSize: SYSTEM_BASE_RADIUS * 0.06,
+					getSize: (d: any) => (d.scaledPlanetRadius ?? 1.0) * 2.0,
 					sizeUnits: "meters",
 					sizeMinPixels: 35,
 					sizeMaxPixels: 400,
 					pickable: true,
-					transitions: { getPosition: 5000 },
 					onClick: handlePlanetClick,
 					onHover: handleHoverTooltip,
+					getColor: (d: any) => {
+						const isFilterActive = 
+							(filter?.resources && filter.resources.size > 0) || 
+							(filter?.filterRadius && filter.filterRadius > 0) ||
+							(filter?.planetType && filter.planetType !== 'all') ||
+							(filter?.fertileOnly) ||
+							(filter?.gravity && filter.gravity !== 'all') ||
+							(filter?.temperature && filter.temperature !== 'all') ||
+							(filter?.pressure && filter.pressure !== 'all') ||
+							(filter?.cogcEnabled);
+						const hasSearch = !!searchQuery;
+						if (!isFilterActive && !hasSearch) {
+							return [255, 255, 255, 255];
+						}
+						
+						let matches = true;
+						const query = searchQuery?.trim().toLowerCase() || "";
+						if (query) {
+							const planetName = (d.name || d.planetname || "").toLowerCase();
+							matches = planetName.includes(query);
+						}
+						
+						if (matches && filter) {
+							const pop = d.planetPopulation || 0;
+							matches = pop >= filter.populationRange[0] && pop <= filter.populationRange[1];
+						}
+
+						// Radius filter check
+						if (matches && filter?.filterRadius && filter.filterRadius > 0 && filter.originSystemId) {
+							const systemId = d.parentSystemId;
+							if (systemId) {
+								if (shortestPathData.distances[systemId] !== undefined) {
+									matches = shortestPathData.distances[systemId] <= filter.filterRadius;
+								} else {
+									const originSys = systemsPoints.find((s) => s.originalSystemId === filter.originSystemId || s.id === filter.originSystemId);
+									if (originSys) {
+										const dx = d.x - originSys.x;
+										const dy = d.y - originSys.y;
+										const dist = Math.sqrt(dx * dx + dy * dy) / 3;
+										matches = dist <= filter.filterRadius;
+									}
+								}
+							}
+						}
+
+						// Planet Type filter check
+						if (matches && filter?.planetType && filter.planetType !== 'all') {
+							const typeStr = (d.type || '').toUpperCase();
+							const isRocky = typeStr.includes('EARTH') || typeStr.includes('ROCKY');
+							const isGas = typeStr.includes('GAS');
+							if (filter.planetType === 'rocky' && !isRocky) matches = false;
+							if (filter.planetType === 'gaseous' && !isGas) matches = false;
+						}
+
+						// Fertility filter check
+						if (matches && filter?.fertileOnly) {
+							if (!d.fertility || d.fertility <= 0) matches = false;
+						}
+
+						// Gravity filter check
+						if (matches && filter?.gravity && filter.gravity !== 'all') {
+							const grav = d.gravity || 0;
+							if (filter.gravity === 'low' && grav > 1.0) matches = false;
+							if (filter.gravity === 'high' && grav <= 1.0) matches = false;
+						}
+
+						// Temperature filter check
+						if (matches && filter?.temperature && filter.temperature !== 'all') {
+							const temp = d.temperature || 0;
+							if (filter.temperature === 'low' && temp >= 273.15) matches = false;
+							if (filter.temperature === 'high' && temp < 273.15) matches = false;
+						}
+
+						// Pressure filter check
+						if (matches && filter?.pressure && filter.pressure !== 'all') {
+							const press = d.pressure || 0;
+							if (filter.pressure === 'low' && press > 1.0) matches = false;
+							if (filter.pressure === 'high' && press <= 1.0) matches = false;
+						}
+
+						// COGC Program filter check
+						if (matches && filter?.cogcEnabled) {
+							const prog = (d.cogc || '').toUpperCase();
+							const selectedProg = filter.cogcProgram.toUpperCase();
+							const hasActiveProgram = prog && prog !== 'NONE';
+							if (selectedProg === 'ALL') {
+								if (!hasActiveProgram) matches = false;
+							} else if (selectedProg === 'NONE') {
+								if (hasActiveProgram) matches = false;
+							} else {
+								if (!prog.includes(selectedProg)) matches = false;
+							}
+						}
+
+						// Resources filter check
+						if (matches && filter?.resources && filter.resources.size > 0) {
+							const hasMatch = d.resources?.some((r: any) => {
+								const ticker = (r.material || r.name || '').toUpperCase();
+								return ticker && filter.resources.has(ticker);
+							});
+							if (!hasMatch) matches = false;
+						}
+						
+						return matches ? [255, 120, 0, 255] : [255, 255, 255, 45];
+					},
+					updateTriggers: {
+						getColor: [filter, searchQuery, shortestPathData],
+					},
 				}),
 			);
 
+			// Central Star Corona Glow
+			if (currentSystem) {
+				dLayers.push(
+					new ScatterplotLayer({
+						id: `star-corona-${currentSystem.originalSystemId || 'none'}`,
+						data: [currentSystem],
+						getPosition: (d: any) => [d.x, d.y],
+						getRadius: SYSTEM_BASE_RADIUS * 0.08,
+						radiusUnits: "meters",
+						getFillColor: [255, 190, 40, 50], // Soft golden corona glow
+						pickable: false,
+					})
+				);
+			}
+
+			// Highlight planets with owner's sites
+			const planetsWithOwnerSites = activePlanets.filter((p: any) => {
+				const sites = Object.values(productionData || {}).filter((s: any) => s.planetid === p.planetid);
+				return sites.some((s) => !s.isLeased && !s.tenant);
+			});
+
+			if (planetsWithOwnerSites.length > 0) {
+				dLayers.push(
+					new ScatterplotLayer({
+						id: `planets-owned-sites-highlight-${currentSystem?.originalSystemId || 'none'}`,
+						data: planetsWithOwnerSites,
+						getPosition: (d: any) => [d.x, d.y],
+						getRadius: (d: any) => (d.scaledPlanetRadius ?? 1.0) * 1.15,
+						radiusUnits: "meters",
+						radiusMinPixels: 21,
+						radiusMaxPixels: 230,
+						getLineColor: [0, 229, 255, 220],
+						getFillColor: [0, 0, 0, 0],
+						lineWidthUnits: "pixels",
+						getLineWidth: 2,
+						stroked: true,
+						filled: false,
+						pickable: false,
+					})
+				);
+			}
+
 			// Stations
+			// check ref error here
 			dLayers.push(
 				new IconLayer<StationPosition>({
-					id: "stations-dynamic",
+					id: `stations-dynamic-${currentSystem?.originalSystemId || 'none'}`,
 					data: activeStations,
 					iconAtlas: stationsAtlas,
 					iconMapping: stationsMapping,
 					getIcon: getStationIcon,
 					getPosition: getStationPosition,
-					getSize: SYSTEM_BASE_RADIUS * 0.02,
+					getSize: 1.2,
 					sizeUnits: "meters",
 					sizeMinPixels: 40,
 					sizeMaxPixels: 100,
-					pickable: false,
-					transitions: { getPosition: 5000 },
+					pickable: true,
+					onClick: (info: any) => {
+						if (info.object && props.setSelectedStation && currentSystem) {
+							props.setSelectedStation(info.object);
+						}
+					},
+					onHover: handleHoverTooltip,
 				}),
 			);
+
+			// Planet & Station Labels Layer
+			const labelItems: any[] = [];
+			activePlanets.forEach((p: any) => {
+				const docked = dockedShipsMap.get(p.planetid) || [];
+				labelItems.push({
+					position: [p.x, p.y],
+					text: `${p.planetname || p.name || p.planetid}${docked.length > 0 ? ` 🛰️ [${docked.length}]` : ""}`,
+					pixelOffset: [0, 26],
+					color: [255, 255, 255, 220],
+				});
+			});
+			activeStations.forEach((st: any) => {
+				const docked = dockedShipsMap.get(st.stationid) || [];
+				labelItems.push({
+					position: [st.x, st.y],
+					text: `${st.stationname || st.name || st.stationid}${docked.length > 0 ? ` 🛰️ [${docked.length}]` : ""}`,
+					pixelOffset: [0, 26],
+					color: [0, 229, 255, 220],
+				});
+			});
+
+			if (labelItems.length > 0) {
+				dLayers.push(
+					new TextLayer({
+						id: `planet-station-labels-${currentSystem?.originalSystemId || 'none'}`,
+						data: labelItems,
+						getPosition: (d: any) => d.position,
+						getText: (d: any) => d.text,
+						getPixelOffset: (d: any) => d.pixelOffset,
+						getColor: (d: any) => d.color,
+						getSize: 12,
+						sizeUnits: "pixels",
+						background: true,
+						getBackgroundColor: [15, 15, 15, 180],
+						billboard: true,
+						pickable: false,
+					})
+				);
+			}
 
 			// BBox
 			if (systemBoundingBox) {
@@ -868,23 +1548,28 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		}
 
 		// Ships (Clustered)
-		if (clusteredData.length > 0 && shipAtlas) {
-			dLayers.push(
-				new IconLayer({
-					id: "ships-icons",
-					data: clusteredData,
-					iconAtlas: shipAtlas,
-					iconMapping: shipMapping,
-					getIcon: getShipIconType,
-					getPosition: getShipPosition,
-					getSize: getShipSize,
-					sizeUnits: isGalaxyView ? "pixels" : "meters",
-					sizeMinPixels: 33,
-					sizeMaxPixels: 105,
-					pickable: true,
-					onClick: handleShipClick,
-				}),
+		// check ref error here
+		if (clusteredData.length > 0) {
+      dLayers.push(
+        new IconLayer({
+          id: "ships-icons",
+          data: clusteredData,
+          iconAtlas: shipAtlas,
+          iconMapping: shipMapping,
+          getIcon: getShipIconType, // Safe fallback
+          getPosition: getShipPosition,
+          getSize: props.isGalaxyView 
+            ? (d: any) => d.isCluster ? 40 : 33
+            : (d: any) => d.isCluster ? SYSTEM_BASE_RADIUS * 0.016 : SYSTEM_BASE_RADIUS * 0.01,
+          getAngle: (d: any) => d.isCluster ? 0 : -(d.bearing ?? 0),
+          sizeUnits: props.isGalaxyView ? "pixels" : "meters",
+          sizeMinPixels: props.isGalaxyView ? 14 : 10,
+          sizeMaxPixels: props.isGalaxyView ? 105 : 24,
+          pickable: true,
+          onClick: handleShipClick,
+        })
 			);
+    
 
 			if (showLabels || !isGalaxyView) {
 				dLayers.push(
@@ -902,6 +1587,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					}),
 				);
 			}
+
 			dLayers.push(
 				new TextLayer({
 					id: "cluster-badges",
@@ -939,6 +1625,15 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		handlePlanetClick,
 		handleHoverTooltip,
 		handleShipClick,
+		allGatewaysData,
+		planetMapping,
+		shipMapping,
+		stationsMapping,
+		props.isGalaxyView,
+		productionData,
+		filter,
+		searchQuery,
+		props.microAsteroids,
 	]);
 
 	// --- SECTOR LAYER (Keep existing) ---
@@ -986,30 +1681,13 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		return sectorLayers;
 	}, [isGalaxyView, sectors, safeGetColor]);
 
-	// --- FINAL COMBINATION ---
-	const prevLayersRef = useRef<any[]>([]);
-	// cleanup prevLayersRef on unmount to reduce chance of holding onto old layer instances
-	useEffect(
-		() => () => {
-			prevLayersRef.current = [];
-		},
-		[],
-	);
+	
 
 	const layers = useMemo(() => {
-		if (isInteracting && prevLayersRef.current.length > 0)
-			return prevLayersRef.current;
-		if (!viewportInstance) return [];
-		const combined = [...sectorLayer, ...staticGalaxyLayers, ...dynamicLayers];
-		prevLayersRef.current = combined;
-		return combined;
-	}, [
-		staticGalaxyLayers,
-		sectorLayer,
-		dynamicLayers,
-		isInteracting,
-		viewportInstance,
-	]);
+    if (!props.viewportInstance) return [];
+    return [...sectorLayer, ...staticGalaxyLayers, ...dynamicLayers];
+    
+  }, [staticGalaxyLayers, sectorLayer, dynamicLayers, props.viewportInstance]);
 
 	return {
 		layers,
