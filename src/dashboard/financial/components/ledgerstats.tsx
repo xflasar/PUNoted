@@ -28,12 +28,12 @@ export const LedgerStats = ({ stats }: LedgerStatsProps) => {
 				<Typography
 					fontWeight={700}
 					fontSize="0.85rem"
-					textTransform="uppercase"
+					sx={{ textTransform: "uppercase" }}
 				>
 					30-Day Ledger
 				</Typography>
 			</Box>
-			<Box display="flex" flexDirection="column">
+			<Box sx={{ display: "flex", flexDirection: "column" }}>
 				<DrawerRow
 					label="Total Received"
 					value={`+${formatCurrency(stats.totalReceived)}`}

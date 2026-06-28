@@ -26,7 +26,7 @@ import {
 	FaMap,
 	FaStore,
 } from "react-icons/fa";
-import AuthenticationBox from "./authenticationbox.tsx";
+import AuthenticationBox from "./auth/AuthenticationBox";
 import DiscordWidget from "./discordwidget.tsx";
 
 interface LandingPageProps {

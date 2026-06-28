@@ -14,6 +14,17 @@ import {
 	TableBody,
 	Tooltip,
 	useTheme,
+	Collapse,
+	Select,
+	MenuItem,
+	TextField,
+	FormControl,
+	InputLabel,
+	Tabs,
+	Tab,
+	Divider,
+	ToggleButtonGroup,
+	ToggleButton,
 } from "@mui/material";
 import {
 	Add as AddIcon,
@@ -22,6 +33,7 @@ import {
 	Loop as LoopIcon,
 	ExpandMore as ExpandMoreIcon,
 	ExpandLess as ExpandLessIcon,
+	Close as CloseIcon,
 } from "@mui/icons-material";
 import { formatCurrency, formatDuration } from "./helpers";
 
@@ -31,6 +43,8 @@ import { formatCurrency, formatDuration } from "./helpers";
 export interface ProductionGridProps {
 	/** The active base data including platforms and infrastructure */
 	activeData: any;
+	/** Optional comparison base data to show a diff */
+	comparisonData?: any;
 	/** All available game buildings */
 	activeBuildings: any[];
 	/** All available game recipes */
@@ -55,8 +69,8 @@ export interface ProductionGridProps {
 	handleRemoveSpecificRecipe: (id: string, recipeId: string) => void;
 	/** Handler to add one instance of a specific recipe to a platform's queue */
 	handleAddSpecificRecipe: (id: string, recipeId: string) => void;
-	/** Handler to toggle the visibility of the Add Platform dialog */
-	setIsEditingPlatform: (isEditing: boolean) => void;
+	/** Handler to add a new platform */
+	onAddPlatform: (ticker: string, amount: number) => void;
 	/** Function to fetch the active price for a given material ticker */
 	getPrice: (ticker: string) => number;
 	/** Aggregated list of materials required to construct the entire base */
@@ -65,6 +79,12 @@ export interface ProductionGridProps {
 	totalCapEx: number;
 	/** Handler to adjust the amount of a specific infrastructure building */
 	handleAdjustInfra: (ticker: string, change: number) => void;
+	/** Optional helper to auto-manage habitation to meet workforce demand */
+	autoHabEnabled?: boolean;
+	autoHabStrategy?: "area" | "cost";
+	onToggleAutoHab?: (enabled: boolean) => void;
+	onChangeAutoHabStrategy?: (strategy: "area" | "cost") => void;
+	onAutoManageHabitation?: (strategy: "area" | "cost") => void;
 }
 
 /**
@@ -76,6 +96,7 @@ export interface ProductionGridProps {
  */
 export const ProductionGrid: React.FC<ProductionGridProps> = ({
 	activeData,
+	comparisonData,
 	activeBuildings,
 	activeRecipes,
 	platformBuildingQueues,
@@ -88,13 +109,66 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 	handleRemovePlatform,
 	handleRemoveSpecificRecipe,
 	handleAddSpecificRecipe,
-	setIsEditingPlatform,
+	onAddPlatform,
 	getPrice,
 	buildMaterials,
 	totalCapEx,
 	handleAdjustInfra,
+	autoHabEnabled = false,
+	autoHabStrategy = "area",
+	onToggleAutoHab,
+	onChangeAutoHabStrategy,
+	onAutoManageHabitation,
 }) => {
 	const theme = useTheme();
+	const [rightTab, setRightTab] = useState<"infra" | "capex">("infra");
+
+	// Add Platform state
+	const [isAddingPlatform, setIsAddingPlatform] = useState(false);
+	const [newTicker, setNewTicker] = useState("");
+	const [newAmount, setNewAmount] = useState(1);
+
+	const productionBuildings = React.useMemo(
+		() => activeBuildings.filter((b: any) => b.type === "production"),
+		[activeBuildings],
+	);
+
+	const categories = React.useMemo(
+		() =>
+			Array.from(
+				new Set(productionBuildings.map((b: any) => b.category || "Other")),
+			).sort(),
+		[productionBuildings],
+	);
+
+	const [selectedCategory, setSelectedCategory] = useState<string>(
+		categories[0] || "Other",
+	);
+
+	React.useEffect(() => {
+		if (categories.length > 0 && !categories.includes(selectedCategory)) {
+			setSelectedCategory(categories[0]);
+		}
+	}, [categories, selectedCategory]);
+
+	const filteredBuildings = React.useMemo(
+		() =>
+			productionBuildings.filter(
+				(b: any) => (b.category || "Other") === selectedCategory,
+			),
+		[productionBuildings, selectedCategory],
+	);
+
+	React.useEffect(() => {
+		if (
+			isAddingPlatform &&
+			filteredBuildings.length > 0 &&
+			!filteredBuildings.find((b: any) => b.ticker === newTicker)
+		) {
+			setNewTicker(filteredBuildings[0].ticker);
+		}
+	}, [isAddingPlatform, filteredBuildings, newTicker]);
+
 	// Tracks the collapsed state of individual production lines (platforms)
 	const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
@@ -111,6 +185,62 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 		if (aHab !== bHab) return aHab - bHab;
 		return a.ticker.localeCompare(b.ticker);
 	});
+
+	const sumMaterials = (m: Record<string, number>) =>
+		Object.values(m).reduce((acc, v) => acc + (Number(v) || 0), 0);
+
+	const addBuildReq = (
+		ticker: string,
+		count: number,
+		target: Record<string, number>,
+	) => {
+		const bInfo = activeBuildings.find((b: any) => b.ticker === ticker);
+		if (!bInfo?.buildReq) return;
+		bInfo.buildReq.forEach((req: any) => {
+			target[req.ticker] =
+				(target[req.ticker] || 0) + Number(req.amount) * count;
+		});
+	};
+
+	const categorizedMaterials = React.useMemo(() => {
+		const production: Record<string, number> = {};
+		const infraHab: Record<string, number> = {};
+		const infraStorage: Record<string, number> = {};
+		const infraOther: Record<string, number> = {};
+		const baseCM: Record<string, number> = {};
+
+		activeData.platforms.forEach((p: any) => {
+			const amount = Number(p.amount) || 1;
+			addBuildReq(p.buildingTicker, amount, production);
+		});
+
+		activeData.infrastructure.forEach((i: any) => {
+			const amount = Number(i.amount) || 1;
+			const b = activeBuildings.find((x: any) => x.ticker === i.buildingTicker);
+			const isHab = String(i.buildingTicker || "")
+				.toUpperCase()
+				.startsWith("HB");
+			const isStorage =
+				!!b?.storageWeight ||
+				!!b?.storageVolume ||
+				["STO", "STA"].includes(String(i.buildingTicker || "").toUpperCase());
+			if (isHab) addBuildReq(i.buildingTicker, amount, infraHab);
+			else if (isStorage) addBuildReq(i.buildingTicker, amount, infraStorage);
+			else addBuildReq(i.buildingTicker, amount, infraOther);
+		});
+
+		// TODO: Base/CM materials should be populated from backend "Site command module" data.
+		// Keeping a separate bucket allows a drop-in swap when CM buildReq are available.
+
+		const finalAll = { ...production };
+		[infraHab, infraStorage, infraOther, baseCM].forEach((m) => {
+			Object.entries(m).forEach(([t, a]) => {
+				finalAll[t] = (finalAll[t] || 0) + a;
+			});
+		});
+
+		return { production, infraHab, infraStorage, infraOther, baseCM, finalAll };
+	}, [activeData.platforms, activeData.infrastructure, activeBuildings]);
 
 	return (
 		<Box
@@ -144,20 +274,120 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 						alignItems: "center",
 					}}
 				>
-					<Typography variant="subtitle1" fontWeight="bold">
+					<Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
 						Production Lines
 					</Typography>
 					<Button
 						size="small"
-						variant="contained"
-						color="secondary"
-						startIcon={<AddIcon />}
+						variant={isAddingPlatform ? "outlined" : "contained"}
+						color={isAddingPlatform ? "inherit" : "secondary"}
+						startIcon={isAddingPlatform ? <CloseIcon /> : <AddIcon />}
 						sx={{ py: 0.5, px: 1.5, fontSize: "0.8rem" }}
-						onClick={() => setIsEditingPlatform(true)}
+						onClick={() => setIsAddingPlatform(!isAddingPlatform)}
 					>
-						Add Line
+						{isAddingPlatform ? "Cancel" : "Add Line"}
 					</Button>
 				</Box>
+				<Collapse in={isAddingPlatform}>
+					<Box
+						sx={{
+							p: 1.5,
+							borderBottom: "1px solid",
+							borderColor: "divider",
+							bgcolor: alpha(theme.palette.secondary.main, 0.05),
+							display: "flex",
+							flexDirection: "column",
+							gap: 1.5,
+						}}
+					>
+						<Typography
+							variant="subtitle2"
+							color="secondary"
+							sx={{ fontWeight: "bold" }}
+						>
+							Add New Production Line
+						</Typography>
+						<Box
+							sx={{
+								display: "flex",
+								gap: 1,
+								flexWrap: "wrap",
+								alignItems: "flex-end",
+							}}
+						>
+							<FormControl size="small" sx={{ flex: 1, minWidth: 120 }}>
+								<InputLabel>Category</InputLabel>
+								<Select
+									value={selectedCategory}
+									label="Category"
+									onChange={(e) =>
+										setSelectedCategory(e.target.value as string)
+									}
+									MenuProps={{
+										slotProps: {
+											paper: {
+												sx: {
+													bgcolor: "background.default",
+													backgroundImage: "none",
+												},
+											},
+										},
+									}}
+								>
+									{categories.map((cat: string) => (
+										<MenuItem key={cat} value={cat}>
+											{cat}
+										</MenuItem>
+									))}
+								</Select>
+							</FormControl>
+							<FormControl size="small" sx={{ flex: 1, minWidth: 150 }}>
+								<InputLabel>Building</InputLabel>
+								<Select
+									value={newTicker}
+									label="Building"
+									onChange={(e) => setNewTicker(e.target.value)}
+									MenuProps={{
+										slotProps: {
+											paper: {
+												sx: {
+													bgcolor: "background.default",
+													backgroundImage: "none",
+												},
+											},
+										},
+									}}
+								>
+									{filteredBuildings.map((b: any) => (
+										<MenuItem key={b.ticker} value={b.ticker}>
+											{b.name} ({b.ticker})
+										</MenuItem>
+									))}
+								</Select>
+							</FormControl>
+							<TextField
+								label="Amount"
+								type="number"
+								size="small"
+								value={newAmount}
+								onChange={(e) => setNewAmount(parseInt(e.target.value) || 1)}
+								slotProps={{ htmlInput: { style: { textAlign: "center" } } }}
+								sx={{ width: 80 }}
+							/>
+							<Button
+								variant="contained"
+								color="secondary"
+								onClick={() => {
+									onAddPlatform(newTicker, newAmount);
+									setIsAddingPlatform(false);
+									setNewAmount(1);
+								}}
+							>
+								Build
+							</Button>
+						</Box>
+					</Box>
+				</Collapse>
 				<Box
 					sx={{
 						p: 1.5,
@@ -171,6 +401,11 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 						const bInfo = activeBuildings.find(
 							(b: any) => b.ticker === p.buildingTicker,
 						);
+						const compPlatformAmount = comparisonData
+							? comparisonData.platforms?.find(
+									(cp: any) => cp.buildingTicker === p.buildingTicker,
+								)?.amount || 0
+							: null;
 						const bOrders = platformBuildingQueues?.[p.id] || [];
 
 						// Count occurrences of each recipe assigned to this platform
@@ -228,12 +463,14 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 											)}
 										</IconButton>
 										<Box
-											display="flex"
-											alignItems="center"
-											border="1px solid"
-											borderColor="divider"
-											borderRadius={1}
-											bgcolor="background.default"
+											sx={{
+												display: "flex",
+												alignItems: "center",
+												border: "1px solid",
+												borderColor: "divider",
+												borderRadius: 1,
+												bgcolor: "background.default",
+											}}
 										>
 											<IconButton
 												size="small"
@@ -243,16 +480,43 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 											>
 												<RemoveIcon sx={{ fontSize: "0.9rem" }} />
 											</IconButton>
-											<Typography
-												variant="body2"
+											<Box
 												sx={{
+													display: "flex",
+													flexDirection: "column",
+													alignItems: "center",
 													minWidth: 24,
-													textAlign: "center",
-													fontWeight: "bold",
+													px: 0.5,
 												}}
 											>
-												{p.amount}
-											</Typography>
+												<Typography
+													variant="body2"
+													sx={{
+														textAlign: "center",
+														fontWeight: "bold",
+														color:
+															compPlatformAmount !== null &&
+															compPlatformAmount !== p.amount
+																? "warning.main"
+																: "inherit",
+													}}
+												>
+													{p.amount}
+												</Typography>
+												{compPlatformAmount !== null &&
+													compPlatformAmount !== p.amount && (
+														<Typography
+															variant="caption"
+															sx={{
+																fontSize: "0.6rem",
+																color: "text.secondary",
+																mt: -0.5,
+															}}
+														>
+															vs {compPlatformAmount}
+														</Typography>
+													)}
+											</Box>
 											<IconButton
 												size="small"
 												sx={{ p: 0.25 }}
@@ -261,7 +525,7 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 												<AddIcon sx={{ fontSize: "0.9rem" }} />
 											</IconButton>
 										</Box>
-										<Typography variant="subtitle1" fontWeight="bold">
+										<Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
 											{bInfo?.ticker}
 										</Typography>
 
@@ -411,12 +675,14 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 																	}}
 																>
 																	<Box
-																		display="flex"
-																		alignItems="center"
-																		bgcolor="background.default"
-																		border="1px solid"
-																		borderColor="divider"
-																		borderRadius={1}
+																		sx={{
+																			display: "flex",
+																			alignItems: "center",
+																			bgcolor: "background.default",
+																			border: "1px solid",
+																			borderColor: "divider",
+																			borderRadius: 1,
+																		}}
 																	>
 																		<IconButton
 																			size="small"
@@ -432,8 +698,11 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 																		</IconButton>
 																		<Typography
 																			variant="body2"
-																			fontWeight="bold"
-																			sx={{ minWidth: 24, textAlign: "center" }}
+																			sx={{
+																				minWidth: 24,
+																				textAlign: "center",
+																				fontWeight: "bold",
+																			}}
 																		>
 																			{count as number}
 																		</Typography>
@@ -449,8 +718,10 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 																	</Box>
 																	<Typography
 																		variant="body2"
-																		fontFamily="monospace"
-																		fontWeight="bold"
+																		sx={{
+																			fontFamily: "monospace",
+																			fontWeight: "bold",
+																		}}
 																	>
 																		{rInfo.inStr} ➔ {rInfo.outStr}
 																	</Typography>
@@ -534,143 +805,9 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 					flex: 1,
 					display: "flex",
 					flexDirection: "column",
-					gap: 2,
 					minHeight: 0,
 				}}
 			>
-				{/* INFRASTRUCTURE CONTROLS */}
-				<Card
-					variant="outlined"
-					sx={{
-						flex: 1.5,
-						display: "flex",
-						flexDirection: "column",
-						bgcolor: "background.default",
-						minHeight: 0,
-					}}
-				>
-					<Box
-						sx={{
-							p: 1,
-							px: 1.5,
-							borderBottom: "1px solid",
-							borderColor: "divider",
-						}}
-					>
-						<Typography variant="subtitle1" fontWeight="bold">
-							Infrastructure
-						</Typography>
-					</Box>
-					<Box sx={{ overflowY: "auto", p: 1.5 }}>
-						<Box
-							sx={{
-								display: "grid",
-								gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-								gap: 1,
-							}}
-						>
-							{sortedInfra.map((infra: any) => {
-								const currentCount =
-									activeData.infrastructure.find(
-										(i: any) => i.buildingTicker === infra.ticker,
-									)?.amount || 0;
-								const benefits = [];
-								if (infra.supply)
-									Object.entries(infra.supply).forEach(([k, v]) =>
-										benefits.push(`+${v as number} ${k.substring(0, 3)}`),
-									);
-								if (infra.storageWeight)
-									benefits.push(`+${infra.storageWeight}t`);
-
-								return (
-									<Box
-										key={infra.ticker}
-										sx={{
-											display: "flex",
-											flexDirection: "column",
-											justifyContent: "space-between",
-											p: 1,
-											px: 1.5,
-											border: "1px solid",
-											borderColor:
-												currentCount > 0 ? "primary.main" : "divider",
-											bgcolor:
-												currentCount > 0
-													? alpha(theme.palette.primary.main, 0.05)
-													: "background.paper",
-											borderRadius: 1,
-										}}
-									>
-										<Box
-											display="flex"
-											justifyContent="space-between"
-											alignItems="center"
-										>
-											<Typography variant="body2" fontWeight="bold">
-												{infra.ticker}
-											</Typography>
-											<Typography variant="caption" color="text.secondary">
-												{benefits.join(", ")}
-											</Typography>
-										</Box>
-										<Box
-											display="flex"
-											alignItems="center"
-											justifyContent="space-between"
-											mt={1}
-										>
-											<Typography
-												variant="body2"
-												color={
-													currentCount > 0 ? "success.main" : "text.secondary"
-												}
-												fontWeight="bold"
-											>
-												$
-												{formatCurrency(
-													getBuildingCost(infra.ticker) * currentCount,
-												)}
-											</Typography>
-											<Box
-												display="flex"
-												alignItems="center"
-												bgcolor="background.default"
-												border="1px solid"
-												borderColor="divider"
-												borderRadius={1}
-											>
-												<IconButton
-													size="small"
-													onClick={() => handleAdjustInfra(infra.ticker, -1)}
-													disabled={currentCount === 0}
-													sx={{ p: 0.15 }}
-												>
-													<RemoveIcon sx={{ fontSize: "0.8rem" }} />
-												</IconButton>
-												<Typography
-													variant="body2"
-													fontWeight="bold"
-													sx={{ minWidth: 24, textAlign: "center" }}
-												>
-													{currentCount}
-												</Typography>
-												<IconButton
-													size="small"
-													onClick={() => handleAdjustInfra(infra.ticker, 1)}
-													sx={{ p: 0.15 }}
-												>
-													<AddIcon sx={{ fontSize: "0.8rem" }} />
-												</IconButton>
-											</Box>
-										</Box>
-									</Box>
-								);
-							})}
-						</Box>
-					</Box>
-				</Card>
-
-				{/* CONSTRUCTION CAPEX TABLE */}
 				<Card
 					variant="outlined"
 					sx={{
@@ -688,99 +825,423 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({
 							borderBottom: "1px solid",
 							borderColor: "divider",
 							display: "flex",
-							justifyContent: "space-between",
 							alignItems: "center",
+							justifyContent: "space-between",
 						}}
 					>
-						<Typography variant="subtitle1" fontWeight="bold">
-							Construction Cost (CapEx)
-						</Typography>
-						<Typography variant="subtitle1" color="info.main" fontWeight="bold">
-							${formatCurrency(totalCapEx)}
-						</Typography>
+						<Tabs
+							value={rightTab}
+							onChange={(_, v) => setRightTab(v)}
+							variant="fullWidth"
+							sx={{
+								minHeight: 36,
+								"& .MuiTab-root": { minHeight: 36, fontSize: "0.8rem" },
+							}}
+						>
+							<Tab value="infra" label="Infrastructure" />
+							<Tab
+								value="capex"
+								label={`Construction (${formatCurrency(totalCapEx)})`}
+							/>
+						</Tabs>
 					</Box>
-					<Box sx={{ overflowY: "auto", flexGrow: 1 }}>
-						<Table size="small" stickyHeader>
-							<TableHead>
-								<TableRow
+					{rightTab === "infra" && (
+						<Box
+							sx={{
+								overflowY: "auto",
+								p: 1.5,
+								display: "flex",
+								flexDirection: "column",
+								gap: 1.25,
+							}}
+						>
+							{onAutoManageHabitation && (
+								<Box
 									sx={{
-										"& th": {
-											bgcolor: "background.default",
-											fontSize: "0.8rem",
-											borderBottom: "1px solid",
-											borderColor: "divider",
-											py: 1,
-										},
+										display: "flex",
+										gap: 1,
+										alignItems: "center",
+										flexWrap: "wrap",
 									}}
 								>
-									<TableCell>Ticker</TableCell>
-									<TableCell align="right">Amount</TableCell>
-									<TableCell align="right">Price/u & Total</TableCell>
-								</TableRow>
-							</TableHead>
-							<TableBody>
-								{Object.keys(buildMaterials || {}).length === 0 ? (
-									<TableRow>
-										<TableCell colSpan={3} align="center">
-											<Typography
-												variant="body2"
-												color="text.secondary"
-												sx={{ py: 2 }}
-											>
-												No buildings placed.
-											</Typography>
-										</TableCell>
-									</TableRow>
-								) : (
-									Object.entries(buildMaterials).map(([ticker, amt]: any) => (
-										<TableRow
-											key={ticker}
+									<Typography variant="caption" color="text.secondary">
+										Auto habs:
+									</Typography>
+									<ToggleButtonGroup
+										size="small"
+										value={autoHabStrategy}
+										exclusive
+										onChange={(_, v) => v && onChangeAutoHabStrategy?.(v)}
+									>
+										<ToggleButton value="area">Min area</ToggleButton>
+										<ToggleButton value="cost">Min cost</ToggleButton>
+									</ToggleButtonGroup>
+									<Box
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											gap: 1,
+											ml: "auto",
+										}}
+									>
+										<Typography variant="caption" color="text.secondary">
+											Enabled
+										</Typography>
+										<input
+											type="checkbox"
+											checked={autoHabEnabled}
+											onChange={(e) => onToggleAutoHab?.(e.target.checked)}
+										/>
+									</Box>
+									<Divider flexItem sx={{ width: "100%" }} />
+								</Box>
+							)}
+							<Box
+								sx={{
+									display: "grid",
+									gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))",
+									gap: 1,
+								}}
+							>
+								{sortedInfra.map((infra: any) => {
+									const currentCount =
+										activeData.infrastructure.find(
+											(i: any) => i.buildingTicker === infra.ticker,
+										)?.amount || 0;
+									const compCount = comparisonData
+										? comparisonData.infrastructure?.find(
+												(ci: any) => ci.buildingTicker === infra.ticker,
+											)?.amount || 0
+										: null;
+									const benefits = [];
+									if (infra.supply)
+										Object.entries(infra.supply).forEach(([k, v]) =>
+											benefits.push(`+${v as number} ${k.substring(0, 3)}`),
+										);
+									if (infra.storageWeight)
+										benefits.push(`+${infra.storageWeight}t`);
+
+									return (
+										<Box
+											key={infra.ticker}
 											sx={{
-												"& td": {
-													borderBottom: "1px solid",
-													borderColor: "divider",
-													whiteSpace: "nowrap",
-													py: 1,
-												},
+												display: "flex",
+												flexDirection: "column",
+												justifyContent: "space-between",
+												p: 1,
+												px: 1.5,
+												border: "1px solid",
+												borderColor:
+													currentCount > 0 ? "primary.main" : "divider",
+												bgcolor:
+													currentCount > 0
+														? alpha(theme.palette.primary.main, 0.05)
+														: "background.paper",
+												borderRadius: 1,
 											}}
 										>
-											<TableCell>
-												<Typography variant="body2" fontWeight="bold">
-													{ticker}
+											<Box
+												sx={{
+													display: "flex",
+													justifyContent: "space-between",
+													alignItems: "center",
+												}}
+											>
+												<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+													{infra.ticker}
+												</Typography>
+												<Typography variant="caption" color="text.secondary">
+													{benefits.join(", ")}
+												</Typography>
+											</Box>
+											<Box
+												sx={{
+													display: "flex",
+													alignItems: "center",
+													justifyContent: "space-between",
+													mt: 1,
+												}}
+											>
+												<Typography
+													variant="body2"
+													color={
+														currentCount > 0 ? "success.main" : "text.secondary"
+													}
+													sx={{ fontWeight: "bold" }}
+												>
+													$
+													{formatCurrency(
+														getBuildingCost(infra.ticker) * currentCount,
+													)}
+												</Typography>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														bgcolor: "background.default",
+														border: "1px solid",
+														borderColor: "divider",
+														borderRadius: 1,
+													}}
+												>
+													<IconButton
+														size="small"
+														onClick={() => handleAdjustInfra(infra.ticker, -1)}
+														disabled={currentCount === 0}
+														sx={{ p: 0.15 }}
+													>
+														<RemoveIcon sx={{ fontSize: "0.8rem" }} />
+													</IconButton>
+													<Box
+														sx={{
+															display: "flex",
+															flexDirection: "column",
+															alignItems: "center",
+															minWidth: 24,
+															px: 0.5,
+														}}
+													>
+														<Typography
+															variant="body2"
+															sx={{
+																textAlign: "center",
+																fontWeight: "bold",
+																color:
+																	compCount !== null &&
+																	compCount !== currentCount
+																		? "warning.main"
+																		: "inherit",
+															}}
+														>
+															{currentCount}
+														</Typography>
+														{compCount !== null &&
+															compCount !== currentCount && (
+																<Typography
+																	variant="caption"
+																	sx={{
+																		fontSize: "0.6rem",
+																		color: "text.secondary",
+																		mt: -0.5,
+																	}}
+																>
+																	vs {compCount}
+																</Typography>
+															)}
+													</Box>
+													<IconButton
+														size="small"
+														onClick={() => handleAdjustInfra(infra.ticker, 1)}
+														sx={{ p: 0.15 }}
+													>
+														<AddIcon sx={{ fontSize: "0.8rem" }} />
+													</IconButton>
+												</Box>
+											</Box>
+										</Box>
+									);
+								})}
+							</Box>
+						</Box>
+					)}
+
+					{rightTab === "capex" && (
+						<Box
+							sx={{
+								overflowY: "auto",
+								flexGrow: 1,
+								display: "flex",
+								flexDirection: "column",
+							}}
+						>
+							<Box
+								sx={{
+									p: 1.25,
+									pb: 0.75,
+									borderBottom: "1px solid",
+									borderColor: "divider",
+								}}
+							>
+								<Box
+									sx={{
+										display: "grid",
+										gridTemplateColumns: "1fr 1fr",
+										gap: 1,
+									}}
+								>
+									<Box
+										sx={{
+											bgcolor: "background.paper",
+											border: "1px solid",
+											borderColor: "divider",
+											borderRadius: 1,
+											p: 1,
+										}}
+									>
+										<Typography variant="caption" color="text.secondary">
+											Production lines
+										</Typography>
+										<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+											{formatCurrency(
+												Object.entries(categorizedMaterials.production).reduce(
+													(acc, [t, a]) => acc + (Number(a) || 0) * getPrice(t),
+													0,
+												),
+											)}
+										</Typography>
+										<Typography variant="caption" color="text.secondary">
+											{Object.keys(categorizedMaterials.production).length} mats
+										</Typography>
+									</Box>
+									<Box
+										sx={{
+											bgcolor: "background.paper",
+											border: "1px solid",
+											borderColor: "divider",
+											borderRadius: 1,
+											p: 1,
+										}}
+									>
+										<Typography variant="caption" color="text.secondary">
+											Infrastructure
+										</Typography>
+										<Typography variant="body2" sx={{ fontWeight: "bold" }}>
+											{formatCurrency(
+												[
+													categorizedMaterials.infraHab,
+													categorizedMaterials.infraStorage,
+													categorizedMaterials.infraOther,
+												]
+													.flatMap((m) => Object.entries(m))
+													.reduce(
+														(acc, [t, a]) =>
+															acc + (Number(a) || 0) * getPrice(t),
+														0,
+													),
+											)}
+										</Typography>
+										<Typography variant="caption" color="text.secondary">
+											Hab {Object.keys(categorizedMaterials.infraHab).length} •
+											Sto{" "}
+											{Object.keys(categorizedMaterials.infraStorage).length}
+										</Typography>
+									</Box>
+								</Box>
+								<Box
+									sx={{
+										mt: 1,
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "baseline",
+									}}
+								>
+									<Typography variant="caption" color="text.secondary">
+										Total (CapEx)
+									</Typography>
+									<Typography
+										variant="subtitle2"
+										sx={{ fontWeight: "bold" }}
+										color="info.main"
+									>
+										${formatCurrency(totalCapEx)}
+									</Typography>
+								</Box>
+							</Box>
+							<Table size="small" stickyHeader>
+								<TableHead>
+									<TableRow
+										sx={{
+											"& th": {
+												bgcolor: "background.default",
+												fontSize: "0.8rem",
+												borderBottom: "1px solid",
+												borderColor: "divider",
+												py: 1,
+											},
+										}}
+									>
+										<TableCell>Ticker</TableCell>
+										<TableCell align="right">Amount</TableCell>
+										<TableCell align="right">Price/u & Total</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>
+									{Object.keys(categorizedMaterials.finalAll || {}).length ===
+									0 ? (
+										<TableRow>
+											<TableCell colSpan={3} align="center">
+												<Typography
+													variant="body2"
+													color="text.secondary"
+													sx={{ py: 2 }}
+												>
+													No buildings placed.
 												</Typography>
 											</TableCell>
-											<TableCell align="right">
-												<Typography variant="body2">{amt}</Typography>
-											</TableCell>
-											<TableCell align="right">
-												<Box
-													display="flex"
-													justifyContent="flex-end"
-													alignItems="center"
-													gap={1.5}
-												>
-													<Typography
-														variant="caption"
-														color="text.secondary"
-														sx={{ minWidth: 35 }}
-													>
-														${formatCurrency(getPrice(ticker))}
-													</Typography>
-													<Typography
-														variant="body2"
-														fontWeight="bold"
-														sx={{ minWidth: 45 }}
-													>
-														${formatCurrency(amt * getPrice(ticker))}
-													</Typography>
-												</Box>
-											</TableCell>
 										</TableRow>
-									))
-								)}
-							</TableBody>
-						</Table>
-					</Box>
+									) : (
+										Object.entries(categorizedMaterials.finalAll)
+											.map(([ticker, amt]: any) => ({
+												ticker,
+												amt,
+												unit: getPrice(ticker),
+												total: amt * getPrice(ticker),
+											}))
+											.sort((a, b) => b.total - a.total)
+											.map(({ ticker, amt, unit, total }) => (
+												<TableRow
+													key={ticker}
+													sx={{
+														"& td": {
+															borderBottom: "1px solid",
+															borderColor: "divider",
+															whiteSpace: "nowrap",
+															py: 1,
+														},
+													}}
+												>
+													<TableCell>
+														<Typography
+															variant="body2"
+															sx={{ fontWeight: "bold" }}
+														>
+															{ticker}
+														</Typography>
+													</TableCell>
+													<TableCell align="right">
+														<Typography variant="body2">{amt}</Typography>
+													</TableCell>
+													<TableCell align="right">
+														<Box
+															sx={{
+																display: "flex",
+																justifyContent: "flex-end",
+																alignItems: "center",
+																gap: 1.5,
+															}}
+														>
+															<Typography
+																variant="caption"
+																color="text.secondary"
+																sx={{ minWidth: 35 }}
+															>
+																${formatCurrency(unit)}
+															</Typography>
+															<Typography
+																variant="body2"
+																sx={{ minWidth: 45, fontWeight: "bold" }}
+															>
+																${formatCurrency(total)}
+															</Typography>
+														</Box>
+													</TableCell>
+												</TableRow>
+											))
+									)}
+								</TableBody>
+							</Table>
+						</Box>
+					)}
 				</Card>
 			</Box>
 		</Box>

@@ -6,14 +6,16 @@ import {
 	LocalShipping,
 	AccountBalance,
 	List as ListIcon,
+	AccountBalanceWallet,
 } from "@mui/icons-material";
 import { alpha } from "@mui/material/styles";
 import { ContractsDashboard } from "./components/dashboard";
 import ContractsList from "./components/contractslist";
 import { ContractsLoans } from "./components/contractsloans";
+import ContractsBank from "./components/contractsbank";
 import ContractDetailDialog from "./components/contractdetaildialog";
 
-type TabValue = "DASHBOARD" | "ALL" | "TRADE" | "SHIPMENT" | "LOANS";
+type TabValue = "DASHBOARD" | "ALL" | "TRADE" | "SHIPMENT" | "LOANS" | "BANKS";
 
 const ContractsPage: React.FC = () => {
 	const theme = useTheme();
@@ -49,6 +51,7 @@ const ContractsPage: React.FC = () => {
 					indicatorColor="secondary"
 					textColor="secondary"
 					variant={isMobile ? "scrollable" : "standard"}
+					centered={!isMobile}
 					scrollButtons="auto"
 					allowScrollButtonsMobile
 					sx={{
@@ -84,11 +87,18 @@ const ContractsPage: React.FC = () => {
 						label="Ship"
 						value="SHIPMENT"
 					/>
+					{/*
 					<Tab
 						icon={<AccountBalance sx={{ fontSize: 18 }} />}
 						iconPosition="start"
 						label="Loans"
 						value="LOANS"
+					/>*/}
+					<Tab
+						icon={<AccountBalanceWallet sx={{ fontSize: 18 }} />}
+						iconPosition="start"
+						label="Banks (WIP)"
+						value="BANKS"
 					/>
 				</Tabs>
 			</Paper>
@@ -116,7 +126,8 @@ const ContractsPage: React.FC = () => {
 				{tab === "SHIPMENT" && (
 					<ContractsList category="SHIPMENT" onViewDetail={setSelectedId} />
 				)}
-				{tab === "LOANS" && <ContractsLoans onViewDetail={setSelectedId} />}
+				{/*tab === "LOANS" && <ContractsLoans onViewDetail={setSelectedId} />*/}
+				{tab === "BANKS" && <ContractsBank />}
 			</Box>
 
 			<ContractDetailDialog

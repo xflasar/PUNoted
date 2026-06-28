@@ -70,10 +70,12 @@ const CreateGroupDialog: React.FC<{
 			onClose={onClose}
 			maxWidth="xs"
 			fullWidth
-			PaperProps={{
-				sx: {
-					bgcolor: theme.palette.background.default,
-					backgroundImage: "none",
+			slotProps={{
+				paper: {
+					sx: {
+						bgcolor: theme.palette.background.default,
+						backgroundImage: "none",
+					},
 				},
 			}}
 		>
@@ -434,7 +436,7 @@ const GroupDetailDialog: React.FC<{
 							key={scope.key}
 							sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}
 						>
-							<CheckCircleOutline
+							<CheckCircleOutlineOutlined
 								sx={{ fontSize: 12, color: "success.light" }}
 							/>
 							<Typography variant="caption" sx={{ color: "common.white" }}>
@@ -587,7 +589,7 @@ const GroupDetailDialog: React.FC<{
 													{searchLoading ? (
 														<CircularProgress color="inherit" size={20} />
 													) : null}
-													{params.InputProps.endAdornment}
+													{params.InputProps?.endAdornment}
 												</React.Fragment>
 											),
 										}}
@@ -608,7 +610,7 @@ const GroupDetailDialog: React.FC<{
 							</Button>
 						</Box>
 					)}
-					<List dense disablePadding sx={{ maxHeight: 300, overflow: "auto" }}>
+					<List dense disablePadding sx={{ maxHeight: 450, overflow: "auto" }}>
 						{members.map((m) => {
 							const isMe = m.user_id === currentUserId;
 							return (
@@ -866,7 +868,7 @@ const GroupsSection: React.FC<{
 				</Alert>
 			)}
 			<Box
-				sx={{ flexGrow: 1, overflowY: "auto", mb: 1, maxHeight: 200, pr: 0.5 }}
+				sx={{ flexGrow: 1, overflowY: "auto", mb: 1, maxHeight: 450, pr: 0.5 }}
 			>
 				<List dense disablePadding>
 					{groups.map((g) => (

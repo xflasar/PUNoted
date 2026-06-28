@@ -1,9 +1,11 @@
+import { API_BASE_URL } from "../../config/api";
+
 export const getApiStatus = async (
 	retries = 3,
 	delay = 1000,
 ): Promise<"online" | "offline"> => {
 	try {
-		const response = await fetch("https://api.punoted.net/status", {
+		const response = await fetch(`${API_BASE_URL}status`, {
 			method: "GET",
 			cache: "no-store", // Prevents browser caching, ensuring a fresh check
 		});

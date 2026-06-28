@@ -30,6 +30,7 @@ export interface MapPoint {
 	systemtype: "O" | "B" | "A" | "F" | "G" | "K" | "M";
 	x: number;
 	y: number;
+	z?: number;
 	color: string;
 	outlineColor?: string;
 	population?: number;
@@ -126,6 +127,11 @@ export interface PlanetData {
 	nextPopulation: any;
 	resources?: PlanetResource[];
 	updatedat?: string;
+	gravity?: number;
+	pressure?: number;
+	temperature?: number;
+	fertility?: number;
+	cogc?: string | null;
 }
 
 export interface Color {
@@ -151,6 +157,12 @@ export interface PlanetPosition {
 	scaledOrbitalRadius?: number;
 	scaledPlanetRadius?: number;
 	type: string;
+	resources?: PlanetResource[];
+	gravity?: number;
+	pressure?: number;
+	temperature?: number;
+	fertility?: number;
+	cogc?: string | null;
 }
 
 export interface StationPosition {
@@ -243,9 +255,10 @@ export interface AnimatedShipData {
 	id: string;
 	registration: string;
 	name: string;
-	ownerName: string;
-	ownerId: string;
-	is_owner_ship: boolean;
+	display_name: string;
+	company_code: string;
+	user_id: string;
+	is_owner: boolean;
 	addressplanetid: string;
 	addresssystemid: string;
 	addressstationid: string;
@@ -257,6 +270,42 @@ export interface AnimatedShipData {
 	bearing?: number; // Optional bearing angle in degrees
 	visible?: boolean; // Optional visibility flag
 	cargo?: ShipCargo;
+	is_corp?: boolean;
+	iscorp?: boolean;
+}
+
+export interface ShipData extends AnimatedShipData {
+	ship_id: string;
+	user_id: string;
+	name: string;
+	registration: string;
+	ship_type: string;
+	address_planet_id: string;
+	address_station_id: string;
+	address_system_id: string;
+	acceleration: number;
+	thrust: number;
+	volume: number;
+	mass: number;
+	operating_empty_mass: number;
+	reactor_power: number;
+	emitter_power: number;
+	stl_fuel_flow_rate: number;
+	status: string;
+	condition: number;
+	commissioning_time: string;
+	last_repair: string;
+	flight_id: string;
+	id_ftl_fuel_store: string;
+	id_stl_fuel_store: string;
+	id_ship_store: string;
+	operating_time_ftl: number;
+	operating_time_stl: number;
+	blueprint_natural_id: string;
+	is_owner: boolean;
+	company_code: string;
+	display_name: string;
+	personal_suffix: string;
 }
 
 export interface ShipCargo {

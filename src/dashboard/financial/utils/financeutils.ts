@@ -3,10 +3,10 @@ export const SEMANTIC_COLORS = {
 	chartPalette: ["#8B5CF6", "#0EA5E9", "#10B981", "#F59E0B", "#EC4899"],
 };
 
-export const formatCurrency = (val: number) => {
+export const formatCurrency = (val: number, decimals: number = 2) => {
 	return new Intl.NumberFormat("en-US", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
+		minimumFractionDigits: decimals,
+		maximumFractionDigits: decimals,
 	}).format(val);
 };
 

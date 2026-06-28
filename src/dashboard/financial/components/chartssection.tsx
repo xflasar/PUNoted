@@ -28,19 +28,19 @@ export const LiquidityTrendChart = ({ historyData, currency }: any) => {
 	return (
 		<FlexCard
 			sx={{
-				flex: { xs: "none", lg: 0.8 },
-				height: { xs: 250, lg: "auto" },
-				minHeight: { lg: 0 },
+				height: 280,
 			}}
 		>
 			<Box
-				px={2}
-				py={1}
-				display="flex"
-				alignItems="center"
-				borderBottom={`1px solid ${theme.palette.divider}`}
+				sx={{
+					px: 3,
+					py: 1.5,
+					display: "flex",
+					alignItems: "center",
+					borderBottom: `1px solid ${theme.palette.divider}`,
+				}}
 			>
-				<Typography fontWeight={700} fontSize="0.85rem">
+				<Typography fontWeight={750} fontSize="0.85rem">
 					30-Day Liquidity Trend ({currency})
 				</Typography>
 			</Box>
@@ -53,52 +53,45 @@ export const LiquidityTrendChart = ({ historyData, currency }: any) => {
 						>
 							<defs>
 								<linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-									<stop
-										offset="5%"
-										stopColor={theme.palette.primary.main}
-										stopOpacity={0.4}
-									/>
-									<stop
-										offset="95%"
-										stopColor={theme.palette.primary.main}
-										stopOpacity={0}
-									/>
+									<stop offset="5%" stopColor="#00e5ff" stopOpacity={0.2} />
+									<stop offset="95%" stopColor="#00e5ff" stopOpacity={0} />
 								</linearGradient>
 							</defs>
 							<CartesianGrid
 								strokeDasharray="3 3"
-								opacity={0.1}
 								vertical={false}
-								stroke={theme.palette.divider}
+								stroke="rgba(255, 255, 255, 0.05)"
 							/>
 							<XAxis
 								dataKey="Date"
-								tick={{ fill: theme.palette.text.secondary, fontSize: 10 }}
+								tick={{ fill: theme.palette.text.secondary, fontSize: 9 }}
 								axisLine={false}
 								tickLine={false}
 								dy={5}
 							/>
 							<YAxis
 								tickFormatter={compactFormatter}
-								tick={{ fill: theme.palette.text.secondary, fontSize: 10 }}
+								tick={{ fill: theme.palette.text.secondary, fontSize: 9 }}
 								axisLine={false}
 								tickLine={false}
 							/>
 							<RechartsTooltip
 								formatter={(value: number) => formatCurrency(value)}
 								contentStyle={{
-									backgroundColor: theme.palette.background.default,
-									borderColor: theme.palette.divider,
+									backgroundColor: "rgba(10, 15, 30, 0.95)",
+									borderColor: "rgba(0, 229, 255, 0.25)",
 									color: theme.palette.text.primary,
 									borderRadius: "8px",
-									padding: "4px 8px",
-									fontSize: "0.85rem",
+									padding: "6px 12px",
+									fontSize: "0.8rem",
+									boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
+									backdropFilter: "blur(4px)",
 								}}
 							/>
 							<Area
 								type="monotone"
 								dataKey="Balance"
-								stroke={theme.palette.primary.main}
+								stroke="#00e5ff"
 								strokeWidth={2}
 								fill="url(#colorBalance)"
 							/>
@@ -106,12 +99,14 @@ export const LiquidityTrendChart = ({ historyData, currency }: any) => {
 					</ResponsiveContainer>
 				) : (
 					<Box
-						display="flex"
-						justifyContent="center"
-						alignItems="center"
-						height="100%"
-						color="text.secondary"
-						fontSize="0.8rem"
+						sx={{
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							height: "100%",
+							color: "text.secondary",
+							fontSize: "0.8rem",
+						}}
 					>
 						Insufficient historical data
 					</Box>
@@ -126,17 +121,17 @@ export const IncomeSourcesChart = ({ pieChartData }: any) => {
 	return (
 		<FlexCard
 			sx={{
-				gridColumn: { xs: "1", md: "1", lg: "span 2" },
-				height: { xs: 300, lg: "auto" },
-				minHeight: { lg: 0 },
+				height: 260,
 			}}
 		>
 			<Box
-				px={2}
-				py={1}
-				display="flex"
-				alignItems="center"
-				borderBottom={`1px solid ${theme.palette.divider}`}
+				sx={{
+					px: 3,
+					py: 1.5,
+					display: "flex",
+					alignItems: "center",
+					borderBottom: `1px solid ${theme.palette.divider}`,
+				}}
 			>
 				<Typography fontWeight={700} fontSize="0.85rem">
 					30-Day Income Sources
@@ -170,12 +165,14 @@ export const IncomeSourcesChart = ({ pieChartData }: any) => {
 							<RechartsTooltip
 								formatter={(value: number) => formatCurrency(value)}
 								contentStyle={{
-									backgroundColor: theme.palette.background.default,
-									borderColor: theme.palette.divider,
+									backgroundColor: "rgba(10, 15, 30, 0.95)",
+									borderColor: "rgba(255, 255, 255, 0.08)",
 									color: theme.palette.text.primary,
 									borderRadius: "8px",
-									padding: "4px 8px",
-									fontSize: "0.85rem",
+									padding: "6px 12px",
+									fontSize: "0.8rem",
+									boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
+									backdropFilter: "blur(4px)",
 								}}
 							/>
 							<Legend
@@ -191,12 +188,14 @@ export const IncomeSourcesChart = ({ pieChartData }: any) => {
 					</ResponsiveContainer>
 				) : (
 					<Box
-						display="flex"
-						justifyContent="center"
-						alignItems="center"
-						height="100%"
-						color="text.secondary"
-						fontSize="0.8rem"
+						sx={{
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							height: "100%",
+							color: "text.secondary",
+							fontSize: "0.8rem",
+						}}
 					>
 						No income generated
 					</Box>
@@ -211,17 +210,17 @@ export const VelocityBarChart = ({ incomeExpense30D }: any) => {
 	return (
 		<FlexCard
 			sx={{
-				gridColumn: { xs: "1", md: "2", lg: "span 2" },
-				height: { xs: 300, lg: "auto" },
-				minHeight: { lg: 0 },
+				height: 260,
 			}}
 		>
 			<Box
-				px={2}
-				py={1}
-				display="flex"
-				alignItems="center"
-				borderBottom={`1px solid ${theme.palette.divider}`}
+				sx={{
+					px: 3,
+					py: 1.5,
+					display: "flex",
+					alignItems: "center",
+					borderBottom: `1px solid ${theme.palette.divider}`,
+				}}
 			>
 				<Typography fontWeight={700} fontSize="0.85rem">
 					30-Day Velocity
@@ -236,33 +235,34 @@ export const VelocityBarChart = ({ incomeExpense30D }: any) => {
 						>
 							<CartesianGrid
 								strokeDasharray="3 3"
-								opacity={0.1}
 								vertical={false}
-								stroke={theme.palette.divider}
+								stroke="rgba(255, 255, 255, 0.05)"
 							/>
 							<XAxis
 								dataKey="name"
-								tick={{ fill: theme.palette.text.secondary, fontSize: 10 }}
+								tick={{ fill: theme.palette.text.secondary, fontSize: 9 }}
 								axisLine={false}
 								tickLine={false}
 								dy={5}
 							/>
 							<YAxis
 								tickFormatter={compactFormatter}
-								tick={{ fill: theme.palette.text.secondary, fontSize: 10 }}
+								tick={{ fill: theme.palette.text.secondary, fontSize: 9 }}
 								axisLine={false}
 								tickLine={false}
 							/>
 							<RechartsTooltip
-								cursor={{ fill: alpha(theme.palette.text.primary, 0.05) }}
+								cursor={{ fill: "rgba(255, 255, 255, 0.03)" }}
 								formatter={(value: number) => formatCurrency(Math.abs(value))}
 								contentStyle={{
-									backgroundColor: theme.palette.background.default,
-									borderColor: theme.palette.divider,
+									backgroundColor: "rgba(10, 15, 30, 0.95)",
+									borderColor: "rgba(255, 255, 255, 0.08)",
 									color: theme.palette.text.primary,
 									borderRadius: "8px",
-									padding: "4px 8px",
-									fontSize: "0.85rem",
+									padding: "6px 12px",
+									fontSize: "0.8rem",
+									boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
+									backdropFilter: "blur(4px)",
 								}}
 							/>
 							<Legend
@@ -294,12 +294,14 @@ export const VelocityBarChart = ({ incomeExpense30D }: any) => {
 					</ResponsiveContainer>
 				) : (
 					<Box
-						display="flex"
-						justifyContent="center"
-						alignItems="center"
-						height="100%"
-						color="text.secondary"
-						fontSize="0.8rem"
+						sx={{
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							height: "100%",
+							color: "text.secondary",
+							fontSize: "0.8rem",
+						}}
 					>
 						No operational data
 					</Box>
@@ -314,17 +316,17 @@ export const VelocityLedgerTable = ({ cashFlows }: any) => {
 	return (
 		<FlexCard
 			sx={{
-				gridColumn: { xs: "1", md: "1 / -1", lg: "span 3" },
-				height: { xs: 350, lg: "auto" },
-				minHeight: { lg: 0 },
+				height: 280,
 			}}
 		>
 			<Box
-				px={2}
-				py={1}
-				display="flex"
-				alignItems="center"
-				borderBottom={`1px solid ${theme.palette.divider}`}
+				sx={{
+					px: 3,
+					py: 1.5,
+					display: "flex",
+					alignItems: "center",
+					borderBottom: `1px solid ${theme.palette.divider}`,
+				}}
 			>
 				<Typography fontWeight={700} fontSize="0.85rem">
 					Velocity Ledger
@@ -354,7 +356,7 @@ export const VelocityLedgerTable = ({ cashFlows }: any) => {
 					<thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
 						<tr
 							style={{
-								backgroundColor: alpha(theme.palette.background.default, 0.95),
+								backgroundColor: "rgba(30, 37, 52, 0.98)",
 								color: theme.palette.text.secondary,
 								fontSize: "0.65rem",
 								textTransform: "uppercase",

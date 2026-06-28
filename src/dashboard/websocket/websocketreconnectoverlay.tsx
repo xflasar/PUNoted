@@ -14,31 +14,38 @@ const WsReconnectionOverlay: React.FC = () => {
 	const theme = useTheme();
 	const { status } = useGlobalWsContext();
 	const isConnected = status === "connected";
+	const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
+
+	useEffect(() => {
+		if (isConnected) {
+			setHasConnectedOnce(true);
+		}
+	}, [isConnected]);
 
 	// We can keep a visual countdown for UX, even though the Context handles the actual retrying
 	const [countdown, setCountdown] = useState(5);
 
 	useEffect(() => {
-		if (!isConnected) {
+		if (hasConnectedOnce && !isConnected) {
 			setCountdown(5);
 			const timer = setInterval(() => {
 				setCountdown((prev) => (prev > 0 ? prev - 1 : 5));
 			}, 1000);
 			return () => clearInterval(timer);
 		}
-	}, [isConnected]);
+	}, [hasConnectedOnce, isConnected]);
 
 	// Optional: Allow manual page reload if stuck
 	const handleManualReload = () => {
 		window.location.reload();
 	};
 
-	if (isConnected) return null;
+	if (!hasConnectedOnce || isConnected) return null;
 
 	return (
 		<Box
 			sx={{
-				position: "fixed", // Use fixed to cover the entire viewport regardless of scroll
+				position: "fixed",
 				top: 0,
 				left: 0,
 				width: "100vw",

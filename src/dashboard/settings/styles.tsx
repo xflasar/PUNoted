@@ -2,7 +2,7 @@
 import React from "react";
 import { Box, Typography, Badge } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { SectionGuide, type GuideStep } from "../../helpers/globalguide"; // Adjust path
+import { SectionGuide, type GuideStep } from "../../helpers/globalguide";
 
 export const transparentCardStyle = (theme: any) => ({
 	p: 1.5,
@@ -10,7 +10,7 @@ export const transparentCardStyle = (theme: any) => ({
 	flexDirection: "column",
 	backgroundColor: alpha(theme.palette.background.default, 0.4),
 	backdropFilter: "blur(12px)",
-	border: `1px solid ${theme.palette.divider}`,
+	//border: `1px solid ${theme.palette.divider}`,
 	borderRadius: 2,
 	height: "100%",
 	transition: "all 0.2s ease-in-out",
@@ -25,7 +25,7 @@ export const SectionHeader: React.FC<{
 	title: string;
 	color: string;
 	badge?: number;
-	guideSteps?: GuideStep[]; // New prop for passing steps
+	guideSteps?: GuideStep[];
 }> = ({ icon, title, color, badge, guideSteps }) => (
 	<Box
 		sx={{

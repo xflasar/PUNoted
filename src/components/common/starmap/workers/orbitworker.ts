@@ -15,7 +15,7 @@ import { shipPositionOnEllipse } from "../utils/gettransferelipse";
 const SCALE_FACTOR = 5e9;
 const SCALE_FACTOR_STATIONS = 5e9;
 const G = 6.67384e-11;
-let UPDATE_INTERVAL_MS = 1000;
+let UPDATE_INTERVAL_MS = 5000;
 const TRAIL_UPDATE_MS = 30000;
 const TRAIL_SEGMENTS = 28;
 const TRAIL_LENGTH_RAD = Math.PI / 1.5;
@@ -223,10 +223,13 @@ function regenerateTrails(worldTime: number) {
 
 function getFlightStatus(ship: any, plan: any) {
 	if (!plan || !plan.segments)
-		return { isInterSystem: false, systemId: ship.addresssystemid };
+		return {
+			isInterSystem: false,
+			systemId: ship.addresssystemid || ship.address_system_id,
+		};
 	const now = Date.now();
 	const activeSegment = plan.segments.find(
-		(s: any) => now >= s.departure && now < s.arrival,
+		(s: any) => now >= Date.parse(s.departure) && now < Date.parse(s.arrival),
 	);
 	if (activeSegment) {
 		if (
@@ -240,7 +243,15 @@ function getFlightStatus(ship: any, plan: any) {
 		}
 		return { isInterSystem: false, systemId: activeSegment.origin_system_id };
 	}
-	return { isInterSystem: false, systemId: ship.addresssystemid };
+	// ARRIVAL LIMBO LOGIC (Galaxy scale)
+	if (plan.departuretimestamp && now >= Date.parse(plan.departuretimestamp)) {
+		const lastSeg = plan.segments[plan.segments.length - 1];
+		return { isInterSystem: false, systemId: lastSeg.destination_system_id };
+	}
+	return {
+		isInterSystem: false,
+		systemId: ship.addresssystemid || ship.address_system_id,
+	};
 }
 
 function calculateShipPositionGalaxy(
@@ -257,16 +268,24 @@ function calculateShipPositionGalaxy(
 			const startSystem = sysMap.get(activeSegment.origin_system_id);
 			const endSystem = sysMap.get(activeSegment.destination_system_id);
 			if (!startSystem || !endSystem) return null;
-
 			const duration = activeSegment.arrival - activeSegment.departure;
 			if (duration <= 0) return [endSystem.x, endSystem.y, 0];
 			const progress = (currentTime - activeSegment.departure) / duration;
 			const x = startSystem.x + (endSystem.x - startSystem.x) * progress;
 			const y = startSystem.y + (endSystem.y - startSystem.y) * progress;
-			const bearing = calculateBearing([x, y], [endSystem.x, endSystem.y]);
-			return [x, y, bearing];
+			return [x, y, calculateBearing([x, y], [endSystem.x, endSystem.y])];
 		}
-		const sys = sysMap.get(ship.addresssystemid);
+		// ARRIVAL LIMBO LOGIC (Galaxy position)
+		if (
+			plan &&
+			plan.departuretimestamp &&
+			currentTime >= Date.parse(plan.departuretimestamp)
+		) {
+			const lastSeg = plan.segments[plan.segments.length - 1];
+			const sys = sysMap.get(lastSeg.destination_system_id);
+			return sys ? [sys.x, sys.y, ship.bearing || 0] : null;
+		}
+		const sys = sysMap.get(ship.addresssystemid || ship.address_system_id);
 		return sys ? [sys.x, sys.y, ship.bearing || 0] : null;
 	} catch (err) {
 		return null;
@@ -279,25 +298,45 @@ function calculateShipPositionInSystem(
 	currentTime: number,
 	targetLookup: Map<string, { x: number; y: number }>,
 	currentSystem: MapPoint | null,
-): [number, number] | null {
+): [number, number, number] | null {
 	try {
 		const activeSegment = plan?.segments?.find(
 			(s: any) => currentTime >= s.departure && currentTime < s.arrival,
 		);
 		if (!activeSegment) {
-			const targetId = ship.addressplanetid ?? ship.addressstationid;
+			// ARRIVAL LIMBO LOGIC (System position)
+			if (plan && plan._arrivalMs && currentTime >= plan._arrivalMs) {
+				const lastSeg = plan.segments[plan.segments.length - 1];
+				const destId =
+					lastSeg.destination_planet_id ?? lastSeg.destination_station_id;
+				const target = targetLookup.get(destId);
+				return target
+					? [target.x, target.y, ship.bearing || 0]
+					: currentSystem
+						? [currentSystem.x, currentSystem.y, ship.bearing || 0]
+						: null;
+			}
+			// Docked (Static)
+			const targetId =
+				ship.addressplanetid ??
+				ship.addressstationid ??
+				ship.address_planet_id ??
+				ship.address_station_id;
 			const target = targetLookup.get(targetId);
 			return target
-				? [target.x, target.y]
+				? [target.x, target.y, ship.bearing || 0]
 				: currentSystem
-					? [currentSystem.x, currentSystem.y]
+					? [currentSystem.x, currentSystem.y, ship.bearing || 0]
 					: null;
 		}
 		if (activeSegment.transferellipse && currentSystem) {
-			const duration = activeSegment.arrival - activeSegment.departure;
 			const progress = Math.min(
 				1,
-				Math.max(0, (currentTime - activeSegment.departure) / duration),
+				Math.max(
+					0,
+					(currentTime - activeSegment.departure) /
+						(activeSegment.arrival - activeSegment.departure),
+				),
 			);
 			try {
 				const res = shipPositionOnEllipse(
@@ -305,10 +344,27 @@ function calculateShipPositionInSystem(
 					progress,
 					currentSystem,
 				);
-				if (res) return [res[0], res[1]];
+				if (res) {
+					const sampleNextProgress = Math.min(1.0, progress + 0.005);
+					const resNext = shipPositionOnEllipse(
+						activeSegment.transferellipse,
+						sampleNextProgress,
+						currentSystem,
+					);
+					let bearing = ship.bearing || 0;
+					if (resNext) {
+						bearing = calculateBearing(
+							[res[0], res[1]],
+							[resNext[0], resNext[1]],
+						);
+					}
+					return [res[0], res[1], bearing];
+				}
 			} catch (e) {}
 		}
-		return currentSystem ? [currentSystem.x, currentSystem.y] : null;
+		return currentSystem
+			? [currentSystem.x, currentSystem.y, ship.bearing || 0]
+			: null;
 	} catch (err) {
 		return null;
 	}
@@ -496,7 +552,7 @@ function calculateAndPostEverything() {
 				} else visible = 0;
 			} else {
 				const sys =
-					systemsMap.get(ship.addresssystemid) ||
+					systemsMap.get(ship.addresssystemid || ship.address_system_id) ||
 					systemsMap.get(flightStatus.systemId);
 				if (sys) {
 					x = sys.x;
@@ -521,6 +577,7 @@ function calculateAndPostEverything() {
 				if (pos) {
 					x = pos[0];
 					y = pos[1];
+					bearing = pos[2];
 				} else visible = 0;
 			}
 		}
@@ -655,10 +712,19 @@ self.onmessage = function (e: MessageEvent) {
 		shipsForInterval = (d.payload?.ships || []).slice();
 		plansMap = new Map(
 			(d.payload?.activeFlightPlans || []).map((p: any) => {
-				if (p.departuretimestamp && !(p as any)._departureMs)
-					(p as any)._departureMs = Date.parse(p.departuretimestamp);
-				if (p.arrivaltimestamp && !(p as any)._arrivalMs)
-					(p as any)._arrivalMs = Date.parse(p.arrivaltimestamp);
+				if (!(p as any)._arrivalMs) {
+					if (p.segments && p.segments.length > 0) {
+						(p as any)._arrivalMs = p.segments[p.segments.length - 1].arrival;
+						(p as any)._departureMs = p.segments[0].departure;
+					} else if (p.arrivaltimestamp) {
+						const t1 = Date.parse(p.arrivaltimestamp);
+						const t2 = p.departuretimestamp
+							? Date.parse(p.departuretimestamp)
+							: 0;
+						(p as any)._arrivalMs = Math.max(t1, t2);
+						(p as any)._departureMs = Math.min(t1, t2);
+					}
+				}
 				return [p.shipid || p.id, p];
 			}),
 		);

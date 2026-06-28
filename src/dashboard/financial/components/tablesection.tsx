@@ -37,7 +37,7 @@ export const ActivityTableContent = ({
 			<thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
 				<tr
 					style={{
-						backgroundColor: alpha(theme.palette.background.default, 0.95),
+						backgroundColor: "rgba(30, 37, 52, 0.98)",
 						color: theme.palette.text.secondary,
 						fontSize: "0.65rem",
 						textTransform: "uppercase",
@@ -218,7 +218,7 @@ export const TopPartnersTableContent = ({
 			<thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
 				<tr
 					style={{
-						backgroundColor: alpha(theme.palette.background.default, 0.95),
+						backgroundColor: "rgba(30, 37, 52, 0.98)",
 						color: theme.palette.text.secondary,
 						fontSize: "0.65rem",
 						textTransform: "uppercase",

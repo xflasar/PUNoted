@@ -1,8 +1,9 @@
+import { API_BASE_URL } from "../../../config/api";
 import { useState, useEffect, useCallback } from "react";
 import type { StaticData } from "../types";
 
 const CACHE_KEY = "pu_static_data_cache";
-const API_BASE_URL = "https://api.punoted.net/dev/"; // Make sure this matches your backend port!
+// Make sure this matches your backend port!
 
 export const useStaticData = () => {
 	const [staticData, setStaticData] = useState<StaticData | null>(null);

@@ -22,7 +22,9 @@ export interface FlowData {
 	flow: number; // Net flow (Production - Consumption)
 	baseFlow: number; // Original API flow
 	workforceFlow: number; // Workforce consumption (negative)
-	currentAmount: number;
+	currentAmount: number; // Total amount available
+	siteAmount?: number; // Amount stored in site (automatically used)
+	warehouseAmount?: number; // Amount stored in warehouse (manually used)
 	daysRemaining: number;
 	missing: number; // Amount needed to meet target
 	isProduction: boolean; // True if flow > 0
@@ -32,9 +34,11 @@ export interface StorageItem {
 	ticker: string;
 	amount: number;
 	material_id: string;
+	type?: string;
 }
 
 export interface SiteSummary {
+	planetid: any;
 	siteid?: string;
 	planet_name: string;
 	area: number;
@@ -45,9 +49,12 @@ export interface SiteSummary {
 	storage_items: StorageItem[];
 	overall_platform_condition: number;
 	warning_level: number;
+	isLeased?: boolean;
+	tenant?: string;
 }
 
 export interface SiteWithFlows {
+	siteid: string;
 	site: SiteSummary;
 	richFlows: Record<string, FlowData>;
 }

@@ -1,3 +1,4 @@
+import { fetchClient } from "../../../utils/apiClient";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
 	Box,
@@ -130,26 +131,17 @@ const ContractsLoans: React.FC<{ onViewDetail: (id: string) => void }> = ({
 	// --- FETCH ---
 	useEffect(() => {
 		const fetchLoans = async () => {
-			const token = localStorage.getItem("authToken");
-			if (!token) return;
 			setLoading(true);
 			try {
-				const res = await fetch(
-					`https://punoted.ddns.net/dev/api/internal/contracts/loans?status=ALL`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							Authorization: `Bearer ${token}`,
-						},
-						body: JSON.stringify({
-							category: "LOAN",
-							search: search,
-							page: 1,
-							limit: 500,
-						}),
-					},
-				);
+				const res = await fetchClient("/internal/contracts/loans?status=ALL", {
+					method: "POST",
+					body: JSON.stringify({
+						category: "LOAN",
+						search: search,
+						page: 1,
+						limit: 500,
+					}),
+				});
 				if (res.ok) {
 					const data = await res.json();
 					setAllLoans(data.items || []);
@@ -269,11 +261,11 @@ const ContractsLoans: React.FC<{ onViewDetail: (id: string) => void }> = ({
 			<Paper
 				elevation={0}
 				sx={{
-					p: 1.5,
-					mb: 1,
+					p: 1,
+					mb: 0.5,
 					border: `1px solid ${theme.palette.divider}`,
 					bgcolor: alpha(theme.palette.background.default, 0.6),
-					borderRadius: 2,
+					borderRadius: 1.5,
 				}}
 			>
 				<Box
@@ -397,7 +389,7 @@ const ContractsLoans: React.FC<{ onViewDetail: (id: string) => void }> = ({
 			)}
 
 			{/* --- High Level Metrics --- */}
-			<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 2 }}>
+			<Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 1 }}>
 				<MetricPill
 					label="TOTAL ASSETS"
 					value={stats.totalGiven}
@@ -496,7 +488,7 @@ const ContractsLoans: React.FC<{ onViewDetail: (id: string) => void }> = ({
 								sx={{ height: 20, fontWeight: 800 }}
 							/>
 						</Box>
-						<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
+						<Box sx={{ flex: 1, overflowY: "auto", p: 0.5 }}>
 							{loansGiven.map((c) => (
 								<LoanTicket
 									key={c.id}
@@ -557,7 +549,7 @@ const ContractsLoans: React.FC<{ onViewDetail: (id: string) => void }> = ({
 								sx={{ height: 20, fontWeight: 800 }}
 							/>
 						</Box>
-						<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
+						<Box sx={{ flex: 1, overflowY: "auto", p: 0.5 }}>
 							{loansTaken.map((c) => (
 								<LoanTicket
 									key={c.id}

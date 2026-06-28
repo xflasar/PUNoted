@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useState, useEffect, useMemo, useTransition } from "react";
 import {
 	ComposedChart,
@@ -273,7 +274,7 @@ export const ProductionLeaderboard: React.FC = () => {
 		const fetchLeaderboard = async () => {
 			try {
 				const response = await fetch(
-					"https://api.punoted.net/internal/leaderboard/production",
+					`${API_BASE_URL}internal/leaderboard/production`,
 				);
 				const result = await response.json();
 

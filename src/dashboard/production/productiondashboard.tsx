@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../config/api";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
 	Box,
@@ -7,15 +8,25 @@ import {
 	TextField,
 	InputAdornment,
 	Drawer,
-	Grid,
 	useTheme,
 	alpha,
 	Divider,
 	Collapse,
 	Button,
+	ToggleButtonGroup,
+	ToggleButton,
+	Autocomplete,
+	Chip,
 } from "@mui/material";
 import { Masonry } from "@mui/lab";
-import { Search, Factory, ChevronDown, ChevronUp, Globe } from "lucide-react";
+import {
+	Search,
+	Factory,
+	ChevronDown,
+	ChevronUp,
+	Globe,
+	Handshake,
+} from "lucide-react";
 
 import { ProductionCard } from "./productioncard";
 import type {
@@ -27,6 +38,7 @@ import type {
 	SiteWithFlows,
 } from "./types";
 import { SiteDrawerContent } from "./components/sitedrawercontent";
+import { useGlobalData } from "../../context/globaldatacontext";
 
 const LOCAL_STORAGE_KEY = "siteTargetSupplyDays";
 const DEFAULT_DAYS = 30;
@@ -35,49 +47,38 @@ const ProductionDashboard: React.FC = () => {
 	const theme = useTheme();
 
 	// --- STATE ---
-	const [data, setData] = useState<Record<string, SiteSummary>>({});
-	const [workforce, setWorkforce] = useState<GroupedWorkforceData | null>(null);
-	const [loading, setLoading] = useState(true);
+	const { productionData, workforceData, isProductionLoading, storageState } =
+		useGlobalData();
 	const [searchTerm, setSearchTerm] = useState("");
 	const [selectedSite, setSelectedSite] = useState<SiteWithFlows | null>(null);
 	const [siteTargets, setSiteTargets] = useState<Record<string, number>>({});
 	const [summaryOpen, setSummaryOpen] = useState(false);
 
+	// --- FILTER STATE ---
+	const [leaseFilter, setLeaseFilter] = useState<
+		"all" | "owned" | "leased" | "loaned"
+	>("all");
+	const [selectedTenants, setSelectedTenants] = useState<string[]>([]);
+	const [selectedSummarySites, setSelectedSummarySites] = useState<
+		Record<string, boolean>
+	>({});
+
 	// --- LOAD DATA ---
 	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				const token = localStorage.getItem("authToken");
-				const headers = { Authorization: `Bearer ${token}` };
-				const [prodRes, workRes] = await Promise.all([
-					fetch("https://api.punoted.net/internal/production/user_production", {
-						headers,
-					}),
-					fetch("https://api.punoted.net/user_workforce_with_needs", {
-						headers,
-					}),
-				]);
-				const prodJson: ApiResponse = await prodRes.json();
-				const workJson: ApiResponseWorkforce = await workRes.json();
-				if (prodJson.success) setData(prodJson.data);
-				if (workJson.success) setWorkforce(workJson.data);
-
-				try {
-					const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-					if (stored) setSiteTargets(JSON.parse(stored));
-				} catch {}
-			} catch (e) {
-				console.error(e);
-			} finally {
-				setLoading(false);
-			}
-		};
-		fetchData();
+		try {
+			const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+			if (stored) setSiteTargets(JSON.parse(stored));
+		} catch {}
 	}, []);
 
 	// --- PROCESSING ---
 	const processedSites = useMemo(() => {
+		const data = productionData || {};
 		if (Object.keys(data).length === 0) return [];
+
+		const storageUnits = storageState?.units
+			? Object.values(storageState.units)
+			: [];
 
 		return Object.entries(data).map(([siteId, site]) => {
 			const richFlows: Record<string, FlowData> = {};
@@ -95,7 +96,7 @@ const ProductionDashboard: React.FC = () => {
 				};
 			});
 
-			const siteWorkforce = workforce ? workforce[siteId] : null;
+			const siteWorkforce = workforceData ? workforceData[siteId] : null;
 			if (siteWorkforce) {
 				siteWorkforce.forEach((level) => {
 					level.needs.forEach((need) => {
@@ -118,38 +119,131 @@ const ProductionDashboard: React.FC = () => {
 				});
 			}
 
-			return { site: { ...site, siteid: siteId }, richFlows };
+			// Gather storage items for this site from storageState
+			// Match by storagelocation === site.planet_name
+			const matchingUnits = storageUnits.filter(
+				(u) =>
+					u.storagelocation === site.planet_name &&
+					(u.type === "STORE" || u.type === "WAREHOUSE_STORE"),
+			);
+
+			const aggregatedItems = new Map<
+				string,
+				{ ticker: string; amount: number; type: string; material_id: string }
+			>();
+
+			matchingUnits.forEach((u) => {
+				const displayType = u.type === "WAREHOUSE_STORE" ? "warehouse" : "site";
+				(u.items || []).forEach((item) => {
+					// Group by ticker AND displayType to preserve the separation of site and warehouse inventory
+					const key = `${item.name}-${displayType}`;
+					if (aggregatedItems.has(key)) {
+						aggregatedItems.get(key)!.amount += item.quantity;
+					} else {
+						aggregatedItems.set(key, {
+							ticker: item.name,
+							amount: item.quantity,
+							type: displayType,
+							material_id: item.id || "",
+						});
+					}
+				});
+			});
+
+			const siteStorageItems = Array.from(aggregatedItems.values());
+
+			return {
+				site: {
+					...site,
+					siteid: siteId,
+					storage_items: siteStorageItems,
+				},
+				richFlows,
+			};
 		});
-	}, [data, workforce]);
+	}, [productionData, workforceData, storageState]);
+
+	// Initialize selected sites for the Empire Summary
+	useEffect(() => {
+		setSelectedSummarySites((prev) => {
+			const next = { ...prev };
+			let updated = false;
+			processedSites.forEach(({ site }) => {
+				const isLoaned = !site.isLeased && !!site.tenant;
+				if (!isLoaned && next[site.siteid] === undefined) {
+					next[site.siteid] = true;
+					updated = true;
+				}
+			});
+			return updated ? next : prev;
+		});
+	}, [processedSites]);
+
+	// Extract unique tenants for the filter dropdown
+	const availableTenants = useMemo(() => {
+		const tenants = new Set<string>();
+		processedSites.forEach((s) => {
+			if (s.site.tenant) tenants.add(s.site.tenant);
+		});
+		return Array.from(tenants).sort();
+	}, [processedSites]);
 
 	// --- GLOBAL SUMMARY ---
 	const globalSummary = useMemo(() => {
 		const summary: Record<string, { prod: number; cons: number; net: number }> =
 			{};
-
-		processedSites.forEach(({ richFlows }) => {
-			Object.values(richFlows).forEach((f) => {
-				if (!summary[f.ticker])
-					summary[f.ticker] = { prod: 0, cons: 0, net: 0 };
-
-				if (f.flow > 0) summary[f.ticker].prod += f.flow;
-				else summary[f.ticker].cons += f.flow;
-
-				summary[f.ticker].net += f.flow;
-			});
+		processedSites.forEach(({ site, richFlows }) => {
+			const isLoaned = !site.isLeased && !!site.tenant;
+			if (!isLoaned && selectedSummarySites[site.siteid]) {
+				Object.values(richFlows).forEach((f) => {
+					if (!summary[f.ticker])
+						summary[f.ticker] = { prod: 0, cons: 0, net: 0 };
+					if (f.flow > 0) summary[f.ticker].prod += f.flow;
+					else summary[f.ticker].cons += f.flow;
+					summary[f.ticker].net += f.flow;
+				});
+			}
 		});
-
 		return Object.entries(summary)
 			.filter(([_, s]) => Math.abs(s.net) > 0.1)
 			.sort((a, b) => a[1].net - b[1].net);
-	}, [processedSites]);
+	}, [processedSites, selectedSummarySites]);
 
+	// --- FILTERING ---
 	const filteredSites = useMemo(() => {
-		if (!searchTerm) return processedSites;
-		return processedSites.filter(({ site }) =>
-			site.planet_name.toLowerCase().includes(searchTerm.toLowerCase()),
-		);
-	}, [processedSites, searchTerm]);
+		let result = processedSites;
+
+		// 1. Lease Filter
+		if (leaseFilter === "owned") {
+			result = result.filter((s) => !s.site.isLeased && !s.site.tenant);
+		} else if (leaseFilter === "leased") {
+			result = result.filter((s) => s.site.isLeased);
+			if (selectedTenants.length > 0) {
+				result = result.filter(
+					(s) => s.site.tenant && selectedTenants.includes(s.site.tenant),
+				);
+			}
+		} else if (leaseFilter === "loaned") {
+			result = result.filter((s) => !s.site.isLeased && !!s.site.tenant);
+			if (selectedTenants.length > 0) {
+				result = result.filter(
+					(s) => s.site.tenant && selectedTenants.includes(s.site.tenant),
+				);
+			}
+		}
+
+		// 2. Search Filter
+		if (searchTerm) {
+			const term = searchTerm.toLowerCase();
+			result = result.filter(
+				({ site }) =>
+					site.planet_name.toLowerCase().includes(term) ||
+					(site.tenant && site.tenant.toLowerCase().includes(term)),
+			);
+		}
+
+		return result;
+	}, [processedSites, searchTerm, leaseFilter, selectedTenants]);
 
 	const handleTargetChange = useCallback((siteId: string, val: string) => {
 		const num = parseInt(val, 10);
@@ -171,9 +265,77 @@ const ProductionDashboard: React.FC = () => {
 		[processedSites],
 	);
 
+	const ownSites = useMemo(
+		() =>
+			filteredSites
+				.filter(({ site }) => !site.isLeased)
+				.sort((a, b) => {
+					const aFlows = Object.values(a.richFlows).filter(
+						(f) => f.flow !== 0,
+					).length;
+					const aStorage = a.site.storage_items?.length || 0;
+					const aSize = Math.max(aFlows, aStorage);
+
+					const bFlows = Object.values(b.richFlows).filter(
+						(f) => f.flow !== 0,
+					).length;
+					const bStorage = b.site.storage_items?.length || 0;
+					const bSize = Math.max(bFlows, bStorage);
+
+					return bSize - aSize;
+				}),
+		[filteredSites],
+	);
+
+	const leasedSites = useMemo(() => {
+		const sortedLeased = filteredSites
+			.filter(({ site }) => !!site.tenant)
+			.sort((a, b) => {
+				const aFlows = Object.values(a.richFlows).filter(
+					(f) => f.flow !== 0,
+				).length;
+				const aStorage = a.site.storage_items?.length || 0;
+				const aSize = Math.max(aFlows, aStorage);
+
+				const bFlows = Object.values(b.richFlows).filter(
+					(f) => f.flow !== 0,
+				).length;
+				const bStorage = b.site.storage_items?.length || 0;
+				const bSize = Math.max(bFlows, bStorage);
+
+				return bSize - aSize;
+			});
+
+		return sortedLeased.reduce(
+			(acc, s) => {
+				const tenant = s.site.tenant || "Unknown";
+
+				if (!acc[tenant]) {
+					acc[tenant] = [];
+				}
+
+				acc[tenant].push({
+					...s,
+					site: { ...s.site, tenant },
+				});
+
+				return acc;
+			},
+			{} as Record<string, typeof filteredSites>,
+		);
+	}, [filteredSites]);
+
+	const [collapsedTenants, setCollapsedTenants] = useState<
+		Record<string, boolean>
+	>({});
+
+	const toggleTenant = (tenant: string) => {
+		setCollapsedTenants((prev) => ({ ...prev, [tenant]: !prev[tenant] }));
+	};
+
 	// --- RENDERING ---
 
-	if (loading)
+	if (isProductionLoading)
 		return (
 			<Box
 				sx={{
@@ -212,72 +374,155 @@ const ProductionDashboard: React.FC = () => {
 						px: 3,
 						py: 2,
 						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
+						flexDirection: "column",
 						gap: 2,
 					}}
 				>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-							<Factory color={theme.palette.primary.main} size={28} />
-							<Typography
-								variant="h5"
-								fontWeight={800}
-								sx={{ letterSpacing: -0.5 }}
+					{/* Top Row: Title & Stats */}
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "space-between",
+							flexWrap: "wrap",
+							gap: 2,
+						}}
+					>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Factory color={theme.palette.primary.main} size={28} />
+								<Typography
+									variant="h5"
+									fontWeight={800}
+									sx={{ letterSpacing: -0.5 }}
+								>
+									PRODUCTION
+								</Typography>
+							</Box>
+
+							<Button
+								onClick={() => setSummaryOpen(!summaryOpen)}
+								variant={summaryOpen ? "tonal" : "text"}
+								startIcon={<Globe size={18} />}
+								endIcon={
+									summaryOpen ? (
+										<ChevronUp size={18} />
+									) : (
+										<ChevronDown size={18} />
+									)
+								}
+								sx={{ fontWeight: 700, color: "text.primary", borderRadius: 2 }}
 							>
-								PRODUCTION
+								GLOBAL SUMMARY
+							</Button>
+
+							<Divider
+								orientation="vertical"
+								flexItem
+								sx={{ height: 24, alignSelf: "center" }}
+							/>
+
+							<Typography
+								variant="body2"
+								color="text.secondary"
+								fontWeight={600}
+							>
+								{filteredSites.length} Sites &nbsp;•&nbsp;{" "}
+								{filteredSites.reduce(
+									(acc, s) => acc + s.site.production_lines.length,
+									0,
+								)}{" "}
+								Lines
 							</Typography>
 						</Box>
 
-						<Button
-							onClick={() => setSummaryOpen(!summaryOpen)}
-							variant={summaryOpen ? "tonal" : "text"}
-							startIcon={<Globe size={18} />}
-							endIcon={
-								summaryOpen ? (
-									<ChevronUp size={18} />
-								) : (
-									<ChevronDown size={18} />
-								)
-							}
-							sx={{ fontWeight: 700, color: "text.primary", borderRadius: 2 }}
+						{/* Bottom Row / Right Side: Filters */}
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 2,
+								flexWrap: "wrap",
+							}}
 						>
-							GLOBAL SUMMARY
-						</Button>
+							<ToggleButtonGroup
+								size="small"
+								value={leaseFilter}
+								exclusive
+								onChange={(_, newVal) => {
+									if (newVal !== null) {
+										setLeaseFilter(newVal);
+										if (newVal !== "leased") setSelectedTenants([]); // Clear tenants if not looking at leased
+									}
+								}}
+								sx={{
+									height: 36,
+									bgcolor: alpha(theme.palette.background.default, 0.5),
+								}}
+							>
+								<ToggleButton
+									value="all"
+									sx={{ px: 2, fontWeight: 600, fontSize: "0.75rem" }}
+								>
+									All
+								</ToggleButton>
+								<ToggleButton
+									value="owned"
+									sx={{ px: 2, fontWeight: 600, fontSize: "0.75rem" }}
+								>
+									Owned
+								</ToggleButton>
+								<ToggleButton
+									value="leased"
+									sx={{ px: 2, fontWeight: 600, fontSize: "0.75rem", gap: 1 }}
+								>
+									<Handshake size={14} /> Loaned
+								</ToggleButton>
+							</ToggleButtonGroup>
 
-						<Divider
-							orientation="vertical"
-							flexItem
-							sx={{ height: 24, alignSelf: "center" }}
-						/>
+							{leaseFilter === "leased" && (
+								<Autocomplete
+									multiple
+									limitTags={2}
+									size="small"
+									options={availableTenants}
+									value={selectedTenants}
+									onChange={(_, newValue) => setSelectedTenants(newValue)}
+									renderInput={(params) => (
+										<TextField
+											{...params}
+											placeholder="Filter Tenants..."
+											sx={{
+												minWidth: 200,
+												"& .MuiOutlinedInput-root": { borderRadius: 2 },
+											}}
+										/>
+									)}
+								/>
+							)}
 
-						<Typography variant="body2" color="text.secondary" fontWeight={600}>
-							{processedSites.length} Sites &nbsp;•&nbsp;{" "}
-							{processedSites.reduce(
-								(acc, s) => acc + s.site.production_lines.length,
-								0,
-							)}{" "}
-							Lines
-						</Typography>
+							<TextField
+								size="small"
+								placeholder="Search planets..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								InputProps={{
+									startAdornment: (
+										<InputAdornment position="start">
+											<Search size={18} />
+										</InputAdornment>
+									),
+								}}
+								sx={{
+									width: 250,
+									"& .MuiOutlinedInput-root": { borderRadius: 2 },
+								}}
+							/>
+						</Box>
 					</Box>
-
-					<TextField
-						size="small"
-						placeholder="Search planets..."
-						value={searchTerm}
-						onChange={(e) => setSearchTerm(e.target.value)}
-						InputProps={{
-							startAdornment: (
-								<InputAdornment position="start">
-									<Search size={18} />
-								</InputAdornment>
-							),
-						}}
-						sx={{ width: 280, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-					/>
 				</Box>
 
-				{/* COLLAPSIBLE SUMMARY (REWORKED) */}
+				{/* COLLAPSIBLE SUMMARY */}
 				<Collapse in={summaryOpen}>
 					<Box
 						sx={{
@@ -294,10 +539,34 @@ const ProductionDashboard: React.FC = () => {
 							color="text.secondary"
 							sx={{ mb: 1.5, display: "block", lineHeight: 1 }}
 						>
-							AGGREGATED FLOWS / DAY
+							EMPIRE SUMMARY (Select Sites)
 						</Typography>
 
-						{/* Compact CSS Grid */}
+						<Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 2 }}>
+							{processedSites
+								.filter((s) => !(!s.site.isLeased && !!s.site.tenant))
+								.map(({ site }) => (
+									<Chip
+										key={site.siteid}
+										label={site.planet_name}
+										size="small"
+										onClick={() =>
+											setSelectedSummarySites((prev) => ({
+												...prev,
+												[site.siteid]: !prev[site.siteid],
+											}))
+										}
+										color={
+											selectedSummarySites[site.siteid] ? "primary" : "default"
+										}
+										variant={
+											selectedSummarySites[site.siteid] ? "filled" : "outlined"
+										}
+										sx={{ fontSize: "0.7rem", fontWeight: 600 }}
+									/>
+								))}
+						</Box>
+
 						<Box
 							sx={{
 								display: "grid",
@@ -329,7 +598,6 @@ const ProductionDashboard: React.FC = () => {
 											},
 										}}
 									>
-										{/* Header: Ticker & Net */}
 										<Box
 											sx={{
 												display: "flex",
@@ -355,8 +623,6 @@ const ProductionDashboard: React.FC = () => {
 												{s.net.toFixed(1)}
 											</Typography>
 										</Box>
-
-										{/* Footer: Prod / Cons */}
 										<Box
 											sx={{
 												display: "flex",
@@ -404,8 +670,15 @@ const ProductionDashboard: React.FC = () => {
 					overflowX: "hidden",
 				}}
 			>
-				<Masonry columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4 }} spacing={2}>
-					{filteredSites.map(({ site, richFlows }) => (
+				<Box
+					sx={{
+						display: "grid",
+						gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))",
+						gap: 2,
+						alignItems: "start",
+					}}
+				>
+					{ownSites.map(({ site, richFlows }) => (
 						<ProductionCard
 							key={site.siteid || site.planet_name}
 							siteId={site.siteid || ""}
@@ -418,7 +691,70 @@ const ProductionDashboard: React.FC = () => {
 							onSelect={(s) => handleSelectSite(s)}
 						/>
 					))}
-				</Masonry>
+				</Box>
+				{Object.keys(leasedSites).length > 0 &&
+					Object.entries(leasedSites).map(([tenantName, sites]) => (
+						<Box key={tenantName} sx={{ mt: 4 }}>
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 2,
+									mb: 2,
+									cursor: "pointer",
+									opacity: 0.9,
+									"&:hover": { opacity: 1 },
+								}}
+								onClick={() => toggleTenant(tenantName)}
+							>
+								<Typography variant="h5" sx={{ fontWeight: "bold" }}>
+									{leaseFilter === "loaned"
+										? "LOANED TO:"
+										: leaseFilter === "leased"
+											? "LEASED FROM:"
+											: "TENANT SITES:"}{" "}
+									{tenantName}
+								</Typography>
+								<Box sx={{ flex: 1, height: 1, bgcolor: "divider" }} />
+								<Typography variant="body2" color="text.secondary">
+									({sites.length} sites)
+								</Typography>
+								{collapsedTenants[tenantName] ? (
+									<ChevronDown size={20} />
+								) : (
+									<ChevronUp size={20} />
+								)}
+							</Box>
+							<Collapse in={!collapsedTenants[tenantName]}>
+								<Box
+									sx={{
+										display: "grid",
+										gridTemplateColumns:
+											"repeat(auto-fill, minmax(400px, 1fr))",
+										gap: 2,
+										alignItems: "start",
+									}}
+								>
+									{sites.map(({ site, richFlows }) => (
+										<ProductionCard
+											key={site.siteid || site.planet_name}
+											siteId={site.siteid || ""}
+											site={site}
+											richFlows={richFlows}
+											targetDays={
+												siteTargets[site.siteid || ""] || DEFAULT_DAYS
+											}
+											onTargetDaysChange={(val) =>
+												handleTargetChange(site.siteid || "", val)
+											}
+											onSelect={(s) => handleSelectSite(s)}
+										/>
+									))}
+								</Box>
+							</Collapse>
+						</Box>
+					))}
+				<Box sx={{ height: 80 }} />{" "}
 			</Box>
 
 			{/* --- DRAWER --- */}
@@ -426,12 +762,14 @@ const ProductionDashboard: React.FC = () => {
 				anchor="right"
 				open={!!selectedSite}
 				onClose={() => setSelectedSite(null)}
-				PaperProps={{
-					sx: {
-						width: { xs: "100%", md: 600 },
-						bgcolor: "background.default",
-						borderLeft: `1px solid ${theme.palette.divider}`,
-						backgroundImage: "none",
+				slotProps={{
+					paper: {
+						sx: {
+							width: { xs: "100%", md: 600 },
+							bgcolor: "background.default",
+							borderLeft: `1px solid ${theme.palette.divider}`,
+							backgroundImage: "none",
+						},
 					},
 				}}
 			>

@@ -29,9 +29,10 @@ import {
 	LocalShipping,
 	AccountBalance,
 	Handshake,
+	Explore,
 } from "@mui/icons-material";
 import { alpha } from "@mui/material/styles";
-import { API_BASE } from "../../settings/constants";
+import { fetchClient } from "../../../utils/apiClient";
 import ContractRow from "./contractrow";
 import { formatCurrency, getStatusColor, getStatusBg } from "../helpers/helper";
 import type { ContractListItem } from "../types";
@@ -42,7 +43,6 @@ interface Props {
 	onViewDetail: (id: string) => void;
 }
 
-// ... MobileContractCard Component (Same as before) ...
 const MobileContractCard = ({
 	contract,
 	onClick,
@@ -53,15 +53,19 @@ const MobileContractCard = ({
 	const theme = useTheme();
 
 	const getIcon = () => {
-		switch (contract.operation_type) {
+		switch (contract.contracttype) {
 			case "BUY":
 				return <ArrowCircleLeft fontSize="small" color="success" />;
 			case "SELL":
 				return <ArrowCircleRight fontSize="small" color="warning" />;
-			case "SHIPMENT":
+			case "SHIPMENT_GIVEN":
+			case "SHIPMENT_TAKEN":
 				return <LocalShipping fontSize="small" color="info" />;
-			case "LOAN":
+			case "LOAN_GIVEN":
+			case "LOAN_TAKEN":
 				return <AccountBalance fontSize="small" color="error" />;
+			case "EXPLORATION":
+				return <Explore fontSize="small" color="primary" />;
 			default:
 				return <Handshake fontSize="small" color="secondary" />;
 		}
@@ -73,7 +77,7 @@ const MobileContractCard = ({
 			sx={{
 				p: 2,
 				mb: 1.5,
-				background: alpha(theme.palette.background.tableCategory, 0.05),
+				background: alpha(theme.palette.background.default, 0.05),
 				border: `1px solid ${theme.palette.divider}`,
 				cursor: "pointer",
 				display: "flex",
@@ -90,7 +94,7 @@ const MobileContractCard = ({
 			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					{getIcon()}
-					<Typography variant="subtitle2" fontWeight={700}>
+					<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
 						{contract.localid || "No ID"}
 					</Typography>
 				</Box>
@@ -103,29 +107,37 @@ const MobileContractCard = ({
 						fontWeight: "800",
 						color: getStatusColor(contract.status, theme),
 						bgcolor: getStatusBg(contract.status, theme),
-						border: `1px solid ${getStatusColor(contract.status, theme)}`,
 					}}
 				/>
 			</Box>
 			<Divider sx={{ opacity: 0.5 }} />
+
 			<Box sx={{ display: "flex", justifyContent: "space-between" }}>
 				<Box>
-					<Typography variant="caption" color="text.secondary" display="block">
+					<Typography
+						variant="caption"
+						color="text.secondary"
+						sx={{ display: "block" }}
+					>
 						PARTNER
 					</Typography>
-					<Typography variant="body2" fontWeight={500}>
+					<Typography variant="body2" sx={{ fontWeight: 500 }}>
 						{contract.partnername || "Unknown"}
 					</Typography>
 					<Typography
 						variant="caption"
 						color="text.secondary"
-						fontFamily="monospace"
+						sx={{ fontFamily: "monospace" }}
 					>
 						{contract.partnercode}
 					</Typography>
 				</Box>
 				<Box sx={{ textAlign: "right" }}>
-					<Typography variant="caption" color="text.secondary" display="block">
+					<Typography
+						variant="caption"
+						color="text.secondary"
+						sx={{ display: "block" }}
+					>
 						DATE
 					</Typography>
 					<Typography variant="body2">
@@ -139,13 +151,14 @@ const MobileContractCard = ({
 									? "error.main"
 									: "text.secondary"
 							}
-							fontWeight="bold"
+							sx={{ fontWeight: "bold" }}
 						>
 							Due: {dayjs(contract.duedate).format("MMM D")}
 						</Typography>
 					)}
 				</Box>
 			</Box>
+
 			<Box
 				sx={{
 					bgcolor: alpha(theme.palette.background.default, 0.5),
@@ -156,10 +169,19 @@ const MobileContractCard = ({
 			>
 				<Typography
 					variant="h6"
-					fontFamily="monospace"
-					fontWeight={700}
-					sx={{ fontSize: "1rem" }}
+					sx={{
+						fontFamily: "monospace",
+						fontWeight: 700,
+						fontSize: "1rem",
+						color:
+							contract.total_amount > 0
+								? contract.is_income
+									? "success.main"
+									: "error.main"
+								: "text.primary",
+					}}
 				>
+					{contract.total_amount > 0 ? (contract.is_income ? "+" : "-") : ""}
 					{formatCurrency(contract.total_amount, contract.currency)}
 				</Typography>
 			</Box>
@@ -170,30 +192,22 @@ const MobileContractCard = ({
 // --- Main List Component ---
 const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 	const theme = useTheme();
-	// Cards below 'sm' (600px)
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
 	const [contracts, setContracts] = useState<ContractListItem[]>([]);
-	const [totalCount, setTotalCount] = useState(0);
 	const [loading, setLoading] = useState(false);
-
 	const [search, setSearch] = useState("");
 	const [status, setStatus] = useState("ALL");
 	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(25);
+	const [rowsPerPage, setRowsPerPage] = useState(10);
+	const [totalCount, setTotalCount] = useState(0);
 
 	useEffect(() => {
 		const fetchList = async () => {
-			const token = localStorage.getItem("authToken");
-			if (!token) return;
 			setLoading(true);
 			try {
-				const res = await fetch(`${API_BASE}/contracts/list`, {
+				const res = await fetchClient("/internal/contracts/list", {
 					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${token}`,
-					},
 					body: JSON.stringify({
 						category,
 						status,
@@ -202,11 +216,11 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						limit: rowsPerPage,
 					}),
 				});
-				if (res.ok) {
-					const data = await res.json();
-					setContracts(data.items || []);
-					setTotalCount(data.total || 0);
-				}
+				const data = await res.json();
+				setContracts(data.items || []);
+				setTotalCount(data.total || 0);
+			} catch (err) {
+				console.error("Failed to fetch contracts:", err);
 			} finally {
 				setLoading(false);
 			}
@@ -244,13 +258,15 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
 					sx={{ flexGrow: 1 }}
-					InputProps={{
-						startAdornment: (
-							<InputAdornment position="start">
-								<Search fontSize="small" />
-							</InputAdornment>
-						),
-						style: { fontSize: "0.9rem" },
+					slotProps={{
+						input: {
+							startAdornment: (
+								<InputAdornment position="start">
+									<Search fontSize="small" />
+								</InputAdornment>
+							),
+							style: { fontSize: "0.9rem" },
+						},
 					}}
 				/>
 				<Select
@@ -259,7 +275,10 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 					onChange={(e) => setStatus(e.target.value)}
 					displayEmpty
 					startAdornment={
-						<InputAdornment position="start">
+						<InputAdornment
+							position="start"
+							sx={{ pl: 1, color: "text.secondary" }}
+						>
 							<FilterList fontSize="small" />
 						</InputAdornment>
 					}
@@ -267,22 +286,33 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						minWidth: 150,
 						fontSize: "0.9rem",
 						bgcolor: theme.palette.background.default,
+						"& .MuiSelect-select": {
+							display: "flex",
+							alignItems: "center",
+							gap: 1,
+						},
 					}}
 					MenuProps={{
 						PaperProps: {
 							sx: {
-								background: theme.palette.background.default,
-								"& .MuiMenuItem-root": { fontSize: "0.9rem" },
+								bgcolor: theme.palette.background.default,
+								backgroundImage: "none",
+								border: `1px solid ${theme.palette.divider}`,
+								"& .MuiMenuItem-root": {
+									fontSize: "0.9rem",
+								},
 							},
 						},
 					}}
 				>
-					<MenuItem value="ALL">All Status</MenuItem>
-					<MenuItem value="OPEN">Pending</MenuItem>
-					<MenuItem value="CLOSED">Active</MenuItem>
+					<MenuItem value="ALL">All Statuses</MenuItem>
+					<MenuItem value="OPEN">OPEN</MenuItem>
+					<MenuItem value="CLOSED">CLOSED</MenuItem>
 					<MenuItem value="PARTIALLY_FULFILLED">PARTIALLY FULFILLED</MenuItem>
-					<MenuItem value="FULFILLED">Finished</MenuItem>
-					<MenuItem value="BREACHED">Breached</MenuItem>
+					<MenuItem value="FULFILLED">FULFILLED</MenuItem>
+					<MenuItem value="CANCELLED">CANCELLED</MenuItem>
+					<MenuItem value="TERMINATED">TERMINATED</MenuItem>
+					<MenuItem value="BREACHED">BREACHED</MenuItem>
 				</Select>
 			</Paper>
 
@@ -321,7 +351,9 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 					</Box>
 				) : (
 					// DESKTOP/TABLET TABLE
-					<TableContainer sx={{ flexGrow: 1, overflowY: "auto" }}>
+					<TableContainer
+						sx={{ flexGrow: 1, overflowY: "auto", overflowX: "auto" }}
+					>
 						<Table
 							stickyHeader
 							size="small"
@@ -329,21 +361,24 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						>
 							<TableHead>
 								<TableRow sx={{ height: 35 }}>
-									<TableCell sx={{ fontWeight: "bold", width: "35%" }}>
+									<TableCell sx={{ fontWeight: "bold", width: "25%" }}>
 										Contract
+									</TableCell>
+									<TableCell sx={{ fontWeight: "bold", width: "15%" }}>
+										Type
 									</TableCell>
 									<TableCell sx={{ fontWeight: "bold", width: "25%" }}>
 										Partner
 									</TableCell>
 									<TableCell
 										align="right"
-										sx={{ fontWeight: "bold", width: "20%" }}
+										sx={{ fontWeight: "bold", width: "15%" }}
 									>
 										Value
 									</TableCell>
 									<TableCell
 										align="right"
-										sx={{ fontWeight: "bold", width: "30%" }}
+										sx={{ fontWeight: "bold", width: "20%" }}
 									>
 										Status / Date
 									</TableCell>
@@ -401,7 +436,29 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						labelDisplayedRows={({ from, to, count }) =>
 							`${from}-${to} of ${count}`
 						}
-						sx={{ ".MuiTablePagination-toolbar": { minHeight: 35, pl: 0 } }}
+						slotProps={{
+							select: {
+								MenuProps: {
+									slotProps: {
+										paper: {
+											sx: {
+												bgcolor: "background.default",
+												backgroundImage: "none",
+											},
+										},
+									},
+								},
+							},
+						}}
+						sx={{
+							".MuiToolbar-root": { justifyContent: "center" },
+							".MuiTablePagination-toolbar": { minHeight: 35, pl: 0, flex: 1 },
+							".MuiTablePagination-spacer": { display: "none" },
+							width: "100%",
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+						}}
 					/>
 				</Box>
 			</Paper>

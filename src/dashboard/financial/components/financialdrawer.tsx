@@ -1,4 +1,5 @@
-import { Box, Typography, IconButton, useTheme, Drawer } from "@mui/material";
+import React from "react";
+import { Box, Typography, IconButton, useTheme, Dialog } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useDrawerData } from "../hooks/usedrawerdata";
 import { EventSummary } from "./eventsummary";
@@ -24,32 +25,42 @@ export default function FinancialDrawer({
 	} = useDrawerData(selectedTx, selectedPartnerCode, transactions);
 
 	return (
-		<Drawer
-			anchor="right"
+		<Dialog
 			open={isOpen}
 			onClose={onClose}
-			transitionDuration={{ enter: 200, exit: 150 }}
-			PaperProps={{
-				sx: {
-					width: { xs: "100%", sm: 400 },
-					backgroundColor: "background.default",
-					backgroundImage: "none",
-					borderLeft: `1px solid ${theme.palette.divider}`,
-					color: "text.primary",
-					boxShadow: theme.shadows[10],
+			maxWidth="xs"
+			fullWidth
+			scroll="paper"
+			slotProps={{
+				paper: {
+					sx: {
+						backgroundColor: "rgba(20, 25, 40, 0.95)",
+						backdropFilter: "blur(12px)",
+						backgroundImage: "none",
+						border: "1px solid rgba(255, 255, 255, 0.08)",
+						color: "text.primary",
+						boxShadow: "0 12px 40px 0 rgba(0, 0, 0, 0.5)",
+						borderRadius: "16px",
+						margin: 2,
+					},
 				},
 			}}
 		>
-			<Box display="flex" flexDirection="column" height="100%">
+			<Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
 				<Box
-					px={3}
-					py={2.5}
-					display="flex"
-					alignItems="center"
-					justifyContent="space-between"
-					borderBottom={`1px solid ${theme.palette.divider}`}
+					sx={{
+						px: 3,
+						py: 2.25,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "space-between",
+						borderBottom: `1px solid ${theme.palette.divider}`,
+					}}
 				>
-					<Typography variant="h6" fontWeight={800} color="text.primary">
+					<Typography
+						variant="subtitle1"
+						sx={{ fontWeight: 800, color: "text.primary" }}
+					>
 						{selectedTx ? "Transaction Details" : "Entity Profile"}
 					</Typography>
 					<IconButton
@@ -62,12 +73,14 @@ export default function FinancialDrawer({
 				</Box>
 
 				<Box
-					flex={1}
-					overflow="auto"
-					p={2}
-					display="flex"
-					flexDirection="column"
-					gap={2}
+					sx={{
+						flex: 1,
+						overflowY: "auto",
+						p: 3,
+						display: "flex",
+						flexDirection: "column",
+						gap: 2.5,
+					}}
 				>
 					{selectedTx && (
 						<EventSummary
@@ -90,6 +103,6 @@ export default function FinancialDrawer({
 					{selectedPartnerStats && <LedgerStats stats={selectedPartnerStats} />}
 				</Box>
 			</Box>
-		</Drawer>
+		</Dialog>
 	);
 }

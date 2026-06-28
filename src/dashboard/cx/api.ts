@@ -1,5 +1,6 @@
 // src/Dashboard/CX/api.ts
 
+import { API_BASE_URL } from "../../config/api";
 import type {
 	CxDashboardStats,
 	PaginatedCxOrders,
@@ -7,7 +8,7 @@ import type {
 	StorageValuationResponse,
 } from "./types";
 
-const CX_API_BASE = "https://api.punoted.net/cx";
+const CX_API_BASE = `${API_BASE_URL}cx`;
 
 export const getDashboardStats = async (): Promise<CxDashboardStats> => {
 	const url = `${CX_API_BASE}/dashboard`;

@@ -12,8 +12,26 @@ import {
 	Snackbar,
 	Alert,
 	CircularProgress,
+	Paper,
+	List,
+	ListItem,
+	ListItemButton,
+	ListItemIcon,
+	ListItemText,
+	Tabs,
+	Tab,
+	useTheme,
+	alpha,
 } from "@mui/material";
-import { CheckCircleOutlineOutlined, WarningAmber } from "@mui/icons-material";
+import {
+	CheckCircleOutlineOutlined,
+	WarningAmber,
+	Person,
+	Settings as SettingsIcon,
+	VpnKey,
+	Security,
+	Group,
+} from "@mui/icons-material";
 import type {
 	UserSettings,
 	WebPrivacySettings,
@@ -29,9 +47,10 @@ import ApiTokenSection from "../settings/components/apitokensection";
 import GlobalSettingsSection from "./components/globalsettingssection";
 
 const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
+	const theme = useTheme();
 	const [data, setData] = useState<{
 		settings: UserSettings | null;
-		globalSettings: GlobalSettings | null; // NEW STATE
+		globalSettings: GlobalSettings | null;
 		privacy: WebPrivacySettings;
 		tokens: ApiToken[];
 	}>({ settings: null, globalSettings: null, privacy: {}, tokens: [] });
@@ -43,6 +62,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 		severity: "success" | "error" | "warning" | "info";
 	}>({ open: false, message: "", severity: "info" });
 	const [wsTrigger, setWsTrigger] = useState(0);
+	const [activeTab, setActiveTab] = useState<string>("profile");
 
 	const headers = {
 		Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -74,7 +94,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 			try {
 				const [s, gs, t, p] = await Promise.all([
 					fetch(`${API_BASE}/users/settings`, { headers }),
-					fetch(`${API_BASE}/settings/global`, { headers }), // Fetch Global
+					fetch(`${API_BASE}/settings/global`, { headers }),
 					fetch(`${API_BASE}/settings/tokens`, { headers }),
 					fetch(`${API_BASE}/settings/privacy`, { headers }),
 				]);
@@ -82,7 +102,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 				if (s.ok && gs.ok && t.ok && p.ok) {
 					setData({
 						settings: await s.json(),
-						globalSettings: await gs.json(), // Set Global
+						globalSettings: await gs.json(),
 						tokens: await t.json(),
 						privacy: await p.json(),
 					});
@@ -187,6 +207,14 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 			</Box>
 		);
 
+	const tabs = [
+		{ id: "profile", label: "Profile & Security", icon: <Person /> },
+		{ id: "global", label: "Game Config", icon: <SettingsIcon /> },
+		{ id: "tokens", label: "API Integrations", icon: <VpnKey /> },
+		{ id: "privacy", label: "Privacy Settings", icon: <Security /> },
+		{ id: "groups", label: "Data Groups", icon: <Group /> },
+	];
+
 	return (
 		<Box
 			sx={{
@@ -203,7 +231,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 					flexGrow: 1,
 					display: "flex",
 					flexDirection: "column",
-					p: 1,
+					p: { xs: 2, md: 3 },
 					overflow: "hidden",
 				}}
 			>
@@ -213,11 +241,13 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
-						mb: 1.5,
+						mb: 3,
+						borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+						pb: 2,
 					}}
 				>
 					<Box display="flex" alignItems="center" gap={1.5}>
-						<Typography variant="h5" fontWeight={800} letterSpacing="-0.5px">
+						<Typography variant="h5" fontWeight={850} letterSpacing="-0.5px">
 							Settings
 						</Typography>
 						<Chip
@@ -247,73 +277,165 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 					)}
 				</Box>
 
-				{/* Content */}
-				<Box sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
-					<Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
-						<Box
-							sx={{
-								flex: "1 1 350px",
-								minWidth: "300px",
-								display: "flex",
-								flexDirection: "column",
-								gap: 1.5,
-							}}
-						>
-							<ProfileSection
-								initialSettings={data.settings}
-								onSave={saveProfile}
+				{/* Mobile Horizontal Tabs */}
+				<Box
+					sx={{
+						display: { xs: "block", md: "none" },
+						mb: 2,
+						borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+					}}
+				>
+					<Tabs
+						value={activeTab}
+						onChange={(e, v) => setActiveTab(v)}
+						variant="scrollable"
+						scrollButtons="auto"
+						textColor="primary"
+						indicatorColor="primary"
+					>
+						{tabs.map((tab) => (
+							<Tab
+								key={tab.id}
+								value={tab.id}
+								label={tab.label}
+								icon={tab.icon}
+								iconPosition="start"
+								sx={{
+									minHeight: 48,
+									fontSize: "0.8rem",
+									textTransform: "none",
+								}}
 							/>
-							<PasswordSection
-								onRequestChallenge={reqPass}
-								onConfirmChange={confPass}
-							/>
-						</Box>
-						<Box
-							sx={{
-								flex: "1 1 300px",
-								minWidth: "300px",
-								display: "flex",
-								flexDirection: "column",
-								gap: 1.5,
-							}}
-						>
-							<PrivacySection
-								initialPrivacy={data.privacy}
-								onSave={savePrivacy}
-							/>
-							<GroupsSection
-								userId={userId}
-								headers={headers}
-								showSnackbar={showMsg}
-								wsTrigger={wsTrigger}
-							/>
-						</Box>
-						<Box sx={{ flex: "1 1 350px", minWidth: "300px" }}>
-							<ApiTokenSection
-								initialTokens={data.tokens}
-								headers={headers}
-								showSnackbar={showMsg}
-							/>
-						</Box>
-					</Box>
-					<Box
+						))}
+					</Tabs>
+				</Box>
+
+				{/* Layout Container */}
+				<Box sx={{ flex: 1, display: "flex", gap: 3, overflow: "hidden" }}>
+					{/* Desktop Left Sidebar */}
+					<Paper
+						elevation={0}
 						sx={{
-							flex: "1 1 350px",
-							minWidth: "300px",
-							mt: 2,
-							display: "flex",
-							flexDirection: "column",
-							gap: 1.5,
+							display: { xs: "none", md: "block" },
+							width: 260,
+							bgcolor: "rgba(255, 255, 255, 0.02)",
+							border: "1px solid rgba(255, 255, 255, 0.05)",
+							borderRadius: "12px",
 							overflowY: "auto",
+							p: 1,
 						}}
 					>
-						{data.globalSettings && (
-							<GlobalSettingsSection
-								initialSettings={data.globalSettings}
-								headers={headers}
-								onSave={saveGlobalSettings}
-								showSnackbar={showMsg}
-							/>
+						<List disablePadding>
+							{tabs.map((tab) => {
+								const active = activeTab === tab.id;
+								return (
+									<ListItem key={tab.id} disablePadding sx={{ mb: 0.5 }}>
+										<ListItemButton
+											selected={active}
+											onClick={() => setActiveTab(tab.id)}
+											sx={{
+												borderRadius: "8px",
+												py: 1.25,
+												bgcolor: active
+													? alpha(theme.palette.primary.main, 0.08)
+													: "transparent",
+												color: active ? "primary.main" : "text.secondary",
+												"&.Mui-selected": {
+													bgcolor: alpha(theme.palette.primary.main, 0.08),
+													color: "primary.main",
+													"&:hover": {
+														bgcolor: alpha(theme.palette.primary.main, 0.12),
+													},
+												},
+												"&:hover": {
+													bgcolor: "rgba(255, 255, 255, 0.04)",
+													color: "text.primary",
+												},
+											}}
+										>
+											<ListItemIcon sx={{ color: "inherit", minWidth: 36 }}>
+												{tab.icon}
+											</ListItemIcon>
+											<ListItemText
+												primary={tab.label}
+												primaryTypographyProps={{
+													fontWeight: active ? 700 : 500,
+													fontSize: "0.85rem",
+												}}
+											/>
+										</ListItemButton>
+									</ListItem>
+								);
+							})}
+						</List>
+					</Paper>
+
+					{/* Right Content Panel */}
+					<Box
+						sx={{
+							flex: 1,
+							overflowY: "auto",
+							p: { xs: 0, md: 1 },
+							display: "flex",
+							flexDirection: "column",
+							gap: 3,
+						}}
+					>
+						{activeTab === "profile" && (
+							<Box
+								sx={{
+									display: "flex",
+									flexDirection: "column",
+									gap: 3,
+									width: "100%",
+								}}
+							>
+								<ProfileSection
+									initialSettings={data.settings}
+									onSave={saveProfile}
+								/>
+								<PasswordSection
+									onRequestChallenge={reqPass}
+									onConfirmChange={confPass}
+								/>
+							</Box>
+						)}
+						{activeTab === "global" && data.globalSettings && (
+							<Box sx={{ width: "100%" }}>
+								<GlobalSettingsSection
+									initialSettings={data.globalSettings}
+									headers={headers}
+									onSave={saveGlobalSettings}
+									showSnackbar={showMsg}
+								/>
+							</Box>
+						)}
+						{activeTab === "tokens" && (
+							<Box sx={{ width: "100%" }}>
+								<ApiTokenSection
+									initialTokens={data.tokens}
+									headers={headers}
+									showSnackbar={showMsg}
+								/>
+							</Box>
+						)}
+						{activeTab === "privacy" && (
+							<Box sx={{ width: "100%" }}>
+								<PrivacySection
+									initialPrivacy={data.privacy}
+									onSave={savePrivacy}
+								/>
+							</Box>
+						)}
+						{activeTab === "groups" && (
+							<Box sx={{ width: "100%" }}>
+								<GroupsSection
+									userId={userId}
+									headers={headers}
+									showSnackbar={showMsg}
+									wsTrigger={wsTrigger}
+								/>
+							</Box>
 						)}
 					</Box>
 				</Box>

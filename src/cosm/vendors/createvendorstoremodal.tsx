@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEffect, useState, useMemo, useCallback, memo } from "react";
+import { API_BASE_URL } from "../../config/api";
 import { Search } from "@mui/icons-material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -680,17 +681,14 @@ const VendorCreationModal: React.FC<{
 
 			try {
 				// --- STEP 1: Fetch materials from your internal API ---
-				const response = await fetch(
-					"https://api.punoted.net/materials_price_list",
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-						},
-						body: JSON.stringify({ cx: localCx }),
+				const response = await fetch(`${API_BASE_URL}materials_price_list`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 					},
-				);
+					body: JSON.stringify({ cx: localCx }),
+				});
 
 				if (response.ok) {
 					const data = await response.json();
@@ -993,17 +991,14 @@ const VendorCreationModal: React.FC<{
 		};
 
 		try {
-			const response = await fetch(
-				"https://api.punoted.net/create_vendor_store",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-					},
-					body: JSON.stringify(payload),
+			const response = await fetch(`${API_BASE_URL}create_vendor_store`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 				},
-			);
+				body: JSON.stringify(payload),
+			});
 
 			const result = await response.json();
 			if (!response.ok || !result.success) {

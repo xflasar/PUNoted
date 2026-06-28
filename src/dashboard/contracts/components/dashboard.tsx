@@ -36,7 +36,7 @@ import {
 	AccountBalance,
 	Handshake,
 } from "@mui/icons-material";
-import { API_BASE } from "../../settings/constants";
+import { fetchClient } from "../../../utils/apiClient";
 import { formatCurrency, getStatusColor, getStatusBg } from "../helpers/helper";
 import type {
 	DashboardStats,
@@ -87,7 +87,7 @@ const Comparison = ({
 				color="text.secondary"
 				sx={{ opacity: 0.7, fontSize: "0.65rem" }}
 			>
-				({formatCurrency(last, "ICA")})
+				vs Last Week ({formatCurrency(last, "ICA")})
 			</Typography>
 		</Box>
 	);
@@ -205,6 +205,7 @@ const WidgetList = ({ title, items, icon, emptyMsg, onViewDetail }: any) => {
 							onClick={() => onViewDetail(c.id)}
 							sx={{
 								"&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.05) },
+								cursor: "pointer",
 								py: 0.25,
 								px: 1,
 							}}
@@ -412,20 +413,14 @@ export const ContractsDashboard: React.FC<{
 	const [totalCount, setTotalCount] = useState(0);
 	const [listLoading, setListLoading] = useState(false);
 	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(10);
+	const [rowsPerPage, setRowsPerPage] = useState(25);
 
 	useEffect(() => {
 		const load = async () => {
-			const token = localStorage.getItem("authToken");
-			if (!token) return;
 			try {
 				const [sRes, wRes] = await Promise.all([
-					fetch(`${API_BASE}/contracts/dashboard-stats`, {
-						headers: { Authorization: `Bearer ${token}` },
-					}),
-					fetch(`${API_BASE}/contracts/dashboard-widgets`, {
-						headers: { Authorization: `Bearer ${token}` },
-					}),
+					fetchClient("/internal/contracts/dashboard-stats"),
+					fetchClient("/internal/contracts/dashboard-widgets"),
 				]);
 				if (sRes.ok) setStats(await sRes.json());
 				if (wRes.ok) setWidgets(await wRes.json());
@@ -440,16 +435,10 @@ export const ContractsDashboard: React.FC<{
 
 	useEffect(() => {
 		const fetchList = async () => {
-			const token = localStorage.getItem("authToken");
-			if (!token) return;
 			setListLoading(true);
 			try {
-				const res = await fetch(`${API_BASE}/contracts/list`, {
+				const res = await fetchClient("/internal/contracts/list", {
 					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${token}`,
-					},
 					body: JSON.stringify({
 						category: "ALL",
 						status: "ALL",
@@ -650,21 +639,24 @@ export const ContractsDashboard: React.FC<{
 						>
 							<TableHead>
 								<TableRow sx={{ height: 35 }}>
-									<TableCell sx={{ fontWeight: "bold", width: "35%" }}>
+									<TableCell sx={{ fontWeight: "bold", width: "25%" }}>
 										Contract
+									</TableCell>
+									<TableCell sx={{ fontWeight: "bold", width: "15%" }}>
+										Type
 									</TableCell>
 									<TableCell sx={{ fontWeight: "bold", width: "25%" }}>
 										Partner
 									</TableCell>
 									<TableCell
 										align="right"
-										sx={{ fontWeight: "bold", width: "20%" }}
+										sx={{ fontWeight: "bold", width: "15%" }}
 									>
 										Value
 									</TableCell>
 									<TableCell
 										align="right"
-										sx={{ fontWeight: "bold", width: "30%" }}
+										sx={{ fontWeight: "bold", width: "20%" }}
 									>
 										Status / Date
 									</TableCell>
@@ -703,43 +695,42 @@ export const ContractsDashboard: React.FC<{
 						bgcolor: alpha(theme.palette.background.default, 0.3),
 					}}
 				>
-					<Stack direction="row" spacing={1} alignItems="center">
-						<Select
-							size="small"
-							value={rowsPerPage}
-							onChange={(e) => {
-								setRowsPerPage(Number(e.target.value));
-								setPage(0);
-							}}
-							sx={{
-								height: 24,
-								fontSize: "0.75rem",
-								bgcolor: alpha(theme.palette.background.default, 0.5),
-							}}
-						>
-							{[10, 25, 50, 100].map((n) => (
-								<MenuItem key={n} value={n}>
-									{n}
-								</MenuItem>
-							))}
-						</Select>
-						<Typography
-							variant="caption"
-							color="text.secondary"
-							fontSize="0.75rem"
-						>
-							/ {totalCount}
-						</Typography>
-					</Stack>
 					<TablePagination
 						component="div"
 						count={totalCount}
 						page={page}
 						onPageChange={(_, p) => setPage(p)}
 						rowsPerPage={rowsPerPage}
-						rowsPerPageOptions={[]}
-						labelDisplayedRows={() => null}
-						sx={{ ".MuiTablePagination-toolbar": { minHeight: 30, pl: 0 } }}
+						onRowsPerPageChange={(e) => {
+							setRowsPerPage(parseInt(e.target.value, 10));
+							setPage(0);
+						}}
+						labelDisplayedRows={({ from, to, count }) =>
+							`${from}-${to} of ${count}`
+						}
+						slotProps={{
+							select: {
+								MenuProps: {
+									slotProps: {
+										paper: {
+											sx: {
+												bgcolor: "background.default",
+												backgroundImage: "none",
+											},
+										},
+									},
+								},
+							},
+						}}
+						sx={{
+							".MuiToolbar-root": { justifyContent: "center" },
+							".MuiTablePagination-toolbar": { minHeight: 35, pl: 0, flex: 1 },
+							".MuiTablePagination-spacer": { display: "none" },
+							width: "100%",
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+						}}
 					/>
 				</Box>
 			</Box>

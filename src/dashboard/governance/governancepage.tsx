@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../config/api";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
 	Box,
@@ -1291,14 +1292,11 @@ const Governance = () => {
 		const fetchPlanetNames = async () => {
 			setIsPlanetsLoading(true);
 			try {
-				const res = await fetch(
-					"https://api.punoted.net/planets/planets_names",
-					{
-						headers: {
-							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-						},
+				const res = await fetch(`${API_BASE_URL}planets/planets_names`, {
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 					},
-				);
+				});
 				if (Array.isArray(await res.clone().json()))
 					setAllPlanetsList(await res.json());
 				else {
@@ -1322,7 +1320,7 @@ const Governance = () => {
 			}
 			setIsDataLoading(true);
 			try {
-				const res = await fetch("https://api.punoted.net/governance/", {
+				const res = await fetch(`${API_BASE_URL}governance/`, {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
@@ -1393,9 +1391,7 @@ const Governance = () => {
 						return {
 							...p,
 							cogcUpkeep: p.cogcUpkeep.map((r) =>
-								r.ticker === ticker
-									? { ...r, enabled: r.enabled === false ? true : false }
-									: r,
+								r.ticker === ticker ? { ...r, enabled: !r.enabled } : r,
 							),
 						};
 					return {
@@ -1406,9 +1402,7 @@ const Governance = () => {
 								: {
 										...b,
 										upkeep: b.upkeep.map((r) =>
-											r.ticker === ticker
-												? { ...r, enabled: r.enabled === false ? true : false }
-												: r,
+											r.ticker === ticker ? { ...r, enabled: !r.enabled } : r,
 										),
 									},
 						),

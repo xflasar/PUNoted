@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config/api";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
 	Box,
@@ -765,8 +766,8 @@ const ProductionDashboard: React.FC = () => {
 				const headers = { Authorization: `Bearer ${token}` };
 
 				const [prodRes, workRes] = await Promise.all([
-					fetch("https://api.punoted.net/user_production", { headers }),
-					fetch("https://api.punoted.net/user_workforce_with_needs", {
+					fetch(`${API_BASE_URL}user_production`, { headers }),
+					fetch(`${API_BASE_URL}user_workforce_with_needs`, {
 						headers,
 					}),
 				]);
@@ -861,7 +862,7 @@ const ProductionDashboard: React.FC = () => {
 
 			try {
 				const res = await fetch(
-					`https://api.punoted.net/user_site_platforms/${siteId}`,
+					`${API_BASE_URL}user_site_platforms/${siteId}`,
 					{
 						headers: {
 							Authorization: `Bearer ${localStorage.getItem("authToken")}`,

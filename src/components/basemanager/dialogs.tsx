@@ -89,17 +89,18 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 		<Dialog
 			open={open}
 			onClose={onClose}
-			disablePortal
-			maxWidth="md"
 			fullWidth
-			PaperProps={{
-				sx: { bgcolor: "background.default", backgroundImage: "none" },
+			slotProps={{
+				paper: {
+					sx: { bgcolor: "background.default", backgroundImage: "none" },
+				},
 			}}
+			sx={{ maxWidth: "md" }}
 		>
 			<DialogTitle
 				sx={{ py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}
 			>
-				<Box display="flex" alignItems="center" gap={1}>
+				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					<SettingsIcon color="primary" /> Base Plan Settings
 				</Box>
 			</DialogTitle>
@@ -115,7 +116,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 				<Box sx={{ flex: 1 }}>
 					{/* Operation Mode Toggle */}
 					<Box sx={{ mb: 3 }}>
-						<Typography variant="subtitle2" color="text.secondary" mb={1}>
+						<Typography
+							variant="subtitle2"
+							color="text.secondary"
+							sx={{ mb: 1 }}
+						>
 							Operation Mode
 						</Typography>
 						<Card
@@ -132,16 +137,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 							}}
 						>
 							<Box>
-								<Typography variant="subtitle1" fontWeight="bold">
+								<Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
 									{syncMode === "sync" ? "Synced to PU API" : "Manual Plan"}
 								</Typography>
 								{syncMode === "sync" ? (
 									<Typography
 										variant="body2"
 										color="success.main"
-										display="flex"
-										alignItems="center"
-										gap={0.5}
+										sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
 									>
 										<SyncIcon fontSize="small" /> Active
 									</Typography>
@@ -173,7 +176,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
 					{/* Faction and Permits Configuration */}
 					<Box sx={{ mb: 3 }}>
-						<Typography variant="subtitle2" color="text.secondary" mb={1}>
+						<Typography
+							variant="subtitle2"
+							color="text.secondary"
+							sx={{ mb: 1 }}
+						>
 							HQ Faction & Permits
 						</Typography>
 						<Card
@@ -193,10 +200,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 									label="Faction Bonus"
 									onChange={(e) => setActiveFaction(e.target.value)}
 									MenuProps={{
-										PaperProps: {
-											sx: {
-												bgcolor: "background.default",
-												backgroundImage: "none",
+										slotProps: {
+											paper: {
+												sx: {
+													bgcolor: "background.default",
+													backgroundImage: "none",
+												},
 											},
 										},
 									}}
@@ -209,14 +218,16 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 								</Select>
 							</FormControl>
 							<Box
-								display="flex"
-								alignItems="center"
-								justifyContent="space-between"
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "space-between",
+								}}
 							>
 								<Typography variant="body2" color="text.secondary">
 									HQ Permits Used / Total
 								</Typography>
-								<Box display="flex" alignItems="center" gap={1}>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 									<TextField
 										type="number"
 										size="small"
@@ -224,8 +235,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 										onChange={(e) =>
 											setUsedPermits(Math.max(0, parseInt(e.target.value) || 0))
 										}
-										inputProps={{
-											style: { textAlign: "center", width: 45, padding: "6px" },
+										slotProps={{
+											htmlInput: {
+												style: {
+													textAlign: "center",
+													width: 45,
+													padding: "6px",
+												},
+											},
 										}}
 									/>
 									<Typography variant="body1">/</Typography>
@@ -238,8 +255,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 												Math.max(1, parseInt(e.target.value) || 1),
 											)
 										}
-										inputProps={{
-											style: { textAlign: "center", width: 45, padding: "6px" },
+										slotProps={{
+											htmlInput: {
+												style: {
+													textAlign: "center",
+													width: 45,
+													padding: "6px",
+												},
+											},
 										}}
 									/>
 								</Box>
@@ -251,7 +274,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
 					{/* Base Experts Configuration */}
 					<Box>
-						<Typography variant="subtitle2" color="text.secondary" mb={1}>
+						<Typography
+							variant="subtitle2"
+							color="text.secondary"
+							sx={{ mb: 1 }}
+						>
 							Base Experts
 						</Typography>
 						<Card
@@ -281,7 +308,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 											? "error.main"
 											: "success.main"
 									}
-									fontWeight="bold"
+									sx={{ fontWeight: "bold" }}
 								>
 									{Object.values(experts).reduce((a: any, b: any) => a + b, 0)}{" "}
 									/ 6 Max
@@ -303,12 +330,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 												{cat}
 											</Typography>
 											<Box
-												display="flex"
-												alignItems="center"
-												border="1px solid"
-												borderColor="divider"
-												borderRadius={1}
-												bgcolor="background.default"
+												sx={{
+													display: "flex",
+													alignItems: "center",
+													border: "1px solid",
+													borderColor: "divider",
+													borderRadius: 1,
+													bgcolor: "background.default",
+												}}
 											>
 												<IconButton
 													size="small"
@@ -374,7 +403,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 				{/* RIGHT COLUMN: Pricing Configurations */}
 				<Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
 					<Box sx={{ mb: 3 }}>
-						<Typography variant="subtitle2" color="text.secondary" mb={1}>
+						<Typography
+							variant="subtitle2"
+							color="text.secondary"
+							sx={{ mb: 1 }}
+						>
 							Plan Default Pricing
 						</Typography>
 						<Card
@@ -388,7 +421,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 							}}
 						>
 							<Box>
-								<Typography variant="body2" fontWeight="bold">
+								<Typography variant="body2" sx={{ fontWeight: "bold" }}>
 									Global Pricing Tier
 								</Typography>
 							</Box>
@@ -400,12 +433,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 								sx={{ height: 30 }}
 							>
 								<ToggleButton value="market" sx={{ px: 2 }}>
-									<Typography variant="body2" fontWeight="bold">
+									<Typography variant="body2" sx={{ fontWeight: "bold" }}>
 										Market
 									</Typography>
 								</ToggleButton>
 								<ToggleButton value="corp" sx={{ px: 2 }}>
-									<Typography variant="body2" fontWeight="bold">
+									<Typography variant="body2" sx={{ fontWeight: "bold" }}>
 										Corp
 									</Typography>
 								</ToggleButton>
@@ -422,7 +455,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 							minHeight: 0,
 						}}
 					>
-						<Typography variant="subtitle2" color="text.secondary" mb={1}>
+						<Typography
+							variant="subtitle2"
+							color="text.secondary"
+							sx={{ mb: 1 }}
+						>
 							Material Specific Overrides
 						</Typography>
 						<Box
@@ -447,7 +484,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 										bgcolor: "background.paper",
 									}}
 								>
-									<Typography variant="body2" fontWeight="bold">
+									<Typography variant="body2" sx={{ fontWeight: "bold" }}>
 										{ticker}
 									</Typography>
 									<ToggleButtonGroup
@@ -485,90 +522,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 };
 
 /**
- * Props for the AddPlatformDialog component.
- */
-export interface AddPlatformDialogProps {
-	open: boolean;
-	onClose: () => void;
-	newTicker: string;
-	setNewTicker: (ticker: string) => void;
-	newAmount: number;
-	setNewAmount: (amount: number) => void;
-	activeBuildings: any[];
-	onAdd: () => void;
-}
-
-/**
- * AddPlatformDialog Component
- *
- * Provides an interface to add a new production building (platform) to the base.
- * Users can select the building type and specify the initial quantity.
- */
-export const AddPlatformDialog: React.FC<AddPlatformDialogProps> = ({
-	open,
-	onClose,
-	newTicker,
-	setNewTicker,
-	newAmount,
-	setNewAmount,
-	activeBuildings,
-	onAdd,
-}) => (
-	<Dialog
-		open={open}
-		onClose={onClose}
-		disablePortal
-		PaperProps={{
-			sx: { bgcolor: "background.default", backgroundImage: "none" },
-		}}
-	>
-		<DialogTitle
-			sx={{ py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}
-		>
-			Add Production Line
-		</DialogTitle>
-		<DialogContent sx={{ pt: 2, minWidth: 250 }}>
-			<Select
-				fullWidth
-				size="small"
-				value={newTicker}
-				onChange={(e) => setNewTicker(e.target.value)}
-				sx={{ mb: 2 }}
-				MenuProps={{
-					PaperProps: {
-						sx: { bgcolor: "background.default", backgroundImage: "none" },
-					},
-				}}
-			>
-				{activeBuildings
-					.filter((b: any) => b.type === "production")
-					.map((b: any) => (
-						<MenuItem key={b.ticker} value={b.ticker}>
-							{b.name} ({b.ticker})
-						</MenuItem>
-					))}
-			</Select>
-			<TextField
-				label="Amount"
-				type="number"
-				size="small"
-				fullWidth
-				value={newAmount}
-				onChange={(e) => setNewAmount(parseInt(e.target.value) || 1)}
-			/>
-		</DialogContent>
-		<DialogActions
-			sx={{ p: 1.5, borderTop: "1px solid", borderColor: "divider" }}
-		>
-			<Button onClick={onClose}>Cancel</Button>
-			<Button variant="contained" color="primary" onClick={onAdd}>
-				Add
-			</Button>
-		</DialogActions>
-	</Dialog>
-);
-
-/**
  * Props for the AddRecipeDialog component.
  */
 export interface AddRecipeDialogProps {
@@ -597,12 +550,11 @@ export const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
 	<Dialog
 		open={open}
 		onClose={onClose}
-		disablePortal
-		maxWidth="sm"
 		fullWidth
-		PaperProps={{
-			sx: { bgcolor: "background.default", backgroundImage: "none" },
+		slotProps={{
+			paper: { sx: { bgcolor: "background.default", backgroundImage: "none" } },
 		}}
+		sx={{ maxWidth: "sm" }}
 	>
 		<DialogTitle
 			sx={{ py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}
@@ -616,8 +568,10 @@ export const AddRecipeDialog: React.FC<AddRecipeDialogProps> = ({
 				value={selected || ""}
 				onChange={(e) => setSelected(e.target.value)}
 				MenuProps={{
-					PaperProps: {
-						sx: { bgcolor: "background.default", backgroundImage: "none" },
+					slotProps: {
+						paper: {
+							sx: { bgcolor: "background.default", backgroundImage: "none" },
+						},
 					},
 				}}
 			>

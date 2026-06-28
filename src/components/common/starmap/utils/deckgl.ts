@@ -23,11 +23,9 @@ export class CartesianInterpolator extends TransitionInterpolator {
 	}
 }
 
-// Controller logic to disable dragging/panning in system view
 export const controllerForPlanetMode = (isPlanetModeActive: boolean) => {
-	if (!isPlanetModeActive) return true;
 	return {
-		dragPan: true, // allow pan but we will clamp it inside handler
+		dragPan: true,
 		dragRotate: false,
 		scrollZoom: true,
 		doubleClickZoom: false,

@@ -12,7 +12,7 @@ export interface BaseManagerProps {
 	/** Callback function to persist user updates */
 	onUpdateUser: (updatedUser: NodeAssignedUser) => void;
 	/** ID of the currently authenticated user */
-	currentUserId: string;
+	currentUserId: string | null;
 	/** Whether the current user is the owner of the group */
 	isGroupOwner: boolean;
 	/** The name of the planet where the base is located */
@@ -21,6 +21,28 @@ export interface BaseManagerProps {
 	staticData: StaticData | null;
 	/** If true, the component renders in a standalone view rather than a portal */
 	standalone?: boolean;
+	/** Optional name of the plan */
+	planName?: string;
+	/** Optional description of the plan */
+	planDescription?: string;
+	/** Callback function triggered when the user saves or cancels, useful for standalone mode to close the view */
+	onClose?: () => void;
+	/** Target CX for pricing (defaults to IC1) */
+	cx?: string;
+	/** If true, the user is viewing a plan they do not own and can only submit a suggestion */
+	isGuestMode?: boolean;
+	/** List of available suggestions for this plan */
+	suggestions?: any[];
+	/** Callback when a guest submits a suggestion */
+	onSaveSuggestion?: (suggestion: any) => void;
+	/** Callback when the owner selects a primary suggestion */
+	onSetPrimarySuggestion?: (id: string | null) => void;
+	/** Callback to delete a suggestion */
+	onDeleteSuggestion?: (id: string) => void;
+	/** The currently selected primary suggestion ID */
+	primarySuggestionId?: string | null;
+	/** Whether the base manager is in a read-only mode */
+	readOnly?: boolean;
 }
 
 /**
@@ -69,4 +91,16 @@ export interface EngineParams {
 	usedPermits?: number;
 	/** Total number of HQ permits available to the player */
 	totalPermits?: number;
+}
+
+export interface BaseManagerApiResponse {
+	/** Array of all cx prices for materials */
+	cxPrices: MaterialPrice[];
+	/** Array of all corporation prices for materials */
+	corpPrices: MaterialPrice[];
+}
+
+interface MaterialPrice {
+	ticker: string;
+	price: number;
 }

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../../../config/api";
 import { useState, useEffect, useMemo } from "react";
 import type {
 	Transaction,
@@ -27,7 +28,7 @@ export const useDrawerData = (
 			try {
 				const token = localStorage.getItem("authToken");
 				const response = await fetch(
-					`https://api.punoted.net/dev/internal/finances/transaction/${selectedTx.Id}`,
+					`${API_BASE_URL}internal/finances/transaction/${selectedTx.Id}`,
 					{
 						headers: { Authorization: `Bearer ${token}` },
 					},
@@ -51,7 +52,7 @@ export const useDrawerData = (
 			setLoadingProfile(true);
 			try {
 				const response = await fetch(
-					`https://api.punoted.net/dev/v1/company/${selectedPartnerCode}`,
+					`${API_BASE_URL}v1/company/${selectedPartnerCode}`,
 				);
 				if (response.ok) setCompanyProfile(await response.json());
 				else setCompanyProfile(null);

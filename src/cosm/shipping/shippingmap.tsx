@@ -28,6 +28,7 @@ import {
 	Warehouse,
 	Rocket,
 } from "lucide-react";
+import { API_BASE_URL } from "../../config/api";
 import BaseStarMap from "../../components/common/starmap/basestarmap";
 import { ProgressDisplay } from "../../components/common/starmap/components/progressdisplay";
 import type { AnimatedShipData } from "../../components/common/starmap/types/maptypes";
@@ -379,7 +380,7 @@ const useShipmentWebSocket = (
 		contractIds.forEach((id) => {
 			if (!currentSockets[id] || currentSockets[id].readyState > 1) {
 				const ws = new WebSocket(
-					`wss://api.punoted.net/ws/contracts/shipments/${id}`,
+					`${API_BASE_URL.replace(/^https?/, "wss")}ws/contracts/shipments/${id}`,
 				);
 
 				ws.onopen = () => updateStatus();
@@ -460,13 +461,11 @@ const ShippingMap: React.FC = () => {
 
 		const results = await Promise.allSettled(
 			ids.map((id) =>
-				fetch(`https://api.punoted.net/contracts/shipments/${id}`).then(
-					(res) => {
-						if (!res.ok)
-							throw new Error(`Contract ${id} not found or failed to load.`);
-						return res.json();
-					},
-				),
+				fetch(`${API_BASE_URL}contracts/shipments/${id}`).then((res) => {
+					if (!res.ok)
+						throw new Error(`Contract ${id} not found or failed to load.`);
+					return res.json();
+				}),
 			),
 		);
 

@@ -98,7 +98,7 @@ function keplerEquation(e: number, M: number): number {
 	return E;
 }
 
-function calculateMovingPlanetPosition(
+export function calculateMovingPlanetPosition(
 	starSystem: MapPoint,
 	planetData: PlanetData,
 	currentTimeSeconds: number,
@@ -106,14 +106,15 @@ function calculateMovingPlanetPosition(
 	const worldTime = _calculateWorldTime(currentTimeSeconds / 1000, true);
 	const t0 = 0,
 		M0 = 0;
-	const a = planetData.semimajoraxis ?? 1e10,
+	const a = planetData.scaledOrbitalRadius ?? 100,
 		e = planetData.eccentricity ?? 0,
 		i = planetData.inclination ?? 0,
 		Ω = planetData.rightascension ?? 0,
 		ω = planetData.periapsis ?? 0;
 	let GM = 398600441800000;
-	if (planetData.mass) GM = G * planetData.mass;
-	if (starSystem.mass) GM = G * (planetData.mass + starSystem.mass);
+	if (planetData.mass && starSystem.mass) {
+		GM = G * (planetData.mass + starSystem.mass);
+	}
 	const p = a * (1 - e * e),
 		n = Math.sqrt(GM / Math.pow(a, 3)),
 		M = M0 + n * (worldTime - t0),
@@ -141,10 +142,17 @@ function calculateMovingPlanetPosition(
 		rightascension: planetData.rightascension,
 		periapsis: planetData.periapsis,
 		orbitindex: planetData.orbitindex,
+		resources: planetData.resources,
+		gravity: planetData.gravity,
+		pressure: planetData.pressure,
+		temperature: planetData.temperature,
+		fertility: planetData.fertility,
+		cogc: planetData.cogc,
+		type: planetData.type,
 	};
 }
 
-function calculateMovingStationPosition(
+export function calculateMovingStationPosition(
 	starSystem: MapPoint,
 	stationData: StationData,
 	currentTimeSeconds: number,
@@ -159,7 +167,6 @@ function calculateMovingStationPosition(
 		ω = stationData.periapsis ?? 0;
 	const stationMass = 125000;
 	let GM = 398600441800000;
-	if (stationMass) GM = G * stationMass;
 	if (starSystem.mass) GM = G * (stationMass + starSystem.mass);
 	const p = a * (1 - e * e),
 		n = Math.sqrt(GM / Math.pow(a, 3)),
@@ -207,21 +214,24 @@ export const useSystemViewSetup = (
 	mapHeight: number, // Changed from mapSize
 	allStationsData: Record<string, StationData[]>,
 	systemExitZoomRef: React.MutableRefObject<number | null>,
+	currentViewMode: "galaxy" | "system",
 ) => {
 	const [orbitLines, setOrbitLines] = useState<any[]>([]);
 	const [systemBoundingBox, setSystemBoundingBox] = useState<any[]>([]);
 	const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
 	const [initialPlanets, setInitialPlanets] = useState<PlanetPosition[]>([]);
 	const [initialStations, setInitialStations] = useState<StationPosition[]>([]);
+	const [microAsteroids, setMicroAsteroids] = useState<any[]>([]);
 
 	useEffect(() => {
-		if (!centeredSystem) {
+		if (!centeredSystem || currentViewMode !== "system") {
 			setOrbitLines([]);
 			setSystemBoundingBox([]);
 			setSystemStats(null);
 			systemBoundsRef.current = null;
 			setInitialPlanets([]);
 			setInitialStations([]);
+			setMicroAsteroids([]);
 			return;
 		}
 
@@ -276,13 +286,15 @@ export const useSystemViewSetup = (
 			const minRequiredRadius = lastOrbit + MINIMUM_VISUAL_GAP;
 			const safeA = Math.max(proportionalRadius, minRequiredRadius);
 			lastOrbit = safeA;
-			const planetPop = p.planetPopulation ?? 0;
-			const planetPopLogFactor = Math.log10(Math.max(1, planetPop));
-			const relativeSizeFactor =
-				maxPopLogFactor > 0 ? planetPopLogFactor / maxPopLogFactor : 0;
-			const compressedFactor = Math.pow(relativeSizeFactor, 1.5);
-			let visual = Math.max(0.1, compressedFactor);
-			if (Math.abs(relativeSizeFactor - 1.0) < 1e-6) visual = 1.6;
+			const typeStr = (p.type || "").toUpperCase();
+			const isGas = typeStr.includes("GAS") || typeStr.includes("GASEOUS");
+			const gravity = p.gravity ?? 1.0;
+			let visual = 1.0;
+			if (isGas) {
+				visual = 1.8 + Math.min(1.2, gravity * 0.1);
+			} else {
+				visual = 0.7 + Math.min(0.6, gravity * 0.25);
+			}
 			return { ...p, scaledOrbitalRadius: safeA, scaledPlanetRadius: visual };
 		});
 
@@ -341,6 +353,41 @@ export const useSystemViewSetup = (
 				colorB,
 				150,
 			];
+			// Generate micro-asteroids -> look into this more to make it more asteorid generation
+			if (asteroidCount > 0 && initialPositions.length > 0) {
+				const maxAsteroids = Math.min(250, asteroidCount);
+				const outerOrbitRadius = totalRadius - BOUNDING_BOX_OFFSET;
+				const innerOrbitRadius = initialPositions[0].orbitalRadius ?? 10;
+				const generated: any[] = [];
+				for (let aIdx = 0; aIdx < maxAsteroids; aIdx++) {
+					const r =
+						innerOrbitRadius +
+						Math.random() * (outerOrbitRadius - innerOrbitRadius);
+					const theta = Math.random() * Math.PI * 2;
+					const px =
+						centeredSystem.x +
+						r * Math.cos(theta) +
+						(Math.random() - 0.5) * 0.1;
+					const py =
+						centeredSystem.y +
+						r * Math.sin(theta) +
+						(Math.random() - 0.5) * 0.1;
+					generated.push({
+						position: [px, py],
+						size: 1 + Math.random() * 2,
+						color: [
+							140 + Math.random() * 60,
+							130 + Math.random() * 40,
+							110 + Math.random() * 30,
+							180,
+						],
+					});
+				}
+				setMicroAsteroids(generated);
+			} else {
+				setMicroAsteroids([]);
+			}
+
 			const polygon = createCirclePolygon(
 				[centeredSystem.x, centeredSystem.y],
 				totalRadius,
@@ -426,6 +473,7 @@ export const useSystemViewSetup = (
 		initialPlanetZoomRef,
 		ignoreOnViewStateChangeRef,
 		systemBoundsRef,
+		currentViewMode,
 	]);
 
 	return {
@@ -434,5 +482,6 @@ export const useSystemViewSetup = (
 		systemStats,
 		initialPlanets,
 		initialStations,
+		microAsteroids,
 	};
 };

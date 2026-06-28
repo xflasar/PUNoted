@@ -7,6 +7,9 @@ export interface StorageItem {
 }
 
 export interface StorageUnit {
+	addressableid: string | undefined;
+	storageplanetid: any;
+	owner: any;
 	storageid: string; // The unique key
 	name: string;
 	type: string;

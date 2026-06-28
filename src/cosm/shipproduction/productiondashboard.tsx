@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Box } from "@mui/material";
+import { API_BASE_URL } from "../../config/api";
 import { addDays } from "date-fns";
 import MaterialBalanceTable, { BalanceItem } from "./materialbalancetable";
 import ShipProductionTabs from "./shipproductiontabs";
@@ -350,16 +351,13 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 	 */
 	const fetchShipProduction = useCallback(async (useFio: boolean) => {
 		try {
-			const response = await fetch(
-				"https://api.punoted.net/get_ship_production",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({ fio: useFio }),
+			const response = await fetch(`${API_BASE_URL}get_ship_production`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
 				},
-			);
+				body: JSON.stringify({ fio: useFio }),
+			});
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}

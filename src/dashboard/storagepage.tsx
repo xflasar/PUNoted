@@ -247,25 +247,34 @@ const UnifiedStorageCard = React.memo(({ group }: { group: CombinedGroup }) => {
 
 	return (
 		<Paper
-			elevation={4}
+			elevation={2}
 			sx={{
-				borderRadius: 1.5,
+				display: "flex",
+				flexDirection: "column",
+				borderRadius: 2,
 				overflow: "hidden",
 				minWidth: 300,
 				border: `1px solid ${alpha(color, 0.3)}`,
-				background: alpha(theme.palette.background.default, 0.7),
-				backdropFilter: "blur(8px)",
-				transition: "transform 0.2s",
-				"&:hover": { transform: "translateY(-2px)", borderColor: color },
+				bgcolor:
+					theme.palette.mode === "dark"
+						? alpha("#000000", 0.4)
+						: alpha(theme.palette.background.paper, 0.9),
+				backdropFilter: "blur(12px)",
+				transition: "all 0.1s ease",
+				width: "100%",
+				"&:hover": {
+					boxShadow: `0 4px 12px -2px ${alpha(color, 0.3)}`,
+					borderColor: color,
+				},
 			}}
 		>
 			{/* HEADER - Increased Font Sizes */}
 			<Box
 				sx={{
 					px: 1.5,
-					py: 1,
-					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-					bgcolor: alpha(color, 0.08),
+					py: 0.75,
+					borderBottom: `1px solid ${alpha(color, 0.15)}`,
+					bgcolor: alpha(color, 0.1),
 				}}
 			>
 				<Box
@@ -614,12 +623,12 @@ const StorageDashboard: React.FC = () => {
 		>
 			{/* --- HEADER --- */}
 			<Paper
-				square
-				elevation={4}
+				elevation={0}
 				sx={{
-					zIndex: 20,
-					bgcolor: theme.palette.background.paper,
+					zIndex: 10,
 					borderBottom: `1px solid ${theme.palette.divider}`,
+					bgcolor: alpha(theme.palette.background.default, 0.8),
+					backdropFilter: "blur(10px)",
 				}}
 			>
 				<Box
@@ -826,7 +835,7 @@ const StorageDashboard: React.FC = () => {
 				</Collapse>
 			</Paper>
 
-			{/* --- UNIFIED MASONRY GRID (NO WASTED SPACE) --- */}
+			{/* --- UNIFIED GRID (NO WASTED SPACE) --- */}
 			<Box
 				sx={{
 					flex: 1,
@@ -836,11 +845,18 @@ const StorageDashboard: React.FC = () => {
 				}}
 			>
 				{filteredGroups.length > 0 ? (
-					<Masonry columns={{ xs: 1, sm: 1, md: 2, lg: 4, xl: 5 }} spacing={2}>
+					<Box
+						sx={{
+							display: "grid",
+							gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+							gap: 2,
+							alignItems: "start",
+						}}
+					>
 						{filteredGroups.map((group) => (
 							<UnifiedStorageCard key={group.id} group={group} />
 						))}
-					</Masonry>
+					</Box>
 				) : (
 					<Box
 						sx={{

@@ -8,12 +8,12 @@ export function calculateShipPositionInSystem(
 	activePlanets: any[],
 	currentSystem: MapPoint | null,
 	scaleFactor = SCALE_FACTOR_DEFAULT,
-): [number, number] | null {
+): [number, number, number] | null {
 	if (!plan || !Array.isArray(plan.segments) || plan.segments.length === 0) {
 		const targetId = ship.addressplanetid ?? ship.addressstationid;
 		const target = activePlanets.find((p) => p.planetid === targetId);
 		if (target && typeof target.x === "number" && typeof target.y === "number")
-			return [target.x, target.y];
+			return [target.x, target.y, ship.bearing || 0];
 		return null;
 	}
 
@@ -26,7 +26,7 @@ export function calculateShipPositionInSystem(
 			(p) => p.planetid === last?.destination_location_id,
 		);
 		if (dest && typeof dest.x === "number" && typeof dest.y === "number")
-			return [dest.x, dest.y];
+			return [dest.x, dest.y, ship.bearing || 0];
 		return null;
 	}
 
@@ -64,9 +64,16 @@ export function calculateShipPositionInSystem(
 
 		const curX_m = sx_m * (1 - t) + tx_m * t;
 		const curY_m = sy_m * (1 - t) + ty_m * t;
+
+		const bearing = calculateBearing(
+			[systemMapX + sx_m / scaleFactor, systemMapY - sy_m / scaleFactor],
+			[systemMapX + tx_m / scaleFactor, systemMapY - ty_m / scaleFactor],
+		);
+
 		return [
 			systemMapX + curX_m / scaleFactor,
 			systemMapY - curY_m / scaleFactor,
+			bearing,
 		];
 	}
 
@@ -75,7 +82,7 @@ export function calculateShipPositionInSystem(
 			(p) => p.planetid === activeSegment.origin_location_id,
 		);
 		if (planet && typeof planet.x === "number" && typeof planet.y === "number")
-			return [planet.x, planet.y];
+			return [planet.x, planet.y, ship.bearing || 0];
 		return null;
 	}
 
@@ -89,7 +96,7 @@ export function calculateShipPositionInSystem(
 		(p) => p.planetid === activeSegment.destination_location_id,
 	);
 	if (tgt && typeof tgt.x === "number" && typeof tgt.y === "number")
-		return [tgt.x, tgt.y];
+		return [tgt.x, tgt.y, ship.bearing || 0];
 	return null;
 }
 

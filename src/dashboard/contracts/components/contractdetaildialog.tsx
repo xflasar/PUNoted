@@ -23,7 +23,7 @@ import {
 	Inventory2,
 	Assignment,
 	AccessTime,
-	CheckCircleOutline,
+	CheckCircleOutlined,
 	RadioButtonUnchecked,
 	Description,
 	AttachMoney,
@@ -31,40 +31,57 @@ import {
 	PieChart,
 } from "@mui/icons-material";
 import { alpha } from "@mui/material/styles";
-import { API_BASE } from "../../settings/constants";
+import { fetchClient } from "../../../utils/apiClient";
+import MaterialBadge from "../../../cosm/components/materialbadge";
 import { formatCurrency, getStatusColor, getStatusBg } from "../helpers/helper";
 import dayjs from "dayjs";
 
 // --- Types ---
 interface Condition {
 	id: string;
-	index: number;
 	type: string;
 	status: string;
-	// General
+	index: number;
+	party?: string;
+	deadline?: string;
 	amountmoney?: number;
 	currencymoney?: string;
-	material_summary?: string;
-	deadline?: string;
-	// Loan Specific
-	repaymentamount?: number;
 	interestamount?: number;
+	currency?: string;
+	repaymentamount?: number;
 	totalamount?: number;
-	currency?: string; // Fallback currency for loan calc
+	implied_interest_rate?: number;
+	material_summary?: string;
+	addresssystemid?: string;
+	addressplanetid?: string;
+	addressstationid?: string;
+	destinationsystemid?: string;
+	destinationplanetid?: string;
+	destinationstationid?: string;
+	reputationchange?: number;
+	addresssystemname?: string;
+	addressplanetname?: string;
+	addressstationname?: string;
+	destinationsystemname?: string;
+	destinationplanetname?: string;
+	destinationstationname?: string;
 }
 
 interface ContractDetailData {
 	id: string;
-	localid: string;
+	localid?: string;
 	name?: string;
-	status: string;
-	contracttype: string;
-	partnername: string;
-	partnercode: string;
 	date: string;
+	status: string;
+	contracttype?: string;
+	partnername?: string;
+	partnercode?: string;
+	duedate?: string;
 	preamble?: string;
-	total_amount: number;
-	currency: string;
+	party?: string;
+	is_income?: boolean;
+	total_amount?: number;
+	currency?: string;
 	conditions: Condition[];
 }
 
@@ -74,23 +91,31 @@ interface Props {
 	onClose: () => void;
 }
 
-// --- Compact Condition Card ---
-const ConditionItem = ({
+const ContractConditionRow = ({
 	condition,
+	contractParty,
 	contractCurrency,
 }: {
 	condition: Condition;
-	contractCurrency: string;
+	contractParty?: string;
+	contractCurrency?: string;
 }) => {
 	const theme = useTheme();
-
-	// Logic to determine type
-	const isMoney = !!condition.amountmoney || !!condition.repaymentamount;
-	const isMaterial = !!condition.material_summary;
 	const isDone = condition.status === "FULFILLED";
+	const isMaterial =
+		condition.type === "PROVISION" ||
+		condition.type === "DEPOSIT" ||
+		condition.type === "WITHDRAW" ||
+		condition.type === "PROVISION_SHIPMENT" ||
+		condition.type === "PICKUP_SHIPMENT" ||
+		condition.type === "DELIVERY_SHIPMENT" ||
+		condition.type === "COMEX_PURCHASE_PICKUP";
+
 	const isLoanCondition =
-		condition.repaymentamount !== undefined ||
-		condition.interestamount !== undefined;
+		condition.type === "LOAN_PAYOUT" || condition.type === "LOAN_INSTALLMENT";
+
+	const isMoney = !!condition.amountmoney || !!condition.repaymentamount;
+	const isMyCondition = condition.party === contractParty;
 
 	// Currency Resolver
 	const curr =
@@ -100,7 +125,8 @@ const ConditionItem = ({
 		<Paper
 			elevation={0}
 			sx={{
-				p: 0.5,
+				px: 1,
+				py: 0.75,
 				mb: 0.5,
 				border: `1px solid ${theme.palette.divider}`,
 				bgcolor: isDone
@@ -110,153 +136,263 @@ const ConditionItem = ({
 				alignItems: "center",
 				gap: 1,
 				transition: "all 0.1s",
-				"&:hover": { bgcolor: alpha(theme.palette.action.hover, 0.1) },
+				"&:hover": { bgcolor: alpha(theme.palette.action.hover, 0.05) },
 			}}
 		>
-			{/* 1. Index */}
-			<Typography variant="caption" color="text.secondary" fontWeight={700}>
+			{/* 1. Index number */}
+			<Typography
+				variant="caption"
+				color="text.disabled"
+				fontWeight={700}
+				sx={{ minWidth: 20, textAlign: "center", flexShrink: 0 }}
+			>
 				#{condition.index}
 			</Typography>
 
-			{/* 2. Icon */}
+			{/* 2. Type icon */}
 			<Avatar
 				variant="rounded"
 				sx={{
 					bgcolor: isMoney
 						? alpha(theme.palette.success.main, 0.1)
-						: alpha(theme.palette.info.main, 0.1),
-					color: isMoney ? theme.palette.success.main : theme.palette.info.main,
-					width: 32,
-					height: 32,
+						: isMaterial
+							? alpha(theme.palette.info.main, 0.1)
+							: alpha(theme.palette.action.selected, 0.3),
+					color: isMoney
+						? "success.main"
+						: isMaterial
+							? "info.main"
+							: "text.secondary",
+					width: 24,
+					height: 24,
+					flexShrink: 0,
 				}}
 			>
 				{isMoney ? (
-					<MonetizationOn sx={{ fontSize: 18 }} />
+					<MonetizationOn sx={{ fontSize: 14 }} />
 				) : isMaterial ? (
-					<Inventory2 sx={{ fontSize: 18 }} />
+					<Inventory2 sx={{ fontSize: 14 }} />
 				) : (
-					<Assignment sx={{ fontSize: 18 }} />
+					<Assignment sx={{ fontSize: 14 }} />
 				)}
 			</Avatar>
 
-			{/* 3. Main Content Area */}
-			<Box sx={{ flex: 1 }}>
-				<Box
-					sx={{
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
-						mb: isLoanCondition ? 1 : 0,
-					}}
+			{/* 3. Left content: type label + YOU/PARTNER chip + location/rep sub-info */}
+			<Box sx={{ flexGrow: 1, minWidth: 0 }}>
+				{/* Type label row */}
+				<Stack
+					direction="row"
+					spacing={0.75}
+					alignItems="center"
+					flexWrap="wrap"
 				>
-					<Typography variant="body2" fontWeight={700}>
+					<Typography
+						variant="subtitle2"
+						fontWeight={700}
+						fontSize="0.75rem"
+						noWrap
+					>
 						{condition.type.replace(/_/g, " ")}
 					</Typography>
+					<Chip
+						label={isMyCondition ? "YOU" : "PARTNER"}
+						size="small"
+						sx={{
+							height: 16,
+							fontSize: "0.55rem",
+							fontWeight: 800,
+							bgcolor: isMyCondition
+								? alpha(theme.palette.info.main, 0.1)
+								: alpha(theme.palette.warning.main, 0.1),
+							color: isMyCondition ? "info.main" : "warning.main",
+							border: `1px solid ${
+								isMyCondition
+									? alpha(theme.palette.info.main, 0.25)
+									: alpha(theme.palette.warning.main, 0.25)
+							}`,
+						}}
+					/>
+				</Stack>
 
-					{/* Standard Amount (Non-Loan) */}
-					{!isLoanCondition && condition.amountmoney && (
-						<Typography variant="body2" fontFamily="monospace" fontWeight={600}>
-							{formatCurrency(condition.amountmoney, curr)}
-						</Typography>
-					)}
+				{/* Location / Destination sub-row */}
+				{(condition.addresssystemid ||
+					condition.addressplanetid ||
+					condition.addressstationid) && (
+					<Typography
+						variant="caption"
+						color="text.secondary"
+						sx={{ fontSize: "0.65rem", display: "block", mt: 0.25 }}
+					>
+						📍{" "}
+						{condition.addressstationname ||
+							condition.addressplanetname ||
+							condition.addressstationid ||
+							condition.addressplanetid ||
+							condition.addresssystemid}
+						{condition.addresssystemname && ` [${condition.addresssystemname}]`}
+						{(condition.destinationsystemid ||
+							condition.destinationplanetid ||
+							condition.destinationstationid) && (
+							<>
+								{" ➔ "}
+								{condition.destinationstationname ||
+									condition.destinationplanetname ||
+									condition.destinationstationid ||
+									condition.destinationplanetid ||
+									condition.destinationsystemid}
+								{condition.destinationsystemname &&
+									` [${condition.destinationsystemname}]`}
+							</>
+						)}
+					</Typography>
+				)}
 
-					{/* Material Summary */}
-					{isMaterial && (
-						<Typography variant="caption" color="text.secondary">
-							{condition.material_summary}
-						</Typography>
-					)}
-				</Box>
+				{/* Reputation */}
+				{condition.reputationchange != null && (
+					<Chip
+						label={`${condition.reputationchange > 0 ? "+" : ""}${condition.reputationchange} Rep`}
+						size="small"
+						color={condition.reputationchange >= 0 ? "success" : "error"}
+						variant="outlined"
+						sx={{ height: 14, fontSize: "0.55rem", fontWeight: 700, mt: 0.25 }}
+					/>
+				)}
+			</Box>
 
-				{/* LOAN SPECIFIC DATA GRID */}
+			{/* 4. Right content: payment value / material badges / loan data */}
+			<Box sx={{ textAlign: "right", flexShrink: 0, maxWidth: "45%" }}>
+				{/* Standard payment */}
+				{!isLoanCondition && condition.amountmoney && (
+					<Typography
+						variant="body2"
+						fontFamily="monospace"
+						fontWeight={700}
+						sx={{
+							color: isMyCondition ? "error.main" : "success.main",
+							fontSize: "0.85rem",
+						}}
+					>
+						{isMyCondition ? "-" : "+"}
+						{formatCurrency(condition.amountmoney, curr)}
+					</Typography>
+				)}
+
+				{/* Material badges */}
+				{isMaterial && condition.material_summary && (
+					<Box
+						sx={{
+							display: "flex",
+							flexWrap: "wrap",
+							gap: 0.4,
+							justifyContent: "flex-end",
+						}}
+					>
+						{condition.material_summary.split(", ").map((entry, i) => {
+							const match = entry.match(/^(\d+)x\s+(.+)$/);
+							if (!match)
+								return (
+									<Typography
+										key={i}
+										variant="caption"
+										color="text.secondary"
+										sx={{ fontSize: "0.6rem" }}
+									>
+										{entry}
+									</Typography>
+								);
+							const [, qty, ticker] = match;
+							return (
+								<Box
+									key={i}
+									sx={{
+										display: "inline-flex",
+										alignItems: "center",
+										gap: 0.2,
+									}}
+								>
+									<Typography
+										variant="caption"
+										color="text.secondary"
+										sx={{ fontSize: "0.6rem", lineHeight: 1 }}
+									>
+										{qty}x
+									</Typography>
+									<span style={{ fontSize: "0.6rem" }}>
+										<MaterialBadge ticker={ticker} />
+									</span>
+								</Box>
+							);
+						})}
+					</Box>
+				)}
+
+				{/* Loan installment data */}
 				{isLoanCondition && (
 					<Box
 						sx={{
 							display: "flex",
-							gap: 2,
+							gap: 1.5,
 							flexDirection: "row",
-							justifyContent: "space-between",
-							bgcolor: alpha(theme.palette.background.default, 0.5),
-							p: 1,
-							borderRadius: 1,
-							border: `1px dashed ${theme.palette.divider}`,
-							fontSize: "0.9rem",
+							alignItems: "flex-end",
+							justifyContent: "flex-end",
 						}}
 					>
-						{condition.amountmoney && (
-							<Box>
+						{condition.repaymentamount !== undefined && (
+							<Box sx={{ textAlign: "right" }}>
 								<Typography
 									variant="caption"
 									display="block"
 									color="text.secondary"
-									fontSize="0.7rem"
+									sx={{ fontSize: "0.6rem" }}
 								>
 									PRINCIPAL
 								</Typography>
 								<Typography
 									variant="caption"
 									fontFamily="monospace"
-									fontWeight={400}
-								>
-									{formatCurrency(condition.amountmoney, curr)}
-								</Typography>
-							</Box>
-						)}
-						{condition.interestamount !== undefined && (
-							<Box>
-								<Typography
-									variant="caption"
-									display="block"
-									color="text.secondary"
-									fontSize="0.7rem"
-								>
-									INTEREST
-								</Typography>
-								<Stack direction="row" spacing={0.5} alignItems="center">
-									<Typography
-										variant="caption"
-										fontFamily="monospace"
-										fontWeight={400}
-										color="success.main"
-									>
-										+{formatCurrency(condition.interestamount, curr)}
-									</Typography>
-								</Stack>
-							</Box>
-						)}
-						{condition.repaymentamount !== undefined && (
-							<Box>
-								<Typography
-									variant="caption"
-									display="block"
-									color="text.secondary"
-									fontSize="0.7rem"
-								>
-									BASE REPAYMENT
-								</Typography>
-								<Typography
-									variant="caption"
-									fontFamily="monospace"
-									fontWeight={400}
+									fontWeight={600}
+									sx={{ fontSize: "0.72rem" }}
 								>
 									{formatCurrency(condition.repaymentamount, curr)}
 								</Typography>
 							</Box>
 						)}
-						{condition.totalamount !== undefined && (
-							<Box>
+						{condition.interestamount !== undefined && (
+							<Box sx={{ textAlign: "right" }}>
 								<Typography
 									variant="caption"
 									display="block"
 									color="text.secondary"
-									fontSize="0.7rem"
+									sx={{ fontSize: "0.6rem" }}
 								>
-									TOTAL REPAYMENT
+									INTEREST
+								</Typography>
+								<Typography
+									variant="caption"
+									fontFamily="monospace"
+									fontWeight={600}
+									color="success.main"
+									sx={{ fontSize: "0.72rem" }}
+								>
+									+{formatCurrency(condition.interestamount, curr)}
+								</Typography>
+							</Box>
+						)}
+						{condition.totalamount !== undefined && (
+							<Box sx={{ textAlign: "right" }}>
+								<Typography
+									variant="caption"
+									display="block"
+									color="text.secondary"
+									sx={{ fontSize: "0.6rem" }}
+								>
+									TOTAL
 								</Typography>
 								<Typography
 									variant="caption"
 									fontFamily="monospace"
 									fontWeight={800}
+									sx={{ fontSize: "0.72rem" }}
 								>
 									{formatCurrency(condition.totalamount, curr)}
 								</Typography>
@@ -264,30 +400,39 @@ const ConditionItem = ({
 						)}
 					</Box>
 				)}
+
+				{/* Deadline chip */}
+				{condition.deadline && (
+					<Chip
+						icon={<AccessTime sx={{ fontSize: "10px !important" }} />}
+						label={dayjs(condition.deadline).format("MMM D, HH:mm")}
+						size="small"
+						variant="outlined"
+						sx={{
+							mt: 0.25,
+							height: 18,
+							fontSize: "0.6rem",
+							border: "none",
+							bgcolor: alpha(theme.palette.warning.main, 0.1),
+							color: theme.palette.warning.main,
+						}}
+					/>
+				)}
 			</Box>
 
-			{/* 4. Deadline */}
-			{condition.deadline && (
-				<Chip
-					icon={<AccessTime sx={{ fontSize: "10px !important" }} />}
-					label={dayjs(condition.deadline).format("MMM DD HH:MM")}
-					size="small"
-					variant="outlined"
-					sx={{
-						height: 32,
-						fontSize: "0.75rem",
-						border: "none",
-						bgcolor: alpha(theme.palette.warning.main, 0.1),
-						color: theme.palette.warning.main,
-					}}
-				/>
-			)}
-
-			{/* 5. Checkbox Status */}
+			{/* 5. Status icon */}
 			{isDone ? (
-				<CheckCircleOutline fontSize="small" color="success" />
+				<CheckCircleOutlined
+					fontSize="small"
+					color="success"
+					sx={{ flexShrink: 0 }}
+				/>
 			) : (
-				<RadioButtonUnchecked fontSize="small" color="disabled" />
+				<RadioButtonUnchecked
+					fontSize="small"
+					color="disabled"
+					sx={{ flexShrink: 0 }}
+				/>
 			)}
 		</Paper>
 	);
@@ -307,10 +452,7 @@ const ContractDetailDialog: React.FC<Props> = ({
 	useEffect(() => {
 		if (open && contractId) {
 			setLoading(true);
-			const token = localStorage.getItem("authToken");
-			fetch(`${API_BASE}/contracts/detail?contract_id=${contractId}`, {
-				headers: { Authorization: `Bearer ${token}` },
-			})
+			fetchClient(`/internal/contracts/detail?contract_id=${contractId}`)
 				.then((res) => res.json())
 				.then((json) =>
 					setData(
@@ -336,12 +478,14 @@ const ContractDetailDialog: React.FC<Props> = ({
 			fullScreen={isMobile}
 			maxWidth="lg"
 			fullWidth
-			PaperProps={{
-				sx: {
-					bgcolor: theme.palette.background.default,
-					backgroundImage: "none",
-					borderRadius: isMobile ? 0 : 2,
-					height: isMobile ? "100%" : "80vh",
+			slotProps={{
+				paper: {
+					sx: {
+						bgcolor: theme.palette.background.default,
+						backgroundImage: "none",
+						borderRadius: isMobile ? 0 : 2,
+						height: isMobile ? "100%" : "80vh",
+					},
 				},
 			}}
 		>
@@ -434,8 +578,28 @@ const ContractDetailDialog: React.FC<Props> = ({
 										fontFamily="monospace"
 										fontWeight={700}
 										lineHeight={1}
+										sx={{
+											color: c.is_income ? "success.main" : "error.main",
+										}}
 									>
-										{formatCurrency(c.total_amount || 0, c.currency || "ICA")}
+										{c.is_income ? "+" : "-"}
+										{formatCurrency(
+											c.conditions
+												.filter(
+													(cond) =>
+														cond.type === "PAYMENT" ||
+														cond.type === "LOAN_INSTALLMENT" ||
+														cond.type === "LOAN_PAYOUT",
+												)
+												.reduce(
+													(acc, cond) =>
+														acc + (cond.amountmoney || cond.totalamount || 0),
+													0,
+												) ||
+												c.total_amount ||
+												0,
+											c.currency || "ICA",
+										)}
 									</Typography>
 								</Stack>
 							</Box>
@@ -593,10 +757,11 @@ const ContractDetailDialog: React.FC<Props> = ({
 								</Typography>
 							) : (
 								c.conditions.map((cond) => (
-									<ConditionItem
+									<ContractConditionRow
 										key={cond.id}
 										condition={cond}
 										contractCurrency={c.currency}
+										contractParty={c.party}
 									/>
 								))
 							)}

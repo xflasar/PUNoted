@@ -7,6 +7,7 @@ import {
 	Typography,
 	useTheme,
 	alpha,
+	Stack,
 } from "@mui/material";
 import type { ContractListItem } from "../types";
 import { getStatusColor, getStatusBg, formatCurrency } from "../helpers/helper";
@@ -16,6 +17,7 @@ import {
 	LocalShipping,
 	AccountBalance,
 	Handshake,
+	Explore,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 
@@ -29,15 +31,19 @@ const ContractRow: React.FC<Props> = ({ contract, onClick, rowHeight }) => {
 	const theme = useTheme();
 
 	const getIcon = () => {
-		switch (contract.operation_type) {
+		switch (contract.contracttype) {
 			case "BUY":
 				return <ArrowCircleLeft sx={{ fontSize: 16 }} color="success" />;
 			case "SELL":
 				return <ArrowCircleRight sx={{ fontSize: 16 }} color="warning" />;
-			case "SHIPMENT":
+			case "SHIPMENT_GIVEN":
+			case "SHIPMENT_TAKEN":
 				return <LocalShipping sx={{ fontSize: 16 }} color="info" />;
-			case "LOAN":
+			case "LOAN_GIVEN":
+			case "LOAN_TAKEN":
 				return <AccountBalance sx={{ fontSize: 16 }} color="error" />;
+			case "EXPLORATION":
+				return <Explore sx={{ fontSize: 16 }} color="primary" />;
 			default:
 				return <Handshake sx={{ fontSize: 16 }} color="secondary" />;
 		}
@@ -48,7 +54,7 @@ const ContractRow: React.FC<Props> = ({ contract, onClick, rowHeight }) => {
 			hover
 			onClick={onClick}
 			sx={{
-				bgcolor: alpha(theme.palette.background.default, 0.05), // Matches your snippet
+				bgcolor: alpha(theme.palette.background.default, 0.05),
 				backgroundImage: "none",
 				"&:last-child td, &:last-child th": { border: 0 },
 				cursor: "pointer",
@@ -81,6 +87,41 @@ const ContractRow: React.FC<Props> = ({ contract, onClick, rowHeight }) => {
 				</Box>
 			</TableCell>
 
+			{/* 1b. Type Column */}
+			<TableCell sx={{ py: 0.5, px: 1 }}>
+				<Typography
+					variant="body2"
+					fontWeight={700}
+					sx={{
+						fontSize: "0.8rem",
+						color:
+							contract.total_amount > 0
+								? contract.is_income
+									? "success.main"
+									: "error.main"
+								: "text.primary",
+					}}
+				>
+					{contract.contracttype === "SELL"
+						? "Sell"
+						: contract.contracttype === "BUY"
+							? "Buy"
+							: contract.contracttype === "SHIPMENT_GIVEN"
+								? "Ship (Out)"
+								: contract.contracttype === "SHIPMENT_TAKEN"
+									? "Ship (In)"
+									: contract.contracttype === "LOAN_GIVEN"
+										? "Lend"
+										: contract.contracttype === "LOAN_TAKEN"
+											? "Borrow"
+											: contract.contracttype === "EXPLORATION"
+												? "Exploration"
+												: contract.contracttype === "MOTION"
+													? "Motion"
+													: "Other"}
+				</Typography>
+			</TableCell>
+
 			{/* 2. Partner */}
 			<TableCell sx={{ py: 0.5, px: 1 }}>
 				<Box sx={{ display: "flex", flexDirection: "column" }}>
@@ -101,20 +142,20 @@ const ContractRow: React.FC<Props> = ({ contract, onClick, rowHeight }) => {
 				</Box>
 			</TableCell>
 
-			{/* 3. Value */}
+			{/* 3. Total Value */}
 			<TableCell sx={{ py: 0.5, px: 1, textAlign: "right" }}>
-				{" "}
-				{/* Changed to Right Align for numbers */}
 				{contract.total_amount > 0 ? (
 					<Typography
-						variant="body2"
-						fontWeight={600}
+						variant="subtitle2"
+						fontFamily="monospace"
+						fontWeight={800}
 						sx={{
-							fontFamily: "monospace",
 							fontSize: "0.85rem",
 							letterSpacing: -0.5,
+							color: contract.is_income ? "success.main" : "error.main",
 						}}
 					>
+						{contract.is_income ? "+" : "-"}
 						{formatCurrency(contract.total_amount, contract.currency)}
 					</Typography>
 				) : (
@@ -124,7 +165,7 @@ const ContractRow: React.FC<Props> = ({ contract, onClick, rowHeight }) => {
 				)}
 			</TableCell>
 
-			{/* 4. Status / Dates (Merged) */}
+			{/* 4. Status / Dates */}
 			<TableCell align="right" sx={{ py: 0.5, px: 1 }}>
 				<Box
 					sx={{

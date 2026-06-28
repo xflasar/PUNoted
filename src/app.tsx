@@ -10,6 +10,7 @@ import "./app.css";
 import { getApiStatus } from "./components/common/apistatusservice";
 import StoragePage from "./dashboard/storagepage";
 import DashboardPage from "./dashboard/dashboardpage";
+import SitesPage from "./dashboard/sites/sitespage";
 import GalaxyMap from "./galaxymap/galaxymap";
 import CX from "./cx/cx";
 import Settings from "./dashboard/settings/settings";
@@ -20,9 +21,11 @@ import Logistics from "./dashboard/logistics/logistics";
 import Governance from "./dashboard/governance/governancepage";
 import { CorporationOverview } from "./dashboard/corporation/corporationoverview";
 import ShipmentPage from "./dashboard/shipping/shipmentpage";
-import ProductionDashboard from "./dashboard/production/productiondashboard";
 import { ProductionLeaderboard } from "./public/leaderboard";
 import FinancialOverview from "./dashboard/financial/financialoverview";
+import { API_BASE_URL } from "./config/api";
+import { BasePlanner } from "./dashboard/planner/baseplanner";
+import ContractsPage from "./dashboard/contracts/contracts";
 
 const isTokenValid = () => {
 	const token = localStorage.getItem("authToken");
@@ -107,7 +110,7 @@ function App() {
 
 			try {
 				const response = await fetch(
-					`https://api.punoted.net/users/${userId}/synchronized`,
+					`${API_BASE_URL}users/${userId}/synchronized`,
 					{
 						method: "GET",
 						headers: {
@@ -189,6 +192,7 @@ function App() {
 				<Route path="/galaxy-map" element={<GalaxyMap />} />
 
 				<Route path="/cx" element={<CX />} />
+				<Route path="/planner/:planId" element={<BasePlanner />} />
 
 				{/* Protected Routes - These are nested under a protected layout */}
 				<Route
@@ -208,15 +212,14 @@ function App() {
 							path="/dashboard/cooperation"
 							element={<>Cooperation (WIP)</>}
 						/>
+						<Route path="/dashboard/sites" element={<SitesPage />} />
+						<Route path="/dashboard/planner" element={<BasePlanner />} />
 						<Route
-							path="/dashboard/production"
-							element={<ProductionDashboard />}
+							path="/dashboard/planner/:planId"
+							element={<BasePlanner />}
 						/>
 						<Route path="/dashboard/logistics" element={<Logistics />} />
-						<Route
-							path="/dashboard/contracts"
-							element={<div>Contracts Page</div>}
-						/>
+						<Route path="/dashboard/contracts" element={<ContractsPage />} />
 						<Route path="/dashboard/shipments" element={<ShipmentPage />} />
 						<Route path="/dashboard/storage" element={<StoragePage />} />
 						<Route

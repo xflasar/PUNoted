@@ -28,6 +28,7 @@ import {
 	TrendingDown,
 	Minus,
 } from "lucide-react";
+import { API_BASE_URL } from "../../config/api";
 import { glassStyle } from "./customcomponents/glassstyle";
 import MaterialBadge from "../components/materialbadge";
 
@@ -589,7 +590,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 	useEffect(() => {
 		const fetchCorpPrices = async () => {
 			try {
-				const res = await fetch("https://api.punoted.net/corp_prices_all");
+				const res = await fetch(`${API_BASE_URL}corp_prices_all`);
 				const json = await res.json();
 				if (json.success && Array.isArray(json.data)) setMaterials(json.data);
 			} catch (err) {

@@ -19,8 +19,9 @@ export const navItems = [
 	{ text: "Landing Page", icon: <HomeIcon />, href: "/" },
 	{ text: "Galaxy Map", icon: <Map />, href: "/dashboard/galaxy-map" },
 	{ text: "Corporation", icon: <LocationCity />, href: "/dashboard/corp" },
-	{ text: "Production", icon: <FactoryIcon />, href: "/dashboard/production" },
-	{ text: "Storage", icon: <StorageIcon />, href: "/dashboard/storage" },
+	{ text: "Sites", icon: <Map />, href: "/dashboard/sites" },
+	//{ text: "Base Planner", icon: <Assignment />, href: "/dashboard/planner" },
+	{ text: "Global Storage", icon: <StorageIcon />, href: "/dashboard/storage" },
 	{ text: "CX Dashboard", icon: <ShowChartIcon />, href: "/dashboard/cx" },
 	{
 		text: "Financial (Semi-WIP)",
@@ -34,7 +35,7 @@ export const navItems = [
 		href: "/dashboard/logistics",
 	},
 	{
-		text: "Contracts (WIP)",
+		text: "Contracts",
 		icon: <Assignment />,
 		href: "/dashboard/contracts",
 	},

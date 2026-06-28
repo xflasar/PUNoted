@@ -17,9 +17,91 @@ import { GlobalWsProvider } from "./dashboard/websocket/globalwscontext";
 import { navItems } from "./navitems.tsx";
 import TopNavbar from "./components/common/topnavbar/topnavbar";
 import WsReconnectionOverlay from "./dashboard/websocket/websocketreconnectoverlay.tsx";
-import { GlobalDataProvider } from "./context/globaldatacontext.tsx";
+import {
+	GlobalDataProvider,
+	useGlobalData,
+} from "./context/globaldatacontext.tsx";
 
 const drawerWidth = 240;
+
+/**
+ * Inner content component that can use GlobalDataContext
+ */
+const AppShellMainContent = ({
+	isMobile,
+	isDrawerOpen,
+	currentDrawerWidth,
+	drawerContent,
+	handleDrawerToggle,
+}: any) => {
+	const location = useLocation();
+	const { fetchMapData } = useGlobalData();
+
+	// Trigger map fetch when entering any dashboard route
+	useEffect(() => {
+		const isDashboardRoute = location.pathname.startsWith("/dashboard");
+
+		if (isDashboardRoute) {
+			// Create a session ID based on the route and current timestamp
+			// This resets when user leaves and comes back to dashboard
+			const sessionId = "dashboard-session";
+			console.log("Dashboard route detected, fetching map data...");
+			fetchMapData(sessionId);
+		}
+	}, [location.pathname, fetchMapData]);
+
+	return (
+		<Box
+			sx={{
+				display: "flex",
+				minHeight: "calc(var(--vh, 1vh) * 100)",
+				width: "100vw",
+			}}
+		>
+			{isMobile ? (
+				<TopNavbar />
+			) : (
+				<MuiDrawer
+					variant="permanent"
+					sx={{
+						width: currentDrawerWidth,
+						flexShrink: 0,
+						"& .MuiDrawer-paper": {
+							width: currentDrawerWidth,
+							boxSizing: "border-box",
+							transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+							background: "rgba(10, 10, 20, 0.9)",
+							color: "white",
+							boxShadow: "0px 0px 20px rgba(123, 104, 238, 0.2)",
+							overflowX: "hidden",
+						},
+					}}
+				>
+					{drawerContent}
+				</MuiDrawer>
+			)}
+
+			<WsReconnectionOverlay />
+			<Box
+				component="main"
+				sx={{
+					flexGrow: 1,
+					boxSizing: "border-box",
+					display: "flex",
+					flexDirection: "column",
+					width: { md: `calc(100% - ${currentDrawerWidth}px)` },
+					height: "calc(var(--vh, 1vh) * 100)",
+					transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+					p: 1,
+					paddingTop: { xs: "72px", md: 1 },
+					overflow: "hidden",
+				}}
+			>
+				<Outlet />
+			</Box>
+		</Box>
+	);
+};
 
 export default function AppShell() {
 	const [isDrawerOpen, setIsDrawerOpen] = useState(true);
@@ -136,64 +218,16 @@ export default function AppShell() {
 	);
 
 	return (
-		<Box
-			sx={{
-				display: "flex",
-				minHeight: "calc(var(--vh, 1vh) * 100)",
-				width: "100vw",
-			}}
-		>
-			{isMobile ? (
-				<TopNavbar />
-			) : (
-				<MuiDrawer
-					variant="permanent"
-					sx={{
-						width: currentDrawerWidth,
-						flexShrink: 0,
-						"& .MuiDrawer-paper": {
-							width: currentDrawerWidth,
-							boxSizing: "border-box",
-							transition: theme.transitions.create("width", {
-								easing: theme.transitions.easing.sharp,
-								duration: theme.transitions.duration.enteringScreen,
-							}),
-							background: "rgba(10, 10, 20, 0.9)",
-							color: "white",
-							boxShadow: "0px 0px 20px rgba(123, 104, 238, 0.2)",
-							overflowX: "hidden",
-						},
-					}}
-				>
-					{drawerContent}
-				</MuiDrawer>
-			)}
-
-			<GlobalWsProvider>
-				<GlobalDataProvider>
-					<WsReconnectionOverlay />
-					<Box
-						component="main"
-						sx={{
-							flexGrow: 1,
-							boxSizing: "border-box",
-							display: "flex",
-							flexDirection: "column",
-							width: { md: `calc(100% - ${currentDrawerWidth}px)` },
-							height: "calc(var(--vh, 1vh) * 100)",
-							transition: theme.transitions.create(["width", "margin"], {
-								easing: theme.transitions.easing.sharp,
-								duration: theme.transitions.duration.enteringScreen,
-							}),
-							p: 1,
-							paddingTop: { xs: "72px", md: 1 },
-							overflow: "hidden",
-						}}
-					>
-						<Outlet />
-					</Box>
-				</GlobalDataProvider>
-			</GlobalWsProvider>
-		</Box>
+		<GlobalWsProvider>
+			<GlobalDataProvider>
+				<AppShellMainContent
+					isMobile={isMobile}
+					isDrawerOpen={isDrawerOpen}
+					currentDrawerWidth={currentDrawerWidth}
+					drawerContent={drawerContent}
+					handleDrawerToggle={handleDrawerToggle}
+				/>
+			</GlobalDataProvider>
+		</GlobalWsProvider>
 	);
 }
