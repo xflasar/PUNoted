@@ -58,7 +58,7 @@ export function useAvailableMaterials(
 		let isMounted = true;
 		const fetchMaterials = async () => {
 			try {
-				const response = await fetch(`${API_BASE_URL}materials_price_list`, {
+				const response = await fetch(`${API_BASE_URL}vendor/materials_price_list`, {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",

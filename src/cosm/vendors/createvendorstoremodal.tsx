@@ -681,14 +681,17 @@ const VendorCreationModal: React.FC<{
 
 			try {
 				// --- STEP 1: Fetch materials from your internal API ---
-				const response = await fetch(`${API_BASE_URL}materials_price_list`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+				const response = await fetch(
+					`${API_BASE_URL}vendor/materials_price_list`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+						},
+						body: JSON.stringify({ cx: localCx }),
 					},
-					body: JSON.stringify({ cx: localCx }),
-				});
+				);
 
 				if (response.ok) {
 					const data = await response.json();
