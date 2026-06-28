@@ -49,7 +49,7 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 	processingPromise = (async () => {
 		try {
 			let data: any;
-			
+
 			if (mapDataFromContext) {
 				data = mapDataFromContext;
 			} else {
@@ -123,8 +123,7 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 			for (const g of data.gateways || []) {
 				const sid = String(g.system_id ?? "unknown");
 				if (g.system_id) {
-					if (g.id)
-						gatewayIdToSystemId.set(String(g.id), String(g.system_id));
+					if (g.id) gatewayIdToSystemId.set(String(g.id), String(g.system_id));
 					if (g.naturalid)
 						gatewayIdToSystemId.set(String(g.id), String(g.system_id));
 				}
@@ -443,7 +442,10 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 				allGatewaysData: fullGatewayDataMap,
 				maxSystemPopulation: globalMaxPop,
 				contentBounds: bounds,
-				rawConnections: mapDataFromContext?.system_connections || data.system_connections || [],
+				rawConnections:
+					mapDataFromContext?.system_connections ||
+					data.system_connections ||
+					[],
 			};
 
 			processedDataCache = result;
@@ -500,9 +502,9 @@ export const useMapData = (mapDataFromContext: any = null) => {
 			setFetchError(null);
 			try {
 				const processed = await processMapDataSingleton(mapDataFromContext);
-				
+
 				if (!mounted) return;
-				
+
 				setSystemsPoints(processed.systemsPoints);
 				setSectors(processed.sectors);
 				setEmpireLegend(processed.empireLegend);
@@ -514,7 +516,7 @@ export const useMapData = (mapDataFromContext: any = null) => {
 				setMaxSystemPopulation(processed.maxSystemPopulation);
 				setContentBounds(processed.contentBounds);
 				setRawConnections(processed.rawConnections || []);
-				
+
 				setIsLoading(false);
 			} catch (err: any) {
 				console.error("map fetch error", err);

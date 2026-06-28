@@ -143,7 +143,10 @@ export const useViewNavigation = ({
 			}
 		}
 	};
-	const getConstrainedSystemViewState = (next: any, isUserInteracting = false) => {
+	const getConstrainedSystemViewState = (
+		next: any,
+		isUserInteracting = false,
+	) => {
 		const exitZoom = systemExitZoomRef.current ?? 2.0;
 
 		// 1. Check Exit Threshold (Zoom Out below dynamic exitZoom boundary)
@@ -177,7 +180,10 @@ export const useViewNavigation = ({
 		} else if (centeredSystem) {
 			// 3. Initial Load / No Bounds Yet
 			const initialZoom = initialPlanetZoomRef.current ?? clampedZoom;
-			const safeZoom = Math.max(exitZoom, Math.min(8.0, Math.max(initialZoom, next.zoom)));
+			const safeZoom = Math.max(
+				exitZoom,
+				Math.min(8.0, Math.max(initialZoom, next.zoom)),
+			);
 
 			return {
 				...next,
@@ -223,7 +229,10 @@ export const useViewNavigation = ({
 
 			// Priority 2: System View Logic
 			if (currentViewMode === "system" && centeredSystem) {
-				const constrainedState = getConstrainedSystemViewState(next, isUserInteracting);
+				const constrainedState = getConstrainedSystemViewState(
+					next,
+					isUserInteracting,
+				);
 				if (constrainedState) {
 					const old = viewStateRef.current || {};
 					const changed =

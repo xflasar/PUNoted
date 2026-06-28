@@ -10,7 +10,10 @@ interface ShipFlightStatusProps {
 	isMine: boolean;
 }
 
-const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({ ship, isMine }) => {
+const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
+	ship,
+	isMine,
+}) => {
 	const theme = useTheme();
 	const { systemsPoints, allPlanetsData, allStationsData } = useGlobalData();
 	const activeFlight: any = ship.plan || (ship as any).flight;
@@ -44,24 +47,32 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({ ship, isMine }) => 
 	// CSS GPU Animation Config
 	const barStyle = isArrived
 		? {
-			transform: "scaleX(1)",
-			backgroundColor: isMine
-				? theme.palette.primary.main
-				: theme.palette.secondary.main,
-		}
+				transform: "scaleX(1)",
+				backgroundColor: isMine
+					? theme.palette.primary.main
+					: theme.palette.secondary.main,
+			}
 		: {
-			animationName: "growProgress",
-			animationDuration: `${totalDuration}ms`,
-			animationTimingFunction: "linear",
-			animationFillMode: "forwards",
-			animationDelay: `-${elapsed}ms`,
-			backgroundColor: isMine
-				? theme.palette.primary.main
-				: theme.palette.secondary.main,
-		};
+				animationName: "growProgress",
+				animationDuration: `${totalDuration}ms`,
+				animationTimingFunction: "linear",
+				animationFillMode: "forwards",
+				animationDelay: `-${elapsed}ms`,
+				backgroundColor: isMine
+					? theme.palette.primary.main
+					: theme.palette.secondary.main,
+			};
 
 	return (
-		<Box sx={{ width: "100%", mt: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
+		<Box
+			sx={{
+				width: "100%",
+				mt: 0.5,
+				display: "flex",
+				alignItems: "center",
+				gap: 1,
+			}}
+		>
 			<Typography
 				variant="caption"
 				noWrap
@@ -124,9 +135,6 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({ ship, isMine }) => 
 	);
 };
 
-export default React.memo(
-	ShipFlightStatus,
-	(prev, next) => {
-		return prev.ship.plan === next.ship.plan && prev.isMine === next.isMine;
-	},
-);
+export default React.memo(ShipFlightStatus, (prev, next) => {
+	return prev.ship.plan === next.ship.plan && prev.isMine === next.isMine;
+});

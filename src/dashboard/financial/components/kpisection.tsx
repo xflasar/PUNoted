@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, alpha, useTheme } from "@mui/material";
+import { Box, Typography, Tooltip, alpha, useTheme } from "@mui/material";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import LockIcon from "@mui/icons-material/Lock";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
@@ -7,51 +7,47 @@ import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import InventoryIcon from "@mui/icons-material/Inventory2";
 import { formatCurrency } from "../utils/financeutils";
-import { FlexCard, Guide } from "./sharedui";
+import { FlexCard } from "./sharedui";
 
 const KPIBlock = ({ title, value, icon, color, isNet = false, guide }: any) => (
-	<FlexCard sx={{ p: 1.5, justifyContent: "center" }}>
-		<Box
-			display="flex"
-			justifyContent="space-between"
-			alignItems="center"
-			mb={0.5}
-		>
-			<Box display="flex" alignItems="center">
-				<Typography
-					sx={{
-						color: "text.secondary",
-						fontSize: "0.7rem",
-						fontWeight: 700,
-						textTransform: "uppercase",
-						letterSpacing: "0.5px",
-					}}
-				>
-					{title}
-				</Typography>
-				<Guide text={guide} />
-			</Box>
+	<FlexCard sx={{ p: 2, justifyContent: "center" }}>
+		<Box display="flex" alignItems="center" gap={1} mb={1}>
 			<Box
 				sx={{
 					color,
 					display: "flex",
-					bgcolor: alpha(color, 0.1),
-					p: 0.5,
-					borderRadius: "4px",
+					alignItems: "center",
 				}}
 			>
-				{React.cloneElement(icon, { fontSize: "small" })}
+				{React.cloneElement(icon, { sx: { fontSize: 16 } })}
 			</Box>
+			<Tooltip title={guide} arrow placement="top">
+				<Typography
+					sx={{
+						color: "text.secondary",
+						fontSize: "0.68rem",
+						fontWeight: 700,
+						textTransform: "uppercase",
+						letterSpacing: "0.5px",
+						cursor: "help",
+						borderBottom: "1px dashed rgba(255, 255, 255, 0.25)",
+						pb: 0.1,
+					}}
+				>
+					{title}
+				</Typography>
+			</Tooltip>
 		</Box>
 		<Typography
 			sx={{
 				color: isNet && value < 0 ? "error.main" : "text.primary",
-				fontSize: { xs: "1.15rem", lg: "1.25rem" },
+				fontSize: { xs: "1.1rem", lg: "1.25rem" },
 				fontWeight: 800,
+				whiteSpace: "nowrap",
 			}}
 		>
 			{isNet && value > 0 ? "+" : ""}
-			{formatCurrency(value)}
+			{formatCurrency(value, Math.abs(value) >= 1000 ? 0 : 2)}
 		</Typography>
 	</FlexCard>
 );

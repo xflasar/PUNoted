@@ -59,11 +59,13 @@ export default function FinancialOverview() {
 	if (loading)
 		return (
 			<Box
-				display="flex"
-				justifyContent="center"
-				alignItems="center"
-				height="100vh"
-				bgcolor="background.default"
+				sx={{
+					display: "flex",
+					justifyContent: "center",
+					alignItems: "center",
+					height: "100vh",
+					bgcolor: "background.default",
+				}}
 			>
 				<CircularProgress
 					size={60}
@@ -74,7 +76,7 @@ export default function FinancialOverview() {
 		);
 	if (error || !data || data.Currencies.length === 0 || !currentData)
 		return (
-			<Box p={4} bgcolor="background.default" height="100vh">
+			<Box sx={{ p: 4, bgcolor: "background.default", height: "100vh" }}>
 				<Alert severity={error ? "error" : "info"}>
 					{error || "No data available."}
 				</Alert>
@@ -100,13 +102,13 @@ export default function FinancialOverview() {
 	return (
 		<Box
 			sx={{
-				height: "100%", // Changed from 100vh to integrate perfectly with global app layouts
+				height: "100%",
 				width: "100%",
 				display: "flex",
 				flexDirection: "column",
 				backgroundColor: "background.default",
 				color: "text.primary",
-				overflow: { xs: "auto", lg: "hidden" },
+				overflow: "hidden",
 				boxSizing: "border-box",
 			}}
 		>
@@ -129,10 +131,13 @@ export default function FinancialOverview() {
 					onChange={handleTabChange}
 					variant="scrollable"
 					scrollButtons="auto"
-					TabIndicatorProps={{
-						style: { backgroundColor: theme.palette.primary.main, height: 3 },
+					sx={{
+						minHeight: "36px",
+						"& .MuiTabs-indicator": {
+							backgroundColor: theme.palette.primary.main,
+							height: 3,
+						},
 					}}
-					sx={{ minHeight: "36px" }}
 				>
 					{data.Currencies.map((c, idx) => (
 						<Tab
@@ -150,7 +155,7 @@ export default function FinancialOverview() {
 						/>
 					))}
 				</Tabs>
-				<Box display="flex" alignItems="center" gap={2}>
+				<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
 					<Typography
 						variant="caption"
 						sx={{
@@ -178,27 +183,29 @@ export default function FinancialOverview() {
 			<Box
 				sx={{
 					flex: 1,
-					overflowY: { xs: "visible", lg: "hidden" },
+					minHeight: 0,
+					overflow: "hidden",
 					display: "flex",
 					flexDirection: "column",
-					gap: 2,
-					p: { xs: 1.5, md: 3 },
-					minHeight: 0, // <--- The Flexbox constraint that prevents scrollbars from being pushed off-screen
+					gap: 2.5,
+					p: { xs: 2, md: 3 },
 				}}
 			>
 				<KPISection currentData={currentData} netPending={netPending} />
 
 				{isActivityExpanded ? (
-					<FlexCard sx={{ flex: 1, minHeight: { xs: 500, lg: 0 } }}>
+					<FlexCard sx={{ minHeight: 500 }}>
 						<Box
-							px={2}
-							py={1}
-							display="flex"
-							alignItems="center"
-							justifyContent="space-between"
-							borderBottom={`1px solid ${theme.palette.divider}`}
+							sx={{
+								px: 2.5,
+								py: 1.5,
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "space-between",
+								borderBottom: `1px solid ${theme.palette.divider}`,
+							}}
 						>
-							<Box display="flex" alignItems="center">
+							<Box sx={{ display: "flex", alignItems: "center" }}>
 								<Typography
 									fontWeight={700}
 									fontSize="0.85rem"
@@ -226,7 +233,7 @@ export default function FinancialOverview() {
 								flex: 1,
 								overflowY: "auto",
 								p: 0,
-								minHeight: 0,
+								minHeight: 350,
 								"&::-webkit-scrollbar": { width: "6px" },
 								"&::-webkit-scrollbar-thumb": {
 									backgroundColor: theme.palette.divider,
@@ -242,92 +249,44 @@ export default function FinancialOverview() {
 					</FlexCard>
 				) : (
 					<>
-						<LiquidityTrendChart
-							historyData={currentData.History}
-							currency={currentData.Currency}
-						/>
+						{/* Row 2: Trend & Ledger */}
+						<Box
+							sx={{
+								display: "grid",
+								gridTemplateColumns: { xs: "1fr", lg: "1.8fr 1.2fr" },
+								gap: 2.5,
+							}}
+						>
+							<LiquidityTrendChart
+								historyData={currentData.History}
+								currency={currentData.Currency}
+							/>
+							<VelocityLedgerTable cashFlows={currentData.CashFlows} />
+						</Box>
 
+						{/* Row 3: Analytics */}
 						<Box
 							sx={{
 								display: "grid",
 								gridTemplateColumns: {
 									xs: "1fr",
 									md: "repeat(2, 1fr)",
-									lg: "repeat(7, 1fr)",
+									lg: "repeat(3, 1fr)",
 								},
-								gap: 2,
-								flex: { xs: "none", lg: 0.6 },
-								minHeight: { xs: "auto", lg: 200 },
+								gap: 2.5,
 							}}
 						>
 							<IncomeSourcesChart pieChartData={pieChartData} />
 							<VelocityBarChart incomeExpense30D={incomeExpense30D} />
-							<VelocityLedgerTable cashFlows={currentData.CashFlows} />
-						</Box>
-
-						<Box
-							sx={{
-								display: "grid",
-								gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" },
-								gap: 2,
-								flex: { xs: "none", lg: 1.4 },
-								minHeight: { xs: "auto", lg: 0 },
-							}}
-						>
-							<FlexCard
-								sx={{ height: { xs: 400, lg: "auto" }, minHeight: { lg: 0 } }}
-							>
-								<Box
-									px={2}
-									py={1}
-									display="flex"
-									alignItems="center"
-									justifyContent="space-between"
-									borderBottom={`1px solid ${theme.palette.divider}`}
-								>
-									<Box display="flex" alignItems="center">
-										<Typography fontWeight={700} fontSize="0.85rem">
-											30-Day Activity Log
-										</Typography>
-										<Guide text="Click any row to view full transaction and counterparty details." />
-									</Box>
-									<IconButton
-										size="small"
-										onClick={() => setIsActivityExpanded(true)}
-										sx={{ color: "text.secondary", p: 0.5 }}
-									>
-										<OpenInFullIcon fontSize="small" />
-									</IconButton>
-								</Box>
+							<FlexCard sx={{ height: 260 }}>
 								<Box
 									sx={{
-										flex: 1,
-										overflowY: "auto",
-										p: 0,
-										minHeight: 0,
-										"&::-webkit-scrollbar": { width: "6px" },
-										"&::-webkit-scrollbar-thumb": {
-											backgroundColor: theme.palette.divider,
-											borderRadius: "4px",
-										},
+										px: 3,
+										py: 1.5,
+										display: "flex",
+										alignItems: "center",
+										borderBottom: `1px solid ${theme.palette.divider}`,
 									}}
-								>
-									<ActivityTableContent
-										transactions={currentData.Transactions}
-										onRowClick={openTransactionDrawer}
-									/>
-								</Box>
-							</FlexCard>
-
-							<FlexCard
-								sx={{ height: { xs: 400, lg: "auto" }, minHeight: { lg: 0 } }}
-							>
-								<Box
-									px={2}
-									py={1}
-									display="flex"
-									alignItems="center"
-									borderBottom={`1px solid ${theme.palette.divider}`}
 								>
 									<Typography fontWeight={700} fontSize="0.85rem">
 										Top Partners (30D Volume)
@@ -353,6 +312,52 @@ export default function FinancialOverview() {
 								</Box>
 							</FlexCard>
 						</Box>
+
+						{/* Row 4: Full-width Activity Log */}
+						<FlexCard sx={{ flex: 1, minHeight: 200 }}>
+							<Box
+								sx={{
+									px: 3,
+									py: 1.5,
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "space-between",
+									borderBottom: `1px solid ${theme.palette.divider}`,
+								}}
+							>
+								<Box sx={{ display: "flex", alignItems: "center" }}>
+									<Typography fontWeight={700} fontSize="0.85rem">
+										30-Day Activity Log
+									</Typography>
+									<Guide text="Click any row to view full transaction and counterparty details." />
+								</Box>
+								<IconButton
+									size="small"
+									onClick={() => setIsActivityExpanded(true)}
+									sx={{ color: "text.secondary", p: 0.5 }}
+								>
+									<OpenInFullIcon fontSize="small" />
+								</IconButton>
+							</Box>
+							<Box
+								sx={{
+									flex: 1,
+									overflowY: "auto",
+									p: 0,
+									minHeight: 0,
+									"&::-webkit-scrollbar": { width: "6px" },
+									"&::-webkit-scrollbar-thumb": {
+										backgroundColor: theme.palette.divider,
+										borderRadius: "4px",
+									},
+								}}
+							>
+								<ActivityTableContent
+									transactions={currentData.Transactions}
+									onRowClick={openTransactionDrawer}
+								/>
+							</Box>
+						</FlexCard>
 					</>
 				)}
 			</Box>

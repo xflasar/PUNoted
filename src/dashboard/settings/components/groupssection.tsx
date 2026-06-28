@@ -70,10 +70,12 @@ const CreateGroupDialog: React.FC<{
 			onClose={onClose}
 			maxWidth="xs"
 			fullWidth
-			PaperProps={{
-				sx: {
-					bgcolor: theme.palette.background.default,
-					backgroundImage: "none",
+			slotProps={{
+				paper: {
+					sx: {
+						bgcolor: theme.palette.background.default,
+						backgroundImage: "none",
+					},
 				},
 			}}
 		>

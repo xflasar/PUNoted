@@ -25,6 +25,7 @@ import { ProductionLeaderboard } from "./public/leaderboard";
 import FinancialOverview from "./dashboard/financial/financialoverview";
 import { API_BASE_URL } from "./config/api";
 import { BasePlanner } from "./dashboard/planner/baseplanner";
+import ContractsPage from "./dashboard/contracts/contracts";
 
 const isTokenValid = () => {
 	const token = localStorage.getItem("authToken");
@@ -218,10 +219,7 @@ function App() {
 							element={<BasePlanner />}
 						/>
 						<Route path="/dashboard/logistics" element={<Logistics />} />
-						<Route
-							path="/dashboard/contracts"
-							element={<div>Contracts Page</div>}
-						/>
+						<Route path="/dashboard/contracts" element={<ContractsPage />} />
 						<Route path="/dashboard/shipments" element={<ShipmentPage />} />
 						<Route path="/dashboard/storage" element={<StoragePage />} />
 						<Route

@@ -40,30 +40,32 @@ export const CounterpartyProfile = ({
 				<Typography
 					fontWeight={700}
 					fontSize="0.85rem"
-					textTransform="uppercase"
+					sx={{ textTransform: "uppercase" }}
 				>
 					Counterparty
 				</Typography>
 			</Box>
-			<Box display="flex" flexDirection="column">
+			<Box sx={{ display: "flex", flexDirection: "column" }}>
 				{loading ? (
-					<Box display="flex" justifyContent="center" py={3}>
+					<Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
 						<CircularProgress size={20} sx={{ color: "primary.main" }} />
 					</Box>
 				) : profile ? (
 					<>
 						<DrawerRow label="Entity" noBorder>
 							<Box
-								display="flex"
-								flexDirection="column"
-								alignItems="flex-end"
-								pl={2}
+								sx={{
+									display: "flex",
+									flexDirection: "column",
+									alignItems: "flex-end",
+									pl: 2,
+								}}
 							>
 								<Typography
 									variant="body2"
 									fontWeight={800}
 									color="text.primary"
-									textAlign="right"
+									sx={{ textAlign: "right" }}
 								>
 									{profile.CompanyName}
 								</Typography>
@@ -83,10 +85,12 @@ export const CounterpartyProfile = ({
 							profile.Pioneer) && (
 							<DrawerRow label="Tags" isTopBorder>
 								<Box
-									display="flex"
-									gap={0.5}
-									flexWrap="wrap"
-									justifyContent="flex-end"
+									sx={{
+										display: "flex",
+										gap: 0.5,
+										flexWrap: "wrap",
+										justifyContent: "flex-end",
+									}}
 								>
 									{profile.SubscriptionLevel && (
 										<Chip

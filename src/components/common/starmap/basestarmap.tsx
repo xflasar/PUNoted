@@ -6,7 +6,14 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { Box, Paper, useTheme, useMediaQuery, Typography, Slider } from "@mui/material";
+import {
+	Box,
+	Paper,
+	useTheme,
+	useMediaQuery,
+	Typography,
+	Slider,
+} from "@mui/material";
 import DeckGL, { type DeckGLRef } from "@deck.gl/react";
 import {
 	OrthographicView,
@@ -132,7 +139,11 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	const [isInteracting, setIsInteracting] = useState(false);
 	const interactionTimeoutRef = useRef<number | null>(null);
 	const tooltipRef = useRef<HTMLDivElement | null>(null);
-	const [hoveredInfo, setHoveredInfo] = useState<{ object: any; x: number; y: number } | null>(null);
+	const [hoveredInfo, setHoveredInfo] = useState<{
+		object: any;
+		x: number;
+		y: number;
+	} | null>(null);
 	const [isSystemPanelOpen, setIsSystemPanelOpen] = useState(false);
 
 	const animationWorkerRef = useRef<Worker | null>(null);
@@ -206,7 +217,9 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 
 	const [centeredSystem, setCenteredSystem] = useState<MapPoint | null>(null);
 	const [selectedPlanetId, setSelectedPlanetId] = useState<string | null>(null);
-	const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+	const [selectedStationId, setSelectedStationId] = useState<string | null>(
+		null,
+	);
 
 	useEffect(() => {
 		if (centeredSystem) {
@@ -219,10 +232,18 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		}
 	}, [centeredSystem]);
 
-	const [selectedPlanet, setSelectedPlanetState] = useState<PlanetPosition | null>(null);
+	const [selectedPlanet, setSelectedPlanetState] =
+		useState<PlanetPosition | null>(null);
 	const setSelectedPlanet = useCallback((planet: PlanetPosition | null) => {
 		setSelectedPlanetState(planet);
-		setSelectedPlanetId(planet ? (planet.planetid || (planet as any).id || (planet as any).planetId || null) : null);
+		setSelectedPlanetId(
+			planet
+				? planet.planetid ||
+						(planet as any).id ||
+						(planet as any).planetId ||
+						null
+				: null,
+		);
 	}, []);
 
 	const [triggeredSearchQuery, setTriggeredSearchQuery] = useState("");
@@ -231,15 +252,25 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	const [orbitLinesStatic, setOrbitLinesStatic] = useState<any[]>([]);
 	const [maxAllowedRadius, setMaxAllowedRadius] = useState(12);
 
-	const [visiblePathShipIds, setVisiblePathShipIds] = useState<Set<string>>(new Set());
+	const [visiblePathShipIds, setVisiblePathShipIds] = useState<Set<string>>(
+		new Set(),
+	);
 	const hasInitializedPaths = useRef(false);
 
-	const [visibleCorpGroups, setVisibleCorpGroups] = useState<Record<string, boolean>>({});
+	const [visibleCorpGroups, setVisibleCorpGroups] = useState<
+		Record<string, boolean>
+	>({});
 	const [ownShipsVisible, setOwnShipsVisible] = useState(true);
 
-	const [galaxyViewState, setGalaxyViewState] = useState(INITIAL_VIEW_STATE as any);
-	const [systemViewState, setSystemViewState] = useState(INITIAL_VIEW_STATE as any);
-	const [currentViewMode, setCurrentViewMode] = useState<"galaxy" | "system">("galaxy");
+	const [galaxyViewState, setGalaxyViewState] = useState(
+		INITIAL_VIEW_STATE as any,
+	);
+	const [systemViewState, setSystemViewState] = useState(
+		INITIAL_VIEW_STATE as any,
+	);
+	const [currentViewMode, setCurrentViewMode] = useState<"galaxy" | "system">(
+		"galaxy",
+	);
 	const [selectedShipId, setSelectedShipId] = useState<string | null>(null);
 	const [activeShipTooltip, setActiveShipTooltip] = useState<{
 		object: any;
@@ -252,21 +283,34 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		activeShipTooltipRef.current = activeShipTooltip;
 	}, [activeShipTooltip]);
 
-	const activeViewState = currentViewMode === "system" ? systemViewState : galaxyViewState;
+	const activeViewState =
+		currentViewMode === "system" ? systemViewState : galaxyViewState;
 	const isPlanetModeActive = currentViewMode === "system";
 	const isGalaxyView = currentViewMode === "galaxy";
 
 	const [isSearchResultsOpen, setIsSearchResultsOpen] = useState(true);
 
 	const shortestPathDistances = useMemo(() => {
-		if (!filter?.originSystemId || !rawConnections || rawConnections.length === 0 || !systemsPoints) {
+		if (
+			!filter?.originSystemId ||
+			!rawConnections ||
+			rawConnections.length === 0 ||
+			!systemsPoints
+		) {
 			return {} as Record<string, number>;
 		}
 
 		const adj = new Map<string, string[]>();
 		rawConnections.forEach((conn: any) => {
-			const u = String(conn.systemidorigin || conn.systemIdOrigin || conn.origin || '');
-			const v = String(conn.systemiddestination || conn.systemIdDestination || conn.destination || '');
+			const u = String(
+				conn.systemidorigin || conn.systemIdOrigin || conn.origin || "",
+			);
+			const v = String(
+				conn.systemiddestination ||
+					conn.systemIdDestination ||
+					conn.destination ||
+					"",
+			);
 			if (u && v) {
 				if (!adj.has(u)) adj.set(u, []);
 				if (!adj.has(v)) adj.set(v, []);
@@ -343,8 +387,23 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 
 	const matchedSystems = useMemo(() => {
 		if (!systemsPoints) return [];
-		return systemsPoints.filter((s) => checkSystemMatch(s, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathDistances));
-	}, [systemsPoints, filter, searchQuery, allPlanetsData, shortestPathDistances]);
+		return systemsPoints.filter((s) =>
+			checkSystemMatch(
+				s,
+				filter,
+				searchQuery,
+				allPlanetsData,
+				systemsPoints,
+				shortestPathDistances,
+			),
+		);
+	}, [
+		systemsPoints,
+		filter,
+		searchQuery,
+		allPlanetsData,
+		shortestPathDistances,
+	]);
 
 	useEffect(() => {
 		if (searchQuery || isFilterActive) {
@@ -352,87 +411,129 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		}
 	}, [searchQuery, isFilterActive]);
 
-	const handleSelectSystem = useCallback((sys: MapPoint) => {
-		setCenteredSystem(sys);
-		setCurrentViewMode("galaxy");
-		setGalaxyViewState((prev: any) => ({
-			...prev,
-			target: [sys.x, sys.y],
-			zoom: 1.5,
-			transitionDuration: 500,
-			transitionInterpolator: new LinearInterpolator({
-				transitionProps: ["target", "zoom"],
-			}),
-		}));
-	}, [setCenteredSystem, setCurrentViewMode, setGalaxyViewState]);
-
-	const handleSelectPlanet = useCallback((planetId: string, sys: MapPoint) => {
-		setCenteredSystem(sys);
-		setCurrentViewMode("system");
-		setSelectedPlanetId(planetId);
-		setSelectedStationId(null);
-		const planets = allPlanetsData[sys.originalSystemId || sys.id] || [];
-		const planet = planets.find((p) => p.planetid === planetId);
-		const targetX = planet && (planet as any).x !== undefined ? (planet as any).x : sys.x;
-		const targetY = planet && (planet as any).y !== undefined ? (planet as any).y : sys.y;
-
-		setSystemViewState((prev: any) => ({
-			...prev,
-			target: [targetX, targetY],
-			zoom: 4,
-			transitionDuration: 500,
-			transitionInterpolator: new LinearInterpolator({
-				transitionProps: ["target", "zoom"],
-			}),
-		}));
-	}, [allPlanetsData, setCenteredSystem, setCurrentViewMode, setSelectedPlanetId, setSelectedStationId, setSystemViewState]);
-
-	const handleSelectStation = useCallback((stationId: string, sys: MapPoint) => {
-		setCenteredSystem(sys);
-		setCurrentViewMode("system");
-		setSelectedStationId(stationId);
-		setSelectedPlanetId(null);
-		setSelectedPlanet(null);
-		const stations = allStationsData[sys.originalSystemId || sys.id] || [];
-		const station = stations.find((s) => s.stationid === stationId);
-		const targetX = station && (station as any).x !== undefined ? (station as any).x : sys.x;
-		const targetY = station && (station as any).y !== undefined ? (station as any).y : sys.y;
-
-		setSystemViewState((prev: any) => ({
-			...prev,
-			target: [targetX, targetY],
-			zoom: 4,
-			transitionDuration: 500,
-			transitionInterpolator: new LinearInterpolator({
-				transitionProps: ["target", "zoom"],
-			}),
-		}));
-	}, [allStationsData, setCenteredSystem, setCurrentViewMode, setSelectedStationId, setSelectedPlanetId, setSelectedPlanet, setSystemViewState]);
-
-	const handleMapStationSelect = useCallback((station: StationPosition | null) => {
-		if (station && centeredSystem) {
-			handleSelectStation(station.stationid, centeredSystem);
-		}
-	}, [centeredSystem, handleSelectStation]);
-
-	const handleSliderChange = useCallback((event: Event, newValue: number | number[]) => {
-		const newZoom = newValue as number;
-		if (currentViewMode === "system") {
-			setSystemViewState((prev: any) => ({
-				...prev,
-				zoom: newZoom,
-				transitionDuration: 100,
-				transitionInterpolator: new LinearInterpolator({ transitionProps: ["zoom"] }),
-			}));
-		} else {
+	const handleSelectSystem = useCallback(
+		(sys: MapPoint) => {
+			setCenteredSystem(sys);
+			setCurrentViewMode("galaxy");
 			setGalaxyViewState((prev: any) => ({
 				...prev,
-				zoom: newZoom,
-				transitionDuration: 100,
-				transitionInterpolator: new LinearInterpolator({ transitionProps: ["zoom"] }),
+				target: [sys.x, sys.y],
+				zoom: 1.5,
+				transitionDuration: 500,
+				transitionInterpolator: new LinearInterpolator({
+					transitionProps: ["target", "zoom"],
+				}),
 			}));
-		}
-	}, [currentViewMode, setSystemViewState, setGalaxyViewState]);
+		},
+		[setCenteredSystem, setCurrentViewMode, setGalaxyViewState],
+	);
+
+	const handleSelectPlanet = useCallback(
+		(planetId: string, sys: MapPoint) => {
+			setCenteredSystem(sys);
+			setCurrentViewMode("system");
+			setSelectedPlanetId(planetId);
+			setSelectedStationId(null);
+			const planets = allPlanetsData[sys.originalSystemId || sys.id] || [];
+			const planet = planets.find((p) => p.planetid === planetId);
+			const targetX =
+				planet && (planet as any).x !== undefined ? (planet as any).x : sys.x;
+			const targetY =
+				planet && (planet as any).y !== undefined ? (planet as any).y : sys.y;
+
+			setSystemViewState((prev: any) => ({
+				...prev,
+				target: [targetX, targetY],
+				zoom: 4,
+				transitionDuration: 500,
+				transitionInterpolator: new LinearInterpolator({
+					transitionProps: ["target", "zoom"],
+				}),
+			}));
+		},
+		[
+			allPlanetsData,
+			setCenteredSystem,
+			setCurrentViewMode,
+			setSelectedPlanetId,
+			setSelectedStationId,
+			setSystemViewState,
+		],
+	);
+
+	const handleSelectStation = useCallback(
+		(stationId: string, sys: MapPoint) => {
+			setCenteredSystem(sys);
+			setCurrentViewMode("system");
+			setSelectedStationId(stationId);
+			setSelectedPlanetId(null);
+			setSelectedPlanet(null);
+			const stations = allStationsData[sys.originalSystemId || sys.id] || [];
+			const station = stations.find((s) => s.stationid === stationId);
+			const targetX =
+				station && (station as any).x !== undefined
+					? (station as any).x
+					: sys.x;
+			const targetY =
+				station && (station as any).y !== undefined
+					? (station as any).y
+					: sys.y;
+
+			setSystemViewState((prev: any) => ({
+				...prev,
+				target: [targetX, targetY],
+				zoom: 4,
+				transitionDuration: 500,
+				transitionInterpolator: new LinearInterpolator({
+					transitionProps: ["target", "zoom"],
+				}),
+			}));
+		},
+		[
+			allStationsData,
+			setCenteredSystem,
+			setCurrentViewMode,
+			setSelectedStationId,
+			setSelectedPlanetId,
+			setSelectedPlanet,
+			setSystemViewState,
+		],
+	);
+
+	const handleMapStationSelect = useCallback(
+		(station: StationPosition | null) => {
+			if (station && centeredSystem) {
+				handleSelectStation(station.stationid, centeredSystem);
+			}
+		},
+		[centeredSystem, handleSelectStation],
+	);
+
+	const handleSliderChange = useCallback(
+		(event: Event, newValue: number | number[]) => {
+			const newZoom = newValue as number;
+			if (currentViewMode === "system") {
+				setSystemViewState((prev: any) => ({
+					...prev,
+					zoom: newZoom,
+					transitionDuration: 100,
+					transitionInterpolator: new LinearInterpolator({
+						transitionProps: ["zoom"],
+					}),
+				}));
+			} else {
+				setGalaxyViewState((prev: any) => ({
+					...prev,
+					zoom: newZoom,
+					transitionDuration: 100,
+					transitionInterpolator: new LinearInterpolator({
+						transitionProps: ["zoom"],
+					}),
+				}));
+			}
+		},
+		[currentViewMode, setSystemViewState, setGalaxyViewState],
+	);
 
 	const viewStateRef = useRef(activeViewState);
 	useEffect(() => {
@@ -442,15 +543,24 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	const initialPlanetZoomRef = useRef<number | null>(null);
 	const systemExitZoomRef = useRef<number | null>(null);
 	const ignoreOnViewStateChangeRef = useRef(false);
-	const systemBoundsRef = useRef<{ minX: number; maxX: number; minY: number; maxY: number } | null>(null);
+	const systemBoundsRef = useRef<{
+		minX: number;
+		maxX: number;
+		minY: number;
+		maxY: number;
+	} | null>(null);
 	const isTransitioningRef = useRef(false);
 
-	const [mapSize, setMapSize] = useState<{ w: number; h: number }>({ w: 800, h: 600 });
+	const [mapSize, setMapSize] = useState<{ w: number; h: number }>({
+		w: 800,
+		h: 600,
+	});
 	useEffect(() => {
 		const el = mapRef.current;
 		if (!el || typeof window === "undefined") return;
 
-		const observerAvailable = typeof (window as any).ResizeObserver !== "undefined";
+		const observerAvailable =
+			typeof (window as any).ResizeObserver !== "undefined";
 		if (!observerAvailable) {
 			const rect = el.getBoundingClientRect();
 			setMapSize({
@@ -478,11 +588,14 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		return () => obs.disconnect();
 	}, []);
 
-	const handleSystemDoubleClick = useCallback((sys: MapPoint | null) => {
-		if (!sys) return;
-		setCenteredSystem(sys);
-		setCurrentViewMode("system");
-	}, [setCenteredSystem, setCurrentViewMode]);
+	const handleSystemDoubleClick = useCallback(
+		(sys: MapPoint | null) => {
+			if (!sys) return;
+			setCenteredSystem(sys);
+			setCurrentViewMode("system");
+		},
+		[setCenteredSystem, setCurrentViewMode],
+	);
 
 	const previousGalaxyViewStateRef = useRef<any>(null);
 
@@ -513,27 +626,38 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		onSystemDoubleClick: handleSystemDoubleClick,
 	});
 
-
 	const handleViewStateChange = useCallback(
 		(params: any) => {
 			const { viewState, interactionState } = params;
 			if (shallowViewEqual(viewStateRef.current, viewState)) {
 				const isUserInteracting =
-					interactionState?.isDragging || interactionState?.isZooming || interactionState?.isPanning;
+					interactionState?.isDragging ||
+					interactionState?.isZooming ||
+					interactionState?.isPanning;
 				if (isUserInteracting) {
 					if (!isInteracting) setIsInteracting(true);
-					if (interactionTimeoutRef.current) window.clearTimeout(interactionTimeoutRef.current);
-					interactionTimeoutRef.current = window.setTimeout(() => setIsInteracting(false), 200);
+					if (interactionTimeoutRef.current)
+						window.clearTimeout(interactionTimeoutRef.current);
+					interactionTimeoutRef.current = window.setTimeout(
+						() => setIsInteracting(false),
+						200,
+					);
 				}
 				return;
 			}
 
 			if (!isInteracting) setIsInteracting(true);
-			if (interactionTimeoutRef.current) window.clearTimeout(interactionTimeoutRef.current);
-			interactionTimeoutRef.current = window.setTimeout(() => setIsInteracting(false), 200);
+			if (interactionTimeoutRef.current)
+				window.clearTimeout(interactionTimeoutRef.current);
+			interactionTimeoutRef.current = window.setTimeout(
+				() => setIsInteracting(false),
+				200,
+			);
 
 			const isUserInteracting =
-				interactionState?.isDragging || interactionState?.isZooming || interactionState?.isPanning;
+				interactionState?.isDragging ||
+				interactionState?.isZooming ||
+				interactionState?.isPanning;
 			if (isUserInteracting) {
 				isTransitioningRef.current = false;
 				ignoreOnViewStateChangeRef.current = false;
@@ -543,8 +667,12 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					transitionInterpolator: null,
 					transitionEasing: null,
 				};
-				if (currentViewMode === "galaxy") cleanState.zoom = Math.min(cleanState.zoom, 2.0);
-				navigationHandleViewStateChange({ viewState: cleanState, isUserInteracting: true });
+				if (currentViewMode === "galaxy")
+					cleanState.zoom = Math.min(cleanState.zoom, 2.0);
+				navigationHandleViewStateChange({
+					viewState: cleanState,
+					isUserInteracting: true,
+				});
 			} else if (isTransitioningRef.current) {
 				setGalaxyViewState((prev: any) => ({
 					...viewState,
@@ -554,13 +682,18 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					transitionEasing: prev.transitionEasing,
 				}));
 			} else {
-				navigationHandleViewStateChange({ viewState, isUserInteracting: false });
+				navigationHandleViewStateChange({
+					viewState,
+					isUserInteracting: false,
+				});
 			}
 		},
 		[currentViewMode, navigationHandleViewStateChange, isInteracting],
 	);
 
-	const [expandedCorpGroups, setExpandedCorpGroups] = useState<Record<string, boolean>>({});
+	const [expandedCorpGroups, setExpandedCorpGroups] = useState<
+		Record<string, boolean>
+	>({});
 
 	const {
 		ownShips,
@@ -588,19 +721,22 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		});
 	}, []);
 
-	const handleToggleAllPaths = useCallback((ids: string[], visible: boolean) => {
-		setVisiblePathShipIds((prev) => {
-			const next = new Set(prev);
-			ids.forEach((id) => {
-				if (visible) {
-					next.add(id);
-				} else {
-					next.delete(id);
-				}
+	const handleToggleAllPaths = useCallback(
+		(ids: string[], visible: boolean) => {
+			setVisiblePathShipIds((prev) => {
+				const next = new Set(prev);
+				ids.forEach((id) => {
+					if (visible) {
+						next.add(id);
+					} else {
+						next.delete(id);
+					}
+				});
+				return next;
 			});
-			return next;
-		});
-	}, []);
+		},
+		[],
+	);
 
 	const handleGroupVisibilityChange = useCallback((group: string) => {
 		setVisibleCorpGroups((prev) => ({
@@ -616,15 +752,18 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		}));
 	}, []);
 
-	const handleToggleAllCorpVisibility = useCallback((groups: string[], visible: boolean) => {
-		setVisibleCorpGroups((prev) => {
-			const next = { ...prev };
-			groups.forEach((g) => {
-				next[g] = visible;
+	const handleToggleAllCorpVisibility = useCallback(
+		(groups: string[], visible: boolean) => {
+			setVisibleCorpGroups((prev) => {
+				const next = { ...prev };
+				groups.forEach((g) => {
+					next[g] = visible;
+				});
+				return next;
 			});
-			return next;
-		});
-	}, []);
+		},
+		[],
+	);
 
 	const handleToogleOwnShipsVisibility = useCallback(() => {
 		setOwnShipsVisible((prev) => !prev);
@@ -637,7 +776,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		}
 	}, [ownShips]);
 
-	const effectiveSetFlightPlans = mode === "shipping" ? () => { } : activeFlightPlans;
+	const effectiveSetFlightPlans =
+		mode === "shipping" ? () => {} : activeFlightPlans;
 
 	const animatedShipDataRef = useRef(allShips);
 	useLayoutEffect(() => {
@@ -661,21 +801,26 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 
 	const lastSystemClickTimeRef = useRef<number>(0);
 	const lastClickedSystemIdRef = useRef<string | null>(null);
-	const handleSystemClickWrapped = useCallback((sys: MapPoint | null) => {
-		if (!sys) return;
-		const now = Date.now();
-		const sysId = sys.originalSystemId || sys.id;
-		const isDoubleClick = lastClickedSystemIdRef.current === sysId && (now - lastSystemClickTimeRef.current < 300);
+	const handleSystemClickWrapped = useCallback(
+		(sys: MapPoint | null) => {
+			if (!sys) return;
+			const now = Date.now();
+			const sysId = sys.originalSystemId || sys.id;
+			const isDoubleClick =
+				lastClickedSystemIdRef.current === sysId &&
+				now - lastSystemClickTimeRef.current < 300;
 
-		lastSystemClickTimeRef.current = now;
-		lastClickedSystemIdRef.current = sysId;
+			lastSystemClickTimeRef.current = now;
+			lastClickedSystemIdRef.current = sysId;
 
-		if (isDoubleClick) {
-			handleSystemDoubleClick(sys);
-		} else {
-			onSystemClick(sys);
-		}
-	}, [onSystemClick, handleSystemDoubleClick]);
+			if (isDoubleClick) {
+				handleSystemDoubleClick(sys);
+			} else {
+				onSystemClick(sys);
+			}
+		},
+		[onSystemClick, handleSystemDoubleClick],
+	);
 
 	const handleDeckHover = useCallback((info: any) => {
 		const t = tooltipRef.current;
@@ -685,7 +830,9 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		}
 
 		if (info.object) {
-			const isSystemObj = info.object.type === "system" || (!info.object.type && info.object.originalSystemId);
+			const isSystemObj =
+				info.object.type === "system" ||
+				(!info.object.type && info.object.originalSystemId);
 			if (isSystemObj) {
 				if (t) t.style.display = "none";
 				setActiveShipTooltip(null);
@@ -697,7 +844,11 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			if (isPlanetObj) {
 				if (t) t.style.display = "none";
 				setActiveShipTooltip(null);
-				setHoveredInfo({ object: { ...info.object, type: "planet" }, x: info.x, y: info.y });
+				setHoveredInfo({
+					object: { ...info.object, type: "planet" },
+					x: info.x,
+					y: info.y,
+				});
 				return;
 			}
 
@@ -705,18 +856,23 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			if (isStationObj) {
 				if (t) t.style.display = "none";
 				setActiveShipTooltip(null);
-				setHoveredInfo({ object: { ...info.object, type: "station" }, x: info.x, y: info.y });
+				setHoveredInfo({
+					object: { ...info.object, type: "station" },
+					x: info.x,
+					y: info.y,
+				});
 				return;
 			}
 
-			const isShipObj = info.object.ships || info.object.registration || info.object.ship_id;
+			const isShipObj =
+				info.object.ships || info.object.registration || info.object.ship_id;
 			if (isShipObj) {
 				setHoveredInfo(null);
 				setActiveShipTooltip({
 					object: info.object,
 					x: info.x,
 					y: info.y,
-					isLocked: false
+					isLocked: false,
 				});
 				if (t) t.style.display = "none";
 				return;
@@ -725,7 +881,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			setHoveredInfo(null);
 			setActiveShipTooltip(null);
 			if (!t) return;
-			const content = info.object.name || info.object.id || info.object.label || "";
+			const content =
+				info.object.name || info.object.id || info.object.label || "";
 			t.style.display = "block";
 			t.style.left = `${info.x}px`;
 			t.style.top = `${info.y}px`;
@@ -750,7 +907,7 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 				object: info.object,
 				x: info.x,
 				y: info.y,
-				isLocked: true
+				isLocked: true,
 			});
 			setTimeout(() => {
 				justClickedShipRef.current = false;
@@ -766,7 +923,11 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			y: 0,
 			width: Math.max(1, w),
 			height: Math.max(1, h),
-			target: [activeViewState.target?.[0] ?? 0, activeViewState.target?.[1] ?? 0, 0],
+			target: [
+				activeViewState.target?.[0] ?? 0,
+				activeViewState.target?.[1] ?? 0,
+				0,
+			],
 			zoom: activeViewState.zoom ?? 0,
 		});
 	}, [mapSize, activeViewState]);
@@ -777,7 +938,9 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		let worldPos = obj.position;
 		if (!worldPos) {
 			const shipId = obj.ship_id || obj.id;
-			const currentShip = updatedShipsRef.current.find((s) => s.id === shipId || s.ship_id === shipId);
+			const currentShip = updatedShipsRef.current.find(
+				(s) => s.id === shipId || s.ship_id === shipId,
+			);
 			if (currentShip) worldPos = currentShip.position;
 		}
 		if (worldPos) {
@@ -795,7 +958,9 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			for (const system of systemsPoints) {
 				if (!system.originalSystemId) continue;
 				const point: [number, number] = [system.x, system.y];
-				const found = sectors.find((sector: any) => pointInPolygon(point, sector.vertices));
+				const found = sectors.find((sector: any) =>
+					pointInPolygon(point, sector.vertices),
+				);
 				if (found) map.set(system.originalSystemId, found.id);
 			}
 		} catch {
@@ -804,7 +969,7 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		return map;
 	}, [systemsPoints, sectors]);
 
-	const noop = useCallback(() => { }, []);
+	const noop = useCallback(() => {}, []);
 
 	const DECK_DEVICE_PROPS = useMemo(() => {
 		if (typeof window === "undefined") return undefined;
@@ -906,7 +1071,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		],
 	);
 
-	const { layers, updatedShips, activePlanets, workerStats } = useMapLayers(layersOptions);
+	const { layers, updatedShips, activePlanets, workerStats } =
+		useMapLayers(layersOptions);
 
 	const updatedShipsRef = useRef<any[]>([]);
 	useEffect(() => {
@@ -914,7 +1080,9 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	}, [updatedShips]);
 
 	const handleShipSelect = useCallback((shipid: string, locate = true) => {
-		const ship = updatedShipsRef.current.find((s) => s.id === shipid || s.ship_id === shipid);
+		const ship = updatedShipsRef.current.find(
+			(s) => s.id === shipid || s.ship_id === shipid,
+		);
 		if (!ship) return;
 
 		setSelectedShipId(shipid);
@@ -945,33 +1113,65 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		if (!focusTarget) return;
 		try {
 			if (focusTarget.type === "SYSTEM") {
-				const sys = systemsPoints?.find((s: any) => s.originalSystemId === focusTarget.id);
-				if (sys && centeredSystem?.originalSystemId !== sys.originalSystemId) onSystemClick(sys);
+				const sys = systemsPoints?.find(
+					(s: any) => s.originalSystemId === focusTarget.id,
+				);
+				if (sys && centeredSystem?.originalSystemId !== sys.originalSystemId)
+					onSystemClick(sys);
 			} else if (focusTarget.type === "SHIP") {
-				const ship: any = allShips.find((s: any) => s.id === focusTarget.id || s.ship_id === focusTarget.id);
+				const ship: any = allShips.find(
+					(s: any) => s.id === focusTarget.id || s.ship_id === focusTarget.id,
+				);
 				if (ship) {
 					const sysId = ship.addresssystemid || ship.address_system_id;
 					if (sysId && !ship.plan) {
-						const sys = systemsPoints?.find((s: any) => s.originalSystemId === sysId);
-						if (sys && centeredSystem?.originalSystemId !== sys.originalSystemId) onSystemClick(sys);
+						const sys = systemsPoints?.find(
+							(s: any) => s.originalSystemId === sysId,
+						);
+						if (
+							sys &&
+							centeredSystem?.originalSystemId !== sys.originalSystemId
+						)
+							onSystemClick(sys);
 					} else {
 						handleShipSelect(ship.id || ship.ship_id);
 					}
 				}
-			} else if (focusTarget.type === "PLANET" || focusTarget.type === "STATION") {
+			} else if (
+				focusTarget.type === "PLANET" ||
+				focusTarget.type === "STATION"
+			) {
 				if (focusTarget.systemId) {
-					const sys = systemsPoints?.find((s: any) => s.originalSystemId === focusTarget.systemId);
-					if (sys && centeredSystem?.originalSystemId !== sys.originalSystemId) onSystemClick(sys);
+					const sys = systemsPoints?.find(
+						(s: any) => s.originalSystemId === focusTarget.systemId,
+					);
+					if (sys && centeredSystem?.originalSystemId !== sys.originalSystemId)
+						onSystemClick(sys);
 				}
 			}
 		} catch {
 			// swallow focus errors
 		}
-	}, [focusTarget, systemsPoints, allShips, centeredSystem, onSystemClick, handleShipSelect]);
+	}, [
+		focusTarget,
+		systemsPoints,
+		allShips,
+		centeredSystem,
+		onSystemClick,
+		handleShipSelect,
+	]);
 
 	// Prepare options for autocomplete search
 	const searchOptions = useMemo(() => {
-		const options: Array<{ label: string; id: string; type: "system" | "planet"; systemId?: string; x?: number; y?: number; naturalId?: string }> = [];
+		const options: Array<{
+			label: string;
+			id: string;
+			type: "system" | "planet";
+			systemId?: string;
+			x?: number;
+			y?: number;
+			naturalId?: string;
+		}> = [];
 
 		if (systemsPoints) {
 			systemsPoints.forEach((sys: any) => {
@@ -1020,8 +1220,10 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		(option: any) => {
 			if (!option) return;
 			if (option.type === "system") {
-				const sys = systemsPoints?.find((s: any) => 
-					(s.originalSystemId && s.originalSystemId === option.id) || s.id === option.id
+				const sys = systemsPoints?.find(
+					(s: any) =>
+						(s.originalSystemId && s.originalSystemId === option.id) ||
+						s.id === option.id,
 				);
 				if (sys) {
 					setCenteredSystem(sys);
@@ -1030,8 +1232,10 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			} else if (option.type === "planet") {
 				const parentSysId = option.systemId;
 				if (parentSysId) {
-					const sys = systemsPoints?.find((s: any) => 
-						(s.originalSystemId && s.originalSystemId === parentSysId) || s.id === parentSysId
+					const sys = systemsPoints?.find(
+						(s: any) =>
+							(s.originalSystemId && s.originalSystemId === parentSysId) ||
+							s.id === parentSysId,
 					);
 					if (sys) {
 						setCenteredSystem(sys);
@@ -1047,224 +1251,315 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	const isSystemMode = currentViewMode === "system";
 	const sliderMin = isSystemMode ? (systemExitZoomRef.current ?? 2.0) : -3;
 	const sliderMax = isSystemMode ? 8 : 2;
-	const sliderMarks = isSystemMode 
+	const sliderMarks = isSystemMode
 		? [
-			{ value: systemExitZoomRef.current ?? 2.0, label: "Far (Exit)" },
-			{ value: 8, label: "Close" }
-		]
+				{ value: systemExitZoomRef.current ?? 2.0, label: "Far (Exit)" },
+				{ value: 8, label: "Close" },
+			]
 		: [
-			{ value: -3, label: "Far" },
-			{ value: 2, label: "Close (Enter)" }
-		];
+				{ value: -3, label: "Far" },
+				{ value: 2, label: "Close (Enter)" },
+			];
 
-	const controller = useMemo(() => controllerForPlanetMode(isPlanetModeActive), [isPlanetModeActive]);
+	const controller = useMemo(
+		() => controllerForPlanetMode(isPlanetModeActive),
+		[isPlanetModeActive],
+	);
 
 	return (
-		<Paper sx={{ flexGrow: 1, position: "relative", width: "100%", height: "100%" }}>
-				<SearchBar options={searchOptions} onSelect={handleSearchSelect} onSearchQueryChange={setSearchQuery} />
+		<Paper
+			sx={{ flexGrow: 1, position: "relative", width: "100%", height: "100%" }}
+		>
+			<SearchBar
+				options={searchOptions}
+				onSelect={handleSearchSelect}
+				onSearchQueryChange={setSearchQuery}
+			/>
 
-				<Box
-					ref={mapRef}
-					sx={{
-						display: "flex",
+			<Box
+				ref={mapRef}
+				sx={{
+					display: "flex",
+					position: "absolute",
+					inset: 0,
+					background: "#02040ae3",
+					backgroundSize: "cover",
+					zIndex: 1,
+					width: "100%",
+					height: "100%",
+				}}
+			>
+				<MemoizedDeckGL
+					deviceProps={DECK_DEVICE_PROPS}
+					ref={deckRef}
+					views={DECK_VIEWS}
+					viewState={activeViewState}
+					onViewStateChange={handleViewStateChange}
+					onHover={handleDeckHover}
+					onClick={handleDeckClick}
+					controller={controller as any}
+					layers={layers}
+					pickingRadius={5}
+					_animate={false}
+				/>
+
+				<MapLoadingOverlay
+					isVisible={isLoading}
+					isLoadingFromCache={!isLoading && !!mapData && isGlobalMapLoading}
+				/>
+
+				{mode !== "shipping" && mode === "dashboard" && (
+					<ShipListComponent
+						ownShips={ownShips}
+						corpShips={corpShipsGrouped}
+						otherShips={otherShipsGrouped}
+						onSelectPosition={handleShipSelect}
+						visibleCorpGroups={visibleCorpGroups}
+						selectedShipId={selectedShipId}
+						onGroupVisibilityChange={handleGroupVisibilityChange}
+						expandedCorpGroups={expandedCorpGroups}
+						onToggleCorpGroup={handleToggleCorpGroup}
+						searchResultsVisible={false}
+						visiblePathShipIds={visiblePathShipIds}
+						onTogglePath={handleTogglePath}
+						onToggleAllPaths={handleToggleAllPaths}
+						onToggleAllCorpVisibility={handleToggleAllCorpVisibility}
+						ownShipsVisible={ownShipsVisible}
+						onToggleOwnVisibility={handleToogleOwnShipsVisibility}
+					/>
+				)}
+
+				<div
+					ref={tooltipRef as any}
+					style={{
 						position: "absolute",
-						inset: 0,
-						background: "#02040ae3",
-						backgroundSize: "cover",
-						zIndex: 1,
-						width: "100%",
-						height: "100%",
+						display: "none",
+						pointerEvents: "none",
+						zIndex: 9999,
+						backgroundColor: "rgba(0,0,0,0.85)",
+						color: "white",
+						padding: "4px 8px",
+						borderRadius: "4px",
+						transform: "translate(-50%, -120%)",
+						fontSize: "12px",
+						whiteSpace: "pre",
+						border: "1px solid rgba(255,255,255,0.2)",
+					}}
+				/>
+
+				{hoveredInfo && hoveredInfo.object.type === "planet" ? (
+					<PlanetHoverTooltip
+						object={hoveredInfo.object}
+						x={hoveredInfo.x}
+						y={hoveredInfo.y}
+						allPlanetsData={allPlanetsData}
+						ownerShips={ownerShips}
+						otherShips={otherShips}
+					/>
+				) : hoveredInfo ? (
+					<SystemHoverTooltip
+						object={hoveredInfo.object}
+						x={hoveredInfo.x}
+						y={hoveredInfo.y}
+						allPlanetsData={allPlanetsData}
+						allStationsData={allStationsData}
+						ownerShips={ownerShips}
+						otherShips={otherShips}
+					/>
+				) : null}
+
+				{activeShipTooltip && projectedTooltipCoords && (
+					<ShipTooltip
+						tooltip={{
+							...activeShipTooltip,
+							x: projectedTooltipCoords.x,
+							y: projectedTooltipCoords.y,
+						}}
+						onClose={() => setActiveShipTooltip(null)}
+						onSelectShip={handleShipSelect}
+					/>
+				)}
+
+				{/* Floating Legend */}
+				<Box
+					sx={{
+						position: "absolute",
+						bottom: currentViewMode === "system" ? 110 : 20,
+						right: isSystemPanelOpen && !isMobile ? 400 : 20,
+						zIndex: 1000,
+						bgcolor: "rgba(10, 15, 30, 0.85)",
+						backdropFilter: "blur(8px)",
+						border: "1px solid rgba(255, 255, 255, 0.1)",
+						borderRadius: "8px",
+						p: 1.5,
+						display:
+							isMobile && isSystemPanelOpen && centeredSystem ? "none" : "flex",
+						flexDirection: "column",
+						gap: 1,
+						color: "white",
+						pointerEvents: "none",
+						transition: "right 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
 					}}
 				>
-					<MemoizedDeckGL
-						deviceProps={DECK_DEVICE_PROPS}
-						ref={deckRef}
-						views={DECK_VIEWS}
-						viewState={activeViewState}
-						onViewStateChange={handleViewStateChange}
-						onHover={handleDeckHover}
-						onClick={handleDeckClick}
-						controller={controller as any}
-						layers={layers}
-						pickingRadius={5}
-						_animate={false}
-					/>
-
-					<MapLoadingOverlay
-						isVisible={isLoading}
-						isLoadingFromCache={!isLoading && !!mapData && isGlobalMapLoading}
-					/>
-
-					{mode !== "shipping" && mode === "dashboard" && (
-						<ShipListComponent
-							ownShips={ownShips}
-							corpShips={corpShipsGrouped}
-							otherShips={otherShipsGrouped}
-							onSelectPosition={handleShipSelect}
-							visibleCorpGroups={visibleCorpGroups}
-							selectedShipId={selectedShipId}
-							onGroupVisibilityChange={handleGroupVisibilityChange}
-							expandedCorpGroups={expandedCorpGroups}
-							onToggleCorpGroup={handleToggleCorpGroup}
-							searchResultsVisible={false}
-							visiblePathShipIds={visiblePathShipIds}
-							onTogglePath={handleTogglePath}
-							onToggleAllPaths={handleToggleAllPaths}
-							onToggleAllCorpVisibility={handleToggleAllCorpVisibility}
-							ownShipsVisible={ownShipsVisible}
-							onToggleOwnVisibility={handleToogleOwnShipsVisibility}
-						/>
-					)}
-
-					<div
-						ref={tooltipRef as any}
-						style={{
-							position: "absolute",
-							display: "none",
-							pointerEvents: "none",
-							zIndex: 9999,
-							backgroundColor: "rgba(0,0,0,0.85)",
-							color: "white",
-							padding: "4px 8px",
-							borderRadius: "4px",
-							transform: "translate(-50%, -120%)",
-							fontSize: "12px",
-							whiteSpace: "pre",
-							border: "1px solid rgba(255,255,255,0.2)",
-						}}
-					/>
-
-					{hoveredInfo && hoveredInfo.object.type === "planet" ? (
-						<PlanetHoverTooltip
-							object={hoveredInfo.object}
-							x={hoveredInfo.x}
-							y={hoveredInfo.y}
-							allPlanetsData={allPlanetsData}
-							ownerShips={ownerShips}
-							otherShips={otherShips}
-						/>
-					) : hoveredInfo ? (
-						<SystemHoverTooltip
-							object={hoveredInfo.object}
-							x={hoveredInfo.x}
-							y={hoveredInfo.y}
-							allPlanetsData={allPlanetsData}
-							allStationsData={allStationsData}
-							ownerShips={ownerShips}
-							otherShips={otherShips}
-						/>
-					) : null}
-
-					{activeShipTooltip && projectedTooltipCoords && (
-						<ShipTooltip
-							tooltip={{
-								...activeShipTooltip,
-								x: projectedTooltipCoords.x,
-								y: projectedTooltipCoords.y,
-							}}
-							onClose={() => setActiveShipTooltip(null)}
-							onSelectShip={handleShipSelect}
-						/>
-					)}
-
-					{/* Floating Legend */}
-					<Box
+					<Typography
 						sx={{
-							position: "absolute",
-							bottom: currentViewMode === "system" ? 110 : 20,
-							right: isSystemPanelOpen && !isMobile ? 400 : 20,
-							zIndex: 1000,
-							bgcolor: "rgba(10, 15, 30, 0.85)",
-							backdropFilter: "blur(8px)",
-							border: "1px solid rgba(255, 255, 255, 0.1)",
-							borderRadius: "8px",
-							p: 1.5,
-							display: isMobile && isSystemPanelOpen && centeredSystem ? "none" : "flex",
-							flexDirection: "column",
-							gap: 1,
-							color: "white",
-							pointerEvents: "none",
-							transition: "right 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+							fontSize: "0.65rem",
+							fontWeight: 800,
+							textTransform: "uppercase",
+							letterSpacing: "0.1em",
+							color: "#00e5ff",
+							mb: 0.5,
 						}}
 					>
-						<Typography sx={{ fontSize: "0.65rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "#00e5ff", mb: 0.5 }}>
-							Map Legend ({currentViewMode === "galaxy" ? "Galaxy" : "System"})
-						</Typography>
-						{currentViewMode === "galaxy" ? (
-							<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#ffffff" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>Star Systems (O-M Class)</Typography>
-								</Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Box sx={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid #00e5ff", bgcolor: "rgba(0, 229, 255, 0.2)" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.6rem", color: "#00e5ff" }}>Your Sites / Bases</Typography>
-								</Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Box sx={{ width: 14, height: 2, bgcolor: "rgba(180, 0, 255, 0.6)" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>Jump Lanes / Gateways</Typography>
-								</Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Box sx={{ width: 14, height: 2, bgcolor: "rgba(255, 255, 255, 0.15)" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>Sector Boundaries</Typography>
-								</Box>
+						Map Legend ({currentViewMode === "galaxy" ? "Galaxy" : "System"})
+					</Typography>
+					{currentViewMode === "galaxy" ? (
+						<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box
+									sx={{
+										width: 8,
+										height: 8,
+										borderRadius: "50%",
+										bgcolor: "#ffffff",
+									}}
+								/>
+								<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+									Star Systems (O-M Class)
+								</Typography>
 							</Box>
-						) : (
-							<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#00e5ff" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>Planets</Typography>
-								</Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Box sx={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid #00e5ff" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.6rem", color: "#00e5ff" }}>Planets with Your Sites</Typography>
-								</Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Box sx={{ width: 8, height: 8, bgcolor: "#00ff00" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>Space Stations</Typography>
-								</Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Box sx={{ width: 12, height: 12, border: "2px solid rgba(255, 255, 255, 0.3)", borderRadius: "50%" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>Orbits & Trails</Typography>
-								</Box>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box
+									sx={{
+										width: 12,
+										height: 12,
+										borderRadius: "50%",
+										border: "2px solid #00e5ff",
+										bgcolor: "rgba(0, 229, 255, 0.2)",
+									}}
+								/>
+								<Typography
+									variant="caption"
+									sx={{ fontSize: "0.6rem", color: "#00e5ff" }}
+								>
+									Your Sites / Bases
+								</Typography>
 							</Box>
-						)}
-					</Box>
-
-					{isSystemPanelOpen && centeredSystem && (
-						<SystemDetailPanel
-							system={centeredSystem}
-							onClose={() => {
-								setIsSystemPanelOpen(false);
-								setCenteredSystem(null);
-								setCurrentViewMode("galaxy");
-								setGalaxyViewState((prev: any) => ({
-									...prev,
-									transitionDuration: 500,
-									transitionInterpolator: new LinearInterpolator({
-										transitionProps: ["target", "zoom"],
-									}),
-								}));
-							}}
-							onEnterSystemView={() => setCurrentViewMode("system")}
-							isGalaxyView={currentViewMode === "galaxy"}
-							selectedPlanetId={selectedPlanetId}
-							onSelectPlanet={setSelectedPlanetId}
-							selectedStationId={selectedStationId}
-							onSelectStation={setSelectedStationId}
-							onEnterPlanetView={handleSelectPlanet}
-							allPlanetsData={allPlanetsData}
-							allStationsData={allStationsData}
-							ownerShips={ownerShips}
-							otherShips={otherShips}
-							activeFlightPlans={effectiveFlightPlans}
-							storageState={storageState}
-							productionData={productionData}
-							onSelectShip={(id) => handleShipSelect(id, false)}
-						/>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box
+									sx={{
+										width: 14,
+										height: 2,
+										bgcolor: "rgba(180, 0, 255, 0.6)",
+									}}
+								/>
+								<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+									Jump Lanes / Gateways
+								</Typography>
+							</Box>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box
+									sx={{
+										width: 14,
+										height: 2,
+										bgcolor: "rgba(255, 255, 255, 0.15)",
+									}}
+								/>
+								<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+									Sector Boundaries
+								</Typography>
+							</Box>
+						</Box>
+					) : (
+						<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box
+									sx={{
+										width: 10,
+										height: 10,
+										borderRadius: "50%",
+										bgcolor: "#00e5ff",
+									}}
+								/>
+								<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+									Planets
+								</Typography>
+							</Box>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box
+									sx={{
+										width: 14,
+										height: 14,
+										borderRadius: "50%",
+										border: "2px solid #00e5ff",
+									}}
+								/>
+								<Typography
+									variant="caption"
+									sx={{ fontSize: "0.6rem", color: "#00e5ff" }}
+								>
+									Planets with Your Sites
+								</Typography>
+							</Box>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box sx={{ width: 8, height: 8, bgcolor: "#00ff00" }} />
+								<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+									Space Stations
+								</Typography>
+							</Box>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Box
+									sx={{
+										width: 12,
+										height: 12,
+										border: "2px solid rgba(255, 255, 255, 0.3)",
+										borderRadius: "50%",
+									}}
+								/>
+								<Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+									Orbits & Trails
+								</Typography>
+							</Box>
+						</Box>
 					)}
+				</Box>
 
-					{!centeredSystem && isSearchResultsOpen && (searchQuery || isFilterActive) && (
+				{isSystemPanelOpen && centeredSystem && (
+					<SystemDetailPanel
+						system={centeredSystem}
+						onClose={() => {
+							setIsSystemPanelOpen(false);
+							setCenteredSystem(null);
+							setCurrentViewMode("galaxy");
+							setGalaxyViewState((prev: any) => ({
+								...prev,
+								transitionDuration: 500,
+								transitionInterpolator: new LinearInterpolator({
+									transitionProps: ["target", "zoom"],
+								}),
+							}));
+						}}
+						onEnterSystemView={() => setCurrentViewMode("system")}
+						isGalaxyView={currentViewMode === "galaxy"}
+						selectedPlanetId={selectedPlanetId}
+						onSelectPlanet={setSelectedPlanetId}
+						selectedStationId={selectedStationId}
+						onSelectStation={setSelectedStationId}
+						onEnterPlanetView={handleSelectPlanet}
+						allPlanetsData={allPlanetsData}
+						allStationsData={allStationsData}
+						ownerShips={ownerShips}
+						otherShips={otherShips}
+						activeFlightPlans={effectiveFlightPlans}
+						storageState={storageState}
+						productionData={productionData}
+						onSelectShip={(id) => handleShipSelect(id, false)}
+					/>
+				)}
+
+				{!centeredSystem &&
+					isSearchResultsOpen &&
+					(searchQuery || isFilterActive) && (
 						<SearchResultsPanel
 							systems={matchedSystems}
 							allPlanetsData={allPlanetsData}
@@ -1276,73 +1571,90 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 						/>
 					)}
 
+				<Box
+					sx={{
+						position: "absolute",
+						bottom: 24,
+						left: "50%",
+						transform: "translateX(-50%)",
+						width: 320,
+						zIndex: 1000,
+						bgcolor: "rgba(10, 15, 30, 0.85)",
+						backdropFilter: "blur(8px)",
+						border: "1px solid rgba(255, 255, 255, 0.1)",
+						borderRadius: "8px",
+						p: "10px 20px",
+						display: "flex",
+						flexDirection: "column",
+						gap: 0.5,
+						boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+					}}
+				>
 					<Box
 						sx={{
-							position: "absolute",
-							bottom: 24,
-							left: "50%",
-							transform: "translateX(-50%)",
-							width: 320,
-							zIndex: 1000,
-							bgcolor: "rgba(10, 15, 30, 0.85)",
-							backdropFilter: "blur(8px)",
-							border: "1px solid rgba(255, 255, 255, 0.1)",
-							borderRadius: "8px",
-							p: "10px 20px",
 							display: "flex",
-							flexDirection: "column",
-							gap: 0.5,
-							boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+							justifyContent: "space-between",
+							alignItems: "center",
 						}}
 					>
-						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-							<Typography variant="caption" sx={{ fontSize: "0.6rem", fontWeight: 700, color: "rgba(255,255,255,0.6)" }}>
-								ZOOM LEVEL
-							</Typography>
-							<Typography variant="caption" sx={{ fontSize: "0.65rem", fontWeight: 800, color: "#00e5ff" }}>
-								{currentViewMode === "galaxy" ? "GALAXY MODE" : "SYSTEM MODE"} ({activeViewState.zoom?.toFixed(1)})
-							</Typography>
-						</Box>
-						<Slider
-							value={activeViewState.zoom ?? -3}
-							min={sliderMin}
-							max={sliderMax}
-							step={0.1}
-							onChange={handleSliderChange as any}
+						<Typography
+							variant="caption"
 							sx={{
-								color: "#00e5ff",
-								py: 1,
-								"& .MuiSlider-thumb": {
-									width: 12,
-									height: 12,
-									backgroundColor: "#ffffff",
-									border: "2px solid #00e5ff",
-									"&:hover, &.Mui-focusVisible, &.Mui-active": {
-										boxShadow: "0 0 10px #00e5ff",
-									},
-								},
-								"& .MuiSlider-rail": {
-									bgcolor: "rgba(255,255,255,0.2)",
-								},
-								"& .MuiSlider-track": {
-									bgcolor: "#00e5ff",
-								},
-								"& .MuiSlider-mark": {
-									bgcolor: "rgba(255,255,255,0.4)",
-									height: 6,
-									width: 2,
-								},
-								"& .MuiSlider-markLabel": {
-									color: "rgba(255,255,255,0.4)",
-									fontSize: "0.55rem",
-									fontWeight: 600,
-								},
+								fontSize: "0.6rem",
+								fontWeight: 700,
+								color: "rgba(255,255,255,0.6)",
 							}}
-							marks={sliderMarks}
-						/>
+						>
+							ZOOM LEVEL
+						</Typography>
+						<Typography
+							variant="caption"
+							sx={{ fontSize: "0.65rem", fontWeight: 800, color: "#00e5ff" }}
+						>
+							{currentViewMode === "galaxy" ? "GALAXY MODE" : "SYSTEM MODE"} (
+							{activeViewState.zoom?.toFixed(1)})
+						</Typography>
 					</Box>
+					<Slider
+						value={activeViewState.zoom ?? -3}
+						min={sliderMin}
+						max={sliderMax}
+						step={0.1}
+						onChange={handleSliderChange as any}
+						sx={{
+							color: "#00e5ff",
+							py: 1,
+							"& .MuiSlider-thumb": {
+								width: 12,
+								height: 12,
+								backgroundColor: "#ffffff",
+								border: "2px solid #00e5ff",
+								"&:hover, &.Mui-focusVisible, &.Mui-active": {
+									boxShadow: "0 0 10px #00e5ff",
+								},
+							},
+							"& .MuiSlider-rail": {
+								bgcolor: "rgba(255,255,255,0.2)",
+							},
+							"& .MuiSlider-track": {
+								bgcolor: "#00e5ff",
+							},
+							"& .MuiSlider-mark": {
+								bgcolor: "rgba(255,255,255,0.4)",
+								height: 6,
+								width: 2,
+							},
+							"& .MuiSlider-markLabel": {
+								color: "rgba(255,255,255,0.4)",
+								fontSize: "0.55rem",
+								fontWeight: 600,
+							},
+						}}
+						marks={sliderMarks}
+					/>
 				</Box>
-			</Paper>
+			</Box>
+		</Paper>
 	);
 };
 
@@ -1358,7 +1670,7 @@ const ShipTooltip: React.FC<{
 }> = ({ tooltip, onClose, onSelectShip }) => {
 	const { object, x, y, isLocked } = tooltip;
 	const isCluster = Array.isArray(object.ships);
-	
+
 	return (
 		<Box
 			sx={{
@@ -1368,8 +1680,12 @@ const ShipTooltip: React.FC<{
 				transform: "translate(-50%, -100%)",
 				bgcolor: "rgba(10, 15, 30, 0.92)",
 				backdropFilter: "blur(10px)",
-				border: isLocked ? "1px solid #00e5ff" : "1px solid rgba(255,255,255,0.15)",
-				boxShadow: isLocked ? "0 0 15px rgba(0,229,255,0.3)" : "0 4px 20px rgba(0,0,0,0.5)",
+				border: isLocked
+					? "1px solid #00e5ff"
+					: "1px solid rgba(255,255,255,0.15)",
+				boxShadow: isLocked
+					? "0 0 15px rgba(0,229,255,0.3)"
+					: "0 4px 20px rgba(0,0,0,0.5)",
 				borderRadius: "8px",
 				p: 1.5,
 				zIndex: 9999,
@@ -1380,8 +1696,20 @@ const ShipTooltip: React.FC<{
 			}}
 		>
 			{isLocked && (
-				<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, borderBottom: "1px solid rgba(255,255,255,0.1)", pb: 0.5 }}>
-					<Typography variant="caption" sx={{ color: "#00e5ff", fontWeight: 700, letterSpacing: "0.05em" }}>
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						mb: 1,
+						borderBottom: "1px solid rgba(255,255,255,0.1)",
+						pb: 0.5,
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{ color: "#00e5ff", fontWeight: 700, letterSpacing: "0.05em" }}
+					>
 						{isCluster ? "FLEET CLUSTER (LOCKED)" : "SHIP RADAR (LOCKED)"}
 					</Typography>
 					<Box
@@ -1405,18 +1733,34 @@ const ShipTooltip: React.FC<{
 
 			{isCluster ? (
 				<Box>
-					<Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#fff" }}>
+					<Typography
+						variant="subtitle2"
+						sx={{ fontWeight: 800, color: "#fff" }}
+					>
 						Cluster of {object.ships.length} Ships
 					</Typography>
-					<Typography variant="caption" sx={{ color: "rgba(255,255,255,0.6)", display: "block", mb: 1 }}>
-						Coords: {object.position[0].toFixed(1)}, {object.position[1].toFixed(1)}
+					<Typography
+						variant="caption"
+						sx={{ color: "rgba(255,255,255,0.6)", display: "block", mb: 1 }}
+					>
+						Coords: {object.position[0].toFixed(1)},{" "}
+						{object.position[1].toFixed(1)}
 					</Typography>
-					
-					<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, maxHeight: 180, overflowY: "auto", pr: 0.5 }}>
+
+					<Box
+						sx={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 0.5,
+							maxHeight: 180,
+							overflowY: "auto",
+							pr: 0.5,
+						}}
+					>
 						{object.ships.map((s: any) => {
 							const reg = s.registration || s.ship_id || s.id || "Unknown";
 							const type = s.ship_type || s.type || "LCB";
-							const owner = s.isOwn ? "You" : (s.display_name || "Unknown");
+							const owner = s.isOwn ? "You" : s.display_name || "Unknown";
 							const status = s.plan ? "In Transit" : "Stationary";
 							return (
 								<Box
@@ -1433,24 +1777,44 @@ const ShipTooltip: React.FC<{
 										cursor: isLocked ? "pointer" : "default",
 										border: "1px solid rgba(255,255,255,0.05)",
 										bgcolor: "rgba(255,255,255,0.02)",
-										"&:hover": isLocked ? {
-											bgcolor: "rgba(0, 229, 255, 0.1)",
-											borderColor: "rgba(0, 229, 255, 0.3)"
-										} : {},
+										"&:hover": isLocked
+											? {
+													bgcolor: "rgba(0, 229, 255, 0.1)",
+													borderColor: "rgba(0, 229, 255, 0.3)",
+												}
+											: {},
 										display: "flex",
 										justifyContent: "space-between",
-										alignItems: "center"
+										alignItems: "center",
 									}}
 								>
 									<Box>
-										<Typography variant="caption" sx={{ fontWeight: 700, color: "#00e5ff", display: "block" }}>
+										<Typography
+											variant="caption"
+											sx={{
+												fontWeight: 700,
+												color: "#00e5ff",
+												display: "block",
+											}}
+										>
 											[{type}] {reg}
 										</Typography>
-										<Typography sx={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.5)" }}>
+										<Typography
+											sx={{
+												fontSize: "0.6rem",
+												color: "rgba(255,255,255,0.5)",
+											}}
+										>
 											Owner: {owner}
 										</Typography>
 									</Box>
-									<Typography sx={{ fontSize: "0.6rem", color: s.plan ? "#ffb300" : "#00e676", fontWeight: 600 }}>
+									<Typography
+										sx={{
+											fontSize: "0.6rem",
+											color: s.plan ? "#ffb300" : "#00e676",
+											fontWeight: 600,
+										}}
+									>
 										{status}
 									</Typography>
 								</Box>
@@ -1460,26 +1824,57 @@ const ShipTooltip: React.FC<{
 				</Box>
 			) : (
 				<Box>
-					<Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#fff" }}>
+					<Typography
+						variant="subtitle2"
+						sx={{ fontWeight: 800, color: "#fff" }}
+					>
 						{object.registration || "Ship"}
 					</Typography>
 					{object.name && (
-						<Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", display: "block", mt: -0.5, mb: 0.5 }}>
+						<Typography
+							variant="caption"
+							sx={{
+								color: "rgba(255,255,255,0.7)",
+								display: "block",
+								mt: -0.5,
+								mb: 0.5,
+							}}
+						>
 							{object.name}
 						</Typography>
 					)}
-					<Box sx={{ display: "flex", flexDirection: "column", gap: 0.25, fontSize: "0.7rem", color: "rgba(255,255,255,0.7)" }}>
+					<Box
+						sx={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 0.25,
+							fontSize: "0.7rem",
+							color: "rgba(255,255,255,0.7)",
+						}}
+					>
 						<Box sx={{ display: "flex", justifyContent: "space-between" }}>
-							<span>Type:</span> <strong style={{ color: "#00e5ff" }}>{object.ship_type || object.type || "LCB"}</strong>
+							<span>Type:</span>{" "}
+							<strong style={{ color: "#00e5ff" }}>
+								{object.ship_type || object.type || "LCB"}
+							</strong>
 						</Box>
 						<Box sx={{ display: "flex", justifyContent: "space-between" }}>
-							<span>Owner:</span> <strong>{object.isOwn ? "You" : (object.display_name || "Unknown")}</strong>
+							<span>Owner:</span>{" "}
+							<strong>
+								{object.isOwn ? "You" : object.display_name || "Unknown"}
+							</strong>
 						</Box>
 						<Box sx={{ display: "flex", justifyContent: "space-between" }}>
-							<span>Status:</span> <strong style={{ color: object.plan ? "#ffb300" : "#00e676" }}>{object.plan ? "In Transit" : "Stationary"}</strong>
+							<span>Status:</span>{" "}
+							<strong style={{ color: object.plan ? "#ffb300" : "#00e676" }}>
+								{object.plan ? "In Transit" : "Stationary"}
+							</strong>
 						</Box>
 						<Box sx={{ display: "flex", justifyContent: "space-between" }}>
-							<span>Coords:</span> <strong>{object.position[0].toFixed(1)}, {object.position[1].toFixed(1)}</strong>
+							<span>Coords:</span>{" "}
+							<strong>
+								{object.position[0].toFixed(1)}, {object.position[1].toFixed(1)}
+							</strong>
 						</Box>
 					</Box>
 					{isLocked && (
@@ -1501,7 +1896,7 @@ const ShipTooltip: React.FC<{
 								color: "#00e5ff",
 								"&:hover": {
 									bgcolor: "rgba(0, 229, 255, 0.3)",
-								}
+								},
 							}}
 						>
 							SELECT IN FLEET RADAR

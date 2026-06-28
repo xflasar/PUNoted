@@ -45,12 +45,12 @@ export const EventSummary = ({
 				<Typography
 					fontWeight={700}
 					fontSize="0.85rem"
-					textTransform="uppercase"
+					sx={{ textTransform: "uppercase" }}
 				>
 					Event Summary
 				</Typography>
 			</Box>
-			<Box display="flex" flexDirection="column">
+			<Box sx={{ display: "flex", flexDirection: "column" }}>
 				<DrawerRow
 					label="Type"
 					value={tx.Type}

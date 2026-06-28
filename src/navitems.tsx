@@ -35,7 +35,7 @@ export const navItems = [
 		href: "/dashboard/logistics",
 	},
 	{
-		text: "Contracts (WIP)",
+		text: "Contracts",
 		icon: <Assignment />,
 		href: "/dashboard/contracts",
 	},

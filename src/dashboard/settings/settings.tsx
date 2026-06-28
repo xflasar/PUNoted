@@ -278,7 +278,13 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 				</Box>
 
 				{/* Mobile Horizontal Tabs */}
-				<Box sx={{ display: { xs: "block", md: "none" }, mb: 2, borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+				<Box
+					sx={{
+						display: { xs: "block", md: "none" },
+						mb: 2,
+						borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+					}}
+				>
 					<Tabs
 						value={activeTab}
 						onChange={(e, v) => setActiveTab(v)}
@@ -294,7 +300,11 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 								label={tab.label}
 								icon={tab.icon}
 								iconPosition="start"
-								sx={{ minHeight: 48, fontSize: "0.8rem", textTransform: "none" }}
+								sx={{
+									minHeight: 48,
+									fontSize: "0.8rem",
+									textTransform: "none",
+								}}
 							/>
 						))}
 					</Tabs>
@@ -302,7 +312,6 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 
 				{/* Layout Container */}
 				<Box sx={{ flex: 1, display: "flex", gap: 3, overflow: "hidden" }}>
-					
 					{/* Desktop Left Sidebar */}
 					<Paper
 						elevation={0}
@@ -327,7 +336,9 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 											sx={{
 												borderRadius: "8px",
 												py: 1.25,
-												bgcolor: active ? alpha(theme.palette.primary.main, 0.08) : "transparent",
+												bgcolor: active
+													? alpha(theme.palette.primary.main, 0.08)
+													: "transparent",
 												color: active ? "primary.main" : "text.secondary",
 												"&.Mui-selected": {
 													bgcolor: alpha(theme.palette.primary.main, 0.08),
@@ -371,9 +382,22 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 						}}
 					>
 						{activeTab === "profile" && (
-							<Box sx={{ display: "flex", flexDirection: "column", gap: 3, width: "100%" }}>
-								<ProfileSection initialSettings={data.settings} onSave={saveProfile} />
-								<PasswordSection onRequestChallenge={reqPass} onConfirmChange={confPass} />
+							<Box
+								sx={{
+									display: "flex",
+									flexDirection: "column",
+									gap: 3,
+									width: "100%",
+								}}
+							>
+								<ProfileSection
+									initialSettings={data.settings}
+									onSave={saveProfile}
+								/>
+								<PasswordSection
+									onRequestChallenge={reqPass}
+									onConfirmChange={confPass}
+								/>
 							</Box>
 						)}
 						{activeTab === "global" && data.globalSettings && (
@@ -397,7 +421,10 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 						)}
 						{activeTab === "privacy" && (
 							<Box sx={{ width: "100%" }}>
-								<PrivacySection initialPrivacy={data.privacy} onSave={savePrivacy} />
+								<PrivacySection
+									initialPrivacy={data.privacy}
+									onSave={savePrivacy}
+								/>
 							</Box>
 						)}
 						{activeTab === "groups" && (

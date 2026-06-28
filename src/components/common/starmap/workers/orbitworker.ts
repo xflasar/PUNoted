@@ -222,26 +222,48 @@ function regenerateTrails(worldTime: number) {
 }
 
 function getFlightStatus(ship: any, plan: any) {
-	if (!plan || !plan.segments) return { isInterSystem: false, systemId: ship.addresssystemid || ship.address_system_id };
+	if (!plan || !plan.segments)
+		return {
+			isInterSystem: false,
+			systemId: ship.addresssystemid || ship.address_system_id,
+		};
 	const now = Date.now();
-	const activeSegment = plan.segments.find((s: any) => now >= Date.parse(s.departure) && now < Date.parse(s.arrival));
+	const activeSegment = plan.segments.find(
+		(s: any) => now >= Date.parse(s.departure) && now < Date.parse(s.arrival),
+	);
 	if (activeSegment) {
-		if (activeSegment.origin_system_id !== activeSegment.destination_system_id) {
-			return { isInterSystem: true, origin: activeSegment.origin_system_id, dest: activeSegment.destination_system_id };
+		if (
+			activeSegment.origin_system_id !== activeSegment.destination_system_id
+		) {
+			return {
+				isInterSystem: true,
+				origin: activeSegment.origin_system_id,
+				dest: activeSegment.destination_system_id,
+			};
 		}
 		return { isInterSystem: false, systemId: activeSegment.origin_system_id };
 	}
-    // ARRIVAL LIMBO LOGIC (Galaxy scale)
-    if (plan.departuretimestamp && now >= Date.parse(plan.departuretimestamp)) {
-        const lastSeg = plan.segments[plan.segments.length - 1];
-        return { isInterSystem: false, systemId: lastSeg.destination_system_id };
-    }
-	return { isInterSystem: false, systemId: ship.addresssystemid || ship.address_system_id };
+	// ARRIVAL LIMBO LOGIC (Galaxy scale)
+	if (plan.departuretimestamp && now >= Date.parse(plan.departuretimestamp)) {
+		const lastSeg = plan.segments[plan.segments.length - 1];
+		return { isInterSystem: false, systemId: lastSeg.destination_system_id };
+	}
+	return {
+		isInterSystem: false,
+		systemId: ship.addresssystemid || ship.address_system_id,
+	};
 }
 
-function calculateShipPositionGalaxy(ship: any, plan: any, currentTime: number, sysMap: Map<string, MapPoint>): [number, number, number] | null {
+function calculateShipPositionGalaxy(
+	ship: any,
+	plan: any,
+	currentTime: number,
+	sysMap: Map<string, MapPoint>,
+): [number, number, number] | null {
 	try {
-		const activeSegment = plan?.segments?.find((s: any) => currentTime >= s.departure && currentTime < s.arrival);
+		const activeSegment = plan?.segments?.find(
+			(s: any) => currentTime >= s.departure && currentTime < s.arrival,
+		);
 		if (activeSegment) {
 			const startSystem = sysMap.get(activeSegment.origin_system_id);
 			const endSystem = sysMap.get(activeSegment.destination_system_id);
@@ -253,50 +275,99 @@ function calculateShipPositionGalaxy(ship: any, plan: any, currentTime: number, 
 			const y = startSystem.y + (endSystem.y - startSystem.y) * progress;
 			return [x, y, calculateBearing([x, y], [endSystem.x, endSystem.y])];
 		}
-        // ARRIVAL LIMBO LOGIC (Galaxy position)
-        if (plan && plan.departuretimestamp && currentTime >= Date.parse(plan.departuretimestamp)) {
-            const lastSeg = plan.segments[plan.segments.length - 1];
-            const sys = sysMap.get(lastSeg.destination_system_id);
-            return sys ? [sys.x, sys.y, ship.bearing || 0] : null;
-        }
+		// ARRIVAL LIMBO LOGIC (Galaxy position)
+		if (
+			plan &&
+			plan.departuretimestamp &&
+			currentTime >= Date.parse(plan.departuretimestamp)
+		) {
+			const lastSeg = plan.segments[plan.segments.length - 1];
+			const sys = sysMap.get(lastSeg.destination_system_id);
+			return sys ? [sys.x, sys.y, ship.bearing || 0] : null;
+		}
 		const sys = sysMap.get(ship.addresssystemid || ship.address_system_id);
 		return sys ? [sys.x, sys.y, ship.bearing || 0] : null;
-	} catch (err) { return null; }
+	} catch (err) {
+		return null;
+	}
 }
 
-function calculateShipPositionInSystem(ship: any, plan: any, currentTime: number, targetLookup: Map<string, { x: number; y: number }>, currentSystem: MapPoint | null): [number, number, number] | null {
+function calculateShipPositionInSystem(
+	ship: any,
+	plan: any,
+	currentTime: number,
+	targetLookup: Map<string, { x: number; y: number }>,
+	currentSystem: MapPoint | null,
+): [number, number, number] | null {
 	try {
-		const activeSegment = plan?.segments?.find((s: any) => currentTime >= s.departure && currentTime < s.arrival);
+		const activeSegment = plan?.segments?.find(
+			(s: any) => currentTime >= s.departure && currentTime < s.arrival,
+		);
 		if (!activeSegment) {
-            // ARRIVAL LIMBO LOGIC (System position)
-            if (plan && plan._arrivalMs && currentTime >= plan._arrivalMs) {
-                const lastSeg = plan.segments[plan.segments.length - 1];
-                const destId = lastSeg.destination_planet_id ?? lastSeg.destination_station_id;
-                const target = targetLookup.get(destId);
-                return target ? [target.x, target.y, ship.bearing || 0] : (currentSystem ? [currentSystem.x, currentSystem.y, ship.bearing || 0] : null);
-            }
-            // Docked (Static)
-			const targetId = ship.addressplanetid ?? ship.addressstationid ?? ship.address_planet_id ?? ship.address_station_id;
+			// ARRIVAL LIMBO LOGIC (System position)
+			if (plan && plan._arrivalMs && currentTime >= plan._arrivalMs) {
+				const lastSeg = plan.segments[plan.segments.length - 1];
+				const destId =
+					lastSeg.destination_planet_id ?? lastSeg.destination_station_id;
+				const target = targetLookup.get(destId);
+				return target
+					? [target.x, target.y, ship.bearing || 0]
+					: currentSystem
+						? [currentSystem.x, currentSystem.y, ship.bearing || 0]
+						: null;
+			}
+			// Docked (Static)
+			const targetId =
+				ship.addressplanetid ??
+				ship.addressstationid ??
+				ship.address_planet_id ??
+				ship.address_station_id;
 			const target = targetLookup.get(targetId);
-			return target ? [target.x, target.y, ship.bearing || 0] : currentSystem ? [currentSystem.x, currentSystem.y, ship.bearing || 0] : null;
+			return target
+				? [target.x, target.y, ship.bearing || 0]
+				: currentSystem
+					? [currentSystem.x, currentSystem.y, ship.bearing || 0]
+					: null;
 		}
 		if (activeSegment.transferellipse && currentSystem) {
-			const progress = Math.min(1, Math.max(0, (currentTime - activeSegment.departure) / (activeSegment.arrival - activeSegment.departure)));
+			const progress = Math.min(
+				1,
+				Math.max(
+					0,
+					(currentTime - activeSegment.departure) /
+						(activeSegment.arrival - activeSegment.departure),
+				),
+			);
 			try {
-				const res = shipPositionOnEllipse(activeSegment.transferellipse, progress, currentSystem);
+				const res = shipPositionOnEllipse(
+					activeSegment.transferellipse,
+					progress,
+					currentSystem,
+				);
 				if (res) {
 					const sampleNextProgress = Math.min(1.0, progress + 0.005);
-					const resNext = shipPositionOnEllipse(activeSegment.transferellipse, sampleNextProgress, currentSystem);
+					const resNext = shipPositionOnEllipse(
+						activeSegment.transferellipse,
+						sampleNextProgress,
+						currentSystem,
+					);
 					let bearing = ship.bearing || 0;
 					if (resNext) {
-						bearing = calculateBearing([res[0], res[1]], [resNext[0], resNext[1]]);
+						bearing = calculateBearing(
+							[res[0], res[1]],
+							[resNext[0], resNext[1]],
+						);
 					}
 					return [res[0], res[1], bearing];
 				}
 			} catch (e) {}
 		}
-		return currentSystem ? [currentSystem.x, currentSystem.y, ship.bearing || 0] : null;
-	} catch (err) { return null; }
+		return currentSystem
+			? [currentSystem.x, currentSystem.y, ship.bearing || 0]
+			: null;
+	} catch (err) {
+		return null;
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -647,7 +718,9 @@ self.onmessage = function (e: MessageEvent) {
 						(p as any)._departureMs = p.segments[0].departure;
 					} else if (p.arrivaltimestamp) {
 						const t1 = Date.parse(p.arrivaltimestamp);
-						const t2 = p.departuretimestamp ? Date.parse(p.departuretimestamp) : 0;
+						const t2 = p.departuretimestamp
+							? Date.parse(p.departuretimestamp)
+							: 0;
 						(p as any)._arrivalMs = Math.max(t1, t2);
 						(p as any)._departureMs = Math.min(t1, t2);
 					}

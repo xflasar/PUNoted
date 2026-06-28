@@ -1391,9 +1391,7 @@ const Governance = () => {
 						return {
 							...p,
 							cogcUpkeep: p.cogcUpkeep.map((r) =>
-								r.ticker === ticker
-									? { ...r, enabled: !r.enabled }
-									: r,
+								r.ticker === ticker ? { ...r, enabled: !r.enabled } : r,
 							),
 						};
 					return {
@@ -1404,9 +1402,7 @@ const Governance = () => {
 								: {
 										...b,
 										upkeep: b.upkeep.map((r) =>
-											r.ticker === ticker
-												? { ...r, enabled: !r.enabled }
-												: r,
+											r.ticker === ticker ? { ...r, enabled: !r.enabled } : r,
 										),
 									},
 						),

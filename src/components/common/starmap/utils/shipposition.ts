@@ -67,7 +67,7 @@ export function calculateShipPositionInSystem(
 
 		const bearing = calculateBearing(
 			[systemMapX + sx_m / scaleFactor, systemMapY - sy_m / scaleFactor],
-			[systemMapX + tx_m / scaleFactor, systemMapY - ty_m / scaleFactor]
+			[systemMapX + tx_m / scaleFactor, systemMapY - ty_m / scaleFactor],
 		);
 
 		return [

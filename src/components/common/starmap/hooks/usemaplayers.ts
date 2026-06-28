@@ -28,18 +28,20 @@ export function checkSystemMatch(
 	searchQuery: string | undefined,
 	allPlanetsData: Record<string, PlanetData[]>,
 	systemsPoints: MapPoint[],
-	shortestPathDistances?: Record<string, number>
+	shortestPathDistances?: Record<string, number>,
 ): boolean {
 	const query = searchQuery?.trim().toLowerCase() || "";
 	if (query) {
 		const systemName = (sys.label || sys.name || "").toLowerCase();
 		let matchesQuery = systemName.includes(query);
-		
+
 		if (!matchesQuery && allPlanetsData) {
 			const planets = allPlanetsData[sys.originalSystemId || sys.id] || [];
-			matchesQuery = planets.some((p) => (p.planetname || p.planetid || "").toLowerCase().includes(query));
+			matchesQuery = planets.some((p) =>
+				(p.planetname || p.planetid || "").toLowerCase().includes(query),
+			);
 		}
-		
+
 		if (!matchesQuery) {
 			return false;
 		}
@@ -49,34 +51,52 @@ export function checkSystemMatch(
 
 	const hasResources = filter.resources && filter.resources.size > 0;
 	const hasRadius = filter.filterRadius > 0 && filter.originSystemId != null;
-	const hasPlanetType = filter.planetType !== 'all';
+	const hasPlanetType = filter.planetType !== "all";
 	const hasFertile = filter.fertileOnly;
-	const hasGravity = filter.gravity !== 'all';
-	const hasTemperature = filter.temperature !== 'all';
-	const hasPressure = filter.pressure !== 'all';
+	const hasGravity = filter.gravity !== "all";
+	const hasTemperature = filter.temperature !== "all";
+	const hasPressure = filter.pressure !== "all";
 	const hasCogc = filter.cogcEnabled;
 
-	const isFilterActive = hasResources || hasRadius || hasPlanetType || hasFertile || hasGravity || hasTemperature || hasPressure || hasCogc;
+	const isFilterActive =
+		hasResources ||
+		hasRadius ||
+		hasPlanetType ||
+		hasFertile ||
+		hasGravity ||
+		hasTemperature ||
+		hasPressure ||
+		hasCogc;
 
 	if (!isFilterActive) {
 		return true;
 	}
 
 	const sysPop = sys.population || 0;
-	if (sysPop < filter.populationRange[0] || sysPop > filter.populationRange[1]) {
+	if (
+		sysPop < filter.populationRange[0] ||
+		sysPop > filter.populationRange[1]
+	) {
 		return false;
 	}
 
 	// Radius filter: uses shortest path distance (parsec connections) if available, otherwise fallback to Euclidean
 	if (hasRadius && filter.originSystemId) {
 		const systemId = sys.originalSystemId || sys.id;
-		if (shortestPathDistances && shortestPathDistances[systemId] !== undefined) {
+		if (
+			shortestPathDistances &&
+			shortestPathDistances[systemId] !== undefined
+		) {
 			if (shortestPathDistances[systemId] > filter.filterRadius) {
 				return false;
 			}
 		} else {
 			// Fallback to Euclidean (3D parsecs)
-			const originSys = systemsPoints.find((s) => s.originalSystemId === filter.originSystemId || s.id === filter.originSystemId);
+			const originSys = systemsPoints.find(
+				(s) =>
+					s.originalSystemId === filter.originSystemId ||
+					s.id === filter.originSystemId,
+			);
 			if (originSys) {
 				const dx = sys.x - originSys.x;
 				const dy = sys.y - originSys.y;
@@ -92,15 +112,15 @@ export function checkSystemMatch(
 	// Planet-specific filters: Rocky/Gaseous, Fertile, Gravity, Temperature, Pressure, COGC, Resources.
 	// A system matches if AT LEAST ONE planet in the system satisfies ALL of these active planet filters.
 	const planets = allPlanetsData[sys.originalSystemId || sys.id] || [];
-	
+
 	const matchingPlanet = planets.some((p) => {
 		// 1. Planet Type
 		if (hasPlanetType) {
-			const typeStr = (p.type || '').toUpperCase();
-			const isRocky = typeStr.includes('EARTH') || typeStr.includes('ROCKY');
-			const isGas = typeStr.includes('GAS');
-			if (filter.planetType === 'rocky' && !isRocky) return false;
-			if (filter.planetType === 'gaseous' && !isGas) return false;
+			const typeStr = (p.type || "").toUpperCase();
+			const isRocky = typeStr.includes("EARTH") || typeStr.includes("ROCKY");
+			const isGas = typeStr.includes("GAS");
+			if (filter.planetType === "rocky" && !isRocky) return false;
+			if (filter.planetType === "gaseous" && !isGas) return false;
 		}
 
 		// 2. Fertility
@@ -111,32 +131,32 @@ export function checkSystemMatch(
 		// 3. Gravity
 		if (hasGravity) {
 			const grav = p.gravity || 0;
-			if (filter.gravity === 'low' && grav > 1.0) return false;
-			if (filter.gravity === 'high' && grav <= 1.0) return false;
+			if (filter.gravity === "low" && grav > 1.0) return false;
+			if (filter.gravity === "high" && grav <= 1.0) return false;
 		}
 
 		// 4. Temperature
 		if (hasTemperature) {
 			const temp = p.temperature || 0;
-			if (filter.temperature === 'low' && temp >= 273.15) return false;
-			if (filter.temperature === 'high' && temp < 273.15) return false;
+			if (filter.temperature === "low" && temp >= 273.15) return false;
+			if (filter.temperature === "high" && temp < 273.15) return false;
 		}
 
 		// 5. Pressure
 		if (hasPressure) {
 			const press = p.pressure || 0;
-			if (filter.pressure === 'low' && press > 1.0) return false;
-			if (filter.pressure === 'high' && press <= 1.0) return false;
+			if (filter.pressure === "low" && press > 1.0) return false;
+			if (filter.pressure === "high" && press <= 1.0) return false;
 		}
 
 		// 6. COGC Program
 		if (hasCogc) {
-			const prog = (p.cogc || '').toUpperCase();
+			const prog = (p.cogc || "").toUpperCase();
 			const selectedProg = filter.cogcProgram.toUpperCase();
-			const hasActiveProgram = prog && prog !== 'NONE';
-			if (selectedProg === 'ALL') {
+			const hasActiveProgram = prog && prog !== "NONE";
+			if (selectedProg === "ALL") {
 				if (!hasActiveProgram) return false;
-			} else if (selectedProg === 'NONE') {
+			} else if (selectedProg === "NONE") {
 				if (hasActiveProgram) return false;
 			} else {
 				if (!prog.includes(selectedProg)) return false;
@@ -146,7 +166,7 @@ export function checkSystemMatch(
 		// 7. Resources (Chips act as OR selector: matches if planet has any of the selected resources)
 		if (hasResources) {
 			const hasMatch = p.resources?.some((r: any) => {
-				const ticker = (r.material || r.name || '').toUpperCase();
+				const ticker = (r.material || r.name || "").toUpperCase();
 				return ticker && filter.resources.has(ticker);
 			});
 			if (!hasMatch) return false;
@@ -156,7 +176,14 @@ export function checkSystemMatch(
 	});
 
 	// If we are filtering by planet attributes or resources, we must have at least one matching planet in the system
-	const hasPlanetFilter = hasPlanetType || hasFertile || hasGravity || hasTemperature || hasPressure || hasCogc || hasResources;
+	const hasPlanetFilter =
+		hasPlanetType ||
+		hasFertile ||
+		hasGravity ||
+		hasTemperature ||
+		hasPressure ||
+		hasCogc ||
+		hasResources;
 	if (hasPlanetFilter && !matchingPlanet) {
 		return false;
 	}
@@ -189,7 +216,6 @@ import vcb from "../../../../assets/ships/VCB.png";
 import hcb from "../../../../assets/ships/HCB.png";
 import { buildStarAtlas } from "../utils/buildstaratlas";
 import { useAnimation } from "./useanimation";
-
 
 // --- CONSTANTS ---
 const STAR_ICONS = [
@@ -285,8 +311,8 @@ const getPlanetPosition = (d: any) => [d.x, d.y];
 const getStationPosition = (d: any) => [d.x, d.y];
 const getShipPosition = (d: any) => d.position;
 const getShipIconType = (d: any) => {
-  if (d.isCluster) return "cluster";
-  return d.ship_type || d.type || "LCB"; // Fallback to LCB if missing
+	if (d.isCluster) return "cluster";
+	return d.ship_type || d.type || "LCB"; // Fallback to LCB if missing
 };
 const getShipSize = (d: any) => (d.isCluster ? 40 : 33);
 const getPlanetIcon = () => "EARTH";
@@ -331,72 +357,79 @@ function useDebouncedZoom(zoom: number, delay: number = 200) {
 }
 
 // --- CLUSTERING HELPER ---
-function clusterShipsByRadius(ships: any[], zoom: number, isGalaxyView: boolean, systemId: string | null): any[] {
-  if (!ships || ships.length === 0) return [];
+function clusterShipsByRadius(
+	ships: any[],
+	zoom: number,
+	isGalaxyView: boolean,
+	systemId: string | null,
+): any[] {
+	if (!ships || ships.length === 0) return [];
 
-  const screenPixelRadius = !isGalaxyView && systemId ? 2 : 40;
-  const scale = Math.pow(2, zoom);
-  const worldDist = screenPixelRadius / scale;
-  const worldDistSq = worldDist * worldDist;
-  const cellSize = worldDist;
+	const screenPixelRadius = !isGalaxyView && systemId ? 2 : 40;
+	const scale = Math.pow(2, zoom);
+	const worldDist = screenPixelRadius / scale;
+	const worldDistSq = worldDist * worldDist;
+	const cellSize = worldDist;
 
-  const grid = new Map<string, any[]>();
-  for (const ship of ships) {
-    if (!ship.position) continue;
-    const [x, y] = ship.position;
-    const key = `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
-    if (!grid.has(key)) grid.set(key, []);
-    grid.get(key)!.push(ship);
-  }
+	const grid = new Map<string, any[]>();
+	for (const ship of ships) {
+		if (!ship.position) continue;
+		const [x, y] = ship.position;
+		const key = `${Math.floor(x / cellSize)},${Math.floor(y / cellSize)}`;
+		if (!grid.has(key)) grid.set(key, []);
+		grid.get(key)!.push(ship);
+	}
 
-  const clusters: any[] = [];
-  const processedShips = new Set<string>();
+	const clusters: any[] = [];
+	const processedShips = new Set<string>();
 
-  for (const ship of ships) {
-    // 🚀 FIX: Support normalized ship_id
-    const shipId = ship.ship_id || ship.id; 
-    if (processedShips.has(shipId) || !ship.position) continue;
+	for (const ship of ships) {
+		// 🚀 FIX: Support normalized ship_id
+		const shipId = ship.ship_id || ship.id;
+		if (processedShips.has(shipId) || !ship.position) continue;
 
-    const cluster = {
-      id: `c-${shipId}`,
-      position: [...ship.position],
-      count: 1,
-      ships: [ship],
-      ship_type: ship.ship_type || ship.type, // Maintain correct type
-      name: ship.name || ship.display_name || shipId,
-      bearing: ship.bearing,
-      color: ship.color,
-      isCluster: false,
-    };
-    processedShips.add(shipId);
+		const cluster = {
+			id: `c-${shipId}`,
+			position: [...ship.position],
+			count: 1,
+			ships: [ship],
+			ship_type: ship.ship_type || ship.type, // Maintain correct type
+			name: ship.name || ship.display_name || shipId,
+			bearing: ship.bearing,
+			color: ship.color,
+			isCluster: false,
+		};
+		processedShips.add(shipId);
 
-    const [x, y] = ship.position;
-    const gx = Math.floor(x / cellSize), gy = Math.floor(y / cellSize);
+		const [x, y] = ship.position;
+		const gx = Math.floor(x / cellSize),
+			gy = Math.floor(y / cellSize);
 
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dy = -1; dy <= 1; dy++) {
-        const cellShips = grid.get(`${gx + dx},${gy + dy}`);
-        if (cellShips) {
-          for (const neighbor of cellShips) {
-            const neighborId = neighbor.ship_id || neighbor.id;
-            if (processedShips.has(neighborId)) continue;
-            
-            const d2 = (neighbor.position[0] - x) ** 2 + (neighbor.position[1] - y) ** 2;
-            if (d2 <= worldDistSq) {
-              cluster.ships.push(neighbor);
-              cluster.count++;
-              cluster.isCluster = true;
-              cluster.color = [255, 255, 0];
-              cluster.name = `${cluster.count} Ships`;
-              processedShips.add(neighborId);
-            }
-          }
-        }
-      }
-    }
-    clusters.push(cluster);
-  }
-  return clusters;
+		for (let dx = -1; dx <= 1; dx++) {
+			for (let dy = -1; dy <= 1; dy++) {
+				const cellShips = grid.get(`${gx + dx},${gy + dy}`);
+				if (cellShips) {
+					for (const neighbor of cellShips) {
+						const neighborId = neighbor.ship_id || neighbor.id;
+						if (processedShips.has(neighborId)) continue;
+
+						const d2 =
+							(neighbor.position[0] - x) ** 2 + (neighbor.position[1] - y) ** 2;
+						if (d2 <= worldDistSq) {
+							cluster.ships.push(neighbor);
+							cluster.count++;
+							cluster.isCluster = true;
+							cluster.color = [255, 255, 0];
+							cluster.name = `${cluster.count} Ships`;
+							processedShips.add(neighborId);
+						}
+					}
+				}
+			}
+		}
+		clusters.push(cluster);
+	}
+	return clusters;
 }
 
 export const useMapLayers = (props: UseMapLayersProps) => {
@@ -451,7 +484,14 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			setTooltip,
 			setSelectedPlanet,
 		};
-	}, [onShipClick, onShipHover, onSystemClick, onSystemDoubleClick, setTooltip, setSelectedPlanet]);
+	}, [
+		onShipClick,
+		onShipHover,
+		onSystemClick,
+		onSystemDoubleClick,
+		setTooltip,
+		setSelectedPlanet,
+	]);
 
 	// --- STABLE HANDLERS ---
 	const handleShipClick = useCallback((info: any) => {
@@ -487,7 +527,11 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 	);
 	const handleSystemDoubleClick = useCallback(
 		(info: any) => {
-			if (mode !== "shipping" && info.object && callbacksRef.current.onSystemDoubleClick)
+			if (
+				mode !== "shipping" &&
+				info.object &&
+				callbacksRef.current.onSystemDoubleClick
+			)
 				callbacksRef.current.onSystemDoubleClick(info.object);
 		},
 		[mode],
@@ -530,27 +574,27 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 	// --- ANIMATION HOOK ---
 	const {
-    activePlanets,
-    activeStations,
-    updatedShips,
-    orbitTrails,
-    workerDebugStats,
-  } = useAnimation(
-    props.currentSystem,
-    props.isPlanetModeActive,
-    props.allPlanetsData,
-    props.allStationsData,
-    props.allGatewaysData,
-    props.animatedShipData,
-    props.activeFlightPlans,
-    props.setActiveFlightPlans,
-    props.systemsPoints,
-    props.isGalaxyView,
-    props.deckRef,
-    props.animationWorker,
-    props.isInteracting,
-    props.mode
-  );
+		activePlanets,
+		activeStations,
+		updatedShips,
+		orbitTrails,
+		workerDebugStats,
+	} = useAnimation(
+		props.currentSystem,
+		props.isPlanetModeActive,
+		props.allPlanetsData,
+		props.allStationsData,
+		props.allGatewaysData,
+		props.animatedShipData,
+		props.activeFlightPlans,
+		props.setActiveFlightPlans,
+		props.systemsPoints,
+		props.isGalaxyView,
+		props.deckRef,
+		props.animationWorker,
+		props.isInteracting,
+		props.mode,
+	);
 
 	// --- ATLAS LOADING ---
 	const [starAtlas, setStarAtlas] = useState<ImageBitmap | null>(null);
@@ -570,19 +614,25 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					// free resources if produced after unmount
 					try {
 						(d.atlas as any)?.close?.();
-					} catch { /* ignore */ }
+					} catch {
+						/* ignore */
+					}
 					return;
 				}
 				setStarAtlas(d.atlas);
 				setStarMapping(d.mapping);
 			})
-			.catch(() => { /* ignore */ });
+			.catch(() => {
+				/* ignore */
+			});
 		return () => {
 			cancelled = true;
 			setStarAtlas((prev) => {
 				try {
 					(prev as any)?.close?.();
-				} catch { /* ignore */ }
+				} catch {
+					/* ignore */
+				}
 				return null;
 			});
 			setStarMapping(null);
@@ -596,19 +646,25 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				if (cancelled) {
 					try {
 						(d.atlas as any)?.close?.();
-					} catch { /* ignore */ }
+					} catch {
+						/* ignore */
+					}
 					return;
 				}
 				setStationsAtlas(d.atlas);
 				setStationsMapping(d.mapping);
 			})
-			.catch(() => { /* ignore */ });
+			.catch(() => {
+				/* ignore */
+			});
 		return () => {
 			cancelled = true;
 			setStationsAtlas((prev) => {
 				try {
 					(prev as any)?.close?.();
-				} catch { /* ignore */ }
+				} catch {
+					/* ignore */
+				}
 				return null;
 			});
 			setStationsMapping(null);
@@ -622,19 +678,25 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				if (cancelled) {
 					try {
 						(d.atlas as any)?.close?.();
-					} catch { /* ignore */ }
+					} catch {
+						/* ignore */
+					}
 					return;
 				}
 				setShipAtlas(d.atlas);
 				setShipMapping(d.mapping);
 			})
-			.catch(() => { /* ignore */ });
+			.catch(() => {
+				/* ignore */
+			});
 		return () => {
 			cancelled = true;
 			setShipAtlas((prev) => {
 				try {
 					(prev as any)?.close?.();
-				} catch { /* ignore */ }
+				} catch {
+					/* ignore */
+				}
 				return null;
 			});
 			setShipMapping(null);
@@ -648,19 +710,25 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				if (cancelled) {
 					try {
 						(d.atlas as any)?.close?.();
-					} catch { /* ignore */ }
+					} catch {
+						/* ignore */
+					}
 					return;
 				}
 				setPlanetAtlas(d.atlas);
 				setPlanetMapping(d.mapping);
 			})
-			.catch(() => { /* ignore */ });
+			.catch(() => {
+				/* ignore */
+			});
 		return () => {
 			cancelled = true;
 			setPlanetAtlas((prev) => {
 				try {
 					(prev as any)?.close?.();
-				} catch { /* ignore */ }
+				} catch {
+					/* ignore */
+				}
 				return null;
 			});
 			setPlanetMapping(null);
@@ -674,14 +742,30 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 	// Dijkstra Shortest Path calculation from Origin system
 	const shortestPathData = useMemo(() => {
-		if (!filter?.originSystemId || !rawConnections || rawConnections.length === 0 || !systemsPoints) {
-			return { distances: {} as Record<string, number>, pathEdges: new Set<string>(), pathSystemIds: new Set<string>() };
+		if (
+			!filter?.originSystemId ||
+			!rawConnections ||
+			rawConnections.length === 0 ||
+			!systemsPoints
+		) {
+			return {
+				distances: {} as Record<string, number>,
+				pathEdges: new Set<string>(),
+				pathSystemIds: new Set<string>(),
+			};
 		}
 
 		const adj = new Map<string, string[]>();
 		rawConnections.forEach((conn: any) => {
-			const u = String(conn.systemidorigin || conn.systemIdOrigin || conn.origin || '');
-			const v = String(conn.systemiddestination || conn.systemIdDestination || conn.destination || '');
+			const u = String(
+				conn.systemidorigin || conn.systemIdOrigin || conn.origin || "",
+			);
+			const v = String(
+				conn.systemiddestination ||
+					conn.systemIdDestination ||
+					conn.destination ||
+					"",
+			);
 			if (u && v) {
 				if (!adj.has(u)) adj.set(u, []);
 				if (!adj.has(v)) adj.set(v, []);
@@ -746,7 +830,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			pathSystemIds.add(curr);
 			while (predecessors[curr]) {
 				const pred = predecessors[curr];
-				const edgeKey = [curr, pred].sort().join('-');
+				const edgeKey = [curr, pred].sort().join("-");
 				pathEdges.add(edgeKey);
 				pathSystemIds.add(pred);
 				curr = pred;
@@ -754,7 +838,12 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		}
 
 		return { distances, pathEdges, pathSystemIds };
-	}, [filter?.originSystemId, filter?.destinationSystemId, rawConnections, systemsPoints]);
+	}, [
+		filter?.originSystemId,
+		filter?.destinationSystemId,
+		rawConnections,
+		systemsPoints,
+	]);
 
 	// Coordinates lookup map to find system ID for connections highlight
 	const coordToSystemId = useMemo(() => {
@@ -770,36 +859,50 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 	const [clusteredData, setClusteredData] = useState<any[]>([]);
 
 	useEffect(() => {
-    if (props.isInteracting) return; 
+		if (props.isInteracting) return;
 
-    const ships = updatedShips || [];
-    let visibleShips = ships.filter((s: any) => s.visible !== false);
-    if (!props.isGalaxyView && props.currentSystem?.originalSystemId) {
-      visibleShips = visibleShips.filter((s: any) => {
-        const sysId = s.addresssystemid || s.address_system_id || (s.plan?.segments && s.plan.segments[s.plan.segments.length - 1]?.destination_system_id);
-        if (sysId !== props.currentSystem?.originalSystemId) return false;
-        
-        // Hide stationary/docked ships
-        const isMoving = s.plan && s.plan.segments && s.plan.segments.length > 0 && (() => {
-          const segments = s.plan.segments;
-          const arrival = segments[segments.length - 1].arrival;
-          const departure = segments[0].departure;
-          const now = Date.now();
-          return now >= departure && now <= arrival;
-        })();
-        return isMoving;
-      });
-    }
-    
-    const newClusters = clusterShipsByRadius(
-      visibleShips,
-      debouncedZoom,
-      props.isGalaxyView,
-      props.currentSystem?.originalSystemId || null,
-    );
+		const ships = updatedShips || [];
+		let visibleShips = ships.filter((s: any) => s.visible !== false);
+		if (!props.isGalaxyView && props.currentSystem?.originalSystemId) {
+			visibleShips = visibleShips.filter((s: any) => {
+				const sysId =
+					s.addresssystemid ||
+					s.address_system_id ||
+					(s.plan?.segments &&
+						s.plan.segments[s.plan.segments.length - 1]?.destination_system_id);
+				if (sysId !== props.currentSystem?.originalSystemId) return false;
 
-    setClusteredData(newClusters);
-  }, [updatedShips, debouncedZoom, props.isGalaxyView, props.currentSystem, props.isInteracting]);
+				// Hide stationary/docked ships
+				const isMoving =
+					s.plan &&
+					s.plan.segments &&
+					s.plan.segments.length > 0 &&
+					(() => {
+						const segments = s.plan.segments;
+						const arrival = segments[segments.length - 1].arrival;
+						const departure = segments[0].departure;
+						const now = Date.now();
+						return now >= departure && now <= arrival;
+					})();
+				return isMoving;
+			});
+		}
+
+		const newClusters = clusterShipsByRadius(
+			visibleShips,
+			debouncedZoom,
+			props.isGalaxyView,
+			props.currentSystem?.originalSystemId || null,
+		);
+
+		setClusteredData(newClusters);
+	}, [
+		updatedShips,
+		debouncedZoom,
+		props.isGalaxyView,
+		props.currentSystem,
+		props.isInteracting,
+	]);
 
 	// --- MEMOIZED FLIGHT DATA (NO ZOOM DEPENDENCY) ---
 	const memoizedFlightPaths = useMemo(() => {
@@ -928,7 +1031,9 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				if (sysId) systemIds.add(sysId);
 			}
 		}
-		return systemsPoints.filter((p) => p.originalSystemId && systemIds.has(p.originalSystemId));
+		return systemsPoints.filter(
+			(p) => p.originalSystemId && systemIds.has(p.originalSystemId),
+		);
 	}, [productionData, planetToSystemMap, systemsPoints, isGalaxyView]);
 
 	// --- STATIC GALAXY LAYERS ---
@@ -942,7 +1047,10 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				const keyB = `${c.targetPosition[0].toFixed(1)},${c.targetPosition[1].toFixed(1)}`;
 				const idA = coordToSystemId.get(keyA);
 				const idB = coordToSystemId.get(keyB);
-				const isHighlighted = idA && idB && shortestPathData.pathEdges.has([idA, idB].sort().join('-'));
+				const isHighlighted =
+					idA &&
+					idB &&
+					shortestPathData.pathEdges.has([idA, idB].sort().join("-"));
 				return {
 					path: [c.sourcePosition, c.targetPosition],
 					isHighlighted,
@@ -950,7 +1058,9 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			});
 
 			const regularConnections = connectionData.filter((c) => !c.isHighlighted);
-			const highlightedConnections = connectionData.filter((c) => c.isHighlighted);
+			const highlightedConnections = connectionData.filter(
+				(c) => c.isHighlighted,
+			);
 
 			layers.push(
 				new PathLayer({
@@ -996,7 +1106,11 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 		// Draw semi-transparent orange radius circle around origin system
 		if (filter?.originSystemId && filter.filterRadius > 0) {
-			const originSys = systemsPoints.find((s) => s.originalSystemId === filter.originSystemId || s.id === filter.originSystemId);
+			const originSys = systemsPoints.find(
+				(s) =>
+					s.originalSystemId === filter.originSystemId ||
+					s.id === filter.originSystemId,
+			);
 			if (originSys) {
 				layers.push(
 					new ScatterplotLayer({
@@ -1011,25 +1125,34 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						stroked: true,
 						filled: true,
 						pickable: false,
-					})
+					}),
 				);
 			}
 		}
 
 		// Highlight matching systems on galaxy view when filters/search is active
-		const isFilterActive = 
-			(filter?.resources && filter.resources.size > 0) || 
+		const isFilterActive =
+			(filter?.resources && filter.resources.size > 0) ||
 			(filter?.filterRadius && filter.filterRadius > 0) ||
-			(filter?.planetType && filter.planetType !== 'all') ||
-			(filter?.fertileOnly) ||
-			(filter?.gravity && filter.gravity !== 'all') ||
-			(filter?.temperature && filter.temperature !== 'all') ||
-			(filter?.pressure && filter.pressure !== 'all') ||
-			(filter?.cogcEnabled);
+			(filter?.planetType && filter.planetType !== "all") ||
+			filter?.fertileOnly ||
+			(filter?.gravity && filter.gravity !== "all") ||
+			(filter?.temperature && filter.temperature !== "all") ||
+			(filter?.pressure && filter.pressure !== "all") ||
+			filter?.cogcEnabled;
 		const hasSearch = !!searchQuery;
 
 		if (isGalaxyView && (isFilterActive || hasSearch)) {
-			const matchedSystems = systemsPoints.filter((s) => checkSystemMatch(s, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathData.distances));
+			const matchedSystems = systemsPoints.filter((s) =>
+				checkSystemMatch(
+					s,
+					filter,
+					searchQuery,
+					allPlanetsData,
+					systemsPoints,
+					shortestPathData.distances,
+				),
+			);
 			if (matchedSystems.length > 0) {
 				layers.push(
 					new ScatterplotLayer({
@@ -1046,12 +1169,12 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						},
 						radiusUnits: "meters",
 						getLineColor: [255, 120, 0, 240], // Bright orange outline
-						getFillColor: [255, 120, 0, 25],   // Semi-transparent orange fill
+						getFillColor: [255, 120, 0, 25], // Semi-transparent orange fill
 						lineWidthMinPixels: 3.0,
 						stroked: true,
 						filled: true,
 						pickable: false,
-					})
+					}),
 				);
 			}
 		}
@@ -1077,7 +1200,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					stroked: true,
 					filled: true,
 					pickable: false,
-				})
+				}),
 			);
 		}
 
@@ -1108,20 +1231,27 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					onDoubleClick: handleSystemDoubleClick,
 					onHover: handleSystemHover,
 					getColor: (d: any) => {
-						const isFilterActive = 
-							(filter?.resources && filter.resources.size > 0) || 
+						const isFilterActive =
+							(filter?.resources && filter.resources.size > 0) ||
 							(filter?.filterRadius && filter.filterRadius > 0) ||
-							(filter?.planetType && filter.planetType !== 'all') ||
-							(filter?.fertileOnly) ||
-							(filter?.gravity && filter.gravity !== 'all') ||
-							(filter?.temperature && filter.temperature !== 'all') ||
-							(filter?.pressure && filter.pressure !== 'all') ||
-							(filter?.cogcEnabled);
+							(filter?.planetType && filter.planetType !== "all") ||
+							filter?.fertileOnly ||
+							(filter?.gravity && filter.gravity !== "all") ||
+							(filter?.temperature && filter.temperature !== "all") ||
+							(filter?.pressure && filter.pressure !== "all") ||
+							filter?.cogcEnabled;
 						const hasSearch = !!searchQuery;
 						if (!isFilterActive && !hasSearch) {
 							return [255, 255, 255, 255];
 						}
-						const isMatch = checkSystemMatch(d, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathData.distances);
+						const isMatch = checkSystemMatch(
+							d,
+							filter,
+							searchQuery,
+							allPlanetsData,
+							systemsPoints,
+							shortestPathData.distances,
+						);
 						return isMatch ? [255, 120, 0, 255] : [255, 255, 255, 45];
 					},
 					updateTriggers: {
@@ -1145,39 +1275,53 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					getText: getLabelText,
 					getSize: 12,
 					getColor: (d: any) => {
-						const isFilterActive = 
-							(filter?.resources && filter.resources.size > 0) || 
+						const isFilterActive =
+							(filter?.resources && filter.resources.size > 0) ||
 							(filter?.filterRadius && filter.filterRadius > 0) ||
-							(filter?.planetType && filter.planetType !== 'all') ||
-							(filter?.fertileOnly) ||
-							(filter?.gravity && filter.gravity !== 'all') ||
-							(filter?.temperature && filter.temperature !== 'all') ||
-							(filter?.pressure && filter.pressure !== 'all') ||
-							(filter?.cogcEnabled);
+							(filter?.planetType && filter.planetType !== "all") ||
+							filter?.fertileOnly ||
+							(filter?.gravity && filter.gravity !== "all") ||
+							(filter?.temperature && filter.temperature !== "all") ||
+							(filter?.pressure && filter.pressure !== "all") ||
+							filter?.cogcEnabled;
 						const hasSearch = !!searchQuery;
 						if (!isFilterActive && !hasSearch) {
 							return [255, 255, 255, 255];
 						}
-						const isMatch = checkSystemMatch(d, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathData.distances);
+						const isMatch = checkSystemMatch(
+							d,
+							filter,
+							searchQuery,
+							allPlanetsData,
+							systemsPoints,
+							shortestPathData.distances,
+						);
 						return isMatch ? [255, 160, 0, 255] : [255, 255, 255, 45];
 					},
 					billboard: true,
 					background: true,
 					getBackgroundColor: (d: any) => {
-						const isFilterActive = 
-							(filter?.resources && filter.resources.size > 0) || 
+						const isFilterActive =
+							(filter?.resources && filter.resources.size > 0) ||
 							(filter?.filterRadius && filter.filterRadius > 0) ||
-							(filter?.planetType && filter.planetType !== 'all') ||
-							(filter?.fertileOnly) ||
-							(filter?.gravity && filter.gravity !== 'all') ||
-							(filter?.temperature && filter.temperature !== 'all') ||
-							(filter?.pressure && filter.pressure !== 'all') ||
-							(filter?.cogcEnabled);
+							(filter?.planetType && filter.planetType !== "all") ||
+							filter?.fertileOnly ||
+							(filter?.gravity && filter.gravity !== "all") ||
+							(filter?.temperature && filter.temperature !== "all") ||
+							(filter?.pressure && filter.pressure !== "all") ||
+							filter?.cogcEnabled;
 						const hasSearch = !!searchQuery;
 						if (!isFilterActive && !hasSearch) {
 							return [0, 0, 0, 160];
 						}
-						const isMatch = checkSystemMatch(d, filter, searchQuery, allPlanetsData, systemsPoints, shortestPathData.distances);
+						const isMatch = checkSystemMatch(
+							d,
+							filter,
+							searchQuery,
+							allPlanetsData,
+							systemsPoints,
+							shortestPathData.distances,
+						);
 						return isMatch ? [40, 20, 0, 180] : [0, 0, 0, 30];
 					},
 					backgroundPadding: [4, 2],
@@ -1224,13 +1368,17 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			const dockedShipsMap = new Map<string, any[]>();
 			const allSystemShips = props.animatedShipData || [];
 			allSystemShips.forEach((s: any) => {
-				const isMoving = s.plan && s.plan.segments && s.plan.segments.length > 0 && (() => {
-					const segments = s.plan.segments;
-					const arrival = segments[segments.length - 1].arrival;
-					const departure = segments[0].departure;
-					const now = Date.now();
-					return now >= departure && now <= arrival;
-				})();
+				const isMoving =
+					s.plan &&
+					s.plan.segments &&
+					s.plan.segments.length > 0 &&
+					(() => {
+						const segments = s.plan.segments;
+						const arrival = segments[segments.length - 1].arrival;
+						const departure = segments[0].departure;
+						const now = Date.now();
+						return now >= departure && now <= arrival;
+					})();
 				if (!isMoving) {
 					const locId = s.addressplanetid || s.addressstationid;
 					if (locId) {
@@ -1288,7 +1436,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						radiusUnits: "pixels",
 						getFillColor: (d: any) => d.color,
 						pickable: false,
-					})
+					}),
 				);
 			}
 			// Flight Paths
@@ -1298,7 +1446,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			// check ref error here
 			dLayers.push(
 				new IconLayer<PlanetPosition>({
-					id: `planets-dynamic-${currentSystem?.originalSystemId || 'none'}`,
+					id: `planets-dynamic-${currentSystem?.originalSystemId || "none"}`,
 					data: activePlanets,
 					iconAtlas: planetAtlas,
 					iconMapping: planetMapping,
@@ -1312,40 +1460,52 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					onClick: handlePlanetClick,
 					onHover: handleHoverTooltip,
 					getColor: (d: any) => {
-						const isFilterActive = 
-							(filter?.resources && filter.resources.size > 0) || 
+						const isFilterActive =
+							(filter?.resources && filter.resources.size > 0) ||
 							(filter?.filterRadius && filter.filterRadius > 0) ||
-							(filter?.planetType && filter.planetType !== 'all') ||
-							(filter?.fertileOnly) ||
-							(filter?.gravity && filter.gravity !== 'all') ||
-							(filter?.temperature && filter.temperature !== 'all') ||
-							(filter?.pressure && filter.pressure !== 'all') ||
-							(filter?.cogcEnabled);
+							(filter?.planetType && filter.planetType !== "all") ||
+							filter?.fertileOnly ||
+							(filter?.gravity && filter.gravity !== "all") ||
+							(filter?.temperature && filter.temperature !== "all") ||
+							(filter?.pressure && filter.pressure !== "all") ||
+							filter?.cogcEnabled;
 						const hasSearch = !!searchQuery;
 						if (!isFilterActive && !hasSearch) {
 							return [255, 255, 255, 255];
 						}
-						
+
 						let matches = true;
 						const query = searchQuery?.trim().toLowerCase() || "";
 						if (query) {
 							const planetName = (d.name || d.planetname || "").toLowerCase();
 							matches = planetName.includes(query);
 						}
-						
+
 						if (matches && filter) {
 							const pop = d.planetPopulation || 0;
-							matches = pop >= filter.populationRange[0] && pop <= filter.populationRange[1];
+							matches =
+								pop >= filter.populationRange[0] &&
+								pop <= filter.populationRange[1];
 						}
 
 						// Radius filter check
-						if (matches && filter?.filterRadius && filter.filterRadius > 0 && filter.originSystemId) {
+						if (
+							matches &&
+							filter?.filterRadius &&
+							filter.filterRadius > 0 &&
+							filter.originSystemId
+						) {
 							const systemId = d.parentSystemId;
 							if (systemId) {
 								if (shortestPathData.distances[systemId] !== undefined) {
-									matches = shortestPathData.distances[systemId] <= filter.filterRadius;
+									matches =
+										shortestPathData.distances[systemId] <= filter.filterRadius;
 								} else {
-									const originSys = systemsPoints.find((s) => s.originalSystemId === filter.originSystemId || s.id === filter.originSystemId);
+									const originSys = systemsPoints.find(
+										(s) =>
+											s.originalSystemId === filter.originSystemId ||
+											s.id === filter.originSystemId,
+									);
 									if (originSys) {
 										const dx = d.x - originSys.x;
 										const dy = d.y - originSys.y;
@@ -1357,12 +1517,13 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						}
 
 						// Planet Type filter check
-						if (matches && filter?.planetType && filter.planetType !== 'all') {
-							const typeStr = (d.type || '').toUpperCase();
-							const isRocky = typeStr.includes('EARTH') || typeStr.includes('ROCKY');
-							const isGas = typeStr.includes('GAS');
-							if (filter.planetType === 'rocky' && !isRocky) matches = false;
-							if (filter.planetType === 'gaseous' && !isGas) matches = false;
+						if (matches && filter?.planetType && filter.planetType !== "all") {
+							const typeStr = (d.type || "").toUpperCase();
+							const isRocky =
+								typeStr.includes("EARTH") || typeStr.includes("ROCKY");
+							const isGas = typeStr.includes("GAS");
+							if (filter.planetType === "rocky" && !isRocky) matches = false;
+							if (filter.planetType === "gaseous" && !isGas) matches = false;
 						}
 
 						// Fertility filter check
@@ -1371,34 +1532,40 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						}
 
 						// Gravity filter check
-						if (matches && filter?.gravity && filter.gravity !== 'all') {
+						if (matches && filter?.gravity && filter.gravity !== "all") {
 							const grav = d.gravity || 0;
-							if (filter.gravity === 'low' && grav > 1.0) matches = false;
-							if (filter.gravity === 'high' && grav <= 1.0) matches = false;
+							if (filter.gravity === "low" && grav > 1.0) matches = false;
+							if (filter.gravity === "high" && grav <= 1.0) matches = false;
 						}
 
 						// Temperature filter check
-						if (matches && filter?.temperature && filter.temperature !== 'all') {
+						if (
+							matches &&
+							filter?.temperature &&
+							filter.temperature !== "all"
+						) {
 							const temp = d.temperature || 0;
-							if (filter.temperature === 'low' && temp >= 273.15) matches = false;
-							if (filter.temperature === 'high' && temp < 273.15) matches = false;
+							if (filter.temperature === "low" && temp >= 273.15)
+								matches = false;
+							if (filter.temperature === "high" && temp < 273.15)
+								matches = false;
 						}
 
 						// Pressure filter check
-						if (matches && filter?.pressure && filter.pressure !== 'all') {
+						if (matches && filter?.pressure && filter.pressure !== "all") {
 							const press = d.pressure || 0;
-							if (filter.pressure === 'low' && press > 1.0) matches = false;
-							if (filter.pressure === 'high' && press <= 1.0) matches = false;
+							if (filter.pressure === "low" && press > 1.0) matches = false;
+							if (filter.pressure === "high" && press <= 1.0) matches = false;
 						}
 
 						// COGC Program filter check
 						if (matches && filter?.cogcEnabled) {
-							const prog = (d.cogc || '').toUpperCase();
+							const prog = (d.cogc || "").toUpperCase();
 							const selectedProg = filter.cogcProgram.toUpperCase();
-							const hasActiveProgram = prog && prog !== 'NONE';
-							if (selectedProg === 'ALL') {
+							const hasActiveProgram = prog && prog !== "NONE";
+							if (selectedProg === "ALL") {
 								if (!hasActiveProgram) matches = false;
-							} else if (selectedProg === 'NONE') {
+							} else if (selectedProg === "NONE") {
 								if (hasActiveProgram) matches = false;
 							} else {
 								if (!prog.includes(selectedProg)) matches = false;
@@ -1408,12 +1575,12 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						// Resources filter check
 						if (matches && filter?.resources && filter.resources.size > 0) {
 							const hasMatch = d.resources?.some((r: any) => {
-								const ticker = (r.material || r.name || '').toUpperCase();
+								const ticker = (r.material || r.name || "").toUpperCase();
 								return ticker && filter.resources.has(ticker);
 							});
 							if (!hasMatch) matches = false;
 						}
-						
+
 						return matches ? [255, 120, 0, 255] : [255, 255, 255, 45];
 					},
 					updateTriggers: {
@@ -1426,27 +1593,29 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			if (currentSystem) {
 				dLayers.push(
 					new ScatterplotLayer({
-						id: `star-corona-${currentSystem.originalSystemId || 'none'}`,
+						id: `star-corona-${currentSystem.originalSystemId || "none"}`,
 						data: [currentSystem],
 						getPosition: (d: any) => [d.x, d.y],
 						getRadius: SYSTEM_BASE_RADIUS * 0.08,
 						radiusUnits: "meters",
 						getFillColor: [255, 190, 40, 50], // Soft golden corona glow
 						pickable: false,
-					})
+					}),
 				);
 			}
 
 			// Highlight planets with owner's sites
 			const planetsWithOwnerSites = activePlanets.filter((p: any) => {
-				const sites = Object.values(productionData || {}).filter((s: any) => s.planetid === p.planetid);
+				const sites = Object.values(productionData || {}).filter(
+					(s: any) => s.planetid === p.planetid,
+				);
 				return sites.some((s) => !s.isLeased && !s.tenant);
 			});
 
 			if (planetsWithOwnerSites.length > 0) {
 				dLayers.push(
 					new ScatterplotLayer({
-						id: `planets-owned-sites-highlight-${currentSystem?.originalSystemId || 'none'}`,
+						id: `planets-owned-sites-highlight-${currentSystem?.originalSystemId || "none"}`,
 						data: planetsWithOwnerSites,
 						getPosition: (d: any) => [d.x, d.y],
 						getRadius: (d: any) => (d.scaledPlanetRadius ?? 1.0) * 1.15,
@@ -1460,7 +1629,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						stroked: true,
 						filled: false,
 						pickable: false,
-					})
+					}),
 				);
 			}
 
@@ -1468,7 +1637,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			// check ref error here
 			dLayers.push(
 				new IconLayer<StationPosition>({
-					id: `stations-dynamic-${currentSystem?.originalSystemId || 'none'}`,
+					id: `stations-dynamic-${currentSystem?.originalSystemId || "none"}`,
 					data: activeStations,
 					iconAtlas: stationsAtlas,
 					iconMapping: stationsMapping,
@@ -1512,7 +1681,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			if (labelItems.length > 0) {
 				dLayers.push(
 					new TextLayer({
-						id: `planet-station-labels-${currentSystem?.originalSystemId || 'none'}`,
+						id: `planet-station-labels-${currentSystem?.originalSystemId || "none"}`,
 						data: labelItems,
 						getPosition: (d: any) => d.position,
 						getText: (d: any) => d.text,
@@ -1524,7 +1693,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						getBackgroundColor: [15, 15, 15, 180],
 						billboard: true,
 						pickable: false,
-					})
+					}),
 				);
 			}
 
@@ -1550,26 +1719,28 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		// Ships (Clustered)
 		// check ref error here
 		if (clusteredData.length > 0) {
-      dLayers.push(
-        new IconLayer({
-          id: "ships-icons",
-          data: clusteredData,
-          iconAtlas: shipAtlas,
-          iconMapping: shipMapping,
-          getIcon: getShipIconType, // Safe fallback
-          getPosition: getShipPosition,
-          getSize: props.isGalaxyView 
-            ? (d: any) => d.isCluster ? 40 : 33
-            : (d: any) => d.isCluster ? SYSTEM_BASE_RADIUS * 0.016 : SYSTEM_BASE_RADIUS * 0.01,
-          getAngle: (d: any) => d.isCluster ? 0 : -(d.bearing ?? 0),
-          sizeUnits: props.isGalaxyView ? "pixels" : "meters",
-          sizeMinPixels: props.isGalaxyView ? 14 : 10,
-          sizeMaxPixels: props.isGalaxyView ? 105 : 24,
-          pickable: true,
-          onClick: handleShipClick,
-        })
+			dLayers.push(
+				new IconLayer({
+					id: "ships-icons",
+					data: clusteredData,
+					iconAtlas: shipAtlas,
+					iconMapping: shipMapping,
+					getIcon: getShipIconType, // Safe fallback
+					getPosition: getShipPosition,
+					getSize: props.isGalaxyView
+						? (d: any) => (d.isCluster ? 40 : 33)
+						: (d: any) =>
+								d.isCluster
+									? SYSTEM_BASE_RADIUS * 0.016
+									: SYSTEM_BASE_RADIUS * 0.01,
+					getAngle: (d: any) => (d.isCluster ? 0 : -(d.bearing ?? 0)),
+					sizeUnits: props.isGalaxyView ? "pixels" : "meters",
+					sizeMinPixels: props.isGalaxyView ? 14 : 10,
+					sizeMaxPixels: props.isGalaxyView ? 105 : 24,
+					pickable: true,
+					onClick: handleShipClick,
+				}),
 			);
-    
 
 			if (showLabels || !isGalaxyView) {
 				dLayers.push(
@@ -1681,13 +1852,10 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		return sectorLayers;
 	}, [isGalaxyView, sectors, safeGetColor]);
 
-	
-
 	const layers = useMemo(() => {
-    if (!props.viewportInstance) return [];
-    return [...sectorLayer, ...staticGalaxyLayers, ...dynamicLayers];
-    
-  }, [staticGalaxyLayers, sectorLayer, dynamicLayers, props.viewportInstance]);
+		if (!props.viewportInstance) return [];
+		return [...sectorLayer, ...staticGalaxyLayers, ...dynamicLayers];
+	}, [staticGalaxyLayers, sectorLayer, dynamicLayers, props.viewportInstance]);
 
 	return {
 		layers,

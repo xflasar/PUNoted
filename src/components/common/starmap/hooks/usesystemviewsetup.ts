@@ -360,14 +360,27 @@ export const useSystemViewSetup = (
 				const innerOrbitRadius = initialPositions[0].orbitalRadius ?? 10;
 				const generated: any[] = [];
 				for (let aIdx = 0; aIdx < maxAsteroids; aIdx++) {
-					const r = innerOrbitRadius + Math.random() * (outerOrbitRadius - innerOrbitRadius);
+					const r =
+						innerOrbitRadius +
+						Math.random() * (outerOrbitRadius - innerOrbitRadius);
 					const theta = Math.random() * Math.PI * 2;
-					const px = centeredSystem.x + r * Math.cos(theta) + (Math.random() - 0.5) * 0.1;
-					const py = centeredSystem.y + r * Math.sin(theta) + (Math.random() - 0.5) * 0.1;
+					const px =
+						centeredSystem.x +
+						r * Math.cos(theta) +
+						(Math.random() - 0.5) * 0.1;
+					const py =
+						centeredSystem.y +
+						r * Math.sin(theta) +
+						(Math.random() - 0.5) * 0.1;
 					generated.push({
 						position: [px, py],
 						size: 1 + Math.random() * 2,
-						color: [140 + Math.random() * 60, 130 + Math.random() * 40, 110 + Math.random() * 30, 180]
+						color: [
+							140 + Math.random() * 60,
+							130 + Math.random() * 40,
+							110 + Math.random() * 30,
+							180,
+						],
 					});
 				}
 				setMicroAsteroids(generated);

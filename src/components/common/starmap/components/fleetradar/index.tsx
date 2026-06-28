@@ -50,13 +50,13 @@ interface ShipListComponentProps {
 
 type CorpListItem =
 	| {
-		type: "GROUP_HEADER";
-		name: string;
-		count: number;
-		expanded: boolean;
-		visible: boolean;
-		shipIds: string[];
-	}
+			type: "GROUP_HEADER";
+			name: string;
+			count: number;
+			expanded: boolean;
+			visible: boolean;
+			shipIds: string[];
+	  }
 	| { type: "SHIP"; data: AnimatedShipData };
 
 // --- CSS KEYFRAMES FOR GPU ANIMATION ---
@@ -68,9 +68,18 @@ const GlobalProgressKeyframes = () => (
 				"100%": { transform: "scaleX(1)" },
 			},
 			"@keyframes pulseRadar": {
-				"0%": { boxShadow: "0 0 0 0 rgba(0, 229, 255, 0.4)", transform: "scale(1)" },
-				"70%": { boxShadow: "0 0 0 10px rgba(0, 229, 255, 0)", transform: "scale(1.05)" },
-				"100%": { boxShadow: "0 0 0 0 rgba(0, 229, 255, 0)", transform: "scale(1)" },
+				"0%": {
+					boxShadow: "0 0 0 0 rgba(0, 229, 255, 0.4)",
+					transform: "scale(1)",
+				},
+				"70%": {
+					boxShadow: "0 0 0 10px rgba(0, 229, 255, 0)",
+					transform: "scale(1.05)",
+				},
+				"100%": {
+					boxShadow: "0 0 0 0 rgba(0, 229, 255, 0)",
+					transform: "scale(1)",
+				},
 			},
 		}}
 	/>
@@ -117,11 +126,11 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 		Object.entries(corpShips).forEach(([groupName, ships]) => {
 			const matches = lowerSearch
 				? ships.filter(
-					(s) =>
-						s.name?.toLowerCase().includes(lowerSearch) ||
-						s.registration?.toLowerCase().includes(lowerSearch) ||
-						groupName.toLowerCase().includes(lowerSearch),
-				)
+						(s) =>
+							s.name?.toLowerCase().includes(lowerSearch) ||
+							s.registration?.toLowerCase().includes(lowerSearch) ||
+							groupName.toLowerCase().includes(lowerSearch),
+					)
 				: ships;
 
 			if (matches.length > 0) {
@@ -147,11 +156,11 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 		Object.entries(otherShips).forEach(([groupName, ships]) => {
 			const matches = lowerSearch
 				? ships.filter(
-					(s) =>
-						s.name?.toLowerCase().includes(lowerSearch) ||
-						s.registration?.toLowerCase().includes(lowerSearch) ||
-						groupName.toLowerCase().includes(lowerSearch),
-				)
+						(s) =>
+							s.name?.toLowerCase().includes(lowerSearch) ||
+							s.registration?.toLowerCase().includes(lowerSearch) ||
+							groupName.toLowerCase().includes(lowerSearch),
+					)
 				: ships;
 
 			if (matches.length > 0) {
@@ -170,7 +179,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 			}
 		});
 		return data;
-	}, [otherShips, lowerSearch, expandedCorpGroups, visibleCorpGroups, isMobile]);
+	}, [
+		otherShips,
+		lowerSearch,
+		expandedCorpGroups,
+		visibleCorpGroups,
+		isMobile,
+	]);
 
 	// Counts
 	const corpMemberCount = Object.keys(corpShips).length;
@@ -208,7 +223,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 			});
 		}
 		return tabs;
-	}, [ownShips.length, filteredOwn.length, corpTotalShips, otherTotalShips, theme]);
+	}, [
+		ownShips.length,
+		filteredOwn.length,
+		corpTotalShips,
+		otherTotalShips,
+		theme,
+	]);
 
 	// Fallback to first tab if active tab becomes unavailable
 	const currentTabId = useMemo(() => {
@@ -306,7 +327,15 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 								<VisibilityOff sx={{ fontSize: 16 }} />
 							)}
 						</IconButton>
-						<Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, mr: 1 }}>
+						<Box
+							sx={{
+								flex: 1,
+								display: "flex",
+								flexDirection: "column",
+								minWidth: 0,
+								mr: 1,
+							}}
+						>
 							<Typography
 								variant="body2"
 								noWrap
@@ -414,7 +443,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 					"&:hover": {
 						transform: "scale(1.1)",
 						borderColor: "rgba(0, 229, 255, 0.5)",
-					}
+					},
 				}}
 				onClick={() => setIsMinimized(false)}
 			>
@@ -427,24 +456,24 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 
 	const containerStyle = isMobile
 		? {
-			position: "fixed",
-			bottom: 0,
-			left: 0,
-			right: 0,
-			width: "100%",
-			maxHeight: "60dvh",
-			borderRadius: "20px 20px 0 0",
-			boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.5)",
-		}
+				position: "fixed",
+				bottom: 0,
+				left: 0,
+				right: 0,
+				width: "100%",
+				maxHeight: "60dvh",
+				borderRadius: "20px 20px 0 0",
+				boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.5)",
+			}
 		: {
-			position: "absolute",
-			top: "10vh",
-			left: 20,
-			width: 340,
-			height: "80vh",
-			borderRadius: "12px",
-			boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
-		};
+				position: "absolute",
+				top: "10vh",
+				left: 20,
+				width: 340,
+				height: "80vh",
+				borderRadius: "12px",
+				boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+			};
 
 	const currentTab = availableTabs.find((t) => t.id === currentTabId);
 
@@ -457,10 +486,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 					...containerStyle,
 					display: "flex",
 					flexDirection: "column",
-					background: "linear-gradient(135deg, rgba(15, 18, 28, 0.85) 0%, rgba(8, 10, 15, 0.95) 100%)",
+					background:
+						"linear-gradient(135deg, rgba(15, 18, 28, 0.85) 0%, rgba(8, 10, 15, 0.95) 100%)",
 					backdropFilter: "blur(24px)",
 					border: "1px solid rgba(255, 255, 255, 0.08)",
-					borderTopColor: isMobile ? "rgba(0, 229, 255, 0.15)" : "rgba(255, 255, 255, 0.08)",
+					borderTopColor: isMobile
+						? "rgba(0, 229, 255, 0.15)"
+						: "rgba(255, 255, 255, 0.08)",
 					color: theme.palette.text.primary,
 					zIndex: 10,
 					overflow: "hidden",
@@ -507,7 +539,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 								color: "#00e5ff",
 								letterSpacing: "0.15em",
 								textTransform: "uppercase",
-								fontSize: "0.75rem"
+								fontSize: "0.75rem",
 							}}
 						>
 							Fleet Radar
@@ -517,7 +549,10 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 							onClick={() => setIsMinimized(true)}
 							sx={{
 								color: "rgba(255, 255, 255, 0.5)",
-								"&:hover": { color: "#ff1744", bgcolor: "rgba(255, 23, 68, 0.08)" }
+								"&:hover": {
+									color: "#ff1744",
+									bgcolor: "rgba(255, 23, 68, 0.08)",
+								},
 							}}
 						>
 							<Close fontSize="small" />
@@ -535,7 +570,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 							transition: "border-color 0.2s ease",
 							"&:focus-within": {
 								borderColor: "rgba(0, 229, 255, 0.3)",
-							}
+							},
 						}}
 					>
 						<SearchIcon
@@ -557,7 +592,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 
 				{/* TABS CONTAINER */}
 				{availableTabs.length > 0 && (
-					<Box sx={{ borderBottom: `1px solid ${theme.palette.divider}`, bgcolor: "rgba(0,0,0,0.1)", flexShrink: 0 }}>
+					<Box
+						sx={{
+							borderBottom: `1px solid ${theme.palette.divider}`,
+							bgcolor: "rgba(0,0,0,0.1)",
+							flexShrink: 0,
+						}}
+					>
 						<Tabs
 							value={currentTabId}
 							onChange={(_, v) => setActiveTabId(v)}
@@ -565,8 +606,9 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 							sx={{
 								minHeight: 40,
 								"& .MuiTabs-indicator": {
-									backgroundColor: currentTab?.color || theme.palette.primary.main,
-								}
+									backgroundColor:
+										currentTab?.color || theme.palette.primary.main,
+								},
 							}}
 						>
 							{availableTabs.map((t) => (
@@ -584,7 +626,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 										color: alpha(theme.palette.text.primary, 0.6),
 										"&.Mui-selected": {
 											color: t.color || theme.palette.primary.main,
-										}
+										},
 									}}
 								/>
 							))}
@@ -601,7 +643,10 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 							justifyContent: "space-between",
 							px: 2,
 							py: 0.75,
-							bgcolor: alpha(currentTab.color || theme.palette.primary.main, 0.05),
+							bgcolor: alpha(
+								currentTab.color || theme.palette.primary.main,
+								0.05,
+							),
 							borderBottom: `1px solid ${alpha(currentTab.color || theme.palette.primary.main, 0.1)}`,
 							flexShrink: 0,
 						}}
@@ -616,15 +661,21 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 								}}
 							>
 								{currentTabId === "my_ships" && `${filteredOwn.length} ships`}
-								{currentTabId === "corporation" && `${corpMemberCount} members • ${corpTotalShips} ships`}
-								{currentTabId === "other_ships" && `${Object.keys(otherShips).length} players • ${otherTotalShips} ships`}
+								{currentTabId === "corporation" &&
+									`${corpMemberCount} members • ${corpTotalShips} ships`}
+								{currentTabId === "other_ships" &&
+									`${Object.keys(otherShips).length} players • ${otherTotalShips} ships`}
 							</Typography>
 						</Box>
 
 						<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
 							{currentTabId === "my_ships" && (
 								<>
-									<Tooltip title={allOwnPathsVisible ? "Hide All Paths" : "Show All Paths"}>
+									<Tooltip
+										title={
+											allOwnPathsVisible ? "Hide All Paths" : "Show All Paths"
+										}
+									>
 										<IconButton
 											size="small"
 											onClick={() =>
@@ -664,7 +715,11 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 
 							{currentTabId === "corporation" && (
 								<>
-									<Tooltip title={allCorpPathsVisible ? "Hide All Paths" : "Show All Paths"}>
+									<Tooltip
+										title={
+											allCorpPathsVisible ? "Hide All Paths" : "Show All Paths"
+										}
+									>
 										<IconButton
 											size="small"
 											onClick={() =>
@@ -685,7 +740,9 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 											<Timeline sx={{ fontSize: 16 }} />
 										</IconButton>
 									</Tooltip>
-									<Tooltip title={allCorpVisible ? "Hide All Corp" : "Show All Corp"}>
+									<Tooltip
+										title={allCorpVisible ? "Hide All Corp" : "Show All Corp"}
+									>
 										<IconButton
 											size="small"
 											onClick={() =>
@@ -713,7 +770,11 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 
 							{currentTabId === "other_ships" && (
 								<>
-									<Tooltip title={allOtherPathsVisible ? "Hide All Paths" : "Show All Paths"}>
+									<Tooltip
+										title={
+											allOtherPathsVisible ? "Hide All Paths" : "Show All Paths"
+										}
+									>
 										<IconButton
 											size="small"
 											onClick={() =>
@@ -734,7 +795,11 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 											<Timeline sx={{ fontSize: 16 }} />
 										</IconButton>
 									</Tooltip>
-									<Tooltip title={allOtherVisible ? "Hide All Others" : "Show All Others"}>
+									<Tooltip
+										title={
+											allOtherVisible ? "Hide All Others" : "Show All Others"
+										}
+									>
 										<IconButton
 											size="small"
 											onClick={() =>
@@ -780,12 +845,16 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 					)}
 					{currentTabId === "corporation" && (
 						<Box>
-							{flattenedCorpData.map((item, index) => renderCorpRow(index, item))}
+							{flattenedCorpData.map((item, index) =>
+								renderCorpRow(index, item),
+							)}
 						</Box>
 					)}
 					{currentTabId === "other_ships" && (
 						<Box>
-							{flattenedOtherData.map((item, index) => renderCorpRow(index, item))}
+							{flattenedOtherData.map((item, index) =>
+								renderCorpRow(index, item),
+							)}
 						</Box>
 					)}
 				</Box>

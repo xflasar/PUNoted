@@ -9,10 +9,15 @@ export const FlexCard = ({ children, sx = {} }: any) => {
 			sx={{
 				display: "flex",
 				flexDirection: "column",
-				backgroundColor: theme.palette.background.default,
-				borderRadius: "8px",
-				border: `1px solid ${theme.palette.divider}`,
+				backgroundColor: "rgba(30, 37, 52, 0.5)",
+				border: "1px solid rgba(255, 255, 255, 0.06)",
+				borderRadius: "12px",
+				boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.15)",
 				overflow: "hidden",
+				transition: "transform 0.2s ease, box-shadow 0.2s ease",
+				"&:hover": {
+					boxShadow: "0 6px 24px 0 rgba(0, 0, 0, 0.22)",
+				},
 				...sx,
 			}}
 		>
@@ -38,14 +43,16 @@ export const Guide = ({ text }: { text: string }) => {
 };
 
 export const SectionHeader = ({ title, icon, color }: any) => (
-	<Box display="flex" alignItems="center" gap={1} mb={1.5} mt={3}>
+	<Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5, mt: 3 }}>
 		{React.cloneElement(icon, { sx: { color, fontSize: "1.1rem" } })}
 		<Typography
 			variant="caption"
-			fontWeight={800}
-			color="text.secondary"
-			textTransform="uppercase"
-			letterSpacing={1}
+			sx={{
+				fontWeight: 800,
+				color: "text.secondary",
+				textTransform: "uppercase",
+				letterSpacing: 1,
+			}}
 		>
 			{title}
 		</Typography>
@@ -63,30 +70,37 @@ export const InfoRow = ({
 	const theme = useTheme();
 	return (
 		<Box
-			display="flex"
-			justifyContent="space-between"
-			alignItems="center"
-			py={1}
-			borderBottom={
-				noBorder ? "none" : `1px solid ${alpha(theme.palette.divider, 0.4)}`
-			}
+			sx={{
+				display: "flex",
+				justifyContent: "space-between",
+				alignItems: "center",
+				py: 1,
+				borderBottom: noBorder
+					? "none"
+					: `1px solid ${alpha(theme.palette.divider, 0.4)}`,
+			}}
 		>
 			<Typography
 				variant="caption"
-				color="text.secondary"
-				fontWeight={700}
-				textTransform="uppercase"
-				letterSpacing={0.5}
+				sx={{
+					color: "text.secondary",
+					fontWeight: 700,
+					textTransform: "uppercase",
+					letterSpacing: 0.5,
+				}}
 			>
 				{label}
 			</Typography>
 			<Typography
 				variant="body2"
 				color={valueColor}
-				fontWeight={isBold ? 800 : 600}
-				fontFamily={isMonospace ? "monospace" : "inherit"}
-				textAlign="right"
-				sx={{ pl: 2, wordBreak: "break-word" }}
+				sx={{
+					fontWeight: isBold ? 800 : 600,
+					fontFamily: isMonospace ? "monospace" : "inherit",
+					textAlign: "right",
+					pl: 2,
+					wordBreak: "break-word",
+				}}
 			>
 				{value}
 			</Typography>
@@ -106,17 +120,19 @@ export const DrawerRow = ({
 	const theme = useTheme();
 	return (
 		<Box
-			display="flex"
-			justifyContent="space-between"
-			alignItems="center"
-			px={2}
-			py={1.5}
-			borderBottom={
-				noBorder ? "none" : `1px solid ${alpha(theme.palette.divider, 0.5)}`
-			}
-			borderTop={
-				isTopBorder ? `1px solid ${alpha(theme.palette.divider, 0.5)}` : "none"
-			}
+			sx={{
+				display: "flex",
+				justifyContent: "space-between",
+				alignItems: "center",
+				px: 2,
+				py: 1.5,
+				borderBottom: noBorder
+					? "none"
+					: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+				borderTop: isTopBorder
+					? `1px solid ${alpha(theme.palette.divider, 0.5)}`
+					: "none",
+			}}
 		>
 			<Typography
 				sx={{

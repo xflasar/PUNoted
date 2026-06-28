@@ -42,7 +42,11 @@ export const DefaultsSection: React.FC<Props> = ({
 
 	const selectExchanges = [...exchanges];
 	if (showCxCode && !selectExchanges.some((cx) => cx.code === showCxCode)) {
-		selectExchanges.push({ code: showCxCode, name: "Loading...", currencyCode: showCurrency });
+		selectExchanges.push({
+			code: showCxCode,
+			name: "Loading...",
+			currencyCode: showCurrency,
+		});
 	}
 
 	const selectCurrencies = [...uniqueCurrencies];

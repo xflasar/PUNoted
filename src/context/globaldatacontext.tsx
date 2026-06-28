@@ -168,16 +168,24 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	// --- Map Data State ---
 	const [mapData, setMapData] = useState<any | null>(null);
 	const [systemsPoints, setSystemsPoints] = useState<MapPoint[]>([]);
-	const [allPlanetsData, setAllPlanetsData] = useState<Record<string, PlanetData[]>>({});
-	const [allStationsData, setAllStationsData] = useState<Record<string, StationData[]>>({});
+	const [allPlanetsData, setAllPlanetsData] = useState<
+		Record<string, PlanetData[]>
+	>({});
+	const [allStationsData, setAllStationsData] = useState<
+		Record<string, StationData[]>
+	>({});
 
 	useEffect(() => {
 		if (mapData) {
-			processMapDataSingleton(mapData).then((processed) => {
-				setSystemsPoints(processed.systemsPoints);
-				setAllPlanetsData(processed.allPlanetsData);
-				setAllStationsData(processed.allStationsData);
-			}).catch(err => console.error("Failed to process map data globally:", err));
+			processMapDataSingleton(mapData)
+				.then((processed) => {
+					setSystemsPoints(processed.systemsPoints);
+					setAllPlanetsData(processed.allPlanetsData);
+					setAllStationsData(processed.allStationsData);
+				})
+				.catch((err) =>
+					console.error("Failed to process map data globally:", err),
+				);
 		}
 	}, [mapData]);
 

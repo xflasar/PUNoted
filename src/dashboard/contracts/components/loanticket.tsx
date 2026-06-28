@@ -180,9 +180,9 @@ const LoanTicket = memo(
 		return (
 			<Paper
 				sx={{
-					mb: 0.75,
+					mb: 0.5,
 					overflow: "hidden",
-					borderRadius: 1.5,
+					borderRadius: 1.25,
 					border: `1px solid ${borderColor}`,
 					bgcolor: bgColor,
 					transition: "all 0.1s",
@@ -197,8 +197,8 @@ const LoanTicket = memo(
 				{/* Header */}
 				<Box
 					sx={{
-						p: 0.75,
-						px: 1.5,
+						p: 0.5,
+						px: 1,
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
@@ -218,15 +218,15 @@ const LoanTicket = memo(
 							sx={{ p: 0, color: isPinned ? "primary.main" : "text.disabled" }}
 						>
 							{isPinned ? (
-								<Star sx={{ fontSize: 18 }} />
+								<Star sx={{ fontSize: 16 }} />
 							) : (
-								<StarBorder sx={{ fontSize: 18 }} />
+								<StarBorder sx={{ fontSize: 16 }} />
 							)}
 						</IconButton>
 						<Typography
-							variant="subtitle1"
+							variant="subtitle2"
 							fontWeight={800}
-							fontSize="0.95rem"
+							fontSize="0.85rem"
 							noWrap
 							sx={{ maxWidth: 180 }}
 						>
@@ -234,7 +234,7 @@ const LoanTicket = memo(
 						</Typography>
 						{isOverdue && (
 							<Tooltip title="Payment Overdue">
-								<Warning color="error" sx={{ fontSize: 16 }} />
+								<Warning color="error" sx={{ fontSize: 14 }} />
 							</Tooltip>
 						)}
 					</Stack>
@@ -243,7 +243,7 @@ const LoanTicket = memo(
 							variant="caption"
 							fontFamily="monospace"
 							color="text.secondary"
-							fontSize="0.7rem"
+							fontSize="0.65rem"
 						>
 							{contract.localid}
 						</Typography>
@@ -251,8 +251,8 @@ const LoanTicket = memo(
 							label={statusLabel}
 							size="small"
 							sx={{
-								height: 18,
-								fontSize: "0.65rem",
+								height: 16,
+								fontSize: "0.6rem",
 								fontWeight: 800,
 								borderRadius: 0.5,
 								bgcolor: statusBg,
@@ -263,15 +263,15 @@ const LoanTicket = memo(
 				</Box>
 
 				{/* Body */}
-				<Box sx={{ p: 1.25 }}>
+				<Box sx={{ p: 0.75 }}>
 					{/* Metrics */}
 					<Box
 						sx={{
 							display: "flex",
 							flexWrap: "wrap",
-							gap: 2,
+							gap: 1.5,
 							alignItems: "center",
-							mb: 1,
+							mb: 0.5,
 						}}
 					>
 						<Tooltip
@@ -284,7 +284,7 @@ const LoanTicket = memo(
 								<Typography
 									variant="caption"
 									color="text.secondary"
-									fontSize="0.65rem"
+									fontSize="0.6rem"
 									display="block"
 									lineHeight={1}
 									mb={0.25}
@@ -292,12 +292,12 @@ const LoanTicket = memo(
 									TOTAL
 								</Typography>
 								<Typography
-									variant="h6"
+									variant="subtitle2"
 									fontFamily="monospace"
-									fontWeight={400}
+									fontWeight={800}
 									lineHeight={1}
 									color="text.primary"
-									fontSize="1.1rem"
+									fontSize="0.95rem"
 								>
 									{formatCurrency(contract.total_amount, contract.currency)}
 								</Typography>
@@ -306,7 +306,7 @@ const LoanTicket = memo(
 						<Box
 							sx={{
 								display: "flex",
-								gap: 2,
+								gap: 1.5,
 								flexWrap: "wrap",
 								flex: 1,
 								alignItems: "center",
@@ -315,25 +315,25 @@ const LoanTicket = memo(
 							<Divider
 								orientation="vertical"
 								flexItem
-								sx={{ height: 24, alignSelf: "center" }}
+								sx={{ height: 20, alignSelf: "center" }}
 							/>
 							<Box>
 								<Typography
 									variant="caption"
 									color="text.secondary"
-									fontSize="0.65rem"
+									fontSize="0.6rem"
 									display="block"
 									lineHeight={1}
 									mb={0.25}
 								>
 									PRINCIPAL
 								</Typography>
-								<Stack direction="row" spacing={0.5} alignItems="center">
-									<AttachMoney sx={{ fontSize: 12, color: "text.secondary" }} />
+								<Stack direction="row" spacing={0.25} alignItems="center">
+									<AttachMoney sx={{ fontSize: 10, color: "text.secondary" }} />
 									<Typography
-										variant="body2"
+										variant="caption"
 										fontWeight={400}
-										fontSize="0.85rem"
+										fontSize="0.75rem"
 									>
 										{formatCurrency(principal, contract.currency)}
 									</Typography>
@@ -343,24 +343,24 @@ const LoanTicket = memo(
 								<Typography
 									variant="caption"
 									color="text.secondary"
-									fontSize="0.65rem"
+									fontSize="0.6rem"
 									display="block"
 									lineHeight={1}
 									mb={0.25}
 								>
 									INTEREST ({rate}%)
 								</Typography>
-								<Stack direction="row" spacing={0.5} alignItems="center">
+								<Stack direction="row" spacing={0.25} alignItems="center">
 									<PieChart
 										sx={{
-											fontSize: 12,
+											fontSize: 10,
 											color: isLender ? "success.main" : "error.main",
 										}}
 									/>
 									<Typography
-										variant="body2"
+										variant="caption"
 										fontWeight={400}
-										fontSize="0.85rem"
+										fontSize="0.75rem"
 										color={isLender ? "success.main" : "error.main"}
 									>
 										+{formatCurrency(interest, contract.currency)}

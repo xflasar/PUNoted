@@ -275,37 +275,37 @@ export interface AnimatedShipData {
 }
 
 export interface ShipData extends AnimatedShipData {
-    ship_id: string;
-    user_id: string;
-    name: string;
-    registration: string;
-    ship_type: string;
-    address_planet_id: string;
-    address_station_id: string;
-    address_system_id: string;
-    acceleration: number
-    thrust: number;
-    volume: number;
-    mass: number;
-    operating_empty_mass: number;
-    reactor_power: number;
-    emitter_power: number;
-    stl_fuel_flow_rate: number;
-    status: string;
-    condition: number;
-    commissioning_time: string;
-    last_repair: string;
-    flight_id: string;
-    id_ftl_fuel_store: string;
-    id_stl_fuel_store: string;
-    id_ship_store: string;
-    operating_time_ftl: number;
-    operating_time_stl: number;
-    blueprint_natural_id: string;
-    is_owner: boolean;
-    company_code: string;
-    display_name: string;
-    personal_suffix: string;
+	ship_id: string;
+	user_id: string;
+	name: string;
+	registration: string;
+	ship_type: string;
+	address_planet_id: string;
+	address_station_id: string;
+	address_system_id: string;
+	acceleration: number;
+	thrust: number;
+	volume: number;
+	mass: number;
+	operating_empty_mass: number;
+	reactor_power: number;
+	emitter_power: number;
+	stl_fuel_flow_rate: number;
+	status: string;
+	condition: number;
+	commissioning_time: string;
+	last_repair: string;
+	flight_id: string;
+	id_ftl_fuel_store: string;
+	id_stl_fuel_store: string;
+	id_ship_store: string;
+	operating_time_ftl: number;
+	operating_time_stl: number;
+	blueprint_natural_id: string;
+	is_owner: boolean;
+	company_code: string;
+	display_name: string;
+	personal_suffix: string;
 }
 
 export interface ShipCargo {
