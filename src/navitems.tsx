@@ -20,7 +20,7 @@ export const navItems = [
 	{ text: "Galaxy Map", icon: <Map />, href: "/dashboard/galaxy-map" },
 	{ text: "Corporation", icon: <LocationCity />, href: "/dashboard/corp" },
 	{ text: "Sites", icon: <Map />, href: "/dashboard/sites" },
-	{ text: "Base Planner", icon: <Assignment />, href: "/dashboard/planner" },
+	//{ text: "Base Planner", icon: <Assignment />, href: "/dashboard/planner" },
 	{ text: "Global Storage", icon: <StorageIcon />, href: "/dashboard/storage" },
 	{ text: "CX Dashboard", icon: <ShowChartIcon />, href: "/dashboard/cx" },
 	{
