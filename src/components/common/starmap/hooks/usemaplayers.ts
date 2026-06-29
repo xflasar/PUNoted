@@ -164,35 +164,35 @@ export function checkSystemMatch(
 		}
 
 		// 7. Resources (Chips act as selector based on Match ALL or Match ANY)
-        if (hasResources) {
-          const planetResNames = new Set(
-            (p.resources || []).map((r: any) =>
-              (r.material || r.name || "").toUpperCase(),
-            ),
-          );
+		if (hasResources) {
+			const planetResNames = new Set(
+				(p.resources || []).map((r: any) =>
+					(r.material || r.name || "").toUpperCase(),
+				),
+			);
 
-          const matchMode = filter.resourceMatchMode || "all";
+			const matchMode = filter.resourceMatchMode || "all";
 
-          if (matchMode === "all") {
-            let hasAll = true;
-            for (const res of filter.resources) {
-              if (!planetResNames.has(res)) {
-                hasAll = false;
-                break;
-              }
-            }
-            if (!hasAll) return false;
-          } else {
-            let hasAny = false;
-            for (const res of filter.resources) {
-              if (planetResNames.has(res)) {
-                hasAny = true;
-                break;
-              }
-            }
-            if (!hasAny) return false;
-          }
-        }
+			if (matchMode === "all") {
+				let hasAll = true;
+				for (const res of filter.resources) {
+					if (!planetResNames.has(res)) {
+						hasAll = false;
+						break;
+					}
+				}
+				if (!hasAll) return false;
+			} else {
+				let hasAny = false;
+				for (const res of filter.resources) {
+					if (planetResNames.has(res)) {
+						hasAny = true;
+						break;
+					}
+				}
+				if (!hasAny) return false;
+			}
+		}
 
 		return true;
 	});
