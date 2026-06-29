@@ -18,7 +18,6 @@ export const useBaseManagerData = (cx: string = "IC1") => {
 
 			// Transform array of objects into expected BaseManagerApiResponse
 			const transformedData: BaseManagerApiResponse = {
-				 
 				cxPrices: Array.isArray(fetchedData)
 					? fetchedData.map((item: any) => ({
 							ticker: item.ticker ? item.ticker.split(".")[0] : "",
@@ -30,7 +29,7 @@ export const useBaseManagerData = (cx: string = "IC1") => {
 										: 0,
 						}))
 					: [],
-				 
+
 				corpPrices: Array.isArray(fetchedData)
 					? fetchedData.map((item: any) => ({
 							ticker: item.ticker ? item.ticker.split(".")[0] : "",
