@@ -44,7 +44,7 @@ import {
 } from "recharts";
 
 import { BaseManager } from "../../components/basemanager/basemanager";
-import { useStaticData } from "../Cooperation/hooks/usestaticdata";
+import { useStaticData } from "../cooperation/hooks/usestaticdata";
 import type { NodeAssignedUser } from "../cooperation/types";
 import { calculateBaseMetrics } from "../../components/basemanager/helpers";
 import {
