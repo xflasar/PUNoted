@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { NodeResizer, useReactFlow } from "reactflow";
 import { Box, InputBase } from "@mui/material";
 
@@ -33,19 +33,19 @@ const GroupNode = ({ id, data, selected }: any) => {
 				sx={{
 					width: "100%",
 					height: "100%",
-					backgroundColor: "rgba(139, 92, 246, 0.05)", // Visible light purple fill
+					backgroundColor: "rgba(139, 92, 246, 0.05)",
 					border: selected
 						? "2px solid #8B5CF6"
 						: "2px dashed rgba(139, 92, 246, 0.5)",
 					borderRadius: 4,
-					boxSizing: "border-box", // CRITICAL: Keeps border inside the container
+					boxSizing: "border-box",
 				}}
 			>
 				<InputBase
 					value={label}
 					onChange={(e) => setLabel(e.target.value)}
 					onBlur={handleBlur}
-					className="nodrag" // IMPORTANT: Allows clicking/typing without dragging the node
+					className="nodrag"
 					sx={{
 						position: "absolute",
 						top: -16,
@@ -54,7 +54,7 @@ const GroupNode = ({ id, data, selected }: any) => {
 						color: "#8B5CF6",
 						textTransform: "uppercase",
 						letterSpacing: 1,
-						bgcolor: "background.default", // Matches canvas background to "cut out" the border
+						bgcolor: "background.default",
 						px: 1.5,
 						py: 0,
 						borderRadius: 1,

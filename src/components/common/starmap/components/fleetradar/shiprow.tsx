@@ -18,14 +18,14 @@ import {
 import { useGlobalData } from "../../../../../context/globaldatacontext";
 import { getOriginDestinationLabel } from "../../utils/flightplanorigindestination";
 import MaterialBadge from "../../../../../cosm/components/materialbadge";
-import ShipFlightStatus from "./ShipFlightStatus";
+import ShipFlightStatus from "./shipflightstatus";
 import type { AnimatedShipData } from "../../types/maptypes";
 
 // --- ASSETS ---
-import lcb from "../../../../../assets/ships/LCB.png";
-import wcb from "../../../../../assets/ships/WCB.png";
-import vcb from "../../../../../assets/ships/VCB.png";
-import hcb from "../../../../../assets/ships/HCB.png";
+import lcb from "../../../../../assets/ships/lcb.png";
+import wcb from "../../../../../assets/ships/wcb.png";
+import vcb from "../../../../../assets/ships/vcb.png";
+import hcb from "../../../../../assets/ships/hcb.png";
 
 interface ShipRowProps {
 	ship: AnimatedShipData;

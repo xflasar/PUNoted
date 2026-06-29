@@ -18,7 +18,7 @@ export const useBaseManagerData = (cx: string = "IC1") => {
 
 			// Transform array of objects into expected BaseManagerApiResponse
 			const transformedData: BaseManagerApiResponse = {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				 
 				cxPrices: Array.isArray(fetchedData)
 					? fetchedData.map((item: any) => ({
 							ticker: item.ticker ? item.ticker.split(".")[0] : "",
@@ -30,7 +30,7 @@ export const useBaseManagerData = (cx: string = "IC1") => {
 										: 0,
 						}))
 					: [],
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				 
 				corpPrices: Array.isArray(fetchedData)
 					? fetchedData.map((item: any) => ({
 							ticker: item.ticker ? item.ticker.split(".")[0] : "",

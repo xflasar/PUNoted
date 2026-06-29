@@ -1,13 +1,12 @@
-import React, { useState } from "react"; // ⬅️ IMPORT useState
+import React, { useState } from "react";
 import {
 	Box,
 	Paper,
 	Typography,
 	useTheme,
 	Divider,
-	IconButton, // ⬅️ IMPORT IconButton
+	IconButton,
 } from "@mui/material";
-// ⬇️ IMPORT ICONS (You might need to install @mui/icons-material)
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -20,7 +19,6 @@ const PopulationLegend: React.FC<{ minPop: number; maxPop: number }> = ({
 	minPop,
 	maxPop,
 }) => {
-	// Color stops used in the getPlanetColorByPopulation function
 	const lowColor = "rgb(100, 255, 255)";
 	const midColor = "rgb(255, 255, 100)";
 	const highColor = "rgb(200, 0, 0)";
@@ -105,7 +103,6 @@ export const SystemStatsBox: React.FC<{ stats: SystemStats | null }> = ({
 	const { min: minPop, max: maxPop } = getMinMaxPopulations();
 	const shouldShowLegend = stats.planetDetails.length > 0 && maxPop > 0;
 
-	// Utility function to categorize the system based on total population (omitted for brevity, assume it works)
 	const getSystemClassification = (population: number) => {
 		if (population >= 10000000)
 			return { label: "Core Sector", color: "success.main" };
@@ -148,11 +145,10 @@ export const SystemStatsBox: React.FC<{ stats: SystemStats | null }> = ({
 				position: "absolute",
 				top: 10,
 				right: 10,
-				padding: isBoxMinimized ? 1 : 2, // Less padding when minimized
+				padding: isBoxMinimized ? 1 : 2,
 				zIndex: 20,
 				opacity: 0.95,
 				minWidth: 280,
-				// Set max height only when not minimized
 				maxHeight: isBoxMinimized ? "auto" : "calc(100% - 20px)",
 				overflowY: isBoxMinimized ? "hidden" : "auto",
 				pointerEvents: "auto",

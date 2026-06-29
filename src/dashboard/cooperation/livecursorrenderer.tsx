@@ -1,8 +1,7 @@
 import React, { useCallback } from "react";
 import { Box, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useStore } from "reactflow"; // <-- REMOVED 'shallow'
-//import type { CursorMovePayload } from './types';
+import { useStore } from "reactflow";
 
 interface RemoteCursor {
 	id: string; // userId
@@ -20,11 +19,8 @@ const LiveCursorRenderer: React.FC<LiveCursorRendererProps> = ({
 }) => {
 	const theme = useTheme();
 
-	// CRITICAL FIX: Simplify useStore to only select the transform array.
-	// React Flow handles the dependency check for the state value itself.
 	const [panX, panY, zoom] = useStore(
 		useCallback((state) => state.transform, []),
-		// REMOVED 'shallow' argument here, which was causing the TypeError.
 	);
 
 	return (
@@ -41,9 +37,8 @@ const LiveCursorRenderer: React.FC<LiveCursorRendererProps> = ({
 						key={userId}
 						sx={{
 							position: "absolute",
-							// FIX 1: Apply screen position via translate and scale by zoom
 							transform: `translate(${screenX}px, ${screenY}px) scale(${zoom})`,
-							transformOrigin: "top left", // Scale from the correct origin
+							transformOrigin: "top left",
 							pointerEvents: "none",
 							zIndex: 9999,
 							transition: "transform 0.05s linear",
@@ -67,7 +62,6 @@ const LiveCursorRenderer: React.FC<LiveCursorRendererProps> = ({
 								position: "absolute",
 								top: 10,
 								left: 10,
-								// FIX 2: Inverse scale the text so it appears fixed-size (readable)
 								transform: `scale(${1 / zoom})`,
 								transformOrigin: "top left",
 								bgcolor: theme.palette.secondary.main,

@@ -32,7 +32,7 @@ export const fetchClient = async (
 	};
 
 	// 2. Execute the initial request
-	let response = await fetch(url, fetchOptions);
+	const response = await fetch(url, fetchOptions);
 
 	// 3. Catch 401 Unauthorized for silent refresh
 	if (response.status === 401 && !_isRetry) {

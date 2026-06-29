@@ -6,7 +6,7 @@ import {
 	Typography,
 	useTheme,
 } from "@mui/material";
-import AccessTimeIcon from "@mui/icons-material/AccessTime"; // Using an icon for duration
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import type { RecipePart, RecipeSelectorProps } from "../types";
 
 /**

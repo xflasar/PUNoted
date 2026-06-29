@@ -74,7 +74,7 @@ export function findShortestPath(
 	// reconstruct path
 	const path: string[] = [];
 	let cur: string | null = destinationId;
-	let totalTime = distances[destinationId] ?? Infinity;
+	const totalTime = distances[destinationId] ?? Infinity;
 	while (cur) {
 		path.unshift(cur);
 		cur = previous[cur];
