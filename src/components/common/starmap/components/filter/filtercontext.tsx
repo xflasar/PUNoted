@@ -5,6 +5,7 @@ export interface FilterState {
 	temperatureRange: [number, number]; // Kelvin
 	populationRange: [number, number]; // arbitrary units
 	resources: Set<string>; // resource ids
+	resourceMatchMode: "all" | "any"; // NEW: Map and Search share this
 	filterRadius: number; // parsecs, 0 = disabled
 	originSystemId: string | null;
 	planetType: "all" | "rocky" | "gaseous";
@@ -26,6 +27,7 @@ const defaultFilter: FilterState = {
 	temperatureRange: [-50, 500],
 	populationRange: [0, 10000000],
 	resources: new Set(),
+	resourceMatchMode: "all",
 	filterRadius: 0,
 	originSystemId: null,
 	planetType: "all",
@@ -42,6 +44,7 @@ const FilterContext = createContext<FilterContextProps | undefined>(undefined);
 
 export const FilterProvider = ({ children }: { children: ReactNode }) => {
 	const [filter, setFilter] = useState<FilterState>(defaultFilter);
+
 	return (
 		<FilterContext.Provider value={{ filter, setFilter }}>
 			{children}

@@ -76,7 +76,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 
 		const isDev =
 			process.env.NODE_ENV === "development" || (import.meta as any).env?.DEV;
-		const wsBaseURL = baseURL.replace(/^http/, isDev ? "ws" : "wss");
+		const wsBaseURL = baseURL.replace(/^https?/, isDev ? "ws" : "wss");
 
 		const path = "/ws/global";
 		const url = `${wsBaseURL}${path}?token=${token}`;

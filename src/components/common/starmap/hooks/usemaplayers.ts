@@ -163,14 +163,36 @@ export function checkSystemMatch(
 			}
 		}
 
-		// 7. Resources (Chips act as OR selector: matches if planet has any of the selected resources)
-		if (hasResources) {
-			const hasMatch = p.resources?.some((r: any) => {
-				const ticker = (r.material || r.name || "").toUpperCase();
-				return ticker && filter.resources.has(ticker);
-			});
-			if (!hasMatch) return false;
-		}
+		// 7. Resources (Chips act as selector based on Match ALL or Match ANY)
+        if (hasResources) {
+          const planetResNames = new Set(
+            (p.resources || []).map((r: any) =>
+              (r.material || r.name || "").toUpperCase(),
+            ),
+          );
+
+          const matchMode = filter.resourceMatchMode || "all";
+
+          if (matchMode === "all") {
+            let hasAll = true;
+            for (const res of filter.resources) {
+              if (!planetResNames.has(res)) {
+                hasAll = false;
+                break;
+              }
+            }
+            if (!hasAll) return false;
+          } else {
+            let hasAny = false;
+            for (const res of filter.resources) {
+              if (planetResNames.has(res)) {
+                hasAny = true;
+                break;
+              }
+            }
+            if (!hasAny) return false;
+          }
+        }
 
 		return true;
 	});
@@ -1080,7 +1102,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						id: "highlighted-connections",
 						data: highlightedConnections,
 						getPath: getPathData,
-						getColor: [255, 120, 0, 255],
+						getColor: [255, 170, 0, 255],
 						getWidth: 3.5,
 						widthUnits: "pixels",
 						pickable: false,
@@ -1097,7 +1119,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					data: gatewayConnections,
 					getPath: getGatewayConnectionPath,
 					getColor: getGatewayConnectionColor,
-					getWidth: 3,
+					getWidth: 7,
 					widthUnits: "meters",
 					pickable: false,
 				}),
@@ -1165,11 +1187,11 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 									? Math.log1p(d.population ?? 0) /
 										Math.log1p(maxSystemPopulation)
 									: 0;
-							return 30 * (1 + popRatio * 2);
+							return 23 * (1 + popRatio * 2);
 						},
 						radiusUnits: "meters",
-						getLineColor: [255, 120, 0, 240], // Bright orange outline
-						getFillColor: [255, 120, 0, 25], // Semi-transparent orange fill
+						getLineColor: [255, 120, 0, 240],
+						getFillColor: [255, 120, 0, 25],
 						lineWidthMinPixels: 3.0,
 						stroked: true,
 						filled: true,

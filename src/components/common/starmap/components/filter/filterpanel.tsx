@@ -10,6 +10,7 @@ import {
 	Select,
 	MenuItem,
 	Button,
+	Paper,
 } from "@mui/material";
 import { useFilter } from "./filtercontext";
 import type { FilterState } from "./filtercontext";
@@ -87,6 +88,7 @@ const FilterPanel: React.FC = () => {
 			temperatureRange: [-50, 500],
 			populationRange: [0, 10000000],
 			resources: new Set(),
+			resourceMatchMode: "all",
 			filterRadius: 0,
 			originSystemId: null,
 			destinationSystemId: null,
@@ -209,9 +211,7 @@ const FilterPanel: React.FC = () => {
 									color: "#00e5ff",
 									bgcolor: "rgba(0, 229, 255, 0.15)",
 									textShadow: "0 0 4px rgba(0, 229, 255, 0.5)",
-									"&:hover": {
-										bgcolor: "rgba(0, 229, 255, 0.25)",
-									},
+									"&:hover": { bgcolor: "rgba(0, 229, 255, 0.25)" },
 								},
 							},
 						}}
@@ -301,7 +301,6 @@ const FilterPanel: React.FC = () => {
 							<ToggleButton value="high">High (&gt;1g)</ToggleButton>
 						</ToggleButtonGroup>
 					</Box>
-
 					{/* Temperature */}
 					<Box>
 						<Typography
@@ -346,7 +345,6 @@ const FilterPanel: React.FC = () => {
 							<ToggleButton value="high">High (≥273K)</ToggleButton>
 						</ToggleButtonGroup>
 					</Box>
-
 					{/* Pressure */}
 					<Box>
 						<Typography
@@ -490,20 +488,54 @@ const FilterPanel: React.FC = () => {
 					)}
 				</Box>
 
-				{/* Resource Toggles (No Scroll, Chip Badges Directly Clickable) */}
+				{/* Resource Toggles */}
 				<Box>
-					<Typography
-						variant="caption"
+					<Box
 						sx={{
-							display: "block",
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
 							mb: 1,
-							color: "rgba(255,255,255,0.6)",
-							fontWeight: 600,
-							fontSize: "0.7rem",
 						}}
 					>
-						Resource Filters
-					</Typography>
+						<Typography
+							variant="caption"
+							sx={{
+								color: "rgba(255,255,255,0.6)",
+								fontWeight: 600,
+								fontSize: "0.7rem",
+							}}
+						>
+							Resource Filters
+						</Typography>
+						<ToggleButtonGroup
+							value={filter.resourceMatchMode || "all"}
+							exclusive
+							onChange={(_, val) =>
+								val && updateFilterField("resourceMatchMode", val)
+							}
+							size="small"
+							sx={{
+								bgcolor: "rgba(0,0,0,0.3)",
+								border: "1px solid rgba(255,255,255,0.1)",
+								"& .MuiToggleButton-root": {
+									color: "rgba(255,255,255,0.6)",
+									fontSize: "0.6rem",
+									py: 0.25,
+									px: 1,
+									border: "none",
+									fontWeight: 600,
+									"&.Mui-selected": {
+										color: "#00e5ff",
+										bgcolor: "rgba(0, 229, 255, 0.15)",
+									},
+								},
+							}}
+						>
+							<ToggleButton value="all">Match ALL</ToggleButton>
+							<ToggleButton value="any">Match ANY</ToggleButton>
+						</ToggleButtonGroup>
+					</Box>
 					<Box
 						sx={{
 							display: "flex",
@@ -559,7 +591,6 @@ const FilterPanel: React.FC = () => {
 					>
 						Path Finding
 					</Typography>
-
 					{/* Origin */}
 					<Box>
 						<Autocomplete
@@ -616,7 +647,6 @@ const FilterPanel: React.FC = () => {
 							)}
 						/>
 					</Box>
-
 					{/* Destination */}
 					<Box>
 						<Autocomplete

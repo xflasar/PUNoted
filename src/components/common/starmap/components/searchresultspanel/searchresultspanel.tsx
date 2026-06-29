@@ -1,25 +1,20 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
 	Box,
-	List,
 	Typography,
 	IconButton,
 	Paper,
-	Collapse,
 	useMediaQuery,
 	Select,
 	MenuItem,
 	FormControl,
-	Chip,
-	ListItemButton,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import CloseIcon from "@mui/icons-material/Close";
 import SortIcon from "@mui/icons-material/Sort";
 import type { MapPoint, PlanetData } from "../../types/maptypes";
 import { useTheme } from "@mui/material/styles";
-import MaterialBadge from "../../../../../cosm/components/materialbadge";
+import { Virtuoso } from "react-virtuoso";
+import { SystemRow } from "./components/systemrow";
 
 interface SearchResultsPanelProps {
 	systems: MapPoint[];
@@ -31,7 +26,13 @@ interface SearchResultsPanelProps {
 	onClose: () => void;
 }
 
-type SortOption = "name" | "population" | "resources";
+// Updated Sort Options
+type SortOption =
+	| "name"
+	| "population"
+	| "resources_total"
+	| "resources_balanced"
+	| "resources_sequential";
 
 const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 	systems,
@@ -45,22 +46,42 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 	const [sortBy, setSortBy] = useState<SortOption>("name");
+
 	const [expandedSystems, setExpandedSystems] = useState<
 		Record<string, boolean>
 	>({});
 
-	const toggleSystem = (id: string, e: React.MouseEvent) => {
+	const toggleSystem = useCallback((id: string, e: React.MouseEvent) => {
 		e.stopPropagation();
 		setExpandedSystems((prev) => ({ ...prev, [id]: !prev[id] }));
-	};
+	}, []);
 
-	// 1. Process and match planets for each system based on filters/search
+	// 1. Convert unstable filter object to a stable primitive string key.
+	const filterKey = useMemo(() => {
+		if (!filter) return "";
+		const res = filter.resources
+			? Array.from(filter.resources).join(",") // Preserve insertion order!
+			: "";
+		return `${filter.planetType}-${filter.fertileOnly}-${filter.gravity}-${filter.temperature}-${filter.pressure}-${filter.resourceMatchMode}-${res}`;
+	}, [filter]);
+
+	// Derive an array of uppercase resource strings for quick matching inside the render loop
+	const filterResourcesArray = useMemo(() => {
+		return filter?.resources
+			? Array.from(filter.resources).map((r: any) => r.toUpperCase())
+			: [];
+	}, [filterKey]);
+
+	// Read match mode centrally from context
+	const resourceMatchMode = filter?.resourceMatchMode || "all";
+
+	// 2. Process and match planets for each system (Bound ONLY to the stable filterKey)
 	const systemPlanetMatches = useMemo(() => {
 		const result: Record<string, PlanetData[]> = {};
-
 		systems.forEach((sys) => {
 			const sysId = sys.originalSystemId || sys.id;
 			if (!sysId) return;
+
 			const planets = allPlanetsData[sysId] || [];
 
 			// Filter planets matching query and resources
@@ -72,17 +93,29 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 					if (!pName.includes(query)) return false;
 				}
 
-				// Resource filter match (must have all selected resources if any are checked)
-				if (filter?.resources && filter.resources.size > 0) {
+				// Resource filter match with Match ALL vs Match ANY logic
+				if (filterResourcesArray.length > 0) {
 					const planetResNames = new Set(
 						(p.resources || []).map((r) =>
 							(r.name || (r as any).material || "").toUpperCase(),
 						),
 					);
-					for (const res of filter.resources) {
-						if (!planetResNames.has(res.toUpperCase())) {
-							return false;
+
+					if (resourceMatchMode === "all") {
+						// MUST have ALL selected resources
+						for (const res of filterResourcesArray) {
+							if (!planetResNames.has(res)) return false;
 						}
+					} else {
+						// MUST have ANY of the selected resources
+						let hasAny = false;
+						for (const res of filterResourcesArray) {
+							if (planetResNames.has(res)) {
+								hasAny = true;
+								break;
+							}
+						}
+						if (!hasAny) return false;
 					}
 				}
 
@@ -91,6 +124,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 					const pType = (p.type || "").toUpperCase();
 					const isRocky = pType.includes("EARTH") || pType.includes("ROCKY");
 					const isGas = pType.includes("GAS");
+
 					if (filter.planetType === "rocky" && !isRocky) return false;
 					if (filter.planetType === "gaseous" && !isGas) return false;
 				}
@@ -126,49 +160,124 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 
 			result[sysId] = filteredPlanets;
 		});
-
 		return result;
-	}, [systems, allPlanetsData, filter, searchQuery]);
+	}, [systems, allPlanetsData, filterKey, searchQuery, resourceMatchMode]);
 
-	// 2. Sort systems based on sort criteria
+	// Calculate advanced scores per system based on their matched planets
+	const getSystemResourceScores = useCallback(
+		(sysId: string) => {
+			const planets = systemPlanetMatches[sysId] || [];
+			let total = 0;
+			let balanced = 0;
+			let seqScores = new Array(filterResourcesArray.length).fill(0);
+
+			planets.forEach((p) => {
+				let pTotal = 0;
+				let pFactors: number[] = [];
+
+				filterResourcesArray.forEach((res, idx) => {
+					const rObj = (p.resources || []).find(
+						(r: any) => (r.material || r.name || "").toUpperCase() === res,
+					);
+					const factor = rObj
+						? rObj.factor !== undefined
+							? rObj.factor
+							: rObj.value
+						: 0;
+
+					pTotal += factor;
+					pFactors.push(factor);
+					seqScores[idx] += factor; // accumulate specific resource factors across planets
+				});
+
+				total += pTotal;
+				// Balance is dictated by the lowest factor of requested resources (The bottleneck principle)
+				if (pFactors.length > 0) {
+					balanced += Math.min(...pFactors);
+				}
+			});
+
+			return { total, balanced, seqScores };
+		},
+		[systemPlanetMatches, filterResourcesArray],
+	);
+
+	// 3. Sort systems and filter out empty ones
 	const sortedSystems = useMemo(() => {
-		const sysList = [...systems];
+		const query = searchQuery?.trim().toLowerCase() || "";
+		const hasPlanetFilters =
+			filterResourcesArray.length > 0 ||
+			(filter?.planetType && filter.planetType !== "all") ||
+			filter?.fertileOnly ||
+			(filter?.gravity && filter.gravity !== "all") ||
+			(filter?.temperature && filter.temperature !== "all") ||
+			(filter?.pressure && filter.pressure !== "all");
 
-		sysList.sort((a, b) => {
-			if (sortBy === "name") {
-				return (a.label || a.name || "").localeCompare(b.label || b.name || "");
-			} else if (sortBy === "population") {
-				const popA = a.population || 0;
-				const popB = b.population || 0;
-				return popB - popA; // Descending
-			} else if (sortBy === "resources") {
-				// Sort by total concentration of filtered/selected resources or any resources if none
-				const getResourceScore = (sys: MapPoint) => {
-					const sysId = sys.originalSystemId || sys.id;
-					const planets = systemPlanetMatches[sysId] || [];
-					let score = 0;
-					planets.forEach((p) => {
-						(p.resources || []).forEach((r) => {
-							const resFactor =
-								(r as any).factor !== undefined ? (r as any).factor : r.value;
-							if (filter?.resources && filter.resources.size > 0) {
-								if (filter.resources.has(r.name?.toUpperCase())) {
-									score += resFactor;
-								}
-							} else {
-								score += resFactor;
-							}
-						});
-					});
-					return score;
-				};
-				return getResourceScore(b) - getResourceScore(a); // Descending
+		// Filter out systems that have 0 matching planets if a filter is active
+		const sysList = systems.filter((sys) => {
+			const sysId = sys.originalSystemId || sys.id;
+			const matchedPlanets = systemPlanetMatches[sysId] || [];
+
+			if (matchedPlanets.length > 0) return true;
+			if (hasPlanetFilters) return false;
+			if (query) {
+				const sysName = (sys.label || sys.name || "").toLowerCase();
+				return sysName.includes(query);
 			}
-			return 0;
+			return true;
 		});
 
+		if (sortBy.startsWith("resources")) {
+			// PRE-CALCULATE SCORES: Prevents massive lag during O(N log N) sorting
+			const scoreMap = new Map<string, any>();
+			sysList.forEach((sys) => {
+				const sysId = sys.originalSystemId || sys.id;
+				scoreMap.set(sysId, getSystemResourceScores(sysId));
+			});
+
+			sysList.sort((a, b) => {
+				const sA = scoreMap.get(a.originalSystemId || a.id);
+				const sB = scoreMap.get(b.originalSystemId || b.id);
+
+				if (sortBy === "resources_total") return sB.total - sA.total;
+				if (sortBy === "resources_balanced") return sB.balanced - sA.balanced;
+
+				if (sortBy === "resources_sequential") {
+					for (let i = 0; i < filterResourcesArray.length; i++) {
+						if (sB.seqScores[i] !== sA.seqScores[i]) {
+							return sB.seqScores[i] - sA.seqScores[i];
+						}
+					}
+					// Fallback to highest total if absolutely identical on all fronts
+					return sB.total - sA.total;
+				}
+				return 0;
+			});
+		} else {
+			sysList.sort((a, b) => {
+				if (sortBy === "name") {
+					return (a.label || a.name || "").localeCompare(
+						b.label || b.name || "",
+					);
+				} else if (sortBy === "population") {
+					const popA = a.population || 0;
+					const popB = b.population || 0;
+					return popB - popA; // Descending
+				}
+				return 0;
+			});
+		}
+
 		return sysList;
-	}, [systems, sortBy, systemPlanetMatches, filter]);
+	}, [
+		systems,
+		sortBy,
+		systemPlanetMatches,
+		filterKey,
+		searchQuery,
+		getSystemResourceScores,
+		filterResourcesArray.length,
+	]);
 
 	const panelStyle = isMobile
 		? {
@@ -234,9 +343,10 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 						Search & Filters
 					</Typography>
 					<Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 700 }}>
-						Results ({systems.length} systems)
+						Results ({sortedSystems.length} systems)
 					</Typography>
 				</Box>
+
 				<IconButton
 					size="small"
 					onClick={onClose}
@@ -249,7 +359,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 				</IconButton>
 			</Box>
 
-			{/* Sorting & Filter Summary */}
+			{/* Sorting & Match Mode Summary */}
 			<Box
 				sx={{
 					p: 1.5,
@@ -268,31 +378,39 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 						variant="caption"
 						sx={{ color: "rgba(255,255,255,0.5)", fontWeight: 600 }}
 					>
-						SORT BY
+						SORT
 					</Typography>
+					<FormControl size="small" variant="standard" sx={{ minWidth: 100 }}>
+						<Select
+							value={sortBy}
+							onChange={(e) => setSortBy(e.target.value as SortOption)}
+							disableUnderline
+							sx={{
+								color: "#00e5ff",
+								fontSize: "0.75rem",
+								fontWeight: 700,
+								textAlign: "left",
+								"& .MuiSelect-select": { pr: "24px !important" },
+							}}
+						>
+							<MenuItem value="name">Alphabetical</MenuItem>
+							<MenuItem value="population">Population</MenuItem>
+							<MenuItem value="resources_total">
+								Resources (Highest Total)
+							</MenuItem>
+							<MenuItem value="resources_balanced">
+								Resources (Most Balanced)
+							</MenuItem>
+							<MenuItem value="resources_sequential">
+								Resources (Selection Order)
+							</MenuItem>
+						</Select>
+					</FormControl>
 				</Box>
-				<FormControl size="small" variant="standard" sx={{ minWidth: 140 }}>
-					<Select
-						value={sortBy}
-						onChange={(e) => setSortBy(e.target.value as SortOption)}
-						disableUnderline
-						sx={{
-							color: "#00e5ff",
-							fontSize: "0.75rem",
-							fontWeight: 700,
-							textAlign: "right",
-							"& .MuiSelect-select": { pr: "24px !important" },
-						}}
-					>
-						<MenuItem value="name">Alphabetical</MenuItem>
-						<MenuItem value="population">Population</MenuItem>
-						<MenuItem value="resources">Resource Amount</MenuItem>
-					</Select>
-				</FormControl>
 			</Box>
 
 			{/* Results List */}
-			<Box sx={{ flexGrow: 1, overflowY: "auto", p: 1 }}>
+			<Box sx={{ flexGrow: 1, p: 1 }}>
 				{sortedSystems.length === 0 ? (
 					<Box
 						sx={{ py: 8, textAlign: "center", color: "rgba(255,255,255,0.3)" }}
@@ -303,238 +421,27 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 						</Typography>
 					</Box>
 				) : (
-					<List disablePadding>
-						{sortedSystems.map((sys) => {
+					<Virtuoso
+						style={{ height: "100%" }}
+						data={sortedSystems}
+						itemContent={(_index, sys) => {
 							const sysId = sys.originalSystemId || sys.id;
 							const isExpanded = !!expandedSystems[sysId];
 							const planets = systemPlanetMatches[sysId] || [];
 
 							return (
-								<Box
-									key={sys.id}
-									sx={{
-										mb: 1,
-										borderRadius: "8px",
-										border: "1px solid rgba(255, 255, 255, 0.04)",
-										bgcolor: "rgba(255, 255, 255, 0.01)",
-										overflow: "hidden",
-									}}
-								>
-									{/* System Item */}
-									<ListItemButton
-										onClick={() => onSelectSystem(sys)}
-										sx={{
-											p: 1.5,
-											display: "flex",
-											justifyContent: "space-between",
-											alignItems: "center",
-											"&:hover": {
-												bgcolor: "rgba(0, 229, 255, 0.06)",
-												borderLeft: "2px solid #00e5ff",
-												pl: "10px",
-											},
-										}}
-									>
-										<Box sx={{ flexGrow: 1 }}>
-											<Typography
-												variant="subtitle2"
-												sx={{ fontWeight: 700, color: "white" }}
-											>
-												{sys.label || sys.name}
-											</Typography>
-											<Box sx={{ display: "flex", gap: 1, mt: 0.25 }}>
-												<Typography
-													variant="caption"
-													sx={{ color: "rgba(255,255,255,0.4)" }}
-												>
-													Pop:{" "}
-													{sys.population
-														? sys.population.toLocaleString()
-														: "0"}
-												</Typography>
-												<Typography
-													variant="caption"
-													sx={{ color: "rgba(255,255,255,0.4)" }}
-												>
-													Type: {sys.systemtype || "K"}
-												</Typography>
-											</Box>
-										</Box>
-										<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-											{planets.length > 0 && (
-												<Chip
-													label={`${planets.length} matching`}
-													size="small"
-													sx={{
-														height: 18,
-														fontSize: "0.6rem",
-														bgcolor: "rgba(0, 229, 255, 0.1)",
-														color: "#00e5ff",
-														border: "1px solid rgba(0, 229, 255, 0.2)",
-													}}
-												/>
-											)}
-											<IconButton
-												size="small"
-												onClick={(e) => toggleSystem(sysId, e)}
-												sx={{ color: "rgba(255,255,255,0.4)", p: 0.25 }}
-											>
-												{isExpanded ? (
-													<ExpandLessIcon fontSize="small" />
-												) : (
-													<ExpandMoreIcon fontSize="small" />
-												)}
-											</IconButton>
-										</Box>
-									</ListItemButton>
-
-									{/* Planets Collapsible Area */}
-									<Collapse in={isExpanded} timeout="auto">
-										<Box
-											sx={{
-												pl: 2,
-												pr: 1,
-												pb: 1,
-												borderTop: "1px solid rgba(255,255,255,0.03)",
-											}}
-										>
-											{planets.length === 0 ? (
-												<Typography
-													variant="caption"
-													sx={{
-														color: "rgba(255,255,255,0.3)",
-														display: "block",
-														py: 1,
-														pl: 1,
-													}}
-												>
-													No matching planets
-												</Typography>
-											) : (
-												planets.map((planet) => (
-													<ListItemButton
-														key={planet.planetid}
-														onClick={() => onSelectPlanet(planet.planetid, sys)}
-														sx={{
-															mt: 0.5,
-															p: 1,
-															borderRadius: "4px",
-															display: "flex",
-															flexDirection: "column",
-															alignItems: "flex-start",
-															bgcolor: "rgba(0, 0, 0, 0.2)",
-															border: "1px solid rgba(255, 255, 255, 0.03)",
-															"&:hover": {
-																bgcolor: "rgba(255, 120, 0, 0.08)",
-																borderLeft: "2px solid #ff7800",
-																pl: "6px",
-															},
-														}}
-													>
-														<Box
-															sx={{
-																display: "flex",
-																justifyContent: "space-between",
-																width: "100%",
-																alignItems: "center",
-															}}
-														>
-															<Typography
-																variant="caption"
-																sx={{
-																	fontWeight: 700,
-																	color: "rgba(255,255,255,0.9)",
-																}}
-															>
-																{planet.planetname}
-															</Typography>
-															<Typography
-																variant="caption"
-																sx={{
-																	fontSize: "0.55rem",
-																	color: "rgba(255,255,255,0.4)",
-																}}
-															>
-																{planet.type}
-															</Typography>
-														</Box>
-
-														{/* Resources List on Planet Item */}
-														{planet.resources &&
-															planet.resources.length > 0 && (
-																<Box
-																	sx={{
-																		display: "flex",
-																		flexWrap: "wrap",
-																		gap: 0.5,
-																		mt: 0.75,
-																		width: "100%",
-																	}}
-																>
-																	{planet.resources.map((r, rIdx) => {
-																		const ticker =
-																			(r as any).material || r.name;
-																		const factor =
-																			(r as any).factor !== undefined
-																				? (r as any).factor
-																				: r.value;
-																		const isFiltered =
-																			filter?.resources &&
-																			filter.resources.has(
-																				ticker?.toUpperCase(),
-																			);
-																		return (
-																			<Box
-																				key={rIdx}
-																				sx={{
-																					display: "inline-flex",
-																					alignItems: "center",
-																					bgcolor: isFiltered
-																						? "rgba(0, 229, 255, 0.15)"
-																						: "rgba(0, 0, 0, 0.3)",
-																					border: isFiltered
-																						? "1px solid rgba(0, 229, 255, 0.3)"
-																						: "1px solid rgba(255,255,255,0.04)",
-																					borderRadius: "3px",
-																					px: 0.4,
-																					py: 0.1,
-																					gap: 0.25,
-																				}}
-																			>
-																				<Box
-																					sx={{
-																						fontSize: "0.5rem",
-																						display: "inline-flex",
-																					}}
-																				>
-																					<MaterialBadge ticker={ticker} />
-																				</Box>
-																				<Typography
-																					variant="caption"
-																					sx={{
-																						fontSize: "0.55rem",
-																						fontWeight: 700,
-																						color: isFiltered
-																							? "#00e5ff"
-																							: "rgba(255,255,255,0.7)",
-																					}}
-																				>
-																					{Math.round(factor * 100)}%
-																				</Typography>
-																			</Box>
-																		);
-																	})}
-																</Box>
-															)}
-													</ListItemButton>
-												))
-											)}
-										</Box>
-									</Collapse>
-								</Box>
+								<SystemRow
+									sys={sys}
+									planets={planets}
+									isExpanded={isExpanded}
+									filterResourcesArray={filterResourcesArray}
+									onToggle={toggleSystem}
+									onSelectSystem={onSelectSystem}
+									onSelectPlanet={onSelectPlanet}
+								/>
 							);
-						})}
-					</List>
+						}}
+					/>
 				)}
 			</Box>
 		</Paper>
