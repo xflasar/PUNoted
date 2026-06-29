@@ -14,7 +14,7 @@ import {
 	Button,
 } from "@mui/material";
 import { smartFormat, formatNumber } from "./utils.ts";
-import MaterialBadge from "../../../../COSM/components/MaterialBadge.tsx";
+import MaterialBadge from "../../../../cosm/components/materialbadge.tsx";
 
 export const LogisticsRowComponent = ({
 	row,

@@ -5,7 +5,7 @@ import {
 	WORKER_NEEDS,
 	PERMIT_AREAS,
 } from "./constants";
-import { EngineParams, EfficiencyBreakdown } from "./types";
+import type { EngineParams, EfficiencyBreakdown } from "./types";
 
 /**
  * Formats a numeric value into a compact currency string (e.g., 1.5K, 2M).

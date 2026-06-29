@@ -1,8 +1,9 @@
 import { API_BASE_URL } from "../../../../config/api";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { CARGO_BAYS } from "./utils";
-import { useGlobalData } from "../../../../context/GlobalDataContext";
-import { calculateCargoPlan, type LogisticsRow } from "./cargoplannerlogic";
+import { useGlobalData } from "../../../../context/globaldatacontext";
+import { calculateCargoPlan } from "./cargoplannerlogic";
+import type { LogisticsRow } from './types'
 
 export const useSiteInfrastructure = (siteId?: string) => {
 	const [platforms, setPlatforms] = useState<any[]>([]);
