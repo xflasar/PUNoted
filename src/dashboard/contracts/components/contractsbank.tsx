@@ -31,7 +31,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import DescriptionIcon from "@mui/icons-material/Description";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
-import { fetchClient } from "../../../utils/apiClient";
+import { fetchClient } from "../../../utils/apiclient";
 
 interface Bank {
 	id: number;

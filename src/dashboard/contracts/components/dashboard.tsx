@@ -36,7 +36,7 @@ import {
 	AccountBalance,
 	Handshake,
 } from "@mui/icons-material";
-import { fetchClient } from "../../../utils/apiClient";
+import { fetchClient } from "../../../utils/apiclient";
 import { formatCurrency, getStatusColor, getStatusBg } from "../helpers/helper";
 import type {
 	DashboardStats,

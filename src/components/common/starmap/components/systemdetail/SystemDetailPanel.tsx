@@ -14,7 +14,7 @@ import {
 	LinearProgress,
 	CircularProgress,
 } from "@mui/material";
-import { fetchClient } from "../../../../../utils/apiClient";
+import { fetchClient } from "../../../../../utils/apiclient";
 import { getBulkPrices } from "../../../../../dashboard/cx/api";
 import {
 	Close,

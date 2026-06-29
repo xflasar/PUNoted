@@ -1,4 +1,4 @@
-import { fetchClient } from "../../../utils/apiClient";
+import { fetchClient } from "../../../utils/apiclient";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
 	Box,

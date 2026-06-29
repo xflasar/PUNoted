@@ -32,7 +32,7 @@ import {
 	Explore,
 } from "@mui/icons-material";
 import { alpha } from "@mui/material/styles";
-import { fetchClient } from "../../../utils/apiClient";
+import { fetchClient } from "../../../utils/apiclient";
 import ContractRow from "./contractrow";
 import { formatCurrency, getStatusColor, getStatusBg } from "../helpers/helper";
 import type { ContractListItem } from "../types";

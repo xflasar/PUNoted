@@ -13,7 +13,7 @@ import TuneIcon from "@mui/icons-material/Tune";
 import PublicIcon from "@mui/icons-material/Public";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useTheme } from "@mui/material/styles";
-import FilterPanel from "../filter/FilterPanel";
+import FilterPanel from "../filter/filterpanel";
 
 interface SearchOption {
 	label: string;

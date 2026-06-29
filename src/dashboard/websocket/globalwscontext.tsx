@@ -8,7 +8,7 @@ import React, {
 	ReactNode,
 } from "react";
 
-import { baseURL } from "../../utils/apiClient";
+import { baseURL } from "../../utils/apiclient";
 
 type WsStatus = "connecting" | "connected" | "disconnected";
 

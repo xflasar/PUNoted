@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import type { ReactNode } from "react";
 import { openDB } from "idb";
-import { fetchClient } from "../utils/apiClient";
+import { fetchClient } from "../utils/apiclient";
 import { useGlobalWsContext } from "../dashboard/websocket/globalwscontext";
 import type { DashboardPayload, DashboardFilter } from "../dashboard/cx/types";
 import type {

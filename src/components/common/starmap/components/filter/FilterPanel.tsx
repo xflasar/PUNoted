@@ -13,7 +13,7 @@ import {
 	Button,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useFilter, FilterState } from "./FilterContext";
+import { useFilter, FilterState } from "./filtercontext";
 import { useGlobalData } from "../../../../../context/globaldatacontext";
 import { useMapData } from "../../hooks/usemapdata";
 import MaterialBadge from "../../../../../cosm/components/materialbadge";

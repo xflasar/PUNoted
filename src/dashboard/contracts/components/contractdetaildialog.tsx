@@ -31,7 +31,7 @@ import {
 	PieChart,
 } from "@mui/icons-material";
 import { alpha } from "@mui/material/styles";
-import { fetchClient } from "../../../utils/apiClient";
+import { fetchClient } from "../../../utils/apiclient";
 import MaterialBadge from "../../../cosm/components/materialbadge";
 import { formatCurrency, getStatusColor, getStatusBg } from "../helpers/helper";
 import dayjs from "dayjs";

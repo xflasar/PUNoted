@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { FaUserPlus, FaCheckCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { PrimaryButton, LinkButton, textFieldStyles } from "./styles";
-import { fetchClient } from "../../utils/apiClient";
+import { fetchClient } from "../../utils/apiclient";
 
 interface Props {
 	isLoading: boolean;

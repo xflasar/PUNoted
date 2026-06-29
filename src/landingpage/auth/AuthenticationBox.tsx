@@ -11,9 +11,9 @@ import { useTheme } from "@mui/system";
 import { FaTimes } from "react-icons/fa";
 
 import { BackgroundBox, ContentContainer, AuthPanel } from "./styles";
-import { LoginForm } from "./LoginForm";
-import { RegisterForm } from "./RegisterForm";
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
+import { LoginForm } from "./loginform";
+import { RegisterForm } from "./registerform";
+import { ForgotPasswordForm } from "./forgotpasswordform";
 
 interface AuthenticationBoxProps {
 	onLoginSuccess: () => void;

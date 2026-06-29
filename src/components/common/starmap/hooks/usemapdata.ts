@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchClient } from "../../../../utils/apiClient";
+import { fetchClient } from "../../../../utils/apiclient";
 import type {
 	MapPoint,
 	Sector,

@@ -34,17 +34,17 @@ import { useSystemViewSetup } from "./hooks/usesystemviewsetup";
 import { useViewNavigation } from "./hooks/useviewnavigation";
 import { useMapLayers, checkSystemMatch } from "./hooks/usemaplayers";
 // Components
-import FilterPanel from "./components/filter/FilterPanel";
-import { FilterProvider, useFilter } from "./components/filter/FilterContext";
+import FilterPanel from "./components/filter/filterpanel";
+import { FilterProvider, useFilter } from "./components/filter/filtercontext";
 import SearchBar from "./components/searchbar/searchbar";
 import SearchResultsPanel from "./components/searchresultspanel/searchresultspanel";
 import ShipListComponent from "./components/shiplistcomponent";
 import MapLoadingOverlay from "../maploadingoverlay";
 import { useGlobalData } from "../../../context/globaldatacontext";
 import { useShipDataProcessor } from "./hooks/useshipdataprocessor";
-import SystemHoverTooltip from "./components/systemdetail/SystemHoverTooltip";
-import SystemDetailPanel from "./components/systemdetail/SystemDetailPanel";
-import PlanetHoverTooltip from "./components/systemdetail/PlanetHoverTooltip";
+import SystemHoverTooltip from "./components/systemdetail/systemhovertooltip";
+import SystemDetailPanel from "./components/systemdetail/systemdetailpanel";
+import PlanetHoverTooltip from "./components/systemdetail/planethovertooltip";
 
 function deepCompareLayers(prevLayers: any[] = [], nextLayers: any[] = []) {
 	if (prevLayers.length !== nextLayers.length) return false;
