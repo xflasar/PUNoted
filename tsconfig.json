@@ -6,6 +6,7 @@
   ],
   "compilerOptions": {
     "lib": ["es6", "dom"],
+    "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
     "strictNullChecks": true,
