@@ -5,8 +5,8 @@ import React, {
 	useRef,
 	useState,
 	useCallback,
-	ReactNode,
 } from "react";
+import type { ReactNode } from "react";
 
 import { baseURL } from "../../utils/apiclient";
 

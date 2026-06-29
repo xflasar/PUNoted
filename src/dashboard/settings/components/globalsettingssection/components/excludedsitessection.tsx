@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { Block } from "@mui/icons-material";
 import { alpha } from "@mui/material/styles";
-import type { UserSite } from "../types";
+import type { UserSite } from "../../../types";
 
 interface Props {
 	excludedSites: string[];

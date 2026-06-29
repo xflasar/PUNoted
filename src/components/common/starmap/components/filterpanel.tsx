@@ -1,5 +1,3 @@
-// Save this as FilterPanel.tsx (or add it above your main component)
-
 import {
 	Dialog,
 	DialogTitle,

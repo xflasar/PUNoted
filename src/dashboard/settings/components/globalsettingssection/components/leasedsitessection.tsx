@@ -27,7 +27,7 @@ import {
 } from "@mui/icons-material";
 import { alpha } from "@mui/material/styles";
 import { API_BASE } from "../../../constants";
-import type { UserSite, LeasedSite, BasicUser } from "../types";
+import type { UserSite, LeasedSite, BasicUser } from "../../../types";
 
 interface Props {
 	leasedSites: LeasedSite[];

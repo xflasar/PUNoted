@@ -1,4 +1,4 @@
-import type { SystemNode, FlightSegment } from "../types/maptypes";
+import type { MapPoint, FlightSegment } from "../types/maptypes";
 
 /**
  * Simple Dijkstra implementation to find the shortest path between two systems.
@@ -9,7 +9,7 @@ import type { SystemNode, FlightSegment } from "../types/maptypes";
 export function findShortestPath(
 	originId: string,
 	destinationId: string,
-	nodes: Record<string, SystemNode>,
+	nodes: Record<string, MapPoint>,
 	segments: FlightSegment[],
 	useAStar = false,
 ): { path: string[]; totalTime: number } {

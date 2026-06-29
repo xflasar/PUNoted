@@ -27,7 +27,7 @@ import {
 	Group as GroupIcon,
 } from "@mui/icons-material";
 import type { AnimatedShipData } from "../../types/maptypes";
-import ShipRow from "./ShipRow";
+import ShipRow from "./shiprow";
 
 interface ShipListComponentProps {
 	ownShips: AnimatedShipData[];

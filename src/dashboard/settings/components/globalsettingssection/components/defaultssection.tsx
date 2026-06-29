@@ -7,7 +7,7 @@ import {
 	MenuItem,
 	useTheme,
 } from "@mui/material";
-import type { CommodityExchange, GlobalSettings } from "../types";
+import type { CommodityExchange, GlobalSettings } from "../../../types";
 
 interface Props {
 	cxCode: string | undefined;
