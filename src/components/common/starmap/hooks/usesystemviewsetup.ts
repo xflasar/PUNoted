@@ -10,7 +10,6 @@ import type {
 import { calculateOrbitEllipse } from "../utils/orbit";
 
 import { createCirclePolygon } from "../utils/geometry";
-import { PLANET_ZOOM_THRESHOLD } from "../constants/map";
 import { CartesianInterpolator } from "../utils/deckgl";
 
 // --- Functions moved from orbit.ts to fix dependency issue ---

@@ -20,7 +20,7 @@ import type {
 } from "../types/maptypes";
 import { hexToRgba } from "../utils/colors";
 import { SYSTEM_BASE_RADIUS } from "../constants/map";
-import { FilterState } from "../components/filter/filtercontext";
+import type { FilterState } from "../components/filter/filtercontext";
 
 export function checkSystemMatch(
 	sys: MapPoint,

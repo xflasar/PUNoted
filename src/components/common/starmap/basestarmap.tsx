@@ -24,8 +24,8 @@ import type {
 	MapPoint,
 	PlanetPosition,
 	AnimatedShipData,
-	LocationFocusTarget,
 } from "./types/maptypes";
+import type { LocationFocusTarget } from "../../../dashboard/shipping/components/shipmentdetailwidget";
 import { INITIAL_VIEW_STATE, SYSTEMS_VISIBLE_ZOOM } from "./constants/map";
 import { controllerForPlanetMode } from "./utils/deckgl";
 // Custom Hooks
@@ -34,7 +34,6 @@ import { useSystemViewSetup } from "./hooks/usesystemviewsetup";
 import { useViewNavigation } from "./hooks/useviewnavigation";
 import { useMapLayers, checkSystemMatch } from "./hooks/usemaplayers";
 // Components
-import FilterPanel from "./components/filter/filterpanel";
 import { FilterProvider, useFilter } from "./components/filter/filtercontext";
 import SearchBar from "./components/searchbar/searchbar";
 import SearchResultsPanel from "./components/searchresultspanel/searchresultspanel";

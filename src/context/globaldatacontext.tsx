@@ -468,7 +468,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 						if (Array.isArray(msg.data)) {
 							msg.data.forEach((updatedUnit: StorageUnit) => {
-								const unitId = updatedUnit.storageid || updatedUnit.id;
+								const unitId = updatedUnit.storageid;
 								if (unitId) {
 									nextUnits[unitId] = {
 										...(nextUnits[unitId] || {}),

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AnimatedShipData } from "../types/maptypes";
+import type { AnimatedShipData } from "../types/maptypes";
 
 export const useShipDataProcessor = (
 	ownerShips: AnimatedShipData[],

@@ -8,13 +8,10 @@ import {
 	useTheme,
 	alpha,
 	useMediaQuery,
-	Collapse,
 	ListItemButton,
 	Button,
 	LinearProgress,
-	CircularProgress,
 } from "@mui/material";
-import { fetchClient } from "../../../../../utils/apiclient";
 import { getBulkPrices } from "../../../../../dashboard/cx/api";
 import {
 	Close,
@@ -22,8 +19,6 @@ import {
 	Business,
 	Sailing,
 	Inventory2,
-	ExpandLess,
-	ExpandMore,
 	PrecisionManufacturing,
 	Hub,
 	ArrowBack,

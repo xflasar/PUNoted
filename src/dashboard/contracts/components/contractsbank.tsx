@@ -26,10 +26,8 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
-import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import DescriptionIcon from "@mui/icons-material/Description";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import { fetchClient } from "../../../utils/apiclient";
 

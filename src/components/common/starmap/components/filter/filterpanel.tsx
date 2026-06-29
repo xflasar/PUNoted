@@ -4,7 +4,6 @@ import {
 	TextField,
 	Autocomplete,
 	Typography,
-	Divider,
 	Switch,
 	ToggleButtonGroup,
 	ToggleButton,
@@ -12,15 +11,14 @@ import {
 	MenuItem,
 	Button,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { useFilter, FilterState } from "./filtercontext";
+import { useFilter } from "./filtercontext";
+import type { FilterState } from "./filtercontext";
 import { useGlobalData } from "../../../../../context/globaldatacontext";
 import { useMapData } from "../../hooks/usemapdata";
 import MaterialBadge from "../../../../../cosm/components/materialbadge";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 const FilterPanel: React.FC = () => {
-	const theme = useTheme();
 	const { filter, setFilter } = useFilter();
 	const { mapData } = useGlobalData();
 	const { allPlanetsData, systemsPoints } = useMapData(mapData);

@@ -193,12 +193,14 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									},
 								}}
 								MenuProps={{
-									PaperProps: {
-										sx: {
-											background: theme.palette.background.paper,
-											border: "1px solid rgba(123, 104, 238, 0.5)",
-											boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-											zIndex: 9999,
+									slotProps: {
+										paper: {
+											sx: {
+												background: theme.palette.background.paper,
+												border: "1px solid rgba(123, 104, 238, 0.5)",
+												boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+												zIndex: 9999,
+											},
 										},
 									},
 								}}

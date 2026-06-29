@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Box, Snackbar, Tabs, Tab, useTheme, alpha } from "@mui/material";
 import { Factory, Globe, Wrench } from "lucide-react";
-import type { SiteSummary } from "../../types";
+import type { SiteSummary } from "../types";
 
 import {
 	useSiteInfrastructure,
 	useLogisticsManager,
 	useCargoPlanner,
-} from "./SiteDrawer/hooks";
+} from "./sitedrawer/hooks";
 import { SiteDrawerHeader } from "./sitedrawer/sitedrawerheader";
 import { ProductionTabContent } from "./sitedrawer/productiontabcontent";
 import { LogisticsTabContent } from "./sitedrawer/logisticstabcontent";

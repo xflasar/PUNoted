@@ -1,8 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { Box, Button, TextField, Autocomplete } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { useFilter } from "./FilterContext";
-import { findShortestPath } from "../utils/pathfinder";
+import { findShortestPath } from "../../utils/pathfinder";
 
 interface RouteControlsProps {
 	systems: { originalSystemId: string; label: string; x: number; y: number }[];
@@ -13,7 +11,6 @@ const RouteControls: React.FC<RouteControlsProps> = ({
 	systems,
 	onPathCalculated,
 }) => {
-	const theme = useTheme();
 	const [origin, setOrigin] = useState<string | null>(null);
 	const [destination, setDestination] = useState<string | null>(null);
 
