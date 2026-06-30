@@ -449,11 +449,6 @@ export const LeasedSitesSection: React.FC<Props> = ({
 									size="small"
 									required
 									placeholder="Type to search system users..."
-									slotProps={{
-										input: {
-											...params.slotProps.input,
-										},
-									}}
 								/>
 							)}
 						/>
