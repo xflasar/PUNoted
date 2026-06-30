@@ -11,7 +11,7 @@ export interface UserSettings {
 	fioApiKey?: string;
 }
 
-// NEW: Global Settings Structure
+// Global Settings Structure
 export interface GlobalSettings {
 	default_cx_code: string;
 	default_currency: string;
@@ -22,13 +22,22 @@ export interface GlobalSettings {
 export interface BasicUser {
 	accountid: string;
 	username: string;
-	companyCode?: string;
+	companycode?: string;
+	companyname?: string;
 }
 
 export interface LeasedSite {
 	siteId: string;
 	description: string;
+	show_in_corp: boolean;
 	tenant: string; // The username, company code, or account ID
+	tenant_data: TenantData;
+}
+
+export interface TenantData {
+	companycode: string;
+	isregistered: boolean;
+	username: string;
 }
 
 // Reference Data Types

@@ -38,13 +38,13 @@ import type {
 	ApiToken,
 	GlobalSettings,
 } from "../settings/types";
-import { API_BASE, WS_URL } from "../settings/constants";
 import ProfileSection from "../settings/components/profilesection";
 import PasswordSection from "../settings/components/passwordsection";
 import PrivacySection from "../settings/components/privacysection";
 import GroupsSection from "../settings/components/groupssection";
 import ApiTokenSection from "../settings/components/apitokensection";
 import GlobalSettingsSection from "./components/globalsettingssection";
+import { fetchClient } from "../../utils/apiclient";
 
 const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 	const theme = useTheme();
@@ -54,6 +54,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 		privacy: WebPrivacySettings;
 		tokens: ApiToken[];
 	}>({ settings: null, globalSettings: null, privacy: {}, tokens: [] });
+
 	const [loading, setLoading] = useState(true);
 	const [showInstructions, setShowInstructions] = useState(false);
 	const [snackbar, setSnackbar] = useState<{
@@ -61,42 +62,18 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 		message: string;
 		severity: "success" | "error" | "warning" | "info";
 	}>({ open: false, message: "", severity: "info" });
-	const [wsTrigger, setWsTrigger] = useState(0);
+
+	const [refreshTrigger, setRefreshTrigger] = useState(0);
 	const [activeTab, setActiveTab] = useState<string>("profile");
 
-	const headers = {
-		Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-	};
-
-	// WebSocket for Instant Invites
 	useEffect(() => {
-		const ws = new WebSocket(
-			`${WS_URL}?token=${localStorage.getItem("authToken")}`,
-		);
-		ws.onmessage = (event) => {
-			try {
-				const msg = JSON.parse(event.data);
-				if (msg.type === "INVITE") {
-					setSnackbar({
-						open: true,
-						message: `New Invite: ${msg.group_name}`,
-						severity: "info",
-					});
-					setWsTrigger((prev) => prev + 1);
-				}
-			} catch {}
-		};
-		return () => ws.close();
-	}, []);
-
-	useEffect(() => {
-		const load = async () => {
+		const loadSettingsConfig = async () => {
 			try {
 				const [s, gs, t, p] = await Promise.all([
-					fetch(`${API_BASE}/users/settings`, { headers }),
-					fetch(`${API_BASE}/settings/global`, { headers }),
-					fetch(`${API_BASE}/settings/tokens`, { headers }),
-					fetch(`${API_BASE}/settings/privacy`, { headers }),
+					fetchClient(`/internal/users/settings`),
+					fetchClient(`/internal/settings/global`),
+					fetchClient(`/internal/settings/tokens`),
+					fetchClient(`/internal/settings/privacy`),
 				]);
 
 				if (s.ok && gs.ok && t.ok && p.ok) {
@@ -106,65 +83,70 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 						tokens: await t.json(),
 						privacy: await p.json(),
 					});
+				} else {
+					showMsg("Failed to synchronize settings backend profiles", "error");
 				}
 			} catch {
-				showMsg("Load failed", "error");
+				showMsg("Load execution lifecycle failure triggered", "error");
 			} finally {
 				setLoading(false);
 			}
 		};
-		load();
-	}, [wsTrigger]);
+		loadSettingsConfig();
+	}, [refreshTrigger]);
 
 	const showMsg = (message: string, severity: any) =>
 		setSnackbar({ open: true, message, severity });
 
 	const saveProfile = async (d: Partial<UserSettings>) => {
-		const res = await fetch(`${API_BASE}/users/settings`, {
+		const res = await fetchClient(`/internal/users/settings`, {
 			method: "PUT",
-			headers: { ...headers, "Content-Type": "application/json" },
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(d),
 		});
 		if (res.ok) {
 			setData((prev) => ({ ...prev, settings: { ...prev.settings!, ...d } }));
-			showMsg("Saved", "success");
-		} else showMsg("Failed", "error");
+			showMsg("Saved profile successfully", "success");
+		} else {
+			showMsg("Failed to override targeted profile updates", "error");
+		}
 	};
 
 	const savePrivacy = async (d: WebPrivacySettings) => {
 		const res = await Promise.all(
 			Object.entries(d).map(([c, p]) =>
-				fetch(`${API_BASE}/settings/privacy`, {
+				fetchClient(`/internal/settings/privacy`, {
 					method: "POST",
-					headers: { ...headers, "Content-Type": "application/json" },
+					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ page_context: c, preferences: p }),
 				}),
 			),
 		);
 		if (res.every((r) => r.ok)) {
 			setData((prev) => ({ ...prev, privacy: d }));
-			showMsg("Saved", "success");
-		} else showMsg("Failed", "error");
+			showMsg("Privacy layouts adjusted successfully", "success");
+		} else {
+			showMsg("Failed to persist changed profile permissions", "error");
+		}
 	};
 
 	const reqPass = async () => {
-		const res = await fetch(`${API_BASE}/users/password/challenge`, {
+		const res = await fetchClient(`/internal/users/password/challenge`, {
 			method: "POST",
-			headers,
 		});
 		if (res.ok) {
-			showMsg("Code sent to email", "info");
+			showMsg("Verification code dispatched to your registered inbox", "info");
 			return true;
 		}
-		showMsg("Failed to send code", "error");
+		showMsg("Failed to dispatch active challenge request", "error");
 		return false;
 	};
 
 	const saveGlobalSettings = async (updates: Partial<GlobalSettings>) => {
 		try {
-			const res = await fetch(`${API_BASE}/settings/global`, {
+			const res = await fetchClient(`/internal/settings/global`, {
 				method: "PUT",
-				headers: { ...headers, "Content-Type": "application/json" },
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(updates),
 			});
 			if (res.ok) {
@@ -172,19 +154,19 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 					...prev,
 					globalSettings: { ...prev.globalSettings!, ...updates },
 				}));
-				showMsg("Configuration saved", "success");
+				showMsg("Configuration persisted flawlessly", "success");
 			} else {
-				showMsg("Failed to save configuration", "error");
+				showMsg("Failed to override persistent game settings", "error");
 			}
 		} catch {
-			showMsg("Error saving", "error");
+			showMsg("Critical internal settings update execution failure", "error");
 		}
 	};
 
 	const confPass = async (c: string, n: string, v: string) => {
-		const res = await fetch(`${API_BASE}/users/password`, {
+		const res = await fetchClient(`/internal/users/password`, {
 			method: "PUT",
-			headers: { ...headers, "Content-Type": "application/json" },
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				currentPassword: c,
 				newPassword: n,
@@ -192,20 +174,21 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 			}),
 		});
 		if (res.ok) {
-			showMsg("Password changed", "success");
+			showMsg("Password updated seamlessly", "success");
 			return true;
 		}
 		const txt = await res.text();
-		showMsg(txt || "Failed", "error");
+		showMsg(txt || "Identity updates dropped by security layers", "error");
 		return false;
 	};
 
-	if (loading || !data.settings)
+	if (loading || !data.settings) {
 		return (
 			<Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
 				<CircularProgress />
 			</Box>
 		);
+	}
 
 	const tabs = [
 		{ id: "profile", label: "Profile & Security", icon: <Person /> },
@@ -235,7 +218,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 					overflow: "hidden",
 				}}
 			>
-				{/* Header */}
+				{/* Header Block */}
 				<Box
 					sx={{
 						display: "flex",
@@ -277,7 +260,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 					)}
 				</Box>
 
-				{/* Mobile Horizontal Tabs */}
+				{/* Mobile View Navigation Scroller */}
 				<Box
 					sx={{
 						display: { xs: "block", md: "none" },
@@ -310,9 +293,9 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 					</Tabs>
 				</Box>
 
-				{/* Layout Container */}
+				{/* Layout Partition Panels Container */}
 				<Box sx={{ flex: 1, display: "flex", gap: 3, overflow: "hidden" }}>
-					{/* Desktop Left Sidebar */}
+					{/* Desktop Left Anchor Sidebar */}
 					<Paper
 						elevation={0}
 						sx={{
@@ -370,7 +353,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 						</List>
 					</Paper>
 
-					{/* Right Content Panel */}
+					{/* Core Settings Interaction Content Views */}
 					<Box
 						sx={{
 							flex: 1,
@@ -400,25 +383,28 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 								/>
 							</Box>
 						)}
+
 						{activeTab === "global" && data.globalSettings && (
 							<Box sx={{ width: "100%" }}>
 								<GlobalSettingsSection
 									initialSettings={data.globalSettings}
-									headers={headers}
+									headers={undefined}
 									onSave={saveGlobalSettings}
 									showSnackbar={showMsg}
 								/>
 							</Box>
 						)}
+
 						{activeTab === "tokens" && (
 							<Box sx={{ width: "100%" }}>
 								<ApiTokenSection
 									initialTokens={data.tokens}
-									headers={headers}
+									headers={undefined}
 									showSnackbar={showMsg}
 								/>
 							</Box>
 						)}
+
 						{activeTab === "privacy" && (
 							<Box sx={{ width: "100%" }}>
 								<PrivacySection
@@ -427,13 +413,14 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 								/>
 							</Box>
 						)}
+
 						{activeTab === "groups" && (
 							<Box sx={{ width: "100%" }}>
 								<GroupsSection
 									userId={userId}
-									headers={headers}
+									headers={undefined}
 									showSnackbar={showMsg}
-									wsTrigger={wsTrigger}
+									wsTrigger={refreshTrigger}
 								/>
 							</Box>
 						)}
@@ -441,19 +428,20 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 				</Box>
 			</Container>
 
+			{/* Synchronize Contextual Dialog Help Overlay */}
 			<Dialog
 				open={showInstructions}
 				onClose={() => setShowInstructions(false)}
 				maxWidth="sm"
+				fullWidth
 			>
 				<DialogTitle>Connect Extension</DialogTitle>
 				<DialogContent dividers>
-					<Typography>
-						1. Install extension.
-						<br />
-						2. Login.
-						<br />
-						3. Refresh game tab.
+					<Typography variant="body2" sx={{ lineHeight: 1.8 }}>
+						1. Install browser extension. <br />
+						2. Authorize via active system context. <br />
+						3. Reload commodity exchange interface tabs to trigger capture
+						pools.
 					</Typography>
 				</DialogContent>
 				<DialogActions>
@@ -461,12 +449,17 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 				</DialogActions>
 			</Dialog>
 
+			{/* Global Application Messaging Alert Snackbar */}
 			<Snackbar
 				open={snackbar.open}
 				autoHideDuration={4000}
 				onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
 			>
-				<Alert severity={snackbar.severity} variant="filled">
+				<Alert
+					severity={snackbar.severity}
+					variant="filled"
+					sx={{ width: "100%" }}
+				>
 					{snackbar.message}
 				</Alert>
 			</Snackbar>

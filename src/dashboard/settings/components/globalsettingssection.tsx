@@ -28,7 +28,6 @@ const GlobalSettingsSection: React.FC<Props> = ({
 	const [form, setForm] = useState<GlobalSettings>(initialSettings);
 	const [hasChanges, setHasChanges] = useState(false);
 
-	// Destructure the new 'users' array from the hook
 	const { exchanges, sites, users, getSiteName } = useReferenceData(headers);
 
 	useEffect(() => {
@@ -93,11 +92,12 @@ const GlobalSettingsSection: React.FC<Props> = ({
 				<LeasedSitesSection
 					leasedSites={form.internal_leased_sites}
 					allSites={sites}
-					allUsers={users} // Pass the users down here
+					allUsers={users}
 					getSiteName={getSiteName}
 					onChange={(newLeased) =>
 						handleChange("internal_leased_sites", newLeased)
 					}
+					headers={undefined}
 				/>
 			</Stack>
 		</Paper>

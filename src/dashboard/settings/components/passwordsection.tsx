@@ -20,15 +20,9 @@ import {
 } from "@mui/icons-material";
 import { SectionHeader, transparentCardStyle } from "../styles";
 import { securityGuideSteps } from "../constants";
+import { fetchClient } from "../../../utils/apiclient";
 
-const PasswordSection: React.FC<{
-	onRequestChallenge: () => Promise<boolean>;
-	onConfirmChange: (
-		curr: string,
-		newP: string,
-		code: string,
-	) => Promise<boolean>;
-}> = ({ onRequestChallenge, onConfirmChange }) => {
+const PasswordSection: React.FC = () => {
 	const theme = useTheme();
 	const [form, setForm] = useState({ current: "", new: "", confirm: "" });
 	const [show, setShow] = useState({ current: false, new: false });
@@ -37,24 +31,51 @@ const PasswordSection: React.FC<{
 	const [loading, setLoading] = useState(false);
 
 	const handleInitiate = async () => {
-		if (!form.current || !form.new || !form.confirm)
-			return alert("Fill all fields.");
 		if (form.new !== form.confirm) return alert("Passwords do not match.");
 		setLoading(true);
-		const success = await onRequestChallenge();
-		setLoading(false);
-		if (success) setIsVerifying(true);
+		try {
+			const res = await fetchClient("/auth/change-password", {
+				method: "POST",
+			});
+			if (res.ok) {
+				setIsVerifying(true);
+			} else {
+				const err = await res.json();
+				alert(err.detail || "Failed to initiate password change.");
+			}
+		} catch (e) {
+			alert("Network error occurred.");
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	const handleConfirm = async () => {
-		if (!code) return;
 		setLoading(true);
-		const success = await onConfirmChange(form.current, form.new, code);
-		setLoading(false);
-		if (success) {
-			setIsVerifying(false);
-			setForm({ current: "", new: "", confirm: "" });
-			setCode("");
+		try {
+			const res = await fetchClient("/auth/change-password-final", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					currentPassword: form.current,
+					newPassword: form.new,
+					verificationCode: code,
+				}),
+			});
+
+			if (res.ok) {
+				alert("Password updated successfully.");
+				setIsVerifying(false);
+				setForm({ current: "", new: "", confirm: "" });
+				setCode("");
+			} else {
+				const err = await res.json();
+				alert(err.detail || "Update failed.");
+			}
+		} catch (e) {
+			alert("Network error.");
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -75,22 +96,22 @@ const PasswordSection: React.FC<{
 					fullWidth
 					size="small"
 					variant="outlined"
-					InputProps={{
-						style: { fontSize: "0.85rem" },
-						endAdornment: (
-							<IconButton
-								size="small"
-								onClick={() => setShow({ ...show, current: !show.current })}
-							>
-								{show.current ? (
-									<VisibilityOff fontSize="small" />
-								) : (
-									<Visibility fontSize="small" />
-								)}
-							</IconButton>
-						),
+					slotProps={{
+						input: {
+							endAdornment: (
+								<IconButton
+									size="small"
+									onClick={() => setShow({ ...show, current: !show.current })}
+								>
+									{show.current ? (
+										<VisibilityOff fontSize="small" />
+									) : (
+										<Visibility fontSize="small" />
+									)}
+								</IconButton>
+							),
+						},
 					}}
-					InputLabelProps={{ style: { fontSize: "0.85rem" } }}
 				/>
 				<Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
 					<TextField
@@ -101,22 +122,22 @@ const PasswordSection: React.FC<{
 						size="small"
 						variant="outlined"
 						sx={{ flex: "1 1 150px" }}
-						InputProps={{
-							style: { fontSize: "0.85rem" },
-							endAdornment: (
-								<IconButton
-									size="small"
-									onClick={() => setShow({ ...show, new: !show.new })}
-								>
-									{show.new ? (
-										<VisibilityOff fontSize="small" />
-									) : (
-										<Visibility fontSize="small" />
-									)}
-								</IconButton>
-							),
+						slotProps={{
+							input: {
+								endAdornment: (
+									<IconButton
+										size="small"
+										onClick={() => setShow({ ...show, new: !show.new })}
+									>
+										{show.new ? (
+											<VisibilityOff fontSize="small" />
+										) : (
+											<Visibility fontSize="small" />
+										)}
+									</IconButton>
+								),
+							},
 						}}
-						InputLabelProps={{ style: { fontSize: "0.85rem" } }}
 					/>
 					<TextField
 						label="Confirm Password"
@@ -126,11 +147,10 @@ const PasswordSection: React.FC<{
 						size="small"
 						variant="outlined"
 						sx={{ flex: "1 1 150px" }}
-						InputProps={{ style: { fontSize: "0.85rem" } }}
-						InputLabelProps={{ style: { fontSize: "0.85rem" } }}
 					/>
 				</Box>
 			</Box>
+
 			<Box sx={{ mt: 1.5, display: "flex", justifyContent: "flex-end" }}>
 				<Button
 					variant="outlined"
@@ -158,7 +178,7 @@ const PasswordSection: React.FC<{
 				</DialogTitle>
 				<DialogContent>
 					<DialogContentText sx={{ mb: 2, fontSize: "0.85rem" }}>
-						Enter the 6-digit code sent to your email.
+						Enter the code sent to your email.
 					</DialogContentText>
 					<TextField
 						autoFocus
@@ -173,7 +193,12 @@ const PasswordSection: React.FC<{
 					<Button onClick={() => setIsVerifying(false)} size="small">
 						Cancel
 					</Button>
-					<Button onClick={handleConfirm} variant="contained" size="small">
+					<Button
+						onClick={handleConfirm}
+						variant="contained"
+						size="small"
+						disabled={loading}
+					>
 						Confirm
 					</Button>
 				</DialogActions>

@@ -368,8 +368,8 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 												onEditMaterial?.(material.frontendId, "fixedprice", val)
 											}
 											disabled={isPriceLocked}
-											InputProps={{
-												inputProps: {
+											slotProps={{
+												input: {
 													min: 0,
 													style: { textAlign: "center" },
 												},
@@ -409,8 +409,8 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									value={totalAmount || 0}
 									onChange={() => {}}
 									disabled={true}
-									InputProps={{
-										inputProps: { style: { textAlign: "center" } },
+									slotProps={{
+										input: { style: { textAlign: "center" } },
 									}}
 									sx={{ width: "100%" }}
 								/>
@@ -532,11 +532,13 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										type="text"
 										value={loc.amount || ""}
 										onChange={(val) => handleUpdateLocationAmount(loc.id, val)}
-										InputProps={{
-											sx: {
-												bgcolor: theme.palette.background.paper,
-												fontSize: "0.85rem",
-												height: "32px",
+										slotProps={{
+											input: {
+												sx: {
+													bgcolor: theme.palette.background.paper,
+													fontSize: "0.85rem",
+													height: "32px",
+												},
 											},
 										}}
 									/>
@@ -563,16 +565,23 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									}
 									onChange={(event, newValue) => handleAddLocation(newValue)}
 									value={null}
+									slotProps={{
+										paper: {
+											sx: {
+												bgcolor: "background.default",
+												backgroundImage: "none",
+											},
+										},
+									}}
+									sx={{
+										mt: 1,
+									}}
 									renderInput={(params) => (
 										<TextField
 											{...params}
 											size="small"
 											placeholder="+ Add Location"
 											variant="standard"
-											InputProps={{
-												...params.InputProps,
-												disableUnderline: true,
-											}}
 											sx={{
 												bgcolor: "rgba(255,255,255,0.05)",
 												px: 1,

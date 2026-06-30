@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import type { CommodityExchange, UserSite } from "../../../types";
-import { API_BASE } from "../../../constants";
+import type { BasicUser, CommodityExchange, UserSite } from "../../../types";
+import { fetchClient } from "../../../../../utils/apiclient";
 
 export const useReferenceData = (headers: any) => {
 	const [exchanges, setExchanges] = useState<CommodityExchange[]>([]);
@@ -11,14 +11,23 @@ export const useReferenceData = (headers: any) => {
 		const fetchRefs = async () => {
 			try {
 				const [cxRes, siteRes, usersRes] = await Promise.all([
-					fetch(`${API_BASE}/settings/refs/commodity-exchanges`, { headers }),
-					fetch(`${API_BASE}/settings/user/sites`, { headers }),
-					fetch(`${API_BASE}/users/list`, { headers }),
+					fetchClient(`/internal/settings/refs/commodity-exchanges`),
+					fetchClient(`/internal/settings/user/sites`),
+					fetchClient(`/internal/users/list`),
 				]);
 
-				if (cxRes.ok) setExchanges(await cxRes.json());
-				if (siteRes.ok) setSites(await siteRes.json());
-				if (usersRes.ok) setUsers(await usersRes.json());
+				if (cxRes.ok) {
+					const data = await cxRes.json();
+					setExchanges(data);
+				}
+				if (siteRes.ok) {
+					const data = await siteRes.json();
+					setSites(data);
+				}
+				if (usersRes.ok) {
+					const data = await usersRes.json();
+					setUsers(data.data);
+				}
 			} catch (e) {
 				console.error("Failed to load reference data", e);
 			}

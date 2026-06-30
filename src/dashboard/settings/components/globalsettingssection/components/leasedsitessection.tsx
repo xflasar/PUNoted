@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
 	Box,
 	Typography,
 	Button,
-	List,
-	ListItem,
-	ListItemText,
 	IconButton,
 	Dialog,
 	DialogTitle,
@@ -15,23 +12,32 @@ import {
 	Autocomplete,
 	TextField,
 	useTheme,
-	CircularProgress,
-	Select,
-	SelectChangeEvent,
-	MenuItem,
+	Card,
+	CardContent,
+	Switch,
+	FormControlLabel,
+	Grid,
+	alpha,
+	Divider,
+	Tooltip,
+	Chip,
 } from "@mui/material";
 import {
 	Handshake,
 	Add as AddIcon,
 	Delete as DeleteIcon,
+	Business,
+	DescriptionOutlined,
+	PrecisionManufacturing,
+	Visibility,
+	VisibilityOff,
 } from "@mui/icons-material";
-import { alpha } from "@mui/material/styles";
-import { API_BASE } from "../../../constants";
 import type { UserSite, LeasedSite, BasicUser } from "../../../types";
 
 interface Props {
 	leasedSites: LeasedSite[];
 	allSites: UserSite[];
+	allUsers: BasicUser[];
 	headers: any;
 	getSiteName: (id: string) => string;
 	onChange: (newLeased: LeasedSite[]) => void;
@@ -40,7 +46,7 @@ interface Props {
 export const LeasedSitesSection: React.FC<Props> = ({
 	leasedSites,
 	allSites,
-	headers,
+	allUsers,
 	getSiteName,
 	onChange,
 }) => {
@@ -48,96 +54,86 @@ export const LeasedSitesSection: React.FC<Props> = ({
 	const [dialogOpen, setDialogOpen] = useState(false);
 
 	const [newLease, setNewLease] = useState<{
-		type: "Loaned" | "Leased";
 		site: UserSite | null;
-		tenant: string | BasicUser | null;
+		tenant: BasicUser | null;
 		desc: string;
-	}>({ type: "Loaned", site: null, tenant: null, desc: "" });
+		show_in_corp: boolean;
+	}>({ site: null, tenant: null, desc: "", show_in_corp: true });
 
 	const [openSearch, setOpenSearch] = useState(false);
-	const [options, setOptions] = useState<BasicUser[]>([]);
-	const [loading, setLoading] = useState(false);
 	const [inputValue, setInputValue] = useState("");
-
-	useEffect(() => {
-		if (inputValue === "") {
-			setOptions(inputValue ? [inputValue as any] : []);
-			return;
-		}
-
-		const timer = setTimeout(async () => {
-			setLoading(true);
-			try {
-				const res = await fetch(
-					`${API_BASE}/users/search?q=${encodeURIComponent(inputValue)}`,
-					{ headers },
-				);
-				if (res.ok) {
-					const json = await res.json();
-					setOptions(json.data || []);
-				}
-			} catch (e) {
-				console.error("Search failed", e);
-			} finally {
-				setLoading(false);
-			}
-		}, 400);
-
-		return () => clearTimeout(timer);
-	}, [inputValue, headers]);
 
 	const availableSites = allSites.filter(
 		(s) => !leasedSites.some((l) => l.siteId === s.siteId),
 	);
 
-	// Fix Mockings
+	const filteredUsers = useMemo(() => {
+		if (!inputValue.trim() || !Array.isArray(allUsers)) return [];
+		const query = inputValue.toLowerCase();
+		console.log(allUsers);
+		return allUsers.filter(
+			(u) =>
+				(u.username || "").toLowerCase().includes(query) ||
+				(u.companycode || "").toLowerCase().includes(query),
+		);
+	}, [inputValue, allUsers]);
+
+	const getTenantDisplayName = (tenantStr: string) => {
+		if (!allUsers || !Array.isArray(allUsers)) return tenantStr;
+
+		const user = allUsers.find(
+			(u) =>
+				u.companycode === tenantStr ||
+				u.username === tenantStr ||
+				`${u.username} (${u.companycode})` === tenantStr,
+		);
+
+		if (user) {
+			return user.companycode
+				? `${user.username} (${user.companycode})`
+				: user.username;
+		}
+		return tenantStr;
+	};
+
 	const handleAdd = () => {
 		if (newLease.site && newLease.desc && newLease.tenant) {
-			// 1. Determine if they picked an object or typed a string
-			const isManualEntry = typeof newLease.tenant === "string";
+			const identifierStr =
+				newLease.tenant.companycode || newLease.tenant.username;
 
-			// 2. The database needs a single string identifier (Prefer company code, fallback to username, fallback to raw text)
-			const identifierStr = isManualEntry
-				? newLease.tenant
-				: (newLease.tenant as any).company_code ||
-					(newLease.tenant as BasicUser).username;
+			const mockTenantData = {
+				username: newLease.tenant.username,
+				companycode: newLease.tenant.companycode || "",
+				isregistered: newLease.tenant.accountid ? true : false,
+			};
 
-			// 3. Build the UI mock data so it renders immediately without crashing
-			const mockTenantData = isManualEntry
-				? null
-				: {
-						accountId: (newLease.tenant as BasicUser).accountid || null,
-						username: (newLease.tenant as BasicUser).username,
-						companyCode: (newLease.tenant as any).company_code || "",
-					};
-
-			// 4. Update the state
 			onChange([
 				...leasedSites,
 				{
-					type: newLease.type,
 					siteId: newLease.site.siteId,
 					tenant: identifierStr,
-					tenant_data: mockTenantData, // Inject the mock data for immediate UI rendering
+					tenant_data: mockTenantData,
 					description: newLease.desc,
+					show_in_corp: newLease.show_in_corp,
 				},
 			]);
 
 			setDialogOpen(false);
-			setNewLease({ type: "Loaned", site: null, tenant: null, desc: "" });
+			setNewLease({ site: null, tenant: null, desc: "", show_in_corp: true });
 			setInputValue("");
 		}
 	};
 
-	const handleRemove = (siteId: string) => {
-		onChange(leasedSites.filter((item) => item.siteId !== siteId));
+	const handleUpdateToggle = (siteId: string, showInCorp: boolean) => {
+		onChange(
+			leasedSites.map((s) =>
+				s.siteId === siteId ? { ...s, show_in_corp: showInCorp } : s,
+			),
+		);
 	};
 
-	const handleTypeChange = (event: SelectChangeEvent) => {
-		setNewLease((prev) => ({
-			...prev,
-			type: event.target.value as "Loaned" | "Leased",
-		}));
+	const handleRemove = (siteId: string) => {
+		onChange(leasedSites.filter((item) => item.siteId !== siteId));
 	};
 
 	return (
@@ -147,7 +143,7 @@ export const LeasedSitesSection: React.FC<Props> = ({
 					display: "flex",
 					justifyContent: "space-between",
 					alignItems: "center",
-					mb: 1,
+					mb: 2,
 				}}
 			>
 				<Typography
@@ -157,101 +153,239 @@ export const LeasedSitesSection: React.FC<Props> = ({
 						display: "flex",
 						alignItems: "center",
 						gap: 1,
-						fontWeight: 600,
+						fontWeight: 700,
+						textTransform: "uppercase",
+						letterSpacing: "0.05em",
 					}}
 				>
-					<Handshake fontSize="inherit" /> LOANED / LEASED SITES
+					<Handshake fontSize="small" /> OUTBOUND SITE LOANS
 				</Typography>
 				<Button
 					size="small"
+					variant="outlined"
+					color="primary"
 					startIcon={<AddIcon />}
 					onClick={() => setDialogOpen(true)}
-					sx={{ fontSize: "0.7rem" }}
+					sx={{ fontSize: "0.75rem", fontWeight: 700, borderRadius: 2 }}
 				>
-					Add
+					Loan Site
 				</Button>
 			</Box>
 
-			<List
-				dense
-				disablePadding
-				sx={{
-					border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-					borderRadius: 1,
-					bgcolor: alpha(theme.palette.background.default, 0.2),
-				}}
-			>
-				{leasedSites.length === 0 ? (
-					<ListItem>
-						<ListItemText
-							secondary="No loaned sites configured."
-							secondaryTypographyProps={{
-								sx: { fontStyle: "italic", opacity: 0.7 },
-							}}
-						/>
-					</ListItem>
-				) : (
-					leasedSites.map((item) => (
-						<ListItem
-							key={item.siteId}
-							divider
-							secondaryAction={
-								<IconButton
-									size="small"
-									edge="end"
-									onClick={() => handleRemove(item.siteId)}
+			{leasedSites.length === 0 ? (
+				<Box
+					sx={{
+						border: `1px dashed ${alpha(theme.palette.divider, 0.4)}`,
+						borderRadius: 2,
+						p: 4,
+						textAlign: "center",
+						bgcolor: alpha(theme.palette.background.default, 0.2),
+					}}
+				>
+					<Typography
+						variant="body2"
+						color="text.secondary"
+						sx={{ fontStyle: "italic" }}
+					>
+						You are not currently loaning out any sites.
+					</Typography>
+				</Box>
+			) : (
+				<Grid container spacing={2}>
+					{leasedSites.map((item) => {
+						const isVisible = item.show_in_corp ?? true;
+						return (
+							<Grid item xs={12} md={6} xl={4} key={item.siteId}>
+								<Card
+									variant="outlined"
+									sx={{
+										height: "100%",
+										display: "flex",
+										flexDirection: "column",
+										bgcolor: alpha(theme.palette.background.default, 0.4),
+										borderColor: isVisible
+											? alpha(theme.palette.primary.main, 0.3)
+											: alpha(theme.palette.divider, 0.2),
+										transition: "all 0.2s ease",
+										"&:hover": {
+											borderColor: theme.palette.primary.main,
+											bgcolor: alpha(theme.palette.background.default, 0.6),
+											boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.1)}`,
+										},
+									}}
 								>
-									<DeleteIcon fontSize="small" />
-								</IconButton>
-							}
-						>
-							<ListItemText
-								primary={getSiteName(item.siteId)}
-								secondary={`Tenant: ${item.tenant_data.username} (${item.tenant_data.companyCode}) | ${item.tenant_data.isRegistered ? "Registered" : "Unregistered"} | ${item.description}`}
-								primaryTypographyProps={{
-									fontSize: "0.85rem",
-									fontWeight: 500,
-								}}
-								secondaryTypographyProps={{
-									fontSize: "0.75rem",
-									color: "info.main",
-								}}
-							/>
-						</ListItem>
-					))
-				)}
-			</List>
+									<CardContent sx={{ p: 2, flexGrow: 1 }}>
+										<Box
+											sx={{
+												display: "flex",
+												justifyContent: "space-between",
+												alignItems: "flex-start",
+												mb: 1.5,
+											}}
+										>
+											<Box
+												sx={{ display: "flex", alignItems: "center", gap: 1 }}
+											>
+												<PrecisionManufacturing
+													fontSize="small"
+													color={isVisible ? "primary" : "disabled"}
+												/>
+												<Typography
+													variant="subtitle2"
+													color="text.primary"
+													sx={{ fontWeight: 800 }}
+												>
+													{getSiteName(item.siteId)}
+												</Typography>
+											</Box>
+											<Tooltip title="Revoke Loan">
+												<IconButton
+													size="small"
+													color="error"
+													onClick={() => handleRemove(item.siteId)}
+													sx={{
+														p: 0.5,
+														bgcolor: alpha(theme.palette.error.main, 0.1),
+													}}
+												>
+													<DeleteIcon fontSize="small" />
+												</IconButton>
+											</Tooltip>
+										</Box>
+
+										<Divider sx={{ mb: 2, opacity: 0.5 }} />
+
+										<Stack spacing={1.5}>
+											<Box
+												sx={{ display: "flex", alignItems: "center", gap: 1 }}
+											>
+												<Business fontSize="small" color="action" />
+												<Typography
+													variant="body2"
+													color="text.secondary"
+													sx={{ minWidth: 60 }}
+												>
+													Partner:
+												</Typography>
+												<Chip
+													size="small"
+													label={getTenantDisplayName(item.tenant)}
+													color="primary"
+													variant="outlined"
+													sx={{
+														fontWeight: 700,
+														fontSize: "0.7rem",
+														height: 24,
+													}}
+												/>
+											</Box>
+
+											<Box
+												sx={{
+													display: "flex",
+													alignItems: "flex-start",
+													gap: 1,
+												}}
+											>
+												<DescriptionOutlined
+													fontSize="small"
+													color="action"
+													sx={{ mt: 0.2 }}
+												/>
+												<Typography
+													variant="body2"
+													color="text.secondary"
+													sx={{ minWidth: 60, mt: 0.2 }}
+												>
+													Notes:
+												</Typography>
+												<Typography
+													variant="body2"
+													color="text.primary"
+													sx={{ mt: 0.2, fontWeight: 500 }}
+												>
+													{item.description}
+												</Typography>
+											</Box>
+										</Stack>
+									</CardContent>
+
+									<Box
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "space-between",
+											bgcolor: alpha(theme.palette.background.default, 0.5),
+											borderTop: `1px solid ${theme.palette.divider}`,
+											px: 2,
+											py: 1,
+										}}
+									>
+										<Typography
+											variant="caption"
+											color={isVisible ? "text.primary" : "text.secondary"}
+											sx={{
+												display: "flex",
+												alignItems: "center",
+												gap: 0.75,
+												fontWeight: 600,
+											}}
+										>
+											{isVisible ? (
+												<Visibility fontSize="small" color="primary" />
+											) : (
+												<VisibilityOff fontSize="small" />
+											)}
+											Corp Production
+										</Typography>
+										<Switch
+											size="small"
+											checked={isVisible}
+											onChange={(e) =>
+												handleUpdateToggle(item.siteId, e.target.checked)
+											}
+											color="primary"
+										/>
+									</Box>
+								</Card>
+							</Grid>
+						);
+					})}
+				</Grid>
+			)}
 
 			<Dialog
 				open={dialogOpen}
 				onClose={() => setDialogOpen(false)}
-				maxWidth="xs"
+				maxWidth="sm"
 				fullWidth
+				slotProps={{
+					paper: {
+						sx: {
+							bgcolor: theme.palette.background.default,
+							backgroundImage: "none",
+							borderRadius: 2,
+						},
+					},
+				}}
 			>
-				<DialogTitle sx={{ bgcolor: theme.palette.background.default }}>
-					Add Loaned / Leased Site
+				<DialogTitle sx={{ pb: 1, display: "flex", flexDirection: "column" }}>
+					<Box
+						component="span"
+						sx={{ fontSize: "1.25rem", fontWeight: 800, color: "primary.main" }}
+					>
+						Loan Site to Partner
+					</Box>
+					<Box
+						component="span"
+						sx={{ fontSize: "0.75rem", color: "text.secondary", mt: 0.5 }}
+					>
+						Grant a partner access to view this site. It will appear as an
+						inbound lease on their dashboard.
+					</Box>
 				</DialogTitle>
-				<DialogContent sx={{ bgcolor: theme.palette.background.default }}>
-					<Stack spacing={2} sx={{ mt: 1 }}>
-						<Select
-							value={newLease.type}
-							size="small"
-							onChange={(e) => handleTypeChange(e)}
-							MenuProps={{
-								slotProps: {
-									paper: {
-										sx: {
-											bgcolor: "background.default",
-											backgroundImage: "none",
-										},
-									},
-								},
-							}}
-						>
-							<MenuItem value="Loaned">Loaned</MenuItem>
-							<MenuItem value="Leased">Leased</MenuItem>
-						</Select>
-
+				<DialogContent dividers sx={{ borderBottom: "none" }}>
+					<Stack spacing={2.5} sx={{ mt: 1 }}>
 						<Autocomplete
 							options={availableSites}
 							getOptionLabel={(option) =>
@@ -260,94 +394,128 @@ export const LeasedSitesSection: React.FC<Props> = ({
 							onChange={(_, val) =>
 								setNewLease((prev) => ({ ...prev, site: val }))
 							}
-							renderInput={(params) => (
-								<TextField {...params} label="Select Site" size="small" />
-							)}
 							slotProps={{
 								paper: {
 									sx: {
 										bgcolor: theme.palette.background.default,
 										backgroundImage: "none",
+										border: `1px solid ${theme.palette.divider}`,
 									},
 								},
-							}}
-						/>
-
-						<Autocomplete
-							freeSolo
-							open={openSearch}
-							onOpen={() => setOpenSearch(true)}
-							onClose={() => setOpenSearch(false)}
-							options={options}
-							loading={loading}
-							filterOptions={(x) => x}
-							getOptionLabel={(option) => {
-								if (typeof option === "string") return option;
-								return (option as any).company_code
-									? `${option.username} (${(option as any).company_code})`
-									: option.username;
-							}}
-							onChange={(_, val) =>
-								setNewLease((prev) => ({ ...prev, tenant: val }))
-							}
-							onInputChange={(_, newInputValue) => {
-								setInputValue(newInputValue);
-								setNewLease((prev) => ({ ...prev, tenant: newInputValue }));
 							}}
 							renderInput={(params) => (
 								<TextField
 									{...params}
-									label="Tenant (Username or Company Code)"
+									label="Select Your Site"
 									size="small"
-									placeholder="Search database or type manually..."
-									InputProps={{
-										...(params.InputProps || {}),
-										endAdornment: (
-											<React.Fragment>
-												{loading ? (
-													<CircularProgress color="inherit" size={20} />
-												) : null}
-												{params.InputProps?.endAdornment}
-											</React.Fragment>
-										),
-									}}
+									fullWidth
+									required
 								/>
 							)}
+						/>
+
+						<Autocomplete
+							open={openSearch}
+							onOpen={() => setOpenSearch(true)}
+							onClose={() => setOpenSearch(false)}
+							options={filteredUsers}
+							getOptionLabel={(option) => {
+								if (typeof option === "string") return option;
+								return option.companycode
+									? `${option.username} (${option.companycode})`
+									: option.username;
+							}}
+							value={newLease.tenant}
+							onChange={(_, val) => {
+								setNewLease((prev) => ({ ...prev, tenant: val }));
+							}}
+							onInputChange={(_, newInputValue) => {
+								setInputValue(newInputValue);
+								setNewLease((prev) => ({ ...prev, tenant: newInputValue }));
+							}}
 							slotProps={{
 								paper: {
 									sx: {
 										bgcolor: theme.palette.background.default,
 										backgroundImage: "none",
+										border: `1px solid ${theme.palette.divider}`,
 									},
 								},
 							}}
+							renderInput={(params) => (
+								<TextField
+									{...params}
+									label="Partner (Username or Company Code)"
+									size="small"
+									required
+									placeholder="Type to search system users..."
+									slotProps={{
+										input: {
+											...params.slotProps.input,
+										},
+									}}
+								/>
+							)}
 						/>
 
 						<TextField
 							label="Description / Notes"
-							placeholder="e.g. 50% split contract"
+							placeholder="e.g. 50% split contract, temporary loan"
 							fullWidth
 							size="small"
 							value={newLease.desc}
+							required
 							onChange={(e) =>
 								setNewLease((prev) => ({ ...prev, desc: e.target.value }))
 							}
 						/>
+
+						<Box
+							sx={{
+								bgcolor: alpha(theme.palette.primary.main, 0.05),
+								p: 1.5,
+								borderRadius: 1,
+								border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+							}}
+						>
+							<FormControlLabel
+								control={
+									<Switch
+										checked={newLease.show_in_corp}
+										onChange={(e) =>
+											setNewLease((prev) => ({
+												...prev,
+												show_in_corp: e.target.checked,
+											}))
+										}
+										color="primary"
+									/>
+								}
+								label={
+									<Box>
+										<Typography variant="body2" sx={{ fontWeight: 600 }}>
+											Include in Corp Production
+										</Typography>
+										<Typography variant="caption" color="text.secondary">
+											If disabled, this site's production and storage will be
+											hidden from your corporate overview.
+										</Typography>
+									</Box>
+								}
+							/>
+						</Box>
 					</Stack>
 				</DialogContent>
-				<DialogActions sx={{ bgcolor: theme.palette.background.default }}>
-					<Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+				<DialogActions sx={{ p: 2, pt: 0 }}>
+					<Button onClick={() => setDialogOpen(false)} color="inherit">
+						Cancel
+					</Button>
 					<Button
 						variant="contained"
 						onClick={handleAdd}
-						disabled={
-							!newLease.site ||
-							!newLease.desc ||
-							!newLease.tenant ||
-							!newLease.type
-						}
+						disabled={!newLease.site || !newLease.desc || !newLease.tenant}
 					>
-						Add
+						Confirm Loan
 					</Button>
 				</DialogActions>
 			</Dialog>
