@@ -28,7 +28,7 @@ import {
 	ChevronRight,
 } from "lucide-react";
 import MaterialBadge from "../../cosm/components/materialbadge";
-import { SiteSummary, FlowData } from "./types";
+import type { SiteSummary, FlowData } from "./types";
 
 const formatFlow = (val: number) => {
 	const sign = val > 0 ? "+" : "";
@@ -162,8 +162,10 @@ export const ProductionCard = React.memo(
 					: theme.palette.error.main;
 
 		// Make leased cards visually distinct with a dashed border
-		const borderStyle = site.isLeased ? "dashed" : "solid";
-		const borderWidth = site.isLeased ? "2px" : "1px";
+		const borderStyle =
+			site.isLeased && site.type === "Inbound" ? "dashed" : "solid";
+		const borderWidth =
+			site.isLeased && site.type === "Inbound" ? "2px" : "1px";
 		const isDark = theme.palette.mode === "dark";
 
 		// Prevent click on text selection
@@ -585,7 +587,6 @@ export const ProductionCard = React.memo(
 							flexWrap: "wrap",
 						}}
 					>
-						<MapPin size={14} color={statusColor} />
 						<Typography
 							variant="body1"
 							fontWeight={700}
@@ -597,23 +598,6 @@ export const ProductionCard = React.memo(
 								? site.planet_name
 								: `${site.planet_name_alt} (${site.planet_name})`}
 						</Typography>
-
-						{site.isLeased && site.tenant && (
-							<Chip
-								icon={<Handshake size={10} />}
-								label={site.tenant}
-								size="small"
-								color="info"
-								variant="outlined"
-								sx={{
-									height: 18,
-									fontSize: "0.6rem",
-									fontWeight: 700,
-									bgcolor: alpha(theme.palette.info.main, 0.1),
-									border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
-								}}
-							/>
-						)}
 					</Box>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 						<Chip
@@ -649,13 +633,12 @@ export const ProductionCard = React.memo(
 					}}
 				>
 					{/* Permits & Target Input */}
-					<Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
+					<Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
 						<Box sx={{ flex: 1 }}>
 							<Box
 								sx={{
 									display: "flex",
 									justifyContent: "space-between",
-									mb: 0.25,
 								}}
 							>
 								<Box
@@ -684,14 +667,6 @@ export const ProductionCard = React.memo(
 									{site.invested_permits} / {site.maximum_permits}
 								</Typography>
 							</Box>
-							<LinearProgress
-								variant="determinate"
-								value={
-									(site.invested_permits / (site.maximum_permits || 1)) * 100
-								}
-								sx={{ height: 2, borderRadius: 1 }}
-								color="primary"
-							/>
 						</Box>
 
 						<TextField
@@ -702,18 +677,20 @@ export const ProductionCard = React.memo(
 							value={targetDays}
 							onChange={(e) => onTargetDaysChange(e.target.value)}
 							onClick={(e) => e.stopPropagation()}
-							InputProps={{
-								endAdornment: (
-									<InputAdornment position="end">
-										<Typography
-											variant="subtitle2"
-											color="text.secondary"
-											sx={{ fontSize: "0.7rem", marginRight: 0.5 }}
-										>
-											d
-										</Typography>
-									</InputAdornment>
-								),
+							slotProps={{
+								input: {
+									endAdornment: (
+										<InputAdornment position="end">
+											<Typography
+												variant="subtitle2"
+												color="text.secondary"
+												sx={{ fontSize: "0.7rem", marginRight: 0.5 }}
+											>
+												d
+											</Typography>
+										</InputAdornment>
+									),
+								},
 							}}
 							sx={{
 								width: 60,
@@ -731,7 +708,6 @@ export const ProductionCard = React.memo(
 								"& .MuiInputLabel-shrink": {
 									transform: "translate(6px, -6px) scale(0.85)",
 								},
-								"& .MuiOutlinedInput-input": { p: "2px 4px" },
 							}}
 						/>
 					</Box>
@@ -774,7 +750,13 @@ export const ProductionCard = React.memo(
 						{tab === "production" && renderProductionFlows()}
 						{tab === "storage" && renderStorage()}
 						{tab === "both" && (
-							<Box sx={{ display: "flex", gap: 1 }}>
+							<Box
+								sx={{
+									display: "flex",
+									flexDirection: { xs: "column", sm: "row" },
+									gap: 1,
+								}}
+							>
 								<Box
 									sx={{
 										flex: 1.8,
