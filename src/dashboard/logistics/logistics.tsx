@@ -21,7 +21,7 @@ import type {
 import LogisticsOverview from "./logisticsoverview";
 import { Bot, User } from "lucide-react";
 
-const API_BASE_URL = "http://localhost:9900"; // In a real app, use an env variable
+import { API_BASE_URL } from "../../config/api";
 
 const Logistics: React.FC = () => {
 	const [sites, setSites] = useState<Site[]>([]);
@@ -48,7 +48,7 @@ const Logistics: React.FC = () => {
 					"recommendations",
 				];
 				const requests = endpoints.map((endpoint) =>
-					fetch(`${API_BASE_URL}/logistics/${endpoint}`, {
+					fetch(`${API_BASE_URL}logistics/${endpoint}`, {
 						headers: {
 							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
 						},
@@ -120,7 +120,7 @@ const Logistics: React.FC = () => {
 
 		try {
 			const response = await fetch(
-				`${API_BASE_URL}/logistics/ships/${shipId}/assign`,
+				`${API_BASE_URL}logistics/ships/${shipId}/assign`,
 				{
 					method: "POST",
 					headers: {

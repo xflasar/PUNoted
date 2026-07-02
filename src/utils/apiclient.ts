@@ -1,17 +1,15 @@
 // apiClient.ts
 
-const isDev =
-	process.env.NODE_ENV === "development" || (import.meta as any).env?.DEV;
-export const baseURL = isDev
-	? "http://localhost:9900"
-	: "https://api.punoted.net";
+import { API_BASE_URL } from "../config/api";
 
 export const fetchClient = async (
 	endpoint: string,
 	options: RequestInit = {},
 	_isRetry = false,
 ): Promise<Response> => {
-	const url = endpoint.startsWith("http") ? endpoint : `${baseURL}${endpoint}`;
+	const base = API_BASE_URL.replace(/\/+$/, "");
+	const path = endpoint.replace(/^\/+/, "");
+	const url = path.startsWith("http") ? path : `${base}/${path}`;
 
 	// 1. Setup headers and inject current Access Token
 	const headers = new Headers(options.headers || {});
@@ -39,7 +37,7 @@ export const fetchClient = async (
 		console.log("Access token expired. Attempting silent refresh...");
 
 		try {
-			const refreshResponse = await fetch(`${baseURL}/auth/refresh`, {
+			const refreshResponse = await fetch(`${API_BASE_URL}auth/refresh`, {
 				method: "POST",
 				credentials: "include",
 				headers: { "Content-Type": "application/json" },

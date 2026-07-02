@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import type { ReactNode } from "react";
 
-import { baseURL } from "../../utils/apiclient";
+import { API_BASE_URL } from "../../config/api";
 
 type WsStatus = "connecting" | "connected" | "disconnected";
 
@@ -74,9 +74,9 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 
 		intentionalClose.current = false;
 
-		const isDev =
-			process.env.NODE_ENV === "development" || (import.meta as any).env?.DEV;
-		const wsBaseURL = baseURL.replace(/^https?/, isDev ? "ws" : "wss");
+		const urlObj = new URL(API_BASE_URL);
+		urlObj.protocol = urlObj.protocol === "https:" ? "wss:" : "ws:";
+		const wsBaseURL = urlObj.toString().replace(/\/$/, "");
 
 		const path = "/ws/global";
 		const url = `${wsBaseURL}${path}?token=${token}`;
@@ -141,7 +141,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 						"WS: Server rejected auth. Attempting silent refresh...",
 					);
 					try {
-						const refreshUrl = `${baseURL}/auth/refresh`;
+						const refreshUrl = `${API_BASE_URL}auth/refresh`;
 
 						// Execute the native fetch request to get a new token
 						const refreshRes = await fetch(refreshUrl, {
