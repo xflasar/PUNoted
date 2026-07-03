@@ -647,16 +647,16 @@ const VendorCard = React.memo(
 																variant="caption"
 																sx={{
 																	color: theme.palette.primary.light,
-																	fontWeight: "bold"
+																	fontWeight: "bold",
 																}}
 															>
 																{formatAmount(
-																(
-																	l as typeof l & {
-																		available?: number;
-																	}
-																).available ?? displayQuantity,
-															)}
+																	(
+																		l as typeof l & {
+																			available?: number;
+																		}
+																	).available ?? displayQuantity,
+																)}
 															</Typography>
 														</Typography>
 													</Box>

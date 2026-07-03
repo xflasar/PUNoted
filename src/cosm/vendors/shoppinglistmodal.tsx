@@ -342,36 +342,39 @@ const VendorPrioritySelector: React.FC<{
 							>
 								<Typography variant="caption" color="text.secondary">
 									Price:{" "}
-										<Box
-											component="span"
-											sx={{
-												fontWeight: "bold",
-												color: theme.palette.warning.main,
-											}}
-										>
-											{new Intl.NumberFormat("en-US", {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 2,
-											}).format(displayPrice)}
-										</Box>{" "}
-										ICA
-									</Typography>
+									<Box
+										component="span"
+										sx={{
+											fontWeight: "bold",
+											color: theme.palette.warning.main,
+										}}
+									>
+										{new Intl.NumberFormat("en-US", {
+											minimumFractionDigits: 2,
+											maximumFractionDigits: 2,
+										}).format(displayPrice)}
+									</Box>{" "}
+									ICA
+								</Typography>
 								{locationEntries.length > 0 ? (
 									locationEntries.map((entry, entryIndex) => (
-											<Typography
-												key={`${vendor.vendorid}-${entryIndex}`}
-												variant="caption"
-												color="text.secondary"
-											>
-												{entry.label === "Hortus Station (HRT)" ? (
-													<Warehouse size={14} style={{ verticalAlign: "middle" }} />
-												) : (
-													<Globe size={14} style={{ verticalAlign: "middle" }} />
-												)}{" "}
-												{entry.label}:{" "}
-												<Box
-													component="span"
-													sx={{
+										<Typography
+											key={`${vendor.vendorid}-${entryIndex}`}
+											variant="caption"
+											color="text.secondary"
+										>
+											{entry.label === "Hortus Station (HRT)" ? (
+												<Warehouse
+													size={14}
+													style={{ verticalAlign: "middle" }}
+												/>
+											) : (
+												<Globe size={14} style={{ verticalAlign: "middle" }} />
+											)}{" "}
+											{entry.label}:{" "}
+											<Box
+												component="span"
+												sx={{
 													fontWeight: "bold",
 													color: theme.palette.primary.light,
 												}}
