@@ -30,6 +30,8 @@ interface MaterialTableProps {
 	isBuyOrders?: boolean;
 	/** Optional title to display above the table. */
 	title?: string;
+	/** Optional list of available materials for reference when editing locations. */
+	availableMaterialsList?: OrderItem[];
 }
 
 const ITEMS_PER_PAGE = 15;
@@ -46,6 +48,7 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 		materials,
 		allOrders,
 		locations,
+		availableMaterialsList,
 		onRemoveMaterial,
 		onEditMaterial,
 		onAddMaterial,
@@ -190,6 +193,7 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 								key={material.frontendId || material.materialticker}
 								material={material}
 								locations={locations}
+								availableMaterialsList={availableMaterialsList}
 								isAvailableMaterials={false}
 								onRemoveMaterial={onRemoveMaterial}
 								onEditMaterial={onEditMaterial}

@@ -53,7 +53,7 @@ export interface OrderItem {
 	/** Type of order: buy or sell */
 	ordertype?: "buy" | "sell" | undefined;
 	/** List of locations associated with this order */
-	location: Location[];
+	locations: Location[];
 	/** Pricing information for the order */
 	price: ItemPrice;
 	/** True when listing price is locked to the corporation price */

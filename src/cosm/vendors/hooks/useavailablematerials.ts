@@ -93,6 +93,7 @@ export function useAvailableMaterials(
 							instore: mat.quantity,
 							reserved: 0,
 							quantity: 0,
+							locations: mat.locations || [],
 							price: {
 								fixedprice: resolvedCorpPrice,
 								cxprice: mat.askprice || 0,

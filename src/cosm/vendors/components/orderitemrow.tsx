@@ -160,6 +160,8 @@ interface OrderItemRowProps {
 	hasOtherOrderType?: boolean;
 	/** Inline styles applied to the row container. */
 	style?: React.CSSProperties;
+	/** The list of available materials. */
+	availableMaterialsList?: OrderItem[];
 }
 
 /**
@@ -179,6 +181,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		onAddMaterial,
 		hasOtherOrderType,
 		style,
+		availableMaterialsList,
 	}) => {
 		const theme = useTheme();
 		const [open, setOpen] = useState(false);
@@ -208,12 +211,26 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				if (currentLocations.some((l: any) => l.id === newLocationObj.id))
 					return;
 
+				let trueInStock = 0;
+
+				if (availableMaterialsList) {
+					const sourceMaterial = availableMaterialsList.find(
+						(m) => m.materialid === material.materialid,
+					);
+
+					const sourceLocation = sourceMaterial?.locations?.find(
+						(loc) => loc.id === newLocationObj.id,
+					);
+
+					trueInStock = sourceLocation?.available ?? 0;
+				}
+
 				const newEntry = {
 					id: newLocationObj.id,
 					location_name: newLocationObj.location_name,
 					location_code: newLocationObj.location_code,
 					amount: 0,
-					storage_amount: 0,
+					storage_amount: trueInStock,
 				};
 
 				onEditMaterial?.(material.frontendId, "location", [
@@ -222,7 +239,13 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				]);
 				setOpen(true);
 			},
-			[currentLocations, material.frontendId, onEditMaterial],
+			[
+				currentLocations,
+				material.frontendId,
+				material.materialid,
+				onEditMaterial,
+				availableMaterialsList,
+			],
 		);
 
 		const handleUpdateLocationAmount = useCallback(

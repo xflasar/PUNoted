@@ -155,9 +155,13 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 						setPage(1);
 					}}
 					size="small"
-					InputProps={{
-						startAdornment: <Search sx={{ mr: 1, color: "text.secondary" }} />,
-						sx: { borderRadius: "24px" },
+					slotProps={{
+						input: {
+							startAdornment: (
+								<Search sx={{ mr: 1, color: "text.secondary" }} />
+							),
+							sx: { borderRadius: "24px" },
+						},
 					}}
 				/>
 				<FormControlLabel
