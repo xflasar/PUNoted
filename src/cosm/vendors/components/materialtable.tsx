@@ -179,13 +179,13 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 					{materials.length === 0 ? (
 						<Box
 							sx={{
-								color: "text.secondary",
+								color: "text.disabled",
 								width: "100%",
 								textAlign: "center",
 								p: 2,
 							}}
 						>
-							No materials found.
+							No materials listed.
 						</Box>
 					) : (
 						paginatedMaterials.map((material: OrderItem) => (

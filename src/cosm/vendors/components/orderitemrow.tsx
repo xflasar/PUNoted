@@ -185,10 +185,32 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 	}) => {
 		const theme = useTheme();
 		const [open, setOpen] = useState(false);
+		const [locationInputValue, setLocationInputValue] = useState("");
 
 		const currentLocations = useMemo(() => {
 			return Array.isArray(material.location) ? material.location : [];
 		}, [material.location]);
+
+		const compareLocations = useCallback((a: Location, b: Location) => {
+			if (a.location_code === "HRT") return -1;
+			if (b.location_code === "HRT") return 1;
+			return `${a.location_name} [${a.location_code}]`.localeCompare(
+				`${b.location_name} [${b.location_code}]`,
+			);
+		}, []);
+
+		const sortedCurrentLocations = useMemo(() => {
+			return [...currentLocations].sort(compareLocations);
+		}, [currentLocations, compareLocations]);
+
+		const availableLocations = useMemo(() => {
+			return [...locations]
+				.filter(
+					(location) =>
+						!currentLocations.some((current) => current.id === location.id),
+				)
+				.sort(compareLocations);
+		}, [locations, currentLocations, compareLocations]);
 
 		const labelText = material.ordertype === "buy" ? "Demand" : "Reserve";
 		const isPriceLocked = Boolean(material.isPriceLocked);
@@ -322,6 +344,16 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									}
 									disabled={hasOtherOrderType}
 									sx={{ fontSize: "0.875rem" }}
+									MenuProps={{
+										slotProps: {
+											paper: {
+												sx: {
+													bgcolor: theme.palette.background.default,
+													backgroundImage: "none",
+												},
+											},
+										},
+									}}
 								>
 									<MenuItem value="sell">Ask</MenuItem>
 									<MenuItem value="buy">Bid</MenuItem>
@@ -497,7 +529,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							</Box>
 
 							{/* Location Rows */}
-							{currentLocations.map((loc: any) => (
+							{sortedCurrentLocations.map((loc: any) => (
 								<Box
 									key={loc.id}
 									sx={{
@@ -577,7 +609,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 
 							<Box sx={{ mt: 1.5, px: 1 }}>
 								<Autocomplete
-									options={locations}
+									options={availableLocations}
 									getOptionLabel={(option) =>
 										typeof option === "string"
 											? option
@@ -587,6 +619,12 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										option.id === value.id
 									}
 									onChange={(event, newValue) => handleAddLocation(newValue)}
+									inputValue={locationInputValue}
+									onInputChange={(_event, newInputValue, reason) => {
+										if (reason === "reset") return;
+										setLocationInputValue(newInputValue);
+									}}
+									onClose={() => setLocationInputValue("")}
 									value={null}
 									slotProps={{
 										paper: {
