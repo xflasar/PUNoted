@@ -32,6 +32,8 @@ import {
 	ArrowDown,
 	Truck,
 	Store,
+	Warehouse,
+	Globe,
 } from "lucide-react";
 import { ContentCopy } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
@@ -347,7 +349,10 @@ const VendorPrioritySelector: React.FC<{
 											color: theme.palette.warning.main,
 										}}
 									>
-										{displayPrice}
+										{new Intl.NumberFormat("en-US", {
+											minimumFractionDigits: 2,
+											maximumFractionDigits: 2,
+										}).format(displayPrice)}
 									</Box>{" "}
 									ICA
 								</Typography>
@@ -358,6 +363,14 @@ const VendorPrioritySelector: React.FC<{
 											variant="caption"
 											color="text.secondary"
 										>
+											{entry.label === "Hortus Station (HRT)" ? (
+												<Warehouse
+													size={14}
+													style={{ verticalAlign: "middle" }}
+												/>
+											) : (
+												<Globe size={14} style={{ verticalAlign: "middle" }} />
+											)}{" "}
 											{entry.label}:{" "}
 											<Box
 												component="span"
@@ -787,8 +800,8 @@ const AvailableItemRow: React.FC<{
 				<span>
 					{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
 						min,
-					)}{" "}
-					-{" "}
+					)}
+					&ndash;
 					{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
 						max,
 					)}{" "}
@@ -1162,11 +1175,13 @@ const ShoppingListModal: React.FC<{
 				});
 			});
 		});
-		return [...locs.values()].sort((a, b) =>
-			formatLocationLabel(a.name, a.id).localeCompare(
+		return [...locs.values()].sort((a, b) => {
+			if (a.id === "HRT") return -1;
+			if (b.id === "HRT") return 1;
+			return formatLocationLabel(a.name, a.id).localeCompare(
 				formatLocationLabel(b.name, b.id),
-			),
-		);
+			);
+		});
 	}, [allSellOrders]);
 
 	const locationFilteredSellOrders = useMemo(() => {

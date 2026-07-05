@@ -31,6 +31,8 @@ import {
 	Edit,
 	ShoppingBasket,
 	MapPin,
+	Warehouse,
+	Globe,
 	Minus,
 	Target,
 	X,
@@ -575,7 +577,7 @@ const VendorCard = React.memo(
 															: theme.palette.warning.main,
 													}}
 												>
-													{fixedPrice}
+													{formatAmount(fixedPrice)}
 												</Typography>
 												<Typography
 													variant="caption"
@@ -615,15 +617,21 @@ const VendorCard = React.memo(
 																gap: 0.5,
 															}}
 														>
-															<MapPin
-																size={10}
-																color={theme.palette.text.secondary}
-																style={{ flexShrink: 0 }}
-															/>
+															{"HRT" === l.location_code ? (
+																<Warehouse
+																	size={14}
+																	style={{ flexShrink: 0 }}
+																/>
+															) : (
+																<Globe
+																	size={14}
+																	color={theme.palette.text.secondary}
+																	style={{ flexShrink: 0 }}
+																/>
+															)}
 															<Typography
 																variant="caption"
 																sx={{
-																	color: theme.palette.text.secondary,
 																	fontSize: "0.80rem",
 																}}
 															>
@@ -633,22 +641,23 @@ const VendorCard = React.memo(
 																)}
 															</Typography>
 														</Box>
-														<Typography
-															variant="caption"
-															sx={{
-																color: theme.palette.primary.light,
-																fontSize: "0.75rem",
-																fontWeight: "medium",
-															}}
-														>
-															{quantityLabel}:{" "}
-															{formatAmount(
-																(
-																	l as typeof l & {
-																		available?: number;
-																	}
-																).available ?? displayQuantity,
-															)}
+														<Typography variant="caption">
+															{quantityLabel}{" "}
+															<Typography
+																variant="caption"
+																sx={{
+																	color: theme.palette.primary.light,
+																	fontWeight: "bold",
+																}}
+															>
+																{formatAmount(
+																	(
+																		l as typeof l & {
+																			available?: number;
+																		}
+																	).available ?? displayQuantity,
+																)}
+															</Typography>
 														</Typography>
 													</Box>
 												))}
