@@ -5,11 +5,13 @@ Built with React, TypeScript, and Vite.
 
 ## Development
 
-Install dependencies: `npm install`
+1. Copy environment file: `cp .env.sample .env`
+2. Install dependencies: `npm install`
+3. Start development server: `npm run dev`
 
-Start the development server with Hot Module Replacement (HMR): `npm run dev`
+The frontend will be served at `http://localhost:5174`.
 
-The application will be available at `http://localhost:5173` by default.
+It expects the API to be available at `http://localhost:9900/` which can be changed, or pointed to the production API, in `.env`.
 
 ## Building for Production
 
