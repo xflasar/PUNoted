@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../../../config/api";
-import type { OrderItem } from "../types";
+import type { Location, OrderItem } from "../types";
 import { pickPrice } from "../utils/pickprice";
+
+type MaterialPriceListEntry = {
+	materialid: string;
+	ticker: string;
+	corpprice?: number;
+	askprice?: number;
+	quantity: number;
+	locations?: Location[];
+};
 
 /**
  * Parses the FIO inventory CSV based on the fixed column format provided:
@@ -42,14 +51,9 @@ const parseFioInventoryCsv = (csvText: string): Map<string, number> => {
  *
  * @param {string} cx - The current Commodity Exchange (CX) selected by the user.
  * @param {boolean} isOpen - Indicates whether the modal/context is open (to prevent unnecessary fetching).
- * @param {(map: Map<string, number>) => void} setStoreInstoreAmounts - Callback to update the parent component's in-store amounts.
  * @returns {object} An object containing the list of available materials.
  */
-export function useAvailableMaterials(
-	cx: string,
-	isOpen: boolean,
-	setStoreInstoreAmounts: (map: Map<string, number>) => void,
-) {
+export function useAvailableMaterials(cx: string, isOpen: boolean) {
 	const [materials, setMaterials] = useState<OrderItem[]>([]);
 
 	useEffect(() => {
@@ -76,7 +80,7 @@ export function useAvailableMaterials(
 
 				const instoreMap = new Map<string, number>();
 				const availableMaterials: OrderItem[] = data.materials.map(
-					(mat: any) => {
+					(mat: MaterialPriceListEntry) => {
 						const resolvedCorpPrice = pickPrice({
 							fixedprice: -1,
 							corpprice: mat.corpprice,
@@ -91,9 +95,10 @@ export function useAvailableMaterials(
 							frontendId: mat.materialid,
 							isDisabled: false,
 							instore: mat.quantity,
+							available: mat.quantity,
 							reserved: 0,
-							quantity: 0,
-							locations: mat.locations || [],
+							quantity: mat.quantity,
+							location: Array.isArray(mat.locations) ? mat.locations : [],
 							price: {
 								fixedprice: resolvedCorpPrice,
 								cxprice: mat.askprice || 0,
@@ -137,7 +142,6 @@ export function useAvailableMaterials(
 						instore: finalInstoreMap.get(mat.materialid) || 0,
 					}));
 					setMaterials(finalAvailableMaterials);
-					setStoreInstoreAmounts(finalInstoreMap);
 				}
 			} catch (err) {
 				console.error("Failed to fetch materials:", err);
@@ -152,7 +156,7 @@ export function useAvailableMaterials(
 		return () => {
 			isMounted = false;
 		};
-	}, [isOpen, cx, setStoreInstoreAmounts]);
+	}, [isOpen, cx]);
 
 	return {
 		materials,

@@ -26,6 +26,8 @@ export interface Location {
 	amount: number;
 	/** The maximum storage capacity or stored amount at this location */
 	storage_amount: number;
+	/** Server-provided available quantity for this location */
+	available?: number;
 }
 
 /**
@@ -53,7 +55,9 @@ export interface OrderItem {
 	/** Type of order: buy or sell */
 	ordertype?: "buy" | "sell" | undefined;
 	/** List of locations associated with this order */
-	locations: Location[];
+	location: Location[];
+	/** Original per-location stock from the price list, kept for add/remove edits */
+	locationSource?: Location[];
 	/** Pricing information for the order */
 	price: ItemPrice;
 	/** True when listing price is locked to the corporation price */
@@ -72,6 +76,8 @@ export interface OrderItem {
 	vendorid: string;
 	/** Amount of material reserved */
 	reserved: number;
+	/** Server-provided available quantity for display */
+	available?: number;
 	/** Amount of material currently in store */
 	instore: number;
 }

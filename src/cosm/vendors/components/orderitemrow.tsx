@@ -31,6 +31,7 @@ import type { OrderItem, Location } from "../types";
 import { formatCurrency } from "../../../dashboard/financial/utils/financeutils";
 import { formatAmount } from "../../../utils/formaters";
 import { pickPrice } from "../utils/pickprice";
+import { formatLocation } from "../utils/formatlocation";
 import MaterialBadge from "../../components/materialbadge";
 
 /**
@@ -131,6 +132,7 @@ export interface OrderLocationEntry {
 	location_code: string;
 	amount: number;
 	storage_amount?: number;
+	available?: number;
 }
 
 /**
@@ -212,6 +214,17 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				.sort(compareLocations);
 		}, [locations, currentLocations, compareLocations]);
 
+		const locationStockById = useMemo(() => {
+			const stocks = new Map<string, number>();
+			(material.locationSource || []).forEach((loc) => {
+				stocks.set(
+					loc.id,
+					loc.available ?? loc.storage_amount ?? loc.amount ?? 0,
+				);
+			});
+			return stocks;
+		}, [material.locationSource]);
+
 		const labelText = material.ordertype === "buy" ? "Demand" : "Reserve";
 		const isPriceLocked = Boolean(material.isPriceLocked);
 		const displayPrice = pickPrice({
@@ -221,6 +234,11 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			corpprice: material.price?.corpprice,
 			cxprice: material.price?.cxprice,
 		}).price;
+		const displayQuantity = currentLocations.reduce(
+			(sum: number, loc: any) =>
+				sum + (loc.available ?? loc.storage_amount ?? loc.amount ?? 0),
+			0,
+		);
 		const totalAmount = currentLocations.reduce(
 			(sum: number, l: any) => sum + (l.amount || 0),
 			0,
@@ -232,6 +250,9 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				if (!newLocationObj) return;
 				if (currentLocations.some((l: any) => l.id === newLocationObj.id))
 					return;
+				const sourceLocation = material.locationSource?.find(
+					(loc) => loc.id === newLocationObj.id,
+				);
 
 				let trueInStock = 0;
 
@@ -252,7 +273,18 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 					location_name: newLocationObj.location_name,
 					location_code: newLocationObj.location_code,
 					amount: 0,
-					storage_amount: trueInStock,
+					storage_amount:
+						sourceLocation?.available ??
+						sourceLocation?.storage_amount ??
+						newLocationObj.available ??
+						newLocationObj.storage_amount ??
+						0,
+					available:
+						sourceLocation?.available ??
+						sourceLocation?.storage_amount ??
+						newLocationObj.available ??
+						newLocationObj.storage_amount ??
+						0,
 				};
 
 				onEditMaterial?.(material.frontendId, "location", [
@@ -264,9 +296,8 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			[
 				currentLocations,
 				material.frontendId,
-				material.materialid,
+				material.locationSource,
 				onEditMaterial,
-				availableMaterialsList,
 			],
 		);
 
@@ -474,7 +505,9 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 
 						{/* 6. In Store */}
 						<Cell label="In Store">
-							<Typography variant="body2">{material.quantity}</Typography>
+							<Typography variant="body2">
+								{formatAmount(displayQuantity)}
+							</Typography>
 						</Cell>
 
 						{/* 7. Remove (Align right on mobile) */}
@@ -512,17 +545,38 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									px: 1,
 								}}
 							>
-								<Typography variant="caption" color="text.secondary">
+								<Typography
+									variant="caption"
+									sx={{
+										color: theme.palette.text.secondary,
+										fontWeight: "bold",
+										textTransform: "uppercase",
+										opacity: 0.5,
+									}}
+								>
 									Location
 								</Typography>
 								<Typography
 									variant="caption"
-									color="text.secondary"
-									align="right"
+									sx={{
+										color: theme.palette.text.secondary,
+										fontWeight: "bold",
+										textTransform: "uppercase",
+										opacity: 0.5,
+										textAlign: "right",
+									}}
 								>
 									In Stock
 								</Typography>
-								<Typography variant="caption" color="text.secondary">
+								<Typography
+									variant="caption"
+									sx={{
+										color: theme.palette.text.secondary,
+										fontWeight: "bold",
+										textTransform: "uppercase",
+										opacity: 0.5,
+									}}
+								>
 									{labelText}
 								</Typography>
 								<Box />
@@ -545,40 +599,29 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										},
 									}}
 								>
-									<Tooltip title={loc.location_name}>
-										<Box
-											sx={{
-												overflow: "hidden",
-												textOverflow: "ellipsis",
-												whiteSpace: "nowrap",
-											}}
-										>
-											<Chip
-												label={loc.location_code}
-												size="small"
-												sx={{ mr: 1, cursor: "help" }}
-											/>
-											<Typography
-												variant="caption"
-												sx={{ display: { xs: "none", md: "inline" } }}
-											>
-												{loc.location_name}
-											</Typography>
-										</Box>
-									</Tooltip>
+									<Typography
+										variant="caption"
+										sx={{
+											overflow: "hidden",
+											textOverflow: "ellipsis",
+											whiteSpace: "nowrap",
+										}}
+									>
+										{formatLocation(loc.location_name, loc.location_code)}
+									</Typography>
 
 									<Typography
 										variant="body2"
 										align="right"
 										sx={{
 											color:
-												(loc.storage_amount || 0) > 0
+												((loc.available ?? loc.storage_amount) || 0) > 0
 													? theme.palette.success.light
 													: theme.palette.text.disabled,
 											fontWeight: "bold",
 										}}
 									>
-										{loc.storage_amount || 0}
+										{formatAmount(loc.available ?? loc.storage_amount ?? 0)}
 									</Typography>
 
 									<DebouncedInput
@@ -598,12 +641,16 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										}}
 									/>
 
-									<IconButton
-										size="small"
-										onClick={() => handleRemoveLocation(loc.id)}
-									>
-										<RemoveCircleOutlineIcon fontSize="small" color="error" />
-									</IconButton>
+									{currentLocations.length > 1 ? (
+										<IconButton
+											size="small"
+											onClick={() => handleRemoveLocation(loc.id)}
+										>
+											<RemoveCircleOutlineIcon fontSize="small" color="error" />
+										</IconButton>
+									) : (
+										<Box />
+									)}
 								</Box>
 							))}
 
@@ -613,11 +660,27 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									getOptionLabel={(option) =>
 										typeof option === "string"
 											? option
-											: `${option.location_name} [${option.location_code}]`
+											: `${formatLocation(option.location_name, option.location_code)}: ${formatAmount(locationStockById.get(option.id) ?? 0)}`
 									}
 									isOptionEqualToValue={(option, value) =>
 										option.id === value.id
 									}
+									renderOption={(props, option) => {
+										const quantity = locationStockById.get(option.id) ?? 0;
+
+										return (
+											<li {...props}>
+												{formatLocation(
+													option.location_name,
+													option.location_code,
+												)}
+												:&nbsp;
+												<Box component="span" sx={{ fontWeight: "bold" }}>
+													{formatAmount(quantity)}
+												</Box>
+											</li>
+										);
+									}}
 									onChange={(event, newValue) => handleAddLocation(newValue)}
 									inputValue={locationInputValue}
 									onInputChange={(_event, newInputValue, reason) => {
