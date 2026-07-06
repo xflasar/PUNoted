@@ -342,10 +342,7 @@ const VendorCard = React.memo(
 					WebkitBackdropFilter: "blur(6px)",
 					boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
 					transition: "box-shadow 0.2s, border-color 0.2s",
-					"&:hover": {
-						boxShadow: "0 8px 25px rgba(0, 0, 0, 0.5)",
-						borderColor: alpha(theme.palette.primary.main, 0.5),
-					},
+					borderColor: alpha(theme.palette.primary.main, 0.5),
 				}}
 			>
 				<CardContent
@@ -514,10 +511,7 @@ const VendorCard = React.memo(
 											gap: 0.5,
 											cursor: "default",
 											"&:hover": {
-												backgroundColor: alpha(
-													theme.palette.common.white,
-													0.03,
-												),
+												backgroundColor: alpha(theme.palette.primary.main, 0.2),
 											},
 										}}
 									>
@@ -1792,7 +1786,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								"& .MuiDataGrid-row": {
 									borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
 									"&:hover": {
-										backgroundColor: alpha(theme.palette.primary.main, 0.04),
+										backgroundColor: alpha(theme.palette.primary.main, 0.2),
 									},
 									display: "flex",
 									alignItems: "center",
