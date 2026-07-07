@@ -73,7 +73,10 @@ export interface ShipOrdersProps {
 	mockRole: "ADMIN" | "USER" | "GUEST";
 	onEditOrder: (orderId: string) => void;
 	onDeleteOrder: (orderId: number) => void;
-	onUpdateStatus: (orderId: number, status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED") => void;
+	onUpdateStatus: (
+		orderId: number,
+		status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
+	) => void;
 }
 
 export const ShipOrders: React.FC<ShipOrdersProps> = ({
@@ -92,11 +95,14 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 
 	// Search & Filter state
 	const [searchQuery, setSearchQuery] = useState("");
-	const [selectedConfigFilter, setSelectedConfigFilter] = useState<string>("all");
+	const [selectedConfigFilter, setSelectedConfigFilter] =
+		useState<string>("all");
 
 	// Modal states
 	const [detailsOrder, setDetailsOrder] = useState<ShipOrder | null>(null);
-	const [confirmCompleteId, setConfirmCompleteId] = useState<number | null>(null);
+	const [confirmCompleteId, setConfirmCompleteId] = useState<number | null>(
+		null,
+	);
 
 	// Extract unique configurations for filter chips
 	const uniqueConfigs = useMemo(() => {
@@ -111,27 +117,39 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 
 	// Filter and search logic
 	const filteredOrders = useMemo(() => {
-		return processedOrders.filter((order) => {
-			const matchesSearch =
-				order.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(order.notes && order.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
-				order.id.toString().includes(searchQuery);
+		return processedOrders
+			.filter((order) => {
+				const matchesSearch =
+					order.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					(order.notes &&
+						order.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
+					order.id.toString().includes(searchQuery);
 
-			const matchesConfig =
-				selectedConfigFilter === "all" ||
-				order.shipType.name === selectedConfigFilter;
+				const matchesConfig =
+					selectedConfigFilter === "all" ||
+					order.shipType.name === selectedConfigFilter;
 
-			return matchesSearch && matchesConfig;
-		}).sort((a, b) => a.waitTimeDays - b.waitTimeDays);
+				return matchesSearch && matchesConfig;
+			})
+			.sort((a, b) => a.waitTimeDays - b.waitTimeDays);
 	}, [processedOrders, searchQuery, selectedConfigFilter]);
 
 	// Statistics based on current filtered orders
 	const stats = React.useMemo(() => {
 		const total = filteredOrders.length;
-		const completed = filteredOrders.filter((o) => o.status === "DELIVERED").length;
-		const pending = filteredOrders.filter((o) => o.status === "PENDING_APPROVAL" || !o.status).length;
-		const inProduction = filteredOrders.filter((o) => o.status === "QUEUED").length;
-		const totalValue = filteredOrders.reduce((sum, order) => sum + order.price, 0);
+		const completed = filteredOrders.filter(
+			(o) => o.status === "DELIVERED",
+		).length;
+		const pending = filteredOrders.filter(
+			(o) => o.status === "PENDING_APPROVAL" || !o.status,
+		).length;
+		const inProduction = filteredOrders.filter(
+			(o) => o.status === "QUEUED",
+		).length;
+		const totalValue = filteredOrders.reduce(
+			(sum, order) => sum + order.price,
+			0,
+		);
 
 		return { total, completed, pending, inProduction, totalValue };
 	}, [filteredOrders]);
@@ -140,15 +158,53 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 		const currentStatus = status || "PENDING_APPROVAL";
 		switch (currentStatus) {
 			case "PENDING_APPROVAL":
-				return <Chip label="Pending" color="warning" size="small" variant="outlined" sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }} />;
+				return (
+					<Chip
+						label="Pending"
+						color="warning"
+						size="small"
+						variant="outlined"
+						sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }}
+					/>
+				);
 			case "APPROVED":
-				return <Chip label="Queued" color="info" size="small" variant="outlined" sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }} />;
+				return (
+					<Chip
+						label="Queued"
+						color="info"
+						size="small"
+						variant="outlined"
+						sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }}
+					/>
+				);
 			case "IN_PRODUCTION":
-				return <Chip label="Building" color="primary" size="small" sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }} />;
+				return (
+					<Chip
+						label="Building"
+						color="primary"
+						size="small"
+						sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }}
+					/>
+				);
 			case "COMPLETED":
-				return <Chip label="Completed" color="success" size="small" sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }} />;
+				return (
+					<Chip
+						label="Completed"
+						color="success"
+						size="small"
+						sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }}
+					/>
+				);
 			default:
-				return <Chip label="Pending" color="warning" size="small" variant="outlined" sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }} />;
+				return (
+					<Chip
+						label="Pending"
+						color="warning"
+						size="small"
+						variant="outlined"
+						sx={{ height: 20, fontSize: "10px", fontWeight: "bold" }}
+					/>
+				);
 		}
 	};
 
@@ -177,8 +233,15 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 	};
 
 	return (
-		<Box sx={{ width: "100%", display: "flex", flexDirection: "column", gap: 1.2, height: "100%" }}>
-
+		<Box
+			sx={{
+				width: "100%",
+				display: "flex",
+				flexDirection: "column",
+				gap: 1.2,
+				height: "100%",
+			}}
+		>
 			{/* Centered Stats Bar */}
 			<StatsBar
 				total={stats.total}
@@ -198,22 +261,37 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 						input: {
 							startAdornment: (
 								<InputAdornment position="start">
-									<SearchIcon sx={{ color: "rgba(255,255,255,0.4)", fontSize: 18 }} />
+									<SearchIcon
+										sx={{ color: "rgba(255,255,255,0.4)", fontSize: 18 }}
+									/>
 								</InputAdornment>
 							),
-							style: { fontSize: "11.5px", color: "white", background: "rgba(255,255,255,0.02)" }
-						}
+							style: {
+								fontSize: "11.5px",
+								color: "white",
+								background: "rgba(255,255,255,0.02)",
+							},
+						},
 					}}
 					sx={{
 						"& .MuiOutlinedInput-root": {
 							"& fieldset": { borderColor: "rgba(255,255,255,0.1)" },
 							"&:hover fieldset": { borderColor: "#7b68ee" },
-						}
+						},
 					}}
 				/>
 
 				{/* Horizontal Scrollable Filter Chips */}
-				<Box sx={{ display: "flex", gap: 0.8, overflowX: "auto", py: 0.4, pb: 0.8, "&::-webkit-scrollbar": { height: 4 } }}>
+				<Box
+					sx={{
+						display: "flex",
+						gap: 0.8,
+						overflowX: "auto",
+						py: 0.4,
+						pb: 0.8,
+						"&::-webkit-scrollbar": { height: 4 },
+					}}
+				>
 					<Chip
 						label="All Configurations"
 						size="small"
@@ -223,8 +301,14 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 							fontSize: "10.5px",
 							color: "white",
 							borderColor: "#7b68ee",
-							backgroundColor: selectedConfigFilter === "all" ? "#7b68ee" : "transparent",
-							"&:hover": { backgroundColor: selectedConfigFilter === "all" ? "#6a5acd" : "rgba(123, 104, 238, 0.1)" }
+							backgroundColor:
+								selectedConfigFilter === "all" ? "#7b68ee" : "transparent",
+							"&:hover": {
+								backgroundColor:
+									selectedConfigFilter === "all"
+										? "#6a5acd"
+										: "rgba(123, 104, 238, 0.1)",
+							},
 						}}
 					/>
 					{uniqueConfigs.map((config) => (
@@ -238,8 +322,14 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 								fontSize: "10.5px",
 								color: "white",
 								borderColor: "#7b68ee",
-								backgroundColor: selectedConfigFilter === config ? "#7b68ee" : "transparent",
-								"&:hover": { backgroundColor: selectedConfigFilter === config ? "#6a5acd" : "rgba(123, 104, 238, 0.1)" }
+								backgroundColor:
+									selectedConfigFilter === config ? "#7b68ee" : "transparent",
+								"&:hover": {
+									backgroundColor:
+										selectedConfigFilter === config
+											? "#6a5acd"
+											: "rgba(123, 104, 238, 0.1)",
+								},
 							}}
 						/>
 					))}
@@ -249,14 +339,26 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 			{/* Main Orders Content Area */}
 			<Box sx={{ flexGrow: 1, overflowY: "auto", px: 0.5, py: 0.5 }}>
 				{filteredOrders.length === 0 ? (
-					<Typography variant="body1" color="rgba(255,255,255,0.4)" align="center" sx={{ py: 6, fontSize: "13px" }}>
+					<Typography
+						variant="body1"
+						color="rgba(255,255,255,0.4)"
+						align="center"
+						sx={{ py: 6, fontSize: "13px" }}
+					>
 						No matching orders found.
 					</Typography>
 				) : isMobileOrTablet ? (
 					/* Mobile 100% Card Layout */
 					<Grid container spacing={1.5} justifyContent="center">
 						{filteredOrders.map((order) => (
-							<Grid item xs={12} sm={6} md={4} key={order.id} sx={{ width: "100%" }}>
+							<Grid
+								item
+								xs={12}
+								sm={6}
+								md={4}
+								key={order.id}
+								sx={{ width: "100%" }}
+							>
 								<OrderCard
 									order={order}
 									isAdmin={isAdmin}
@@ -273,7 +375,14 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 					</Grid>
 				) : (
 					/* Desktop & Tablet Table Layout */
-					<TableContainer sx={{ background: "rgba(30, 29, 45, 0.4)", backdropFilter: "blur(12px)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)" }}>
+					<TableContainer
+						sx={{
+							background: "rgba(30, 29, 45, 0.4)",
+							backdropFilter: "blur(12px)",
+							borderRadius: "12px",
+							border: "1px solid rgba(255,255,255,0.08)",
+						}}
+					>
 						<Table size="small" stickyHeader>
 							<TableHead>
 								<TableRow>
@@ -290,7 +399,9 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 								{filteredOrders.map((order) => {
 									const isOwner =
 										isAdmin ||
-										(isUser && (order.ownerType === "USER" || order.ownerType === "API"));
+										(isUser &&
+											(order.ownerType === "USER" ||
+												order.ownerType === "API"));
 
 									return (
 										<TableRow
@@ -299,34 +410,60 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 											sx={{
 												cursor: "pointer",
 												"&:hover": { bgcolor: "rgba(255,255,255,0.03)" },
-												transition: "background-color 0.15s ease"
+												transition: "background-color 0.15s ease",
 											}}
 										>
-											<TableCell sx={{ color: "white", fontWeight: "bold", fontSize: "12.5px" }}>
+											<TableCell
+												sx={{
+													color: "white",
+													fontWeight: "bold",
+													fontSize: "12.5px",
+												}}
+											>
 												#{order.id.toString().slice(-6)}
 											</TableCell>
-											<TableCell sx={{ color: "white", fontSize: "12.5px", fontWeight: "medium" }}>
+											<TableCell
+												sx={{
+													color: "white",
+													fontSize: "12.5px",
+													fontWeight: "medium",
+												}}
+											>
 												{order.customer}
 											</TableCell>
 											<TableCell sx={{ color: "white" }}>
-												<Typography variant="body2" fontWeight="bold" sx={{ fontSize: "12.5px" }}>
+												<Typography
+													variant="body2"
+													fontWeight="bold"
+													sx={{ fontSize: "12.5px" }}
+												>
 													{order.shipType.name}
 												</Typography>
 												{order.notes && (
-													<Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", fontSize: "10.5px" }}>
+													<Typography
+														variant="caption"
+														sx={{
+															color: "rgba(255,255,255,0.5)",
+															fontSize: "10.5px",
+														}}
+													>
 														Note: {order.notes}
 													</Typography>
 												)}
 											</TableCell>
-											<TableCell sx={{ color: "#4caf50", fontWeight: "bold", fontSize: "12.5px" }}>
+											<TableCell
+												sx={{
+													color: "#4caf50",
+													fontWeight: "bold",
+													fontSize: "12.5px",
+												}}
+											>
 												${order.price.toLocaleString()}
 											</TableCell>
 											<TableCell sx={{ color: "white", fontSize: "12.5px" }}>
 												{order.waitTimeDays} days
 											</TableCell>
-											<TableCell>
-												{getStatusChip(order.status)}
-											</TableCell>
+											<TableCell>{getStatusChip(order.status)}</TableCell>
 											{!isGuest && (
 												<TableCell onClick={(e) => e.stopPropagation()}>
 													<Stack direction="row" spacing={0.5}>
@@ -335,7 +472,9 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 																<IconButton
 																	color="success"
 																	size="small"
-																	onClick={(e) => handleCompleteClick(e, order.id)}
+																	onClick={(e) =>
+																		handleCompleteClick(e, order.id)
+																	}
 																>
 																	<CompleteIcon fontSize="small" />
 																</IconButton>
@@ -348,7 +487,9 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 																	<IconButton
 																		color="warning"
 																		size="small"
-																		onClick={(e) => handleEditClick(e, order.id)}
+																		onClick={(e) =>
+																			handleEditClick(e, order.id)
+																		}
 																	>
 																		<EditIcon fontSize="small" />
 																	</IconButton>
@@ -358,7 +499,9 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 																	<IconButton
 																		color="error"
 																		size="small"
-																		onClick={(e) => handleDeleteClick(e, order.id)}
+																		onClick={(e) =>
+																			handleDeleteClick(e, order.id)
+																		}
 																	>
 																		<DeleteIcon fontSize="small" />
 																	</IconButton>
@@ -397,20 +540,29 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 							border: "1px solid rgba(255,255,255,0.08)",
 							minWidth: 280,
 						},
-					}
+					},
 				}}
 			>
-				<DialogTitle sx={{ fontWeight: "bold", fontSize: "15px" }}>Complete Ship Order</DialogTitle>
+				<DialogTitle sx={{ fontWeight: "bold", fontSize: "15px" }}>
+					Complete Ship Order
+				</DialogTitle>
 				<DialogContent>
 					<Typography variant="body2" sx={{ color: "rgba(255,255,255,0.7)" }}>
-						Are you sure you want to mark this ship order as completed? This will set its status to Completed.
+						Are you sure you want to mark this ship order as completed? This
+						will set its status to Completed.
 					</Typography>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setConfirmCompleteId(null)} sx={{ color: "white", fontSize: "12px" }}>
+					<Button
+						onClick={() => setConfirmCompleteId(null)}
+						sx={{ color: "white", fontSize: "12px" }}
+					>
 						Cancel
 					</Button>
-					<Button onClick={handleConfirmComplete} sx={{ color: "#7b68ee", fontWeight: "bold", fontSize: "12px" }}>
+					<Button
+						onClick={handleConfirmComplete}
+						sx={{ color: "#7b68ee", fontWeight: "bold", fontSize: "12px" }}
+					>
 						Confirm Complete
 					</Button>
 				</DialogActions>

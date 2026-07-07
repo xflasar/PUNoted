@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { STATIC_PRESETS, MOCK_CORP_COMPANIES, MOCK_CORP_USERNAMES } from "../utils/constants";
+import {
+	STATIC_PRESETS,
+	MOCK_CORP_COMPANIES,
+	MOCK_CORP_USERNAMES,
+} from "../utils/constants";
 import { calculateDynamicStats, calculateBOM } from "../utils/formulas";
 
 export interface UseShipBuilderProps {
@@ -8,13 +12,21 @@ export interface UseShipBuilderProps {
 	editingOrderId?: string | null;
 }
 
-export function useShipBuilder({ mockRole, onOrderCreated, editingOrderId }: UseShipBuilderProps) {
+export function useShipBuilder({
+	mockRole,
+	onOrderCreated,
+	editingOrderId,
+}: UseShipBuilderProps) {
 	const [mobileActiveTab, setMobileActiveTab] = useState(0);
 	const [testMode, setTestMode] = useState<boolean>(false);
 	const isAdmin = mockRole === "ADMIN" || testMode;
 
-	const [shipClass, setShipClass] = useState<"REGULAR" | "COLONY_SHIP">("REGULAR");
-	const [selectedPresetId, setSelectedPresetId] = useState<string>(isAdmin ? "custom" : "lcbftl");
+	const [shipClass, setShipClass] = useState<"REGULAR" | "COLONY_SHIP">(
+		"REGULAR",
+	);
+	const [selectedPresetId, setSelectedPresetId] = useState<string>(
+		isAdmin ? "custom" : "lcbftl",
+	);
 
 	// Top 14 Selectable Component States
 	const [selections, setSelections] = useState<Record<string, string>>(() => {
@@ -56,27 +68,35 @@ export function useShipBuilder({ mockRole, onOrderCreated, editingOrderId }: Use
 	// Reset state if role changes or test mode toggles
 	useEffect(() => {
 		setSelectedPresetId(isAdmin ? "custom" : "lcbftl");
-		setSelections(isAdmin ? {
-			STL_ENGINE: "STL_ENGINE_STANDARD",
-			STL_FUEL_TANK: "STL_FUEL_TANK_SMALL",
-			FTL_REACTOR: "FTL_REACTOR_STANDARD",
-			FTL_FUEL_TANK: "FTL_FUEL_TANK_SMALL",
-			VORTEX_REACTOR: "NONE",
-			VORTEX_FUEL_TANK: "NONE",
-			CARGO_BAY: "CARGO_BAY_SMALL",
-			HULL_TYPE: "HULL_PLATES_BASIC",
-			HEAT_SHIELD: "NONE",
-			WHIPPLE_SHIELD: "NONE",
-			GRAVITY_SHIELD: "NONE",
-			RADIATION_SHIELD: "NONE",
-			REPAIR_DRONES: "NONE",
-			HIGH_G_SEATS: "NONE",
-		} : { ...STATIC_PRESETS[0].selections });
+		setSelections(
+			isAdmin
+				? {
+						STL_ENGINE: "STL_ENGINE_STANDARD",
+						STL_FUEL_TANK: "STL_FUEL_TANK_SMALL",
+						FTL_REACTOR: "FTL_REACTOR_STANDARD",
+						FTL_FUEL_TANK: "FTL_FUEL_TANK_SMALL",
+						VORTEX_REACTOR: "NONE",
+						VORTEX_FUEL_TANK: "NONE",
+						CARGO_BAY: "CARGO_BAY_SMALL",
+						HULL_TYPE: "HULL_PLATES_BASIC",
+						HEAT_SHIELD: "NONE",
+						WHIPPLE_SHIELD: "NONE",
+						GRAVITY_SHIELD: "NONE",
+						RADIATION_SHIELD: "NONE",
+						REPAIR_DRONES: "NONE",
+						HIGH_G_SEATS: "NONE",
+					}
+				: { ...STATIC_PRESETS[0].selections },
+		);
 	}, [isAdmin]);
 
 	// Prefill logged-in user details
 	useEffect(() => {
-		if ((mockRole === "ADMIN" || mockRole === "USER") && !isForSomeoneElse && !editingOrderId) {
+		if (
+			(mockRole === "ADMIN" || mockRole === "USER") &&
+			!isForSomeoneElse &&
+			!editingOrderId
+		) {
 			setUsername("");
 			setCompanyCode("");
 			setIsCorpMember(true);
@@ -91,8 +111,12 @@ export function useShipBuilder({ mockRole, onOrderCreated, editingOrderId }: Use
 	useEffect(() => {
 		const coNameLower = companyCode.toLowerCase();
 		const userLower = username.toLowerCase();
-		const matchesCorpCompany = MOCK_CORP_COMPANIES.some((name) => coNameLower.includes(name));
-		const matchesCorpUser = MOCK_CORP_USERNAMES.some((name) => userLower.includes(name));
+		const matchesCorpCompany = MOCK_CORP_COMPANIES.some((name) =>
+			coNameLower.includes(name),
+		);
+		const matchesCorpUser = MOCK_CORP_USERNAMES.some((name) =>
+			userLower.includes(name),
+		);
 
 		if (matchesCorpCompany || matchesCorpUser) {
 			setIsCorpMember(true);
@@ -105,7 +129,9 @@ export function useShipBuilder({ mockRole, onOrderCreated, editingOrderId }: Use
 			const saved = localStorage.getItem("mock_ship_orders");
 			if (saved) {
 				const orders = JSON.parse(saved);
-				const editingOrder = orders.find((o: any) => o.id.toString() === editingOrderId.toString());
+				const editingOrder = orders.find(
+					(o: any) => o.id.toString() === editingOrderId.toString(),
+				);
 				if (editingOrder) {
 					const customerStr = editingOrder.customer || "";
 					const parts = customerStr.split(" | ");
@@ -130,7 +156,9 @@ export function useShipBuilder({ mockRole, onOrderCreated, editingOrderId }: Use
 						setShipClass(editingOrder.shipType.shipClass);
 					}
 					setIsCustomPrice(editingOrder.shipType.isCustomPrice || false);
-					setSelectedPresetId(editingOrder.shipType.presetId || (isAdmin ? "custom" : "lcbftl"));
+					setSelectedPresetId(
+						editingOrder.shipType.presetId || (isAdmin ? "custom" : "lcbftl"),
+					);
 				}
 			}
 		}
@@ -158,7 +186,12 @@ export function useShipBuilder({ mockRole, onOrderCreated, editingOrderId }: Use
 		const preset = STATIC_PRESETS.find((p) => p.id === selectedPresetId);
 		if (!preset) return [];
 
-		const diffs: { key: string; presetVal: string; currentVal: string; isAdded: boolean }[] = [];
+		const diffs: {
+			key: string;
+			presetVal: string;
+			currentVal: string;
+			isAdded: boolean;
+		}[] = [];
 		Object.keys(preset.selections).forEach((k) => {
 			if (selections[k] !== preset.selections[k]) {
 				diffs.push({
@@ -233,27 +266,46 @@ export function useShipBuilder({ mockRole, onOrderCreated, editingOrderId }: Use
 		const saved = localStorage.getItem("mock_ship_orders");
 		let currentOrders = saved ? JSON.parse(saved) : [];
 
-		const pin = createdPin || Math.floor(100000 + Math.random() * 900000).toString();
+		const pin =
+			createdPin || Math.floor(100000 + Math.random() * 900000).toString();
 		const formattedCustomerName = `${companyCode}${username ? ` | User: ${username}` : ""}${pin ? ` | Code: ${pin}` : ""}`;
 
 		const orderObj = {
 			id: editingOrderId ? Number(editingOrderId) : Date.now(),
 			customer: formattedCustomerName,
-			status: editingOrderId ? undefined : (mockRole === "ADMIN" ? "APPROVED" : "PENDING_APPROVAL"),
-			ownerType: editingOrderId ? undefined : (mockRole === "GUEST" ? "GUEST" : "USER"),
-			ownerId: editingOrderId ? undefined : (mockRole === "USER" ? "USR-999" : undefined),
+			status: editingOrderId
+				? undefined
+				: mockRole === "ADMIN"
+					? "APPROVED"
+					: "PENDING_APPROVAL",
+			ownerType: editingOrderId
+				? undefined
+				: mockRole === "GUEST"
+					? "GUEST"
+					: "USER",
+			ownerId: editingOrderId
+				? undefined
+				: mockRole === "USER"
+					? "USR-999"
+					: undefined,
 			guestPin: pin,
 			price: price,
 			waitTimeDays: waitTime,
-			completionDate: new Date(Date.now() + waitTime * 24 * 60 * 60 * 1000).toISOString(),
+			completionDate: new Date(
+				Date.now() + waitTime * 24 * 60 * 60 * 1000,
+			).toISOString(),
 			createdAt: new Date().toISOString(),
 			notes: specialNeeds,
 			shipType: {
 				id: selectedPresetId,
 				presetId: selectedPresetId,
-				name: selectedPresetId === "custom"
-					? (shipClass === "COLONY_SHIP" ? "Colony Build (Custom)" : "Custom Modular Build")
-					: STATIC_PRESETS.find(p => p.id === selectedPresetId)?.name || "Preset Build",
+				name:
+					selectedPresetId === "custom"
+						? shipClass === "COLONY_SHIP"
+							? "Colony Build (Custom)"
+							: "Custom Modular Build"
+						: STATIC_PRESETS.find((p) => p.id === selectedPresetId)?.name ||
+							"Preset Build",
 				parts: partsList,
 				systemSelections: selections,
 				shipClass: shipClass,
@@ -284,22 +336,26 @@ export function useShipBuilder({ mockRole, onOrderCreated, editingOrderId }: Use
 
 		localStorage.setItem("mock_ship_orders", JSON.stringify(currentOrders));
 
-		setSelections(isAdmin ? {
-			STL_ENGINE: "STL_ENGINE_STANDARD",
-			STL_FUEL_TANK: "STL_FUEL_TANK_SMALL",
-			FTL_REACTOR: "FTL_REACTOR_STANDARD",
-			FTL_FUEL_TANK: "FTL_FUEL_TANK_SMALL",
-			VORTEX_REACTOR: "NONE",
-			VORTEX_FUEL_TANK: "NONE",
-			CARGO_BAY: "CARGO_BAY_SMALL",
-			HULL_TYPE: "HULL_PLATES_BASIC",
-			HEAT_SHIELD: "NONE",
-			WHIPPLE_SHIELD: "NONE",
-			GRAVITY_SHIELD: "NONE",
-			RADIATION_SHIELD: "NONE",
-			REPAIR_DRONES: "NONE",
-			HIGH_G_SEATS: "NONE",
-		} : { ...STATIC_PRESETS[0].selections });
+		setSelections(
+			isAdmin
+				? {
+						STL_ENGINE: "STL_ENGINE_STANDARD",
+						STL_FUEL_TANK: "STL_FUEL_TANK_SMALL",
+						FTL_REACTOR: "FTL_REACTOR_STANDARD",
+						FTL_FUEL_TANK: "FTL_FUEL_TANK_SMALL",
+						VORTEX_REACTOR: "NONE",
+						VORTEX_FUEL_TANK: "NONE",
+						CARGO_BAY: "CARGO_BAY_SMALL",
+						HULL_TYPE: "HULL_PLATES_BASIC",
+						HEAT_SHIELD: "NONE",
+						WHIPPLE_SHIELD: "NONE",
+						GRAVITY_SHIELD: "NONE",
+						RADIATION_SHIELD: "NONE",
+						REPAIR_DRONES: "NONE",
+						HIGH_G_SEATS: "NONE",
+					}
+				: { ...STATIC_PRESETS[0].selections },
+		);
 
 		setCompanyCode("");
 		setUsername("");

@@ -50,36 +50,57 @@ export interface CalculateBOMResult {
 
 /**
  * DETERMINISTIC RULES ENGINE
- * This calculates stats using verified additive deltas and 
+ * This calculates stats using verified additive deltas and
  * fixed game thresholds. No caching logic is used to ensure
  * live response to UI changes.
  */
-export function calculateDynamicStats(input: CalculateStatsInput): DynamicStatsResult {
+export function calculateDynamicStats(
+	input: CalculateStatsInput,
+): DynamicStatsResult {
 	const { selections, shipClass } = input;
 
 	// Base Chassis configuration from extracted data
 	let total_volume = 0;
-	const optionsProfile = (optionsProfileData.optionsProfile || {}) as Record<string, any>;
+	const optionsProfile = (optionsProfileData.optionsProfile || {}) as Record<
+		string,
+		any
+	>;
 
 	// 1. Absolute Component Summation
 	Object.entries(selections).forEach(([key, val]) => {
-		if (!val || val === "NONE" || val === "" || key === "COMMAND_BRIDGE" || key === "CREW_QUARTERS" || key === "STRUCTURE") return;
+		if (
+			!val ||
+			val === "NONE" ||
+			val === "" ||
+			key === "COMMAND_BRIDGE" ||
+			key === "CREW_QUARTERS" ||
+			key === "STRUCTURE"
+		)
+			return;
 		const profile = optionsProfile[val];
 		if (profile) {
-			total_volume += (profile.volume || 0);
+			total_volume += profile.volume || 0;
 		}
 	});
 
 	if (total_volume < 10) total_volume = 10;
 
 	// Bridge logic based on exact hierarchy:
-	const hasFtl = selections.FTL_REACTOR !== "NONE" && selections.FTL_REACTOR !== "" && selections.FTL_FUEL_TANK !== "NONE" && selections.FTL_FUEL_TANK !== "";
+	const hasFtl =
+		selections.FTL_REACTOR !== "NONE" &&
+		selections.FTL_REACTOR !== "" &&
+		selections.FTL_FUEL_TANK !== "NONE" &&
+		selections.FTL_FUEL_TANK !== "";
 	let bridgeTicker = "BRS";
 	if (hasFtl) {
-		const requiresFtlBr2 = selections.FTL_REACTOR === "FTL_REACTOR_HIGH_POWER" || selections.FTL_REACTOR === "FTL_REACTOR_HYPER_POWER";
+		const requiresFtlBr2 =
+			selections.FTL_REACTOR === "FTL_REACTOR_HIGH_POWER" ||
+			selections.FTL_REACTOR === "FTL_REACTOR_HYPER_POWER";
 		bridgeTicker = requiresFtlBr2 ? "BR2" : "BR1";
 	} else {
-		const requiresStlBr2 = selections.STL_ENGINE === "STL_ENGINE_ADVANCED" || selections.STL_ENGINE === "STL_ENGINE_HYPERTHRUST";
+		const requiresStlBr2 =
+			selections.STL_ENGINE === "STL_ENGINE_ADVANCED" ||
+			selections.STL_ENGINE === "STL_ENGINE_HYPERTHRUST";
 		bridgeTicker = requiresStlBr2 ? "BR2" : "BRS";
 	}
 
@@ -87,7 +108,14 @@ export function calculateDynamicStats(input: CalculateStatsInput): DynamicStatsR
 		bridgeTicker = "BRP";
 	}
 
-	let bridgeLabel = bridgeTicker === "BRP" ? "Protected" : (bridgeTicker === "BR2" ? "FTL Bridge" : (bridgeTicker === "BR1" ? "Standard Bridge" : "Short-distance Bridge"));
+	let bridgeLabel =
+		bridgeTicker === "BRP"
+			? "Protected"
+			: bridgeTicker === "BR2"
+				? "FTL Bridge"
+				: bridgeTicker === "BR1"
+					? "Standard Bridge"
+					: "Short-distance Bridge";
 
 	// Dynamic Bridge Volume and SSC
 	if (bridgeTicker === "BRS") {
@@ -119,12 +147,23 @@ export function calculateDynamicStats(input: CalculateStatsInput): DynamicStatsR
 	const sscCount = Math.ceil(total_volume / 21);
 	const plateCount = Math.ceil(Math.pow(total_volume, 2 / 3) / 2.07);
 	const ffcCount = hasFtl ? 1 : 0;
-	const heatShieldCount = selections.HEAT_SHIELD !== "NONE" && selections.HEAT_SHIELD !== "" ? plateCount : 0;
-	const whippleShieldCount = selections.WHIPPLE_SHIELD !== "NONE" && selections.WHIPPLE_SHIELD !== "" ? plateCount : 0;
-	const radShieldCount = selections.RADIATION_SHIELD !== "NONE" && selections.RADIATION_SHIELD !== "" ? plateCount : 0;
+	const heatShieldCount =
+		selections.HEAT_SHIELD !== "NONE" && selections.HEAT_SHIELD !== ""
+			? plateCount
+			: 0;
+	const whippleShieldCount =
+		selections.WHIPPLE_SHIELD !== "NONE" && selections.WHIPPLE_SHIELD !== ""
+			? plateCount
+			: 0;
+	const radShieldCount =
+		selections.RADIATION_SHIELD !== "NONE" && selections.RADIATION_SHIELD !== ""
+			? plateCount
+			: 0;
 
 	// Emitter logic
-	let lfeCount = 0, mfeCount = 0, sfeCount = 0;
+	let lfeCount = 0,
+		mfeCount = 0,
+		sfeCount = 0;
 	if (hasFtl) {
 		lfeCount = Math.floor(total_volume / 1000);
 		const remainder1 = total_volume % 1000;
@@ -158,14 +197,14 @@ export function calculateDynamicStats(input: CalculateStatsInput): DynamicStatsR
 		stlCapacity: 0,
 		ftlCapacity: 0,
 		calculatedMass: 0, // Migrated to calculateBOM
-		buildTime: 0       // Migrated to calculateBOM
+		buildTime: 0, // Migrated to calculateBOM
 	};
 }
 
 export function calculateBOM(
 	selections: Record<string, string>,
 	dynamicStats: DynamicStatsResult,
-	shipClass: "REGULAR" | "COLONY_SHIP"
+	shipClass: "REGULAR" | "COLONY_SHIP",
 ): CalculateBOMResult {
 	const newPartsMap = new Map<string, number>();
 	const perf: PerformanceStats = {
@@ -175,7 +214,7 @@ export function calculateBOM(
 		powerGen: 0,
 		cargoCapacity: 0,
 		crewCapacity: 0,
-		buildTime: dynamicStats.buildTime
+		buildTime: dynamicStats.buildTime,
 	};
 
 	const addPerf = (p: any) => {
@@ -189,7 +228,13 @@ export function calculateBOM(
 
 	Object.entries(selections).forEach(([key, val]) => {
 		if (val === "NONE" || val === "") return;
-		if (key === "HULL_TYPE" || key === "HEAT_SHIELD" || key === "WHIPPLE_SHIELD" || key === "RADIATION_SHIELD") return;
+		if (
+			key === "HULL_TYPE" ||
+			key === "HEAT_SHIELD" ||
+			key === "WHIPPLE_SHIELD" ||
+			key === "RADIATION_SHIELD"
+		)
+			return;
 
 		const options = SHIP_SYSTEMS_MOCK[key];
 		if (options) {
@@ -208,45 +253,80 @@ export function calculateBOM(
 
 	const activeHullPlateType = selections.HULL_TYPE;
 	const hullPlateTicker = MATERIAL_SPECS[activeHullPlateType]?.ticker || "BHP";
-	newPartsMap.set(hullPlateTicker, (newPartsMap.get(hullPlateTicker) || 0) + dynamicStats.plateCount);
+	newPartsMap.set(
+		hullPlateTicker,
+		(newPartsMap.get(hullPlateTicker) || 0) + dynamicStats.plateCount,
+	);
 
 	if (dynamicStats.heatShieldCount > 0) {
 		const heatTicker = MATERIAL_SPECS[selections.HEAT_SHIELD]?.ticker || "HSP";
-		newPartsMap.set(heatTicker, (newPartsMap.get(heatTicker) || 0) + dynamicStats.heatShieldCount);
+		newPartsMap.set(
+			heatTicker,
+			(newPartsMap.get(heatTicker) || 0) + dynamicStats.heatShieldCount,
+		);
 	}
 	if (dynamicStats.whippleShieldCount > 0) {
-		const whippleTicker = MATERIAL_SPECS[selections.WHIPPLE_SHIELD]?.ticker || "WSP";
-		newPartsMap.set(whippleTicker, (newPartsMap.get(whippleTicker) || 0) + dynamicStats.whippleShieldCount);
+		const whippleTicker =
+			MATERIAL_SPECS[selections.WHIPPLE_SHIELD]?.ticker || "WSP";
+		newPartsMap.set(
+			whippleTicker,
+			(newPartsMap.get(whippleTicker) || 0) + dynamicStats.whippleShieldCount,
+		);
 	}
 	if (dynamicStats.radShieldCount > 0) {
-		const radTicker = MATERIAL_SPECS[selections.RADIATION_SHIELD]?.ticker || "RSP";
-		newPartsMap.set(radTicker, (newPartsMap.get(radTicker) || 0) + dynamicStats.radShieldCount);
+		const radTicker =
+			MATERIAL_SPECS[selections.RADIATION_SHIELD]?.ticker || "RSP";
+		newPartsMap.set(
+			radTicker,
+			(newPartsMap.get(radTicker) || 0) + dynamicStats.radShieldCount,
+		);
 	}
 
-	newPartsMap.set(dynamicStats.bridgeTicker, (newPartsMap.get(dynamicStats.bridgeTicker) || 0) + 1);
-	newPartsMap.set(dynamicStats.crewTicker, (newPartsMap.get(dynamicStats.crewTicker) || 0) + 1);
+	newPartsMap.set(
+		dynamicStats.bridgeTicker,
+		(newPartsMap.get(dynamicStats.bridgeTicker) || 0) + 1,
+	);
+	newPartsMap.set(
+		dynamicStats.crewTicker,
+		(newPartsMap.get(dynamicStats.crewTicker) || 0) + 1,
+	);
 
 	if (dynamicStats.ffcCount > 0) {
-		newPartsMap.set("FFC", (newPartsMap.get("FFC") || 0) + dynamicStats.ffcCount);
+		newPartsMap.set(
+			"FFC",
+			(newPartsMap.get("FFC") || 0) + dynamicStats.ffcCount,
+		);
 	}
 	if (dynamicStats.lfeCount > 0) {
-		newPartsMap.set("LFE", (newPartsMap.get("LFE") || 0) + dynamicStats.lfeCount);
+		newPartsMap.set(
+			"LFE",
+			(newPartsMap.get("LFE") || 0) + dynamicStats.lfeCount,
+		);
 	}
 	if (dynamicStats.mfeCount > 0) {
-		newPartsMap.set("MFE", (newPartsMap.get("MFE") || 0) + dynamicStats.mfeCount);
+		newPartsMap.set(
+			"MFE",
+			(newPartsMap.get("MFE") || 0) + dynamicStats.mfeCount,
+		);
 	}
 	if (dynamicStats.sfeCount > 0) {
-		newPartsMap.set("SFE", (newPartsMap.get("SFE") || 0) + dynamicStats.sfeCount);
+		newPartsMap.set(
+			"SFE",
+			(newPartsMap.get("SFE") || 0) + dynamicStats.sfeCount,
+		);
 	}
 
 	if (dynamicStats.habModuleCount > 0) {
-		newPartsMap.set("HAM", (newPartsMap.get("HAM") || 0) + dynamicStats.habModuleCount);
+		newPartsMap.set(
+			"HAM",
+			(newPartsMap.get("HAM") || 0) + dynamicStats.habModuleCount,
+		);
 	}
 
 	let cxSum = 0;
 	let totalWeight = 0;
 	newPartsMap.forEach((qty, ticker) => {
-		const spec = Object.values(MATERIAL_SPECS).find(s => s.ticker === ticker);
+		const spec = Object.values(MATERIAL_SPECS).find((s) => s.ticker === ticker);
 		if (spec) {
 			cxSum += spec.cxPrice * qty;
 			totalWeight += spec.weight * qty;

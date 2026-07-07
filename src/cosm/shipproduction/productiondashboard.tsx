@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Box, Typography, ToggleButtonGroup, ToggleButton, Stack } from "@mui/material";
+import {
+	Box,
+	Typography,
+	ToggleButtonGroup,
+	ToggleButton,
+	Stack,
+} from "@mui/material";
 import { API_BASE_URL } from "../../config/api";
 import { addDays } from "date-fns";
 import type { BalanceItem } from "./materialbalancetable";
@@ -510,7 +516,10 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 		}
 	};
 
-	const handleUpdateStatus = (orderId: number, status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED") => {
+	const handleUpdateStatus = (
+		orderId: number,
+		status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
+	) => {
 		const saved = localStorage.getItem("mock_ship_orders");
 		if (saved) {
 			const parsed = JSON.parse(saved);
@@ -551,7 +560,10 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 					flexShrink: 0,
 				}}
 			>
-				<Typography variant="caption" sx={{ fontWeight: "bold", color: "rgba(255,255,255,0.4)" }}>
+				<Typography
+					variant="caption"
+					sx={{ fontWeight: "bold", color: "rgba(255,255,255,0.4)" }}
+				>
 					Debug Persona:
 				</Typography>
 				<ToggleButtonGroup

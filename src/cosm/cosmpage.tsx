@@ -48,7 +48,7 @@ const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
 				minWidth: "100%",
 				maxHeight: "100%",
 				height: "100%",
-				p: 0
+				p: 0,
 			}}
 		>
 			<ProductionDashboard isMobile={isMobile} />

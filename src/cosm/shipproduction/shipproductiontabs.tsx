@@ -28,7 +28,10 @@ export interface ShipProductionTabsProps {
 	onCancelEdit: () => void;
 	onOrderCreated: (pin?: string) => void;
 	onDeleteOrder: (orderId: number) => void;
-	onUpdateStatus: (orderId: number, status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED") => void;
+	onUpdateStatus: (
+		orderId: number,
+		status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
+	) => void;
 	materialBalance: BalanceItem[];
 }
 
@@ -201,10 +204,7 @@ const ShipProductionTabs: React.FC<ShipProductionTabsProps> = (props) => {
 
 			{/* Tab 2: Ship Builder */}
 			<TabPanel value={value} index={2} sx={{ flexGrow: 1, minHeight: 0 }}>
-				<ShipBuilder
-					mockRole={mockRole}
-					onOrderCreated={handleOrderFinished}
-				/>
+				<ShipBuilder mockRole={mockRole} onOrderCreated={handleOrderFinished} />
 			</TabPanel>
 
 			{/* Edit Config Full-Page Overlay */}

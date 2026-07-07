@@ -19,7 +19,11 @@ export interface OrderDetailsModalProps {
 	getStatusChip: (status?: string) => React.ReactNode;
 }
 
-export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onClose, getStatusChip }) => {
+export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
+	order,
+	onClose,
+	getStatusChip,
+}) => {
 	if (!order) return null;
 
 	return (
@@ -37,30 +41,57 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onC
 						maxWidth: 500,
 						p: 1,
 					},
-				}
+				},
 			}}
 		>
-			<DialogTitle sx={{ fontWeight: "bold", fontSize: "16px", pb: 1, color: "#7b68ee" }}>
+			<DialogTitle
+				sx={{ fontWeight: "bold", fontSize: "16px", pb: 1, color: "#7b68ee" }}
+			>
 				Order Specs Detailed View
 			</DialogTitle>
 			<DialogContent sx={{ pb: 1 }}>
 				<Stack spacing={2.5}>
 					<Box>
-						<Typography variant="caption" color="rgba(255,255,255,0.4)" sx={{ fontSize: "12px", textTransform: "uppercase" }}>Order Code</Typography>
-						<Typography variant="body1" sx={{ fontSize: "13.5px", fontWeight: "bold" }}>
+						<Typography
+							variant="caption"
+							color="rgba(255,255,255,0.4)"
+							sx={{ fontSize: "12px", textTransform: "uppercase" }}
+						>
+							Order Code
+						</Typography>
+						<Typography
+							variant="body1"
+							sx={{ fontSize: "13.5px", fontWeight: "bold" }}
+						>
 							#{order.id}
 						</Typography>
 					</Box>
 
 					<Box sx={{ display: "flex", justifyContent: "space-between" }}>
 						<Box>
-							<Typography variant="caption" color="rgba(255,255,255,0.4)" sx={{ fontSize: "12px", textTransform: "uppercase" }}>Status</Typography>
+							<Typography
+								variant="caption"
+								color="rgba(255,255,255,0.4)"
+								sx={{ fontSize: "12px", textTransform: "uppercase" }}
+							>
+								Status
+							</Typography>
 							<Box sx={{ mt: 0.5 }}>{getStatusChip(order.status)}</Box>
 						</Box>
 						{order.guestPin && (
 							<Box>
-								<Typography variant="caption" color="rgba(255,255,255,0.4)" sx={{ fontSize: "12px", textTransform: "uppercase" }}>Tracking PIN</Typography>
-								<Typography variant="body1" color="#ff9800" sx={{ fontSize: "13.5px", mt: 0.5, fontWeight: "bold" }}>
+								<Typography
+									variant="caption"
+									color="rgba(255,255,255,0.4)"
+									sx={{ fontSize: "12px", textTransform: "uppercase" }}
+								>
+									Tracking PIN
+								</Typography>
+								<Typography
+									variant="body1"
+									color="#ff9800"
+									sx={{ fontSize: "13.5px", mt: 0.5, fontWeight: "bold" }}
+								>
 									{order.guestPin}
 								</Typography>
 							</Box>
@@ -68,7 +99,13 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onC
 					</Box>
 
 					<Box>
-						<Typography variant="caption" color="rgba(255,255,255,0.4)" sx={{ fontSize: "12px", textTransform: "uppercase" }}>Customer Info</Typography>
+						<Typography
+							variant="caption"
+							color="rgba(255,255,255,0.4)"
+							sx={{ fontSize: "12px", textTransform: "uppercase" }}
+						>
+							Customer Info
+						</Typography>
 						<Typography variant="body2" sx={{ fontSize: "12.5px" }}>
 							{order.customer}
 						</Typography>
@@ -76,14 +113,33 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onC
 
 					<Box sx={{ display: "flex", justifyContent: "space-between" }}>
 						<Box>
-							<Typography variant="caption" color="rgba(255,255,255,0.4)" sx={{ fontSize: "12px", textTransform: "uppercase" }}>Price</Typography>
-							<Typography variant="body2" color="#4caf50" sx={{ fontSize: "12.5px", fontWeight: "bold" }}>
+							<Typography
+								variant="caption"
+								color="rgba(255,255,255,0.4)"
+								sx={{ fontSize: "12px", textTransform: "uppercase" }}
+							>
+								Price
+							</Typography>
+							<Typography
+								variant="body2"
+								color="#4caf50"
+								sx={{ fontSize: "12.5px", fontWeight: "bold" }}
+							>
 								${order.price.toLocaleString()}
 							</Typography>
 						</Box>
 						<Box>
-							<Typography variant="caption" color="rgba(255,255,255,0.4)" sx={{ fontSize: "12px", textTransform: "uppercase" }}>Lead Time</Typography>
-							<Typography variant="body2" sx={{ fontSize: "12.5px", fontWeight: "bold" }}>
+							<Typography
+								variant="caption"
+								color="rgba(255,255,255,0.4)"
+								sx={{ fontSize: "12px", textTransform: "uppercase" }}
+							>
+								Lead Time
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{ fontSize: "12.5px", fontWeight: "bold" }}
+							>
 								{order.waitTimeDays} Days
 							</Typography>
 						</Box>
@@ -92,7 +148,18 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onC
 					<Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
 
 					<Box>
-						<Typography variant="caption" color="rgba(255,255,255,0.4)" sx={{ fontSize: "12px", textTransform: "uppercase", display: "block", mb: 1 }}>Required Bill of Materials</Typography>
+						<Typography
+							variant="caption"
+							color="rgba(255,255,255,0.4)"
+							sx={{
+								fontSize: "12px",
+								textTransform: "uppercase",
+								display: "block",
+								mb: 1,
+							}}
+						>
+							Required Bill of Materials
+						</Typography>
 						<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.6 }}>
 							{order.shipType.parts.map((p) => (
 								<Stack
@@ -110,10 +177,19 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onC
 										gap: 0.2,
 									}}
 								>
-									<Typography variant="caption" sx={{ fontSize: "12px", fontWeight: "bold" }}>
+									<Typography
+										variant="caption"
+										sx={{ fontSize: "12px", fontWeight: "bold" }}
+									>
 										{p.quantity}x
 									</Typography>
-									<Box sx={{ display: "inline-block", transform: "scale(0.7)", transformOrigin: "left center" }}>
+									<Box
+										sx={{
+											display: "inline-block",
+											transform: "scale(0.7)",
+											transformOrigin: "left center",
+										}}
+									>
 										<MaterialBadge ticker={p.name} />
 									</Box>
 								</Stack>
@@ -123,8 +199,25 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onC
 
 					{order.notes && (
 						<Box>
-							<Typography variant="caption" color="rgba(255,255,255,0.4)" sx={{ fontSize: "12px", textTransform: "uppercase" }}>Special Instructions</Typography>
-							<Typography variant="body2" sx={{ fontSize: "12px", color: "rgba(255,255,255,0.7)", background: "rgba(0,0,0,0.15)", p: 1, borderRadius: "6px", border: "1px solid rgba(255,255,255,0.02)", mt: 0.5 }}>
+							<Typography
+								variant="caption"
+								color="rgba(255,255,255,0.4)"
+								sx={{ fontSize: "12px", textTransform: "uppercase" }}
+							>
+								Special Instructions
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{
+									fontSize: "12px",
+									color: "rgba(255,255,255,0.7)",
+									background: "rgba(0,0,0,0.15)",
+									p: 1,
+									borderRadius: "6px",
+									border: "1px solid rgba(255,255,255,0.02)",
+									mt: 0.5,
+								}}
+							>
 								{order.notes}
 							</Typography>
 						</Box>
@@ -132,7 +225,10 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onC
 				</Stack>
 			</DialogContent>
 			<DialogActions sx={{ pt: 1 }}>
-				<Button onClick={onClose} sx={{ color: "#7b68ee", fontWeight: "bold", fontSize: "12px" }}>
+				<Button
+					onClick={onClose}
+					sx={{ color: "#7b68ee", fontWeight: "bold", fontSize: "12px" }}
+				>
 					Close Specs
 				</Button>
 			</DialogActions>
