@@ -56,6 +56,47 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 			return;
 		}
 
+		const triggerSilentRefresh = async () => {
+			try {
+				const refreshUrl = `${API_BASE_URL}auth/refresh`;
+
+				// Execute the native fetch request to get a new token
+				const refreshRes = await fetch(refreshUrl, {
+					method: "POST",
+					credentials: "include",
+					headers: { "Content-Type": "application/json" },
+				});
+
+				if (refreshRes.status === 401 || refreshRes.status === 403) {
+					console.warn("WS: Refresh cookie invalid/expired. Forcing logout.");
+					localStorage.removeItem("authToken");
+					intentionalClose.current = true;
+					window.location.href = "/";
+					return;
+				}
+
+				if (!refreshRes.ok) {
+					throw new Error("Temporary refresh error");
+				}
+
+				const refreshData = await refreshRes.json();
+				console.log("WS: Token refreshed successfully! Reconnecting...");
+
+				localStorage.setItem("authToken", refreshData.token);
+
+				setTimeout(connect, 500);
+			} catch (e) {
+				console.warn(
+					"WS: Network/temporary error during refresh, retrying connection later",
+					e,
+				);
+				if (!intentionalClose.current) {
+					console.log("WS: Scheduling auto-reconnect...");
+					reconnectTimeoutRef.current = setTimeout(connect, 3000);
+				}
+			}
+		};
+
 		// --- DEFENSE LAYER 1: Decode JWT locally before connecting ---
 		try {
 			const tokenParts = token.split(".");
@@ -64,8 +105,10 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 				const now = Math.floor(Date.now() / 1000);
 				if (payload.exp && payload.exp < now) {
 					console.warn(
-						"WS: Token expired locally. Proceeding to trigger server-side refresh...",
+						"WS: Token expired locally. Triggering refresh before connecting...",
 					);
+					triggerSilentRefresh();
+					return;
 				}
 			}
 		} catch (e) {
@@ -130,44 +173,32 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 				wsRef.current = null;
 
 				// --- DEFENSE LAYER 3: Backend closes connection with specific auth-failure code ---
-				const isAuthError =
+				// Note: Handshake rejections (403) result in code 1006. If we get 1006, check if token is expired.
+				let isAuthError =
 					event.code === 1008 ||
 					event.code === 4001 ||
 					event.code === 4003 ||
 					(event.reason && event.reason.toLowerCase().includes("expire"));
 
+				if (event.code === 1006) {
+					try {
+						const tokenParts = token.split(".");
+						if (tokenParts.length === 3) {
+							const payload = JSON.parse(atob(tokenParts[1]));
+							const now = Math.floor(Date.now() / 1000);
+							if (payload.exp && payload.exp < now) {
+								isAuthError = true;
+							}
+						}
+					} catch (e) {}
+				}
+
 				if (isAuthError) {
 					console.warn(
 						"WS: Server rejected auth. Attempting silent refresh...",
 					);
-					try {
-						const refreshUrl = `${API_BASE_URL}auth/refresh`;
-
-						// Execute the native fetch request to get a new token
-						const refreshRes = await fetch(refreshUrl, {
-							method: "POST",
-							credentials: "include",
-							headers: { "Content-Type": "application/json" },
-						});
-
-						if (!refreshRes.ok) {
-							throw new Error("Refresh token expired or invalid");
-						}
-
-						const refreshData = await refreshRes.json();
-						console.log("WS: Token refreshed successfully! Reconnecting...");
-
-						localStorage.setItem("authToken", refreshData.token);
-
-						setTimeout(connect, 500);
-						return;
-					} catch (e) {
-						console.warn("WS: Refresh cookie invalid/expired. Forcing logout.");
-						localStorage.removeItem("authToken");
-						intentionalClose.current = true;
-						window.location.href = "/";
-						return;
-					}
+					triggerSilentRefresh();
+					return;
 				}
 
 				if (!intentionalClose.current) {
