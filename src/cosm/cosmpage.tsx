@@ -48,6 +48,7 @@ const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
 				minWidth: "100%",
 				maxHeight: "100%",
 				height: "100%",
+				p: 0
 			}}
 		>
 			<ProductionDashboard isMobile={isMobile} />
@@ -89,7 +90,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 				minWidth: "100%",
 				height: "100vh",
 				overflow: "hidden",
-				padding: 2,
+				padding: { xs: 0.5, sm: 2 },
 				boxSizing: "border-box",
 				display: "flex",
 				flexDirection: "column",

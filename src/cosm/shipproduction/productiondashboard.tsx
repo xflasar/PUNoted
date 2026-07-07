@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Box } from "@mui/material";
+import { Box, Typography, ToggleButtonGroup, ToggleButton, Stack } from "@mui/material";
 import { API_BASE_URL } from "../../config/api";
 import { addDays } from "date-fns";
-import MaterialBalanceTable, { BalanceItem } from "./materialbalancetable";
+import type { BalanceItem } from "./materialbalancetable";
 import ShipProductionTabs from "./shipproductiontabs";
-import { ShipOrder, ShipType, Part } from "./shiporders";
-import { SummaryDataItem } from "./shipproductiontable";
+import type { ShipOrder, ShipType, Part } from "./shiporders";
+import type { SummaryDataItem } from "./shipproductiontable";
 
 /**
  * Array of part tickers that are explicitly filtered and tracked for production.
@@ -180,9 +180,6 @@ const MOCK_SHIP_TYPES: ShipType[] = [
 	},
 ];
 
-/**
- * Represents the structure of a ship order received from the API.
- */
 interface ApiShipOrder {
 	orderid: number;
 	username: string;
@@ -194,21 +191,11 @@ interface ApiShipOrder {
 	orderdate: string;
 }
 
-/**
- * Represents the structure of a storage item received from the API.
- */
 interface ApiStorageItem {
 	ticker: string;
 	quantity: number;
 }
 
-/**
- * Calculates the total quantities of each tracked part required across all orders.
- * Only parts included in the PartsFilter are tallied.
- *
- * @param orders - The list of all ship orders.
- * @returns An array of objects detailing the total required quantity per part name.
- */
 const calculateTotalParts = (orders: ShipOrder[]) => {
 	const totalParts: { [key: string]: number } = {};
 	orders.forEach((order) => {
@@ -224,14 +211,6 @@ const calculateTotalParts = (orders: ShipOrder[]) => {
 	}));
 };
 
-/**
- * Evaluates the parts required for a given list of orders against the available storage inventory.
- * Deducts quantities from the available pool as it processes each order sequentially.
- *
- * @param orders - The list of ship orders to process.
- * @param currentStorageItems - The current inventory of parts.
- * @returns A new list of orders with part availabilities evaluated.
- */
 const processOrdersAndParts = (
 	orders: ShipOrder[],
 	currentStorageItems: Part[],
@@ -262,14 +241,6 @@ const processOrdersAndParts = (
 	});
 };
 
-/**
- * Generates the summarized data matrix for the production table.
- * Evaluates part availability across orders, prioritizing earlier orders.
- *
- * @param orders - The list of filtered ship orders to summarize.
- * @param currentStorageItems - The current inventory of parts.
- * @returns An object containing the unique part names and the row data for the table.
- */
 const getSummaryDataWithAvailability = (
 	orders: ShipOrder[],
 	currentStorageItems: Part[],
@@ -322,33 +293,39 @@ const getSummaryDataWithAvailability = (
 	return { partNames, summaryData };
 };
 
-/**
- * Props for the ProductionDashboard component.
- */
 interface ProductionDashboardProps {
-	/** Indicates whether the application is viewed on a mobile device. */
 	isMobile: boolean;
 }
 
-/**
- * Main dashboard component for managing and viewing ship production.
- * Fetches order and inventory data, calculates material balances, and provides filtering.
- *
- * @param props - The component props.
- * @returns The rendered dashboard component.
- */
 const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 	isMobile,
 }) => {
-	const [shipOrders, setShipOrders] = useState<ShipOrder[]>([]);
+	const [apiShipOrders, setApiShipOrders] = useState<ShipOrder[]>([]);
 	const [storageItems, setStorageItems] = useState<Part[]>([]);
 	const [selectedShipTypes, setSelectedShipTypes] = useState<string[]>(["all"]);
+	const [mockRole, setMockRole] = useState<"ADMIN" | "USER" | "GUEST">("ADMIN");
+	const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
-	/**
-	 * Fetches the current ship orders and available storage items from the API.
-	 *
-	 * @param useFio - Boolean flag indicating if external FIO data should be used.
-	 */
+	// Local storage orders state
+	const [localOrders, setLocalOrders] = useState<ShipOrder[]>([]);
+
+	const loadLocalOrders = useCallback(() => {
+		const saved = localStorage.getItem("mock_ship_orders");
+		if (saved) {
+			try {
+				const parsed = JSON.parse(saved).map((o: any) => ({
+					...o,
+					completionDate: new Date(o.completionDate),
+				}));
+				setLocalOrders(parsed);
+			} catch (e) {
+				console.error("Error parsing local ship orders:", e);
+			}
+		} else {
+			setLocalOrders([]);
+		}
+	}, []);
+
 	const fetchShipProduction = useCallback(async (useFio: boolean) => {
 		try {
 			const response = await fetch(`${API_BASE_URL}get_ship_production`, {
@@ -375,9 +352,6 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 						);
 
 						if (!shipType) {
-							console.warn(
-								`ShipType "${item.shiptype}" not found in MOCK_SHIP_TYPES. Using "all" as default.`,
-							);
 							return {
 								id: item.orderid,
 								customer: item.username,
@@ -386,6 +360,8 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 								waitTimeDays: item.orderwaittime,
 								completionDate: addDays(new Date(), item.orderwaittime),
 								processedParts: [],
+								status: item.completed ? "COMPLETED" : "APPROVED",
+								ownerType: "API",
 							};
 						}
 
@@ -397,6 +373,8 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 							waitTimeDays: item.orderwaittime,
 							completionDate: addDays(new Date(), item.orderwaittime),
 							processedParts: [],
+							status: item.completed ? "COMPLETED" : "APPROVED",
+							ownerType: "API",
 						};
 					},
 				);
@@ -409,13 +387,8 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 						};
 					},
 				);
-				setShipOrders(fetchedOrders);
+				setApiShipOrders(fetchedOrders);
 				setStorageItems(fetchedStorageItems);
-			} else {
-				console.error(
-					"API response indicates failure or data is not an array:",
-					apiResponse,
-				);
 			}
 		} catch (error) {
 			console.error("Failed to fetch ship production data:", error);
@@ -424,21 +397,20 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 
 	useEffect(() => {
 		fetchShipProduction(true);
-	}, [fetchShipProduction]);
+		loadLocalOrders();
+	}, [fetchShipProduction, loadLocalOrders]);
 
-	/**
-	 * Toggles the selection state of a ship type filter.
-	 * Ensures that selecting a specific type unselects "all", and vice versa.
-	 *
-	 * @param shipIdRaw - The identifier of the ship type to toggle.
-	 */
+	// Combined orders: API orders + Local Storage orders
+	const shipOrders = useMemo(() => {
+		return [...apiShipOrders, ...localOrders];
+	}, [apiShipOrders, localOrders]);
+
 	const handleFilterClick = useCallback((shipIdRaw: string | number) => {
 		const shipId = shipIdRaw.toString();
 		setSelectedShipTypes((prevSelected) => {
 			if (shipId === "all") {
 				return ["all"];
 			}
-
 			const isCurrentlyAll = prevSelected.includes("all");
 			const isCurrentlySelected = prevSelected.includes(shipId);
 
@@ -511,9 +483,51 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 			.filter((item) => item.need !== 0 || item.available !== 0);
 
 		balance.sort((a, b) => b.deficit - a.deficit);
-
 		return balance;
 	}, [totalParts, storageItems]);
+
+	// Order Actions callbacks
+	const handleEditOrder = (orderId: string) => {
+		setEditingOrderId(orderId);
+	};
+
+	const handleCancelEdit = () => {
+		setEditingOrderId(null);
+	};
+
+	const handleOrderCreated = (guestPin?: string) => {
+		setEditingOrderId(null);
+		loadLocalOrders();
+	};
+
+	const handleDeleteOrder = (orderId: number) => {
+		const saved = localStorage.getItem("mock_ship_orders");
+		if (saved) {
+			const parsed = JSON.parse(saved);
+			const filtered = parsed.filter((o: any) => o.id !== orderId);
+			localStorage.setItem("mock_ship_orders", JSON.stringify(filtered));
+			loadLocalOrders();
+		}
+	};
+
+	const handleUpdateStatus = (orderId: number, status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED") => {
+		const saved = localStorage.getItem("mock_ship_orders");
+		if (saved) {
+			const parsed = JSON.parse(saved);
+			const updated = parsed.map((o: any) => {
+				if (o.id === orderId) {
+					return { ...o, status };
+				}
+				return o;
+			});
+			localStorage.setItem("mock_ship_orders", JSON.stringify(updated));
+			loadLocalOrders();
+		} else {
+			setApiShipOrders((prev) =>
+				prev.map((o) => (o.id === orderId ? { ...o, status } : o)),
+			);
+		}
+	};
 
 	return (
 		<Box
@@ -524,13 +538,53 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 				height: "100%",
 				color: "white",
 				background: "transparent",
+				gap: 2,
 			}}
 		>
-			<Box sx={{ height: "15%", minHeight: 0 }}>
-				<MaterialBalanceTable data={materialBalance} />
-			</Box>
+			<Stack
+				direction="row"
+				justifyContent="flex-end"
+				alignItems="center"
+				spacing={1}
+				sx={{
+					p: 0.5,
+					flexShrink: 0,
+				}}
+			>
+				<Typography variant="caption" sx={{ fontWeight: "bold", color: "rgba(255,255,255,0.4)" }}>
+					Debug Persona:
+				</Typography>
+				<ToggleButtonGroup
+					color="primary"
+					value={mockRole}
+					exclusive
+					onChange={(_, role) => role && setMockRole(role)}
+					size="small"
+					sx={{
+						height: 24,
+						background: "rgba(255,255,255,0.05)",
+						"& .MuiToggleButton-root": {
+							color: "rgba(255,255,255,0.5)",
+							borderColor: "rgba(255,255,255,0.1)",
+							fontWeight: "bold",
+							fontSize: "10px",
+							py: 0,
+							px: 1.5,
+							"&.Mui-selected": {
+								color: "#7b68ee",
+								backgroundColor: "rgba(123, 104, 238, 0.15)",
+							},
+						},
+					}}
+				>
+					<ToggleButton value="ADMIN">Admin</ToggleButton>
+					<ToggleButton value="USER">User</ToggleButton>
+					<ToggleButton value="GUEST">Guest</ToggleButton>
+				</ToggleButtonGroup>
+			</Stack>
 
-			<Box sx={{ height: "85%", minHeight: 0 }}>
+			{/* Main Workspace Tabs */}
+			<Box sx={{ flexGrow: 1, minHeight: 0 }}>
 				<ShipProductionTabs
 					MOCK_SHIP_TYPES={MOCK_SHIP_TYPES}
 					handleFilterClick={handleFilterClick}
@@ -539,6 +593,14 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 					summaryData={summaryData}
 					isMobile={isMobile}
 					processedOrders={processedOrders}
+					mockRole={mockRole}
+					editingOrderId={editingOrderId}
+					onEditOrder={handleEditOrder}
+					onCancelEdit={handleCancelEdit}
+					onOrderCreated={handleOrderCreated}
+					onDeleteOrder={handleDeleteOrder}
+					onUpdateStatus={handleUpdateStatus}
+					materialBalance={materialBalance}
 				/>
 			</Box>
 		</Box>

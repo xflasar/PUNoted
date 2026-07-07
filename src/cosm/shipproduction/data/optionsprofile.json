@@ -1,0 +1,184 @@
+{
+    "optionsProfile": {
+        "CARGO_BAY_HIGH_LOAD": {
+            "volume": 1050,
+            "ssc": 50
+        },
+        "FTL_FIELD_CONTROLLER": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "FTL_FIELD_EMITTER_LARGE": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "FTL_FIELD_EMITTER_MEDIUM": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "FTL_FIELD_EMITTER_SMALL": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "FTL_FUEL_TANK_LARGE": {
+            "volume": 22,
+            "ssc": 1
+        },
+        "FTL_REACTOR_HYPER_POWER": {
+            "volume": 216,
+            "ssc": 10
+        },
+        "GRAVITY_SHIELD_BASIC": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HEAT_SHIELD_ADVANCED": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HIGH_G_SEATS_ADVANCED": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HULL_PLATES_ADVANCED": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "RADIATION_SHIELD_ADVANCED": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "STL_ENGINE_GLASS": {
+            "volume": 149,
+            "ssc": 7
+        },
+        "STL_FUEL_TANK_LARGE": {
+            "volume": 505,
+            "ssc": 24
+        },
+        "STRUCTURAL_SPACECRAFT_COMPONENT": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "WHIPPLE_SHIELD_ADVANCED": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "RADIATION_SHIELD_BASIC": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "RADIATION_SHIELD_SPECIALIZED": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "REPAIR_DRONES_LARGE": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "STL_ENGINE_STANDARD": {
+            "volume": 150,
+            "ssc": 7
+        },
+        "STL_FUEL_TANK_SMALL": {
+            "volume": 95,
+            "ssc": 4
+        },
+        "REPAIR_DRONES_SMALL": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HIGH_G_SEATS_BASIC": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "WHIPPLE_SHIELD_BASIC": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HEAT_SHIELD_BASIC": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HULL_PLATES_BASIC": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HULL_PLATES_HARDENED": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HULL_PLATES_LIGHTWEIGHT": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "HULL_PLATES_REINFORCED": {
+            "volume": 0,
+            "ssc": 0
+        },
+        "FTL_REACTOR_STANDARD": {
+            "volume": 89,
+            "ssc": 4
+        },
+        "FTL_FUEL_TANK_MEDIUM": {
+            "volume": 10,
+            "ssc": 1
+        },
+        "FTL_FUEL_TANK_SMALL": {
+            "volume": 4,
+            "ssc": 0
+        },
+        "FTL_REACTOR_HIGH_POWER": {
+            "volume": 206,
+            "ssc": 10
+        },
+        "FTL_REACTOR_QUICK_CHARGE": {
+            "volume": 96,
+            "ssc": 5
+        },
+        "STL_ENGINE_ADVANCED": {
+            "volume": 153,
+            "ssc": 7
+        },
+        "STL_ENGINE_FUEL_SAVING": {
+            "volume": 149,
+            "ssc": 7
+        },
+        "STL_FUEL_TANK_MEDIUM": {
+            "volume": 221,
+            "ssc": 10
+        },
+        "STL_ENGINE_HYPERTHRUST": {
+            "volume": 157,
+            "ssc": 8
+        },
+        "CARGO_BAY_HIGH_VOLUME": {
+            "volume": 3150,
+            "ssc": 150
+        },
+        "CARGO_BAY_HUGE": {
+            "volume": 5250,
+            "ssc": 250
+        },
+        "CARGO_BAY_LARGE": {
+            "volume": 2100,
+            "ssc": 100
+        },
+        "CARGO_BAY_MEDIUM": {
+            "volume": 1050,
+            "ssc": 50
+        },
+        "CARGO_BAY_SMALL": {
+            "volume": 525,
+            "ssc": 25
+        },
+        "CARGO_BAY_TINY": {
+            "volume": 105,
+            "ssc": 5
+        },
+        "CARGO_BAY_VERY_SMALL": {
+            "volume": 263,
+            "ssc": 13
+        }
+    }
+}
