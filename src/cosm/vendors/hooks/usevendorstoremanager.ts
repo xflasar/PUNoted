@@ -160,14 +160,16 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 
 			const defaultLocation =
 				DEFAULT_LOCATION_BY_CX[localVendorDetails.cx] ||
-				(material.location || []).find(
+				(material.locations || []).find(
 					(loc) =>
 						loc.location_code === "HRT" ||
 						loc.location_name === "Hortus Station",
 				) ||
 				null;
 			const sourceLocation = defaultLocation
-				? (material.location || []).find((loc) => loc.id === defaultLocation.id)
+				? (material.locations || []).find(
+						(loc) => loc.id === defaultLocation.id,
+					)
 				: null;
 			const copiedLocations = defaultLocation
 				? [sourceLocation || defaultLocation].map((location) => {
@@ -201,7 +203,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 				isPriceLocked: true,
 				available: totalAvailable,
 				instore: totalAvailable,
-				locationSource: material.location,
+				locationSource: material.locations,
 				price: {
 					fixedprice: defaultPrice,
 					corpprice: material.price?.corpprice || 0,
@@ -210,7 +212,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 				fixedprice: defaultPrice,
 				reserved: 0,
 				orderid: undefined,
-				location: copiedLocations,
+				locations: copiedLocations,
 			};
 
 			if (type === "buy") {
@@ -225,7 +227,12 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 	const handleEditMaterial = useCallback(
 		(
 			frontendId: string | undefined,
-			field: "ordertype" | "fixedprice" | "reserved" | "location" | "priceLock",
+			field:
+				| "ordertype"
+				| "fixedprice"
+				| "reserved"
+				| "locations"
+				| "priceLock",
 			value: string | number | boolean | null | Location[],
 		) => {
 			const order = allOrders.find((o) => o.frontendId === frontendId);
@@ -295,7 +302,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 					setSellOrders(updateFn);
 				}
 			} else {
-				// Handle other fields like 'reserved' or 'location'
+				// Handle other fields like 'reserved' or 'locations'
 				const updateFn = (prev: OrderItem[]) =>
 					prev.map((o) =>
 						o.frontendId === frontendId ? { ...o, [field]: value } : o,
@@ -332,7 +339,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 
 	const hydrateAvailableMaterials = useCallback((materials: OrderItem[]) => {
 		const sourceByMaterialId = new Map(
-			materials.map((material) => [material.materialid, material.location]),
+			materials.map((material) => [material.materialid, material.locations]),
 		);
 		const quantityByMaterialId = new Map(
 			materials.map((material) => [material.materialid, material.quantity]),
@@ -371,30 +378,32 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 							item.ordertype === order.ordertype),
 				);
 				const sourceLocations =
-					sourceOrder?.locationSource || sourceOrder?.location;
+					sourceOrder?.locationSource || sourceOrder?.locations;
 				if (!sourceLocations?.length) return order;
 
 				return {
 					...order,
 					locationSource: sourceLocations,
-					location: order.location.map((location) => {
-						const sourceLocation = sourceLocations.find(
-							(source) => source.id === location.id,
-						);
-						const stock =
-							sourceLocation?.available ??
-							sourceLocation?.storage_amount ??
-							sourceLocation?.amount ??
-							location.available ??
-							location.storage_amount ??
-							location.amount ??
-							0;
-						return {
-							...location,
-							available: stock,
-							storage_amount: stock,
-						};
-					}),
+					locations: (order.locations || order.location || []).map(
+						(location) => {
+							const sourceLocation = sourceLocations.find(
+								(source) => source.id === location.id,
+							);
+							const stock =
+								sourceLocation?.available ??
+								sourceLocation?.storage_amount ??
+								sourceLocation?.amount ??
+								location.available ??
+								location.storage_amount ??
+								location.amount ??
+								0;
+							return {
+								...location,
+								available: stock,
+								storage_amount: stock,
+							};
+						},
+					),
 				};
 			}),
 		}),

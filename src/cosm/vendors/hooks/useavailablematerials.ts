@@ -98,7 +98,7 @@ export function useAvailableMaterials(cx: string, isOpen: boolean) {
 							available: mat.quantity,
 							reserved: 0,
 							quantity: mat.quantity,
-							location: Array.isArray(mat.locations) ? mat.locations : [],
+							locations: Array.isArray(mat.locations) ? mat.locations : [],
 							price: {
 								fixedprice: resolvedCorpPrice,
 								cxprice: mat.askprice || 0,

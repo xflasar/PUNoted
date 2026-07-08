@@ -144,7 +144,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				fixedprice: order.isPriceLocked ? -1 : order.price.fixedprice,
 				materialid: order.materialid,
 				reserved: order.reserved,
-				location: order.location.map((loc) => ({
+				location: order.locations.map((loc) => ({
 					id: loc.id,
 					amount: loc.amount,
 				})),

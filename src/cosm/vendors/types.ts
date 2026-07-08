@@ -55,7 +55,7 @@ export interface OrderItem {
 	/** Type of order: buy or sell */
 	ordertype?: "buy" | "sell" | undefined;
 	/** List of locations associated with this order */
-	location: Location[];
+	locations: Location[];
 	/** Original per-location stock from the price list, kept for add/remove edits */
 	locationSource?: Location[];
 	/** Pricing information for the order */

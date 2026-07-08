@@ -153,7 +153,7 @@ interface OrderItemRowProps {
 	/** Callback to update a field in the material. */
 	onEditMaterial?: (
 		frontendId: string | undefined,
-		field: "ordertype" | "fixedprice" | "reserved" | "location" | "priceLock",
+		field: "ordertype" | "fixedprice" | "reserved" | "locations" | "priceLock",
 		value: any,
 	) => void;
 	/** Callback to add the material to active orders. */
@@ -190,8 +190,8 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		const [locationInputValue, setLocationInputValue] = useState("");
 
 		const currentLocations = useMemo(() => {
-			return Array.isArray(material.location) ? material.location : [];
-		}, [material.location]);
+			return Array.isArray(material.locations) ? material.locations : [];
+		}, [material.locations]);
 
 		const compareLocations = useCallback((a: Location, b: Location) => {
 			if (a.location_code === "HRT") return -1;
@@ -287,7 +287,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 						0,
 				};
 
-				onEditMaterial?.(material.frontendId, "location", [
+				onEditMaterial?.(material.frontendId, "locations", [
 					...currentLocations,
 					newEntry,
 				]);
@@ -296,6 +296,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			[
 				currentLocations,
 				material.frontendId,
+				material.materialid,
 				material.locationSource,
 				onEditMaterial,
 			],
@@ -306,7 +307,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				const updated = currentLocations.map((l: any) =>
 					l.id === locId ? { ...l, amount: val } : l,
 				);
-				onEditMaterial?.(material.frontendId, "location", updated);
+				onEditMaterial?.(material.frontendId, "locations", updated);
 			},
 			[currentLocations, material.frontendId, onEditMaterial],
 		);
@@ -314,7 +315,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		const handleRemoveLocation = useCallback(
 			(locId: string) => {
 				const updated = currentLocations.filter((l: any) => l.id !== locId);
-				onEditMaterial?.(material.frontendId, "location", updated);
+				onEditMaterial?.(material.frontendId, "locations", updated);
 			},
 			[currentLocations, material.frontendId, onEditMaterial],
 		);
@@ -667,9 +668,10 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									}
 									renderOption={(props, option) => {
 										const quantity = locationStockById.get(option.id) ?? 0;
+										const { key, ...optionProps } = props;
 
 										return (
-											<li {...props}>
+											<li key={key} {...optionProps}>
 												{formatLocation(
 													option.location_name,
 													option.location_code,
