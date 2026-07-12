@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { fetchClient } from "../../utils/apiclient";
 import {
 	Box,
 	Paper,
@@ -60,11 +61,13 @@ export interface ShipOrder {
 	waitTimeDays: number;
 	completionDate: string | Date;
 	processedParts: Part[];
-	status?: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED";
+	status?: "QUEUED" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED";
 	ownerType?: "USER" | "GUEST" | "API";
 	ownerId?: string;
 	guestPin?: string;
 	notes?: string;
+	isOwner?: boolean;
+	isAdmin?: boolean;
 }
 
 export interface ShipOrdersProps {
@@ -75,8 +78,10 @@ export interface ShipOrdersProps {
 	onDeleteOrder: (orderId: number) => void;
 	onUpdateStatus: (
 		orderId: number,
-		status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
+		status: "QUEUED" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
 	) => void;
+	disableActions?: boolean;
+	onNavigateToBuilder?: () => void;
 }
 
 export const ShipOrders: React.FC<ShipOrdersProps> = ({
@@ -86,12 +91,49 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 	onEditOrder,
 	onDeleteOrder,
 	onUpdateStatus,
+	disableActions = false,
+	onNavigateToBuilder,
 }) => {
 	const theme = useTheme();
 	const isMobileOrTablet = useMediaQuery("(max-width:840px)");
 	const isAdmin = mockRole === "ADMIN";
 	const isUser = mockRole === "USER";
 	const isGuest = mockRole === "GUEST";
+	const showActions = !disableActions;
+
+	const [pinInput, setPinInput] = useState("");
+
+	const handlePinUnlock = async () => {
+		if (!pinInput.trim()) {
+			alert("Please enter a guest PIN");
+			return;
+		}
+		try {
+			const res = await fetchClient(
+				`v1/corporation/ship-orders/by-pin?corporation_id=COSM&pin=${pinInput}`,
+			);
+			if (!res.ok) {
+				throw new Error("Invalid PIN or order not found");
+			}
+			const order = await res.json();
+
+			// Save PIN to guest_ship_orders in localStorage
+			const guestOrdersSaved = localStorage.getItem("guest_ship_orders");
+			const guestOrders = guestOrdersSaved ? JSON.parse(guestOrdersSaved) : [];
+			if (
+				!guestOrders.some((o: any) => o.id.toString() === order.id.toString())
+			) {
+				guestOrders.push({ id: order.id.toString(), pin: pinInput });
+				localStorage.setItem("guest_ship_orders", JSON.stringify(guestOrders));
+			}
+			onEditOrder(order.id.toString());
+			alert(
+				`Order #${order.id.toString().slice(-6)} successfully unlocked and loaded for edit!`,
+			);
+		} catch (e) {
+			alert(e instanceof Error ? e.message : "Error unlocking order");
+		}
+	};
 
 	// Search & Filter state
 	const [searchQuery, setSearchQuery] = useState("");
@@ -138,13 +180,13 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 	const stats = React.useMemo(() => {
 		const total = filteredOrders.length;
 		const completed = filteredOrders.filter(
-			(o) => o.status === "DELIVERED",
+			(o) => o.status === "COMPLETED",
 		).length;
 		const pending = filteredOrders.filter(
-			(o) => o.status === "PENDING_APPROVAL" || !o.status,
+			(o) => o.status === "QUEUED" || !o.status,
 		).length;
 		const inProduction = filteredOrders.filter(
-			(o) => o.status === "QUEUED",
+			(o) => o.status === "IN_PRODUCTION",
 		).length;
 		const totalValue = filteredOrders.reduce(
 			(sum, order) => sum + order.price,
@@ -155,12 +197,12 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 	}, [filteredOrders]);
 
 	const getStatusChip = (status?: string) => {
-		const currentStatus = status || "PENDING_APPROVAL";
+		const currentStatus = status || "QUEUED";
 		switch (currentStatus) {
-			case "PENDING_APPROVAL":
+			case "QUEUED":
 				return (
 					<Chip
-						label="Pending"
+						label="Queued"
 						color="warning"
 						size="small"
 						variant="outlined"
@@ -170,7 +212,7 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 			case "APPROVED":
 				return (
 					<Chip
-						label="Queued"
+						label="Approved"
 						color="info"
 						size="small"
 						variant="outlined"
@@ -198,7 +240,7 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 			default:
 				return (
 					<Chip
-						label="Pending"
+						label="Queued"
 						color="warning"
 						size="small"
 						variant="outlined"
@@ -250,6 +292,33 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 				totalValue={stats.totalValue}
 			/>
 
+			{/* Big Builder Shortcut Button */}
+			{onNavigateToBuilder && (
+				<Button
+					variant="contained"
+					onClick={onNavigateToBuilder}
+					sx={{
+						mx: 0.5,
+						mt: 0.5,
+						mb: 0.5,
+						py: 1.2,
+						borderRadius: "12px",
+						fontWeight: "bold",
+						background: "linear-gradient(135deg, #7b68ee 0%, #6a5acd 100%)",
+						boxShadow: "0 4px 15px rgba(123, 104, 238, 0.35)",
+						color: "white",
+						"&:hover": {
+							background: "linear-gradient(135deg, #8a78f0 0%, #7b68ee 100%)",
+							boxShadow: "0 6px 20px rgba(123, 104, 238, 0.5)",
+						},
+						fontSize: "13px",
+						textTransform: "none",
+					}}
+				>
+					🚀 Design & Order a New Ship (Open Ship Builder)
+				</Button>
+			)}
+
 			{/* Search & Filter Controls */}
 			<Stack spacing={1} sx={{ px: 0.5, mb: 0.5 }}>
 				<TextField
@@ -280,6 +349,47 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 						},
 					}}
 				/>
+
+				{isGuest && (
+					<Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+						<TextField
+							size="small"
+							placeholder="Enter guest PIN to edit..."
+							value={pinInput}
+							onChange={(e) => setPinInput(e.target.value)}
+							sx={{
+								flexGrow: 1,
+								"& .MuiOutlinedInput-root": {
+									"& fieldset": { borderColor: "rgba(255,255,255,0.1)" },
+									"&:hover fieldset": { borderColor: "#7b68ee" },
+								},
+							}}
+							slotProps={{
+								input: {
+									style: {
+										fontSize: "11.5px",
+										color: "white",
+										background: "rgba(255,255,255,0.02)",
+									},
+								},
+							}}
+						/>
+						<Button
+							variant="contained"
+							onClick={handlePinUnlock}
+							sx={{
+								bgcolor: "#7b68ee",
+								color: "white",
+								fontWeight: "bold",
+								fontSize: "11px",
+								textTransform: "none",
+								"&:hover": { bgcolor: "#6a5acd" },
+							}}
+						>
+							Edit by PIN
+						</Button>
+					</Stack>
+				)}
 
 				{/* Horizontal Scrollable Filter Chips */}
 				<Box
@@ -369,6 +479,7 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 									onEditClick={handleEditClick}
 									onDeleteClick={handleDeleteClick}
 									getStatusChip={getStatusChip}
+									disableActions={disableActions}
 								/>
 							</Grid>
 						))}
@@ -392,16 +503,26 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 									<TableCell sx={headerStyle}>Price</TableCell>
 									<TableCell sx={headerStyle}>Wait Time</TableCell>
 									<TableCell sx={headerStyle}>Status</TableCell>
-									{!isGuest && <TableCell sx={headerStyle}>Actions</TableCell>}
+									{showActions && (
+										<TableCell sx={headerStyle}>Actions</TableCell>
+									)}
 								</TableRow>
 							</TableHead>
 							<TableBody>
 								{filteredOrders.map((order) => {
+									const guestOrdersSaved =
+										localStorage.getItem("guest_ship_orders");
+									const guestOrders = guestOrdersSaved
+										? JSON.parse(guestOrdersSaved)
+										: [];
+									const hasLocalGuestPin = guestOrders.some(
+										(o: any) => o.id.toString() === order.id.toString(),
+									);
 									const isOwner =
 										isAdmin ||
-										(isUser &&
-											(order.ownerType === "USER" ||
-												order.ownerType === "API"));
+										order.isOwner ||
+										order.isAdmin ||
+										hasLocalGuestPin;
 
 									return (
 										<TableRow
@@ -409,7 +530,14 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 											onClick={() => setDetailsOrder(order)}
 											sx={{
 												cursor: "pointer",
-												"&:hover": { bgcolor: "rgba(255,255,255,0.03)" },
+												background: isOwner
+													? "linear-gradient(90deg, rgba(123, 104, 238, 0.08) 0%, rgba(123, 104, 238, 0.02) 100%)"
+													: "transparent",
+												"&:hover": {
+													bgcolor: isOwner
+														? "rgba(123, 104, 238, 0.12)"
+														: "rgba(255,255,255,0.03)",
+												},
 												transition: "background-color 0.15s ease",
 											}}
 										>
@@ -464,7 +592,7 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 												{order.waitTimeDays} days
 											</TableCell>
 											<TableCell>{getStatusChip(order.status)}</TableCell>
-											{!isGuest && (
+											{showActions && (
 												<TableCell onClick={(e) => e.stopPropagation()}>
 													<Stack direction="row" spacing={0.5}>
 														{isAdmin && order.status !== "COMPLETED" && (

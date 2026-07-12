@@ -30,9 +30,10 @@ export interface ShipProductionTabsProps {
 	onDeleteOrder: (orderId: number) => void;
 	onUpdateStatus: (
 		orderId: number,
-		status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
+		status: "QUEUED" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
 	) => void;
 	materialBalance: BalanceItem[];
+	disableActions?: boolean;
 }
 
 interface TabPanelProps {
@@ -181,6 +182,8 @@ const ShipProductionTabs: React.FC<ShipProductionTabsProps> = (props) => {
 					onEditOrder={onEditOrder}
 					onDeleteOrder={onDeleteOrder}
 					onUpdateStatus={onUpdateStatus}
+					disableActions={props.disableActions}
+					onNavigateToBuilder={() => setValue(2)}
 				/>
 			</TabPanel>
 

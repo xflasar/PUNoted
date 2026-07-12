@@ -59,7 +59,7 @@ export function useAvailableMaterials(
 		const fetchMaterials = async () => {
 			try {
 				const response = await fetch(
-					`${API_BASE_URL}vendor/materials_price_list`,
+					`${API_BASE_URL}internal/vendor/materials_price_list`,
 					{
 						method: "POST",
 						headers: {

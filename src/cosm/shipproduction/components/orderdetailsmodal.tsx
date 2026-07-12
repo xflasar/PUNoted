@@ -161,7 +161,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 							Required Bill of Materials
 						</Typography>
 						<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.6 }}>
-							{order.shipType.parts.map((p) => (
+							{(order.shipType?.parts || []).map((p) => (
 								<Stack
 									key={p.name}
 									sx={{

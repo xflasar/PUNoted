@@ -6,7 +6,7 @@ import {
 	ToggleButton,
 	Stack,
 } from "@mui/material";
-import { API_BASE_URL } from "../../config/api";
+import { fetchClient } from "../../utils/apiclient";
 import { addDays } from "date-fns";
 import type { BalanceItem } from "./materialbalancetable";
 import ShipProductionTabs from "./shipproductiontabs";
@@ -205,8 +205,8 @@ interface ApiStorageItem {
 const calculateTotalParts = (orders: ShipOrder[]) => {
 	const totalParts: { [key: string]: number } = {};
 	orders.forEach((order) => {
-		order.shipType.parts.forEach((part) => {
-			if (PartsFilter.includes(part.name)) {
+		(order.shipType?.parts || []).forEach((part) => {
+			if (part && part.name && PartsFilter.includes(part.name)) {
 				totalParts[part.name] = (totalParts[part.name] || 0) + part.quantity;
 			}
 		});
@@ -222,13 +222,13 @@ const processOrdersAndParts = (
 	currentStorageItems: Part[],
 ): ShipOrder[] => {
 	const availableParts = new Map<string, number>(
-		currentStorageItems.map((p) => [p.name, p.quantity]),
+		(currentStorageItems || []).map((p) => [p.name, p.quantity]),
 	);
 
 	return orders.map((order) => {
 		const processedOrder = { ...order, processedParts: [] as Part[] };
-		const partsStatus = order.shipType.parts
-			.filter((part) => PartsFilter.includes(part.name))
+		const partsStatus = (order.shipType?.parts || [])
+			.filter((part) => part && part.name && PartsFilter.includes(part.name))
 			.map((part) => {
 				const available = availableParts.get(part.name) || 0;
 				const hasEnough = available >= part.quantity;
@@ -261,18 +261,18 @@ const getSummaryDataWithAvailability = (
 
 	const allParts = new Set<string>();
 	inProgressOrders.forEach((order) => {
-		order.shipType.parts
-			.filter((part) => PartsFilter.includes(part.name))
+		(order.shipType?.parts || [])
+			.filter((part) => part && part.name && PartsFilter.includes(part.name))
 			.forEach((part) => allParts.add(part.name));
 	});
 	const partNames = Array.from(allParts).sort();
 
 	const summaryData: SummaryDataItem[] = inProgressOrders.map((order) => {
 		const partsMap = new Map<string, number>(
-			order.shipType.parts.map((p) => [p.name, p.quantity]),
+			(order.shipType?.parts || []).map((p) => [p.name, p.quantity]),
 		);
 		const row: SummaryDataItem = {
-			combinedHeader: `${order.shipType.name} (${order.customer})`,
+			combinedHeader: `${order.shipType?.name || "Unknown"} (${order.customer})`,
 			rowSatisfied: true,
 		};
 
@@ -309,36 +309,60 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 	const [apiShipOrders, setApiShipOrders] = useState<ShipOrder[]>([]);
 	const [storageItems, setStorageItems] = useState<Part[]>([]);
 	const [selectedShipTypes, setSelectedShipTypes] = useState<string[]>(["all"]);
-	const [mockRole, setMockRole] = useState<"ADMIN" | "USER" | "GUEST">("ADMIN");
+	const [mockRole, setMockRole] = useState<"ADMIN" | "USER" | "GUEST">("GUEST");
+	const [viewMode, setViewMode] = useState<"MAIN" | "DEMO">("MAIN");
 	const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
 	// Local storage orders state
 	const [localOrders, setLocalOrders] = useState<ShipOrder[]>([]);
 
-	const loadLocalOrders = useCallback(() => {
-		const saved = localStorage.getItem("mock_ship_orders");
-		if (saved) {
+	// Resolve actual role dynamically on mount
+	useEffect(() => {
+		const resolveUserRole = async () => {
 			try {
-				const parsed = JSON.parse(saved).map((o: any) => ({
-					...o,
-					completionDate: new Date(o.completionDate),
-				}));
-				setLocalOrders(parsed);
-			} catch (e) {
-				console.error("Error parsing local ship orders:", e);
+				const res = await fetchClient(
+					"v1/corporation/user-role?corporation_id=COSM",
+				);
+				if (res.ok) {
+					const data = await res.json();
+					setMockRole(data.role || "GUEST");
+				} else {
+					setMockRole("GUEST");
+				}
+			} catch (err) {
+				console.error("Error resolving user role:", err);
+				setMockRole("GUEST");
 			}
-		} else {
-			setLocalOrders([]);
-		}
+		};
+		resolveUserRole();
 	}, []);
+
+	const loadLocalOrders = useCallback(async () => {
+		const headers = mockRole === "GUEST" ? { Authorization: "none" } : {};
+		try {
+			const res = await fetchClient(
+				"v1/corporation/ship-orders?corporation_id=COSM",
+				{ headers },
+			);
+			if (!res.ok) throw new Error("Failed to load orders");
+			const data = await res.json();
+			setLocalOrders(
+				data.map((o: any) => ({
+					...o,
+					completionDate: o.completionDate
+						? new Date(o.completionDate)
+						: undefined,
+				})),
+			);
+		} catch (e) {
+			console.error("Error loading orders from backend:", e);
+		}
+	}, [mockRole]);
 
 	const fetchShipProduction = useCallback(async (useFio: boolean) => {
 		try {
-			const response = await fetch(`${API_BASE_URL}get_ship_production`, {
+			const response = await fetchClient("get_ship_production", {
 				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
 				body: JSON.stringify({ fio: useFio }),
 			});
 			if (!response.ok) {
@@ -406,10 +430,10 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 		loadLocalOrders();
 	}, [fetchShipProduction, loadLocalOrders]);
 
-	// Combined orders: API orders + Local Storage orders
+	// Combined orders: API orders (for MAIN) vs Local database orders (for DEMO)
 	const shipOrders = useMemo(() => {
-		return [...apiShipOrders, ...localOrders];
-	}, [apiShipOrders, localOrders]);
+		return viewMode === "MAIN" ? apiShipOrders : localOrders;
+	}, [viewMode, apiShipOrders, localOrders]);
 
 	const handleFilterClick = useCallback((shipIdRaw: string | number) => {
 		const shipId = shipIdRaw.toString();
@@ -506,35 +530,65 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 		loadLocalOrders();
 	};
 
-	const handleDeleteOrder = (orderId: number) => {
-		const saved = localStorage.getItem("mock_ship_orders");
-		if (saved) {
-			const parsed = JSON.parse(saved);
-			const filtered = parsed.filter((o: any) => o.id !== orderId);
-			localStorage.setItem("mock_ship_orders", JSON.stringify(filtered));
+	const handleDeleteOrder = async (orderId: number) => {
+		const headers = mockRole === "GUEST" ? { Authorization: "none" } : {};
+		const isGuest = mockRole === "GUEST";
+		const url = isGuest
+			? `internal/corporation/guest/ship-orders/${orderId}`
+			: `internal/corporation/ship-orders/${orderId}`;
+
+		let body: any = undefined;
+		if (isGuest) {
+			const guestOrdersSaved = localStorage.getItem("guest_ship_orders");
+			const guestOrders = guestOrdersSaved ? JSON.parse(guestOrdersSaved) : [];
+			const match = guestOrders.find((o: any) => o.id === orderId);
+			body = JSON.stringify({ guestPin: match ? match.pin : "" });
+		}
+
+		try {
+			const res = await fetchClient(url, {
+				method: "DELETE",
+				headers,
+				body,
+			});
+			if (!res.ok) throw new Error("Failed to delete order");
+
+			// Clean up cached PIN on successful deletion
+			if (isGuest) {
+				const guestOrdersSaved = localStorage.getItem("guest_ship_orders");
+				const guestOrders = guestOrdersSaved
+					? JSON.parse(guestOrdersSaved)
+					: [];
+				const filtered = guestOrders.filter(
+					(o: any) =>
+						o.id !== orderId && o.id.toString() !== orderId.toString(),
+				);
+				localStorage.setItem("guest_ship_orders", JSON.stringify(filtered));
+			}
+
 			loadLocalOrders();
+		} catch (e) {
+			alert(e instanceof Error ? e.message : "Error deleting order");
 		}
 	};
 
-	const handleUpdateStatus = (
+	const handleUpdateStatus = async (
 		orderId: number,
-		status: "PENDING_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
+		status: "QUEUED" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
 	) => {
-		const saved = localStorage.getItem("mock_ship_orders");
-		if (saved) {
-			const parsed = JSON.parse(saved);
-			const updated = parsed.map((o: any) => {
-				if (o.id === orderId) {
-					return { ...o, status };
-				}
-				return o;
+		const headers = mockRole === "GUEST" ? { Authorization: "none" } : {};
+		const url = `internal/corporation/ship-orders/${orderId}`;
+
+		try {
+			const res = await fetchClient(url, {
+				method: "PUT",
+				headers,
+				body: JSON.stringify({ status }),
 			});
-			localStorage.setItem("mock_ship_orders", JSON.stringify(updated));
+			if (!res.ok) throw new Error("Failed to update status on backend");
 			loadLocalOrders();
-		} else {
-			setApiShipOrders((prev) =>
-				prev.map((o) => (o.id === orderId ? { ...o, status } : o)),
-			);
+		} catch (e) {
+			alert(e instanceof Error ? e.message : "Error updating status");
 		}
 	};
 
@@ -554,45 +608,46 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 				direction="row"
 				justifyContent="flex-end"
 				alignItems="center"
-				spacing={1}
+				spacing={2}
 				sx={{
 					p: 0.5,
 					flexShrink: 0,
 				}}
 			>
-				<Typography
-					variant="caption"
-					sx={{ fontWeight: "bold", color: "rgba(255,255,255,0.4)" }}
-				>
-					Debug Persona:
-				</Typography>
-				<ToggleButtonGroup
-					color="primary"
-					value={mockRole}
-					exclusive
-					onChange={(_, role) => role && setMockRole(role)}
-					size="small"
-					sx={{
-						height: 24,
-						background: "rgba(255,255,255,0.05)",
-						"& .MuiToggleButton-root": {
-							color: "rgba(255,255,255,0.5)",
-							borderColor: "rgba(255,255,255,0.1)",
-							fontWeight: "bold",
-							fontSize: "10px",
-							py: 0,
-							px: 1.5,
-							"&.Mui-selected": {
-								color: "#7b68ee",
-								backgroundColor: "rgba(123, 104, 238, 0.15)",
+				<Stack direction="row" alignItems="center" spacing={1}>
+					<Typography
+						variant="caption"
+						sx={{ fontWeight: "bold", color: "rgba(255,255,255,0.4)" }}
+					>
+						Release Mode:
+					</Typography>
+					<ToggleButtonGroup
+						color="primary"
+						value={viewMode}
+						exclusive
+						onChange={(_, mode) => mode && setViewMode(mode)}
+						size="small"
+						sx={{
+							height: 24,
+							background: "rgba(255,255,255,0.05)",
+							"& .MuiToggleButton-root": {
+								color: "rgba(255,255,255,0.5)",
+								borderColor: "rgba(255,255,255,0.1)",
+								fontWeight: "bold",
+								fontSize: "10px",
+								py: 0,
+								px: 1.5,
+								"&.Mui-selected": {
+									color: "#7b68ee",
+									backgroundColor: "rgba(123, 104, 238, 0.15)",
+								},
 							},
-						},
-					}}
-				>
-					<ToggleButton value="ADMIN">Admin</ToggleButton>
-					<ToggleButton value="USER">User</ToggleButton>
-					<ToggleButton value="GUEST">Guest</ToggleButton>
-				</ToggleButtonGroup>
+						}}
+					>
+						<ToggleButton value="MAIN">Main</ToggleButton>
+						<ToggleButton value="DEMO">Demo</ToggleButton>
+					</ToggleButtonGroup>
+				</Stack>
 			</Stack>
 
 			{/* Main Workspace Tabs */}
@@ -613,6 +668,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 					onDeleteOrder={handleDeleteOrder}
 					onUpdateStatus={handleUpdateStatus}
 					materialBalance={materialBalance}
+					disableActions={viewMode === "MAIN"}
 				/>
 			</Box>
 		</Box>

@@ -22,6 +22,7 @@ import Governance from "./dashboard/governance/governancepage";
 import { CorporationOverview } from "./dashboard/corporation/corporationoverview";
 import ShipmentPage from "./dashboard/shipping/shipmentpage";
 import { ProductionLeaderboard } from "./public/leaderboard";
+import { fetchClient } from "./utils/apiclient";
 import FinancialOverview from "./dashboard/financial/financialoverview";
 import { API_BASE_URL } from "./config/api";
 import { BasePlanner } from "./dashboard/planner/baseplanner";
@@ -83,14 +84,77 @@ function App() {
 	}, []);
 
 	useEffect(() => {
-		const tokenIsValid = isTokenValid();
-		setIsLoggedIn(tokenIsValid);
-		setIsLoading(false);
-		if (!tokenIsValid) {
-			localStorage.removeItem("authToken");
-			localStorage.removeItem("expiresAt");
-			localStorage.removeItem("username");
-		}
+		const attemptSilentRefresh = async () => {
+			const hasSession = localStorage.getItem("hasSession") === "true";
+			if (!hasSession) {
+				setIsLoggedIn(false);
+				setIsLoading(false);
+				return;
+			}
+
+			const tokenIsValid = isTokenValid();
+			const hasMetadata =
+				localStorage.getItem("username") && localStorage.getItem("displayName");
+			if (tokenIsValid && hasMetadata) {
+				setIsLoggedIn(true);
+				setIsLoading(false);
+				return;
+			}
+
+			// Try silent refresh using the cookie
+			try {
+				const refreshResponse = await fetch(`${API_BASE_URL}auth/refresh`, {
+					method: "POST",
+					credentials: "include",
+					headers: { "Content-Type": "application/json" },
+				});
+
+				if (refreshResponse.ok) {
+					const refreshData = await refreshResponse.json();
+					const newAccessToken = refreshData.token;
+					const expiresAt =
+						refreshData.expires_at || Math.floor(Date.now() / 1000) + 900; // fallback 15m
+					localStorage.setItem("authToken", newAccessToken);
+					localStorage.setItem("expiresAt", expiresAt.toString());
+					localStorage.setItem("hasSession", "true");
+
+					if (refreshData.username)
+						localStorage.setItem("username", refreshData.username);
+					if (refreshData.displayName)
+						localStorage.setItem("displayName", refreshData.displayName);
+					if (refreshData.companyName)
+						localStorage.setItem("companyName", refreshData.companyName || "");
+					if (refreshData.companyCode)
+						localStorage.setItem("companyCode", refreshData.companyCode || "");
+					if (refreshData.currentUserId)
+						localStorage.setItem(
+							"currentUserId",
+							refreshData.currentUserId.toString(),
+						);
+					if (refreshData.corpName)
+						localStorage.setItem("corpName", refreshData.corpName || "");
+					if (refreshData.isSynchronized !== undefined)
+						localStorage.setItem(
+							"isSynchronized",
+							refreshData.isSynchronized.toString(),
+						);
+
+					setIsLoggedIn(true);
+				} else {
+					throw new Error("No valid refresh token");
+				}
+			} catch (e) {
+				console.warn("Silent refresh on mount failed:", e);
+				setIsLoggedIn(false);
+				localStorage.removeItem("authToken");
+				localStorage.removeItem("expiresAt");
+				localStorage.removeItem("username");
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		attemptSilentRefresh();
 	}, []);
 
 	// Synchronize
@@ -159,14 +223,27 @@ function App() {
 	}, []);
 
 	const handleLoginSuccess = () => {
+		localStorage.setItem("hasSession", "true");
 		setIsLoggedIn(true);
 		navigate(0);
 	};
 
-	const handleLogout = () => {
+	const handleLogout = async () => {
+		try {
+			await fetchClient("auth/logout", { method: "POST" });
+		} catch (error) {
+			console.error("Logout request failed:", error);
+		}
 		localStorage.removeItem("authToken");
 		localStorage.removeItem("expiresAt");
 		localStorage.removeItem("username");
+		localStorage.removeItem("displayName");
+		localStorage.removeItem("companyName");
+		localStorage.removeItem("companyCode");
+		localStorage.removeItem("currentUserId");
+		localStorage.removeItem("corpName");
+		localStorage.removeItem("isSynchronized");
+		localStorage.removeItem("hasSession");
 		setIsLoggedIn(false);
 		navigate("/");
 	};

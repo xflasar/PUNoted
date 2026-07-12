@@ -684,7 +684,7 @@ const VendorCreationModal: React.FC<{
 			try {
 				// --- STEP 1: Fetch materials from your internal API ---
 				const response = await fetch(
-					`${API_BASE_URL}vendor/materials_price_list`,
+					`${API_BASE_URL}internal/vendor/materials_price_list`,
 					{
 						method: "POST",
 						headers: {

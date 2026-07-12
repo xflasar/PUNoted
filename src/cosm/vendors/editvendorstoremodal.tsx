@@ -93,12 +93,15 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 
 		const fetchLocations = async () => {
 			try {
-				const response = await fetch(`${API_BASE_URL}vendor/locations_list`, {
-					method: "GET",
-					headers: {
-						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+				const response = await fetch(
+					`${API_BASE_URL}internal/vendor/locations_list`,
+					{
+						method: "GET",
+						headers: {
+							Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+						},
 					},
-				});
+				);
 
 				const result = await response.json();
 				if (!response.ok || !result.success) {

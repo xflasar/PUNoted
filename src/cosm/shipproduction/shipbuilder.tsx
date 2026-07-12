@@ -19,6 +19,10 @@ import {
 	useTheme,
 	useMediaQuery,
 	alpha,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
 } from "@mui/material";
 import {
 	ArrowBack as ArrowBackIcon,
@@ -92,10 +96,42 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 		performanceSum,
 		cxTotalPrice,
 		handleSaveOrder,
-		handleConfirmOrder,
+		handleDeleteOrder,
+		availablePresets,
+		handleSavePreset,
 	} = useShipBuilder({ mockRole, onOrderCreated, editingOrderId });
 
+	const [isPresetDialogOpen, setIsPresetDialogOpen] = React.useState(false);
+	const [presetName, setPresetName] = React.useState("");
+	const [presetPrice, setPresetPrice] = React.useState(0);
+	const [presetPriceCorp, setPresetPriceCorp] = React.useState(0);
+	const [isCorpPreset, setIsCorpPreset] = React.useState(!testMode);
+
+	const handleOpenPresetDialog = () => {
+		setPresetName(
+			selectedPresetId === "custom"
+				? ""
+				: availablePresets.find(
+						(p) => p.id?.toString() === selectedPresetId?.toString(),
+					)?.name || "",
+		);
+		setPresetPrice(price);
+		setPresetPriceCorp(Math.round(price * 0.7));
+		setIsCorpPreset(!testMode);
+		setIsPresetDialogOpen(true);
+	};
+
+	const handleConfirmSavePreset = () => {
+		if (!presetName.trim()) {
+			alert("Please enter a preset name");
+			return;
+		}
+		handleSavePreset(presetName, presetPrice, presetPriceCorp, isCorpPreset);
+		setIsPresetDialogOpen(false);
+	};
+
 	const isFullScreenMode = !!editingOrderId;
+	const disableMetadataFields = isFullScreenMode && mockRole !== "ADMIN";
 	const buildTimeHours = Math.round(performanceSum.weight / 50);
 
 	const MetadataRow = (
@@ -118,33 +154,35 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 						alignItems="center"
 						sx={{ px: 0.5 }}
 					>
-						<FormControlLabel
-							control={
-								<Switch
-									checked={testMode}
-									onChange={(e) => setTestMode(e.target.checked)}
-									color="warning"
-									size="small"
-								/>
-							}
-							label={
-								<Typography
-									variant="caption"
-									sx={{
-										color: testMode ? "#ff9800" : "rgba(255,255,255,0.5)",
-										fontWeight: "bold",
-										fontSize: "12px",
-									}}
-								>
-									TEST MODE
-								</Typography>
-							}
-						/>
+						{!editingOrderId && (
+							<FormControlLabel
+								control={
+									<Switch
+										checked={testMode}
+										onChange={(e) => setTestMode(e.target.checked)}
+										color="warning"
+										size="small"
+									/>
+								}
+								label={
+									<Typography
+										variant="caption"
+										sx={{
+											color: testMode ? "#ff9800" : "rgba(255,255,255,0.5)",
+											fontWeight: "bold",
+											fontSize: "12px",
+										}}
+									>
+										TEST MODE
+									</Typography>
+								}
+							/>
+						)}
 						<FormControlLabel
 							control={
 								<Checkbox
 									checked={isCorpMember}
-									disabled={testMode}
+									disabled={testMode || disableMetadataFields}
 									size="small"
 									onChange={(e) => setIsCorpMember(e.target.checked)}
 									sx={{
@@ -175,7 +213,7 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 						<TextField
 							label="Company"
 							value={companyCode}
-							disabled={testMode}
+							disabled={testMode || disableMetadataFields}
 							onChange={(e) => setCompanyCode(e.target.value)}
 							size="small"
 							fullWidth
@@ -192,7 +230,7 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 						<TextField
 							label="User"
 							value={username}
-							disabled={testMode}
+							disabled={testMode || disableMetadataFields}
 							onChange={(e) => setUsername(e.target.value)}
 							size="small"
 							fullWidth
@@ -215,6 +253,7 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 							size="small"
 							label="Preset"
 							value={selectedPresetId}
+							disabled={disableMetadataFields}
 							onChange={(e) => handlePresetChange(e.target.value)}
 							fullWidth
 							sx={selectStyle}
@@ -226,8 +265,12 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 									Custom
 								</MenuItem>
 							)}
-							{STATIC_PRESETS.map((p) => (
-								<MenuItem key={p.id} value={p.id} sx={{ fontSize: "12px" }}>
+							{availablePresets.map((p) => (
+								<MenuItem
+									key={p.id}
+									value={p.id?.toString()}
+									sx={{ fontSize: "12px" }}
+								>
 									{p.name}
 								</MenuItem>
 							))}
@@ -252,6 +295,18 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 							</MenuItem>
 						</TextField>
 					</Stack>
+					<TextField
+						label="Special Notes"
+						value={specialNeeds}
+						onChange={(e) => setSpecialNeeds(e.target.value)}
+						size="small"
+						fullWidth
+						multiline
+						rows={1.5}
+						sx={{ mt: 0.5, ...inputStyle }}
+						InputLabelProps={{ style: { fontSize: "12px" } }}
+						inputProps={{ style: { fontSize: "12.5px" } }}
+					/>
 				</Stack>
 			) : (
 				<Grid
@@ -260,36 +315,38 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 					alignItems="center"
 					justifyContent="center"
 				>
-					<Grid
-						item
-						xs={6}
-						sm={3}
-						md={2}
-						sx={{ display: "flex", justifyContent: "center" }}
-					>
-						<FormControlLabel
-							control={
-								<Switch
-									checked={testMode}
-									onChange={(e) => setTestMode(e.target.checked)}
-									color="warning"
-									size="small"
-								/>
-							}
-							label={
-								<Typography
-									variant="caption"
-									sx={{
-										color: testMode ? "#ff9800" : "rgba(255,255,255,0.5)",
-										fontWeight: "bold",
-										fontSize: "12px",
-									}}
-								>
-									TEST MODE
-								</Typography>
-							}
-						/>
-					</Grid>
+					{!editingOrderId && (
+						<Grid
+							item
+							xs={6}
+							sm={3}
+							md={2}
+							sx={{ display: "flex", justifyContent: "center" }}
+						>
+							<FormControlLabel
+								control={
+									<Switch
+										checked={testMode}
+										onChange={(e) => setTestMode(e.target.checked)}
+										color="warning"
+										size="small"
+									/>
+								}
+								label={
+									<Typography
+										variant="caption"
+										sx={{
+											color: testMode ? "#ff9800" : "rgba(255,255,255,0.5)",
+											fontWeight: "bold",
+											fontSize: "12px",
+										}}
+									>
+										TEST MODE
+									</Typography>
+								}
+							/>
+						</Grid>
+					)}
 					<Grid
 						item
 						xs={6}
@@ -300,7 +357,7 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 						<TextField
 							label="Company"
 							value={companyCode}
-							disabled={testMode}
+							disabled={testMode || disableMetadataFields}
 							onChange={(e) => setCompanyCode(e.target.value)}
 							size="small"
 							sx={{ width: "95%", ...inputStyle }}
@@ -324,7 +381,7 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 						<TextField
 							label="User"
 							value={username}
-							disabled={testMode}
+							disabled={testMode || disableMetadataFields}
 							onChange={(e) => setUsername(e.target.value)}
 							size="small"
 							sx={{ width: "95%", ...inputStyle }}
@@ -353,7 +410,7 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 							control={
 								<Checkbox
 									checked={isCorpMember}
-									disabled={testMode}
+									disabled={testMode || disableMetadataFields}
 									size="small"
 									onChange={(e) => setIsCorpMember(e.target.checked)}
 									sx={{
@@ -385,6 +442,7 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 								size="small"
 								label="Preset"
 								value={selectedPresetId}
+								disabled={disableMetadataFields}
 								onChange={(e) => handlePresetChange(e.target.value)}
 								sx={{ minWidth: 80, ...selectStyle }}
 								SelectProps={{ style: { fontSize: "12px", padding: "4px" } }}
@@ -395,8 +453,12 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 										Custom
 									</MenuItem>
 								)}
-								{STATIC_PRESETS.map((p) => (
-									<MenuItem key={p.id} value={p.id} sx={{ fontSize: "12px" }}>
+								{availablePresets.map((p) => (
+									<MenuItem
+										key={p.id}
+										value={p.id?.toString()}
+										sx={{ fontSize: "12px" }}
+									>
 										{p.name}
 									</MenuItem>
 								))}
@@ -420,6 +482,20 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 								</MenuItem>
 							</TextField>
 						</Stack>
+					</Grid>
+					<Grid item xs={12} sx={{ mt: 0.5 }}>
+						<TextField
+							label="Special Notes / Instructions"
+							value={specialNeeds}
+							onChange={(e) => setSpecialNeeds(e.target.value)}
+							size="small"
+							fullWidth
+							multiline
+							rows={1.5}
+							sx={inputStyle}
+							InputLabelProps={{ style: { fontSize: "12px" } }}
+							inputProps={{ style: { fontSize: "12px" } }}
+						/>
 					</Grid>
 				</Grid>
 			)}
@@ -471,28 +547,32 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 				)}
 			</Stack>
 
-			<Divider
-				orientation="vertical"
-				flexItem
-				sx={{ borderColor: "rgba(255,255,255,0.08)" }}
-			/>
+			{!testMode && (
+				<>
+					<Divider
+						orientation="vertical"
+						flexItem
+						sx={{ borderColor: "rgba(255,255,255,0.08)" }}
+					/>
 
-			<Stack direction="row" spacing={0.5} alignItems="center">
-				<Typography
-					variant="caption"
-					color="rgba(255,255,255,0.4)"
-					sx={{ fontSize: "12px", fontWeight: "bold" }}
-				>
-					WAIT TIME:
-				</Typography>
-				<Typography
-					variant="body2"
-					fontWeight="black"
-					sx={{ fontSize: "13.5px", color: "#2196f3" }}
-				>
-					{waitTime} Days
-				</Typography>
-			</Stack>
+					<Stack direction="row" spacing={0.5} alignItems="center">
+						<Typography
+							variant="caption"
+							color="rgba(255,255,255,0.4)"
+							sx={{ fontSize: "12px", fontWeight: "bold" }}
+						>
+							WAIT TIME:
+						</Typography>
+						<Typography
+							variant="body2"
+							fontWeight="black"
+							sx={{ fontSize: "13.5px", color: "#2196f3" }}
+						>
+							{waitTime} Days
+						</Typography>
+					</Stack>
+				</>
+			)}
 
 			{isCustomPrice && mockRole === "ADMIN" && !testMode && (
 				<>
@@ -1045,27 +1125,31 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 								/>
 							)}
 						</Box>
-						<Divider
-							orientation="vertical"
-							flexItem
-							sx={{ borderColor: "rgba(255,255,255,0.08)" }}
-						/>
-						<Box sx={{ textAlign: "center", flex: 1 }}>
-							<Typography
-								variant="caption"
-								color="rgba(255,255,255,0.4)"
-								sx={{ fontSize: "12px" }}
-							>
-								WAIT TIME
-							</Typography>
-							<Typography
-								variant="body1"
-								fontWeight="bold"
-								sx={{ fontSize: "14px", color: "#2196f3" }}
-							>
-								{waitTime} Days
-							</Typography>
-						</Box>
+						{!testMode && (
+							<>
+								<Divider
+									orientation="vertical"
+									flexItem
+									sx={{ borderColor: "rgba(255,255,255,0.08)" }}
+								/>
+								<Box sx={{ textAlign: "center", flex: 1 }}>
+									<Typography
+										variant="caption"
+										color="rgba(255,255,255,0.4)"
+										sx={{ fontSize: "12px" }}
+									>
+										WAIT TIME
+									</Typography>
+									<Typography
+										variant="body1"
+										fontWeight="bold"
+										sx={{ fontSize: "14px", color: "#2196f3" }}
+									>
+										{waitTime} Days
+									</Typography>
+								</Box>
+							</>
+						)}
 					</Stack>
 
 					{!testMode && (
@@ -1508,121 +1592,162 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 							? "Save Edits"
 							: "ORDER"}
 				</Button>
+				{editingOrderId && (
+					<Button
+						variant="contained"
+						fullWidth
+						color="error"
+						sx={{
+							mt: 1,
+							fontWeight: "bold",
+							fontSize: "12px",
+							py: 0.4,
+							bgcolor: "#d32f2f",
+							"&:hover": { bgcolor: "#c62828" },
+						}}
+						onClick={handleDeleteOrder}
+					>
+						Delete Order
+					</Button>
+				)}
+				{(mockRole === "ADMIN" || testMode) && (
+					<Button
+						variant="outlined"
+						fullWidth
+						sx={{
+							mt: 1,
+							color: "#7b68ee",
+							borderColor: "#7b68ee",
+							fontWeight: "bold",
+							fontSize: "12px",
+							py: 0.4,
+							"&:hover": {
+								borderColor: "#8a78f0",
+								bgcolor: "rgba(123, 104, 238, 0.05)",
+							},
+						}}
+						onClick={handleOpenPresetDialog}
+					>
+						Save as Preset
+					</Button>
+				)}
 			</Paper>
 		</Stack>
 	);
 
 	const contentBody = (
-		<Box
-			sx={{
-				color: "white",
-				display: "flex",
-				flexDirection: "column",
-				gap: 0.8,
-				height: "100%",
-				minHeight: 0,
-				width: "100%",
-				maxWidth: "1400px",
-				mx: "auto",
-				boxSizing: "border-box",
-			}}
-		>
-			{/* Metadata Row */}
-			{MetadataRow}
+		<>
+			<Box
+				sx={{
+					color: "white",
+					display: "flex",
+					flexDirection: "column",
+					gap: 0.8,
+					height: "100%",
+					minHeight: 0,
+					width: "100%",
+					maxWidth: "1400px",
+					mx: "auto",
+					boxSizing: "border-box",
+				}}
+			>
+				{/* Metadata Row */}
+				{MetadataRow}
 
-			{/* Always Visible Glassy Pricing Status Row on Mobile */}
-			{isMobileViewport && PriceAndWaitBadgeRow}
+				{/* Always Visible Glassy Pricing Status Row on Mobile */}
+				{isMobileViewport && PriceAndWaitBadgeRow}
 
-			{/* Responsive mobile split tabs vs desktop dual columns */}
-			{isMobileViewport ? (
-				<Box
-					sx={{
-						display: "flex",
-						flexDirection: "column",
-						flexGrow: 1,
-						minHeight: 0,
-						width: "100%",
-					}}
-				>
-					<Tabs
-						value={mobileActiveTab}
-						onChange={(_e, val) => setMobileActiveTab(val)}
-						variant="scrollable"
-						scrollButtons="auto"
-						allowScrollButtonsMobile
-						indicatorColor="primary"
-						textColor="primary"
-						TabIndicatorProps={{ style: { backgroundColor: "#7b68ee" } }}
-						sx={{
-							mb: 0.5,
-							minHeight: 32,
-							height: 32,
-							"& .MuiTabs-flexContainer": {
-								justifyContent: "center",
-							},
-							"& .MuiTab-root": {
-								color: "rgba(255,255,255,0.5)",
-								fontWeight: "bold",
-								fontSize: "12px",
-								minHeight: 32,
-								py: 0.5,
-							},
-							"& .Mui-selected": { color: "#7b68ee !important" },
-						}}
-					>
-						<Tab label="BUILDER" />
-						<Tab label="OVERVIEW & BOM" />
-					</Tabs>
-					<Box sx={{ flexGrow: 1, minHeight: 0, overflowY: "auto", px: 0 }}>
-						{mobileActiveTab === 0
-							? BlueprintSpecificationPanel
-							: PerformanceAndOverviewPanel}
-					</Box>
-				</Box>
-			) : (
-				<Grid
-					container
-					spacing={1.5}
-					sx={{ flexGrow: 1, minHeight: 0, width: "100%" }}
-					alignItems="stretch"
-					justifyContent="center"
-				>
-					{/* Left Column (60% width) */}
-					<Grid
-						item
-						xs={12}
-						md={7}
+				{/* Responsive mobile split tabs vs desktop dual columns */}
+				{isMobileViewport ? (
+					<Box
 						sx={{
 							display: "flex",
 							flexDirection: "column",
-							height: "100%",
-							minHeight: 0,
-							minWidth: 0,
 							flexGrow: 1,
-						}}
-					>
-						{BlueprintSpecificationPanel}
-					</Grid>
-
-					{/* Right Column (40% width) */}
-					<Grid
-						item
-						xs={12}
-						md={5}
-						sx={{
-							display: "flex",
-							flexDirection: "column",
-							height: "100%",
 							minHeight: 0,
-							minWidth: 0,
-							width: { md: "35%" },
+							width: "100%",
 						}}
 					>
-						{PerformanceAndOverviewPanel}
+						<Tabs
+							value={mobileActiveTab}
+							onChange={(_e, val) => setMobileActiveTab(val)}
+							variant="scrollable"
+							scrollButtons="auto"
+							allowScrollButtonsMobile
+							indicatorColor="primary"
+							textColor="primary"
+							TabIndicatorProps={{ style: { backgroundColor: "#7b68ee" } }}
+							sx={{
+								mb: 0.5,
+								minHeight: 32,
+								height: 32,
+								"& .MuiTabs-flexContainer": {
+									justifyContent: "center",
+								},
+								"& .MuiTab-root": {
+									color: "rgba(255,255,255,0.5)",
+									fontWeight: "bold",
+									fontSize: "12px",
+									minHeight: 32,
+									py: 0.5,
+								},
+								"& .Mui-selected": { color: "#7b68ee !important" },
+							}}
+						>
+							<Tab label="BUILDER" />
+							<Tab label="OVERVIEW & BOM" />
+						</Tabs>
+						<Box sx={{ flexGrow: 1, minHeight: 0, overflowY: "auto", px: 0 }}>
+							{mobileActiveTab === 0
+								? BlueprintSpecificationPanel
+								: PerformanceAndOverviewPanel}
+						</Box>
+					</Box>
+				) : (
+					<Grid
+						container
+						spacing={1.5}
+						sx={{ flexGrow: 1, minHeight: 0, width: "100%" }}
+						alignItems="stretch"
+						justifyContent="center"
+					>
+						{/* Left Column (60% width) */}
+						<Grid
+							item
+							xs={12}
+							md={7}
+							sx={{
+								display: "flex",
+								flexDirection: "column",
+								height: "100%",
+								minHeight: 0,
+								minWidth: 0,
+								flexGrow: 1,
+							}}
+						>
+							{BlueprintSpecificationPanel}
+						</Grid>
+
+						{/* Right Column (40% width) */}
+						<Grid
+							item
+							xs={12}
+							md={5}
+							sx={{
+								display: "flex",
+								flexDirection: "column",
+								height: "100%",
+								minHeight: 0,
+								minWidth: 0,
+								width: { md: "35%" },
+							}}
+						>
+							{PerformanceAndOverviewPanel}
+						</Grid>
 					</Grid>
-				</Grid>
-			)}
-		</Box>
+				)}
+			</Box>
+		</>
 	);
 
 	if (createdPin) {
@@ -1668,7 +1793,10 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 					variant="contained"
 					fullWidth
 					sx={{ bgcolor: "#7b68ee", color: "white", fontWeight: "bold", mt: 1 }}
-					onClick={handleConfirmOrder}
+					onClick={() => {
+						setCreatedPin(null);
+						onOrderCreated();
+					}}
 				>
 					Confirm & Close
 				</Button>
@@ -1676,51 +1804,154 @@ export const ShipBuilder: React.FC<ShipBuilderProps> = ({
 		);
 	}
 
-	if (isFullScreenMode) {
-		return (
-			<Box
-				sx={{
-					width: "100%",
-					height: "100%",
-					p: 1.5,
-					background: alpha(theme.palette.background.default, 0.85),
-					display: "flex",
-					flexDirection: "column",
-					minHeight: 0,
-					boxSizing: "border-box",
-					overflow: "hidden",
-				}}
-			>
-				<Stack
-					direction="row"
-					spacing={2}
-					alignItems="center"
-					sx={{ mb: 1, flexShrink: 0 }}
-				>
-					{onCancelEdit && (
-						<IconButton sx={{ color: "white", p: 0.5 }} onClick={onCancelEdit}>
-							<ArrowBackIcon />
-						</IconButton>
-					)}
-					<Typography variant="h6" fontWeight="bold" sx={{ color: "#7b68ee" }}>
-						Edit Order Config
-					</Typography>
-				</Stack>
+	return (
+		<>
+			{isFullScreenMode ? (
 				<Box
 					sx={{
-						flexGrow: 1,
-						minHeight: 0,
+						width: "100%",
+						height: "100%",
+						p: 1.5,
+						background: alpha(theme.palette.background.default, 0.85),
 						display: "flex",
 						flexDirection: "column",
+						minHeight: 0,
+						boxSizing: "border-box",
+						overflow: "hidden",
 					}}
 				>
-					{contentBody}
+					<Stack
+						direction="row"
+						spacing={2}
+						alignItems="center"
+						sx={{ mb: 1, flexShrink: 0 }}
+					>
+						{onCancelEdit && (
+							<IconButton
+								sx={{ color: "white", p: 0.5 }}
+								onClick={onCancelEdit}
+							>
+								<ArrowBackIcon />
+							</IconButton>
+						)}
+						<Typography
+							variant="h6"
+							fontWeight="bold"
+							sx={{ color: "#7b68ee" }}
+						>
+							Edit Order Config
+						</Typography>
+					</Stack>
+					<Box
+						sx={{
+							flexGrow: 1,
+							minHeight: 0,
+							display: "flex",
+							flexDirection: "column",
+						}}
+					>
+						{contentBody}
+					</Box>
 				</Box>
-			</Box>
-		);
-	}
+			) : (
+				contentBody
+			)}
 
-	return contentBody;
+			<Dialog
+				open={isPresetDialogOpen}
+				onClose={() => setIsPresetDialogOpen(false)}
+				slotProps={{
+					paper: {
+						sx: {
+							background: "#191823",
+							color: "white",
+							borderRadius: "16px",
+							border: "1px solid rgba(255,255,255,0.08)",
+							minWidth: 320,
+							p: 1.5,
+						},
+					},
+				}}
+			>
+				<DialogTitle
+					sx={{ fontWeight: "bold", fontSize: "16px", color: "#7b68ee" }}
+				>
+					Save Build as Preset
+				</DialogTitle>
+				<DialogContent
+					sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
+				>
+					<TextField
+						label="Preset Name"
+						fullWidth
+						size="small"
+						value={presetName}
+						onChange={(e) => setPresetName(e.target.value)}
+						sx={inputStyle}
+					/>
+					<TextField
+						label="Standard Price"
+						fullWidth
+						size="small"
+						type="number"
+						value={presetPrice}
+						onChange={(e) => setPresetPrice(Number(e.target.value))}
+						sx={inputStyle}
+					/>
+					<TextField
+						label="Corporate Price"
+						fullWidth
+						size="small"
+						type="number"
+						value={presetPriceCorp}
+						onChange={(e) => setPresetPriceCorp(Number(e.target.value))}
+						sx={inputStyle}
+					/>
+					<FormControlLabel
+						control={
+							<Checkbox
+								checked={isCorpPreset}
+								onChange={(e) => setIsCorpPreset(e.target.checked)}
+								disabled={mockRole !== "ADMIN"}
+								sx={{
+									color: "rgba(255,255,255,0.3)",
+									"&.Mui-checked": { color: "#7b68ee" },
+								}}
+							/>
+						}
+						label={
+							<Typography
+								sx={{ fontSize: "13px", color: "rgba(255,255,255,0.8)" }}
+							>
+								Share as Corporation-wide Preset (Admin only)
+							</Typography>
+						}
+					/>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2 }}>
+					<Button
+						onClick={() => setIsPresetDialogOpen(false)}
+						sx={{ color: "rgba(255,255,255,0.6)", fontSize: "12px" }}
+					>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleConfirmSavePreset}
+						variant="contained"
+						sx={{
+							bgcolor: "#7b68ee",
+							color: "white",
+							fontWeight: "bold",
+							fontSize: "12px",
+							"&:hover": { bgcolor: "#6a5acd" },
+						}}
+					>
+						Save Preset
+					</Button>
+				</DialogActions>
+			</Dialog>
+		</>
+	);
 };
 
 // Styling structures

@@ -25,6 +25,7 @@ export interface OrderCardProps {
 	onEditClick: (e: React.MouseEvent, orderId: number) => void;
 	onDeleteClick: (e: React.MouseEvent, orderId: number) => void;
 	getStatusChip: (status?: string) => React.ReactNode;
+	disableActions?: boolean;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -37,10 +38,19 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 	onEditClick,
 	onDeleteClick,
 	getStatusChip,
+	disableActions,
 }) => {
-	const isOwner =
-		isAdmin ||
-		(isUser && (order.ownerType === "USER" || order.ownerType === "API"));
+	const isOwner = React.useMemo(() => {
+		if (disableActions) return false;
+		if (isAdmin || order.isOwner || order.isAdmin) return true;
+
+		// Guest local storage fallback check
+		const guestOrdersSaved = localStorage.getItem("guest_ship_orders");
+		const guestOrders = guestOrdersSaved ? JSON.parse(guestOrdersSaved) : [];
+		return guestOrders.some(
+			(o: any) => o.id.toString() === order.id.toString(),
+		);
+	}, [order.id, order.isOwner, order.isAdmin, isAdmin, disableActions]);
 
 	return (
 		<Paper
@@ -48,10 +58,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 			sx={{
 				p: 1.5,
 				borderRadius: "16px",
-				background: "rgba(30, 29, 45, 0.45)",
+				background: isOwner
+					? "linear-gradient(135deg, rgba(123, 104, 238, 0.12) 0%, rgba(30, 29, 45, 0.5) 100%)"
+					: "rgba(30, 29, 45, 0.45)",
 				backdropFilter: "blur(12px)",
-				border: "1px solid rgba(25, 24, 35, 0.8)",
-				boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
+				border: isOwner
+					? "1px solid rgba(123, 104, 238, 0.35)"
+					: "1px solid rgba(25, 24, 35, 0.8)",
+				boxShadow: isOwner
+					? "0 8px 32px 0 rgba(123, 104, 238, 0.12)"
+					: "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
 				cursor: "pointer",
 				transition:
 					"transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
@@ -184,67 +200,68 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 					</Box>
 
 					{/* Glassy Action Pills */}
-					{!isGuest && (
-						<Stack
-							direction="row"
-							spacing={0.5}
-							onClick={(e) => e.stopPropagation()}
-							sx={{
-								bgcolor: "rgba(255,255,255,0.03)",
-								p: 0.3,
-								borderRadius: "8px",
-								border: "1px solid rgba(255,255,255,0.05)",
-							}}
-						>
-							{isAdmin && order.status !== "COMPLETED" && (
-								<Tooltip title="Complete Order">
-									<IconButton
-										color="success"
-										size="small"
-										sx={{
-											p: 0.4,
-											"&:hover": { bgcolor: "rgba(76, 175, 80, 0.15)" },
-										}}
-										onClick={(e) => onCompleteClick(e, order.id)}
-									>
-										<CompleteIcon sx={{ fontSize: 16 }} />
-									</IconButton>
-								</Tooltip>
-							)}
-
-							{isOwner && (
-								<>
-									<Tooltip title="Edit Config">
+					{!disableActions &&
+						(isOwner || (isAdmin && order.status !== "COMPLETED")) && (
+							<Stack
+								direction="row"
+								spacing={0.5}
+								onClick={(e) => e.stopPropagation()}
+								sx={{
+									bgcolor: "rgba(255,255,255,0.03)",
+									p: 0.3,
+									borderRadius: "8px",
+									border: "1px solid rgba(255,255,255,0.05)",
+								}}
+							>
+								{isAdmin && order.status !== "COMPLETED" && (
+									<Tooltip title="Complete Order">
 										<IconButton
-											color="warning"
+											color="success"
 											size="small"
 											sx={{
 												p: 0.4,
-												"&:hover": { bgcolor: "rgba(255, 152, 0, 0.15)" },
+												"&:hover": { bgcolor: "rgba(76, 175, 80, 0.15)" },
 											}}
-											onClick={(e) => onEditClick(e, order.id)}
+											onClick={(e) => onCompleteClick(e, order.id)}
 										>
-											<EditIcon sx={{ fontSize: 16 }} />
+											<CompleteIcon sx={{ fontSize: 16 }} />
 										</IconButton>
 									</Tooltip>
+								)}
 
-									<Tooltip title="Delete Order">
-										<IconButton
-											color="error"
-											size="small"
-											sx={{
-												p: 0.4,
-												"&:hover": { bgcolor: "rgba(244, 67, 54, 0.15)" },
-											}}
-											onClick={(e) => onDeleteClick(e, order.id)}
-										>
-											<DeleteIcon sx={{ fontSize: 16 }} />
-										</IconButton>
-									</Tooltip>
-								</>
-							)}
-						</Stack>
-					)}
+								{isOwner && (
+									<>
+										<Tooltip title="Edit Config">
+											<IconButton
+												color="warning"
+												size="small"
+												sx={{
+													p: 0.4,
+													"&:hover": { bgcolor: "rgba(255, 152, 0, 0.15)" },
+												}}
+												onClick={(e) => onEditClick(e, order.id)}
+											>
+												<EditIcon sx={{ fontSize: 16 }} />
+											</IconButton>
+										</Tooltip>
+
+										<Tooltip title="Delete Order">
+											<IconButton
+												color="error"
+												size="small"
+												sx={{
+													p: 0.4,
+													"&:hover": { bgcolor: "rgba(244, 67, 54, 0.15)" },
+												}}
+												onClick={(e) => onDeleteClick(e, order.id)}
+											>
+												<DeleteIcon sx={{ fontSize: 16 }} />
+											</IconButton>
+										</Tooltip>
+									</>
+								)}
+							</Stack>
+						)}
 				</Stack>
 			</Stack>
 		</Paper>

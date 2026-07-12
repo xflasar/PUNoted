@@ -5,6 +5,7 @@ import React, {
 	useEffect,
 	useCallback,
 	useMemo,
+	useRef,
 } from "react";
 import type { ReactNode } from "react";
 import { openDB } from "idb";
@@ -195,6 +196,17 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		string | null
 	>(null);
 
+	const mapDataRef = useRef<any>(null);
+	const lastDashboardSessionIdRef = useRef<string | null>(null);
+
+	useEffect(() => {
+		mapDataRef.current = mapData;
+	}, [mapData]);
+
+	useEffect(() => {
+		lastDashboardSessionIdRef.current = lastDashboardSessionId;
+	}, [lastDashboardSessionId]);
+
 	// --- IndexedDB Helper Methods ---
 	const getCachedData = async (key: string): Promise<any | null> => {
 		const db = await dbPromise;
@@ -280,22 +292,29 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 	const fetchMapData = useCallback(
 		async (sessionId?: string) => {
-			if (sessionId && lastDashboardSessionId === sessionId && mapData) {
+			const currentMapData = mapDataRef.current;
+			const currentSessionId = lastDashboardSessionIdRef.current;
+
+			if (sessionId && currentSessionId === sessionId && currentMapData) {
 				return;
 			}
 
-			if (sessionId) setLastDashboardSessionId(sessionId);
+			if (sessionId) {
+				setLastDashboardSessionId(sessionId);
+				lastDashboardSessionIdRef.current = sessionId;
+			}
 
 			// 1. Instant Cache Load
 			const cachedData: MapDataCache | null = await getCachedData("map_data");
 			if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
 				setMapData(cachedData.data);
+				mapDataRef.current = cachedData.data;
 			}
 
 			// 2. Background Revalidation
 			try {
 				// Don't show loading spinner if we already have data
-				if (!mapData && !cachedData) setIsMapLoading(true);
+				if (!currentMapData && !cachedData) setIsMapLoading(true);
 				setMapFetchError(null);
 
 				const res = await fetchClient("/dashboard_map");
@@ -306,6 +325,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 				if (freshData) {
 					setMapData(freshData);
+					mapDataRef.current = freshData;
 					await setCachedData("map_data", {
 						timestamp: Date.now(),
 						data: freshData,
@@ -319,7 +339,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				setIsMapLoading(false);
 			}
 		},
-		[mapData, lastDashboardSessionId],
+		[getCachedData, setCachedData],
 	);
 
 	const refreshMapData = useCallback(async () => {
