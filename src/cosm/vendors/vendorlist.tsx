@@ -27,8 +27,7 @@ import {
 } from "@mui/material";
 import {
 	Search,
-	PlusCircle,
-	Edit,
+	Store,
 	ShoppingBasket,
 	MapPin,
 	Warehouse,
@@ -46,6 +45,7 @@ import MaterialBadge from "../components/materialbadge";
 import { formatAmount } from "../../utils/formaters";
 import type { Location, VendorStore } from "./types";
 import { getDiffStats } from "./utils/pricecomparison";
+import { formatLocation } from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
@@ -58,22 +58,6 @@ const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 const getStoredVendorViewMode = (): "grid" | "table" | null => {
 	const storedValue = localStorage.getItem(VENDORS_VIEW_MODE_STORAGE_KEY);
 	return isVendorViewMode(storedValue) ? storedValue : null;
-};
-
-const formatLocation = (name?: string, id?: string) => {
-	const locationName = name?.trim();
-	const locationId = id?.trim();
-	let displayName = locationName || locationId || "Unknown";
-	let displayId: string | null = null;
-	if (locationName && locationId) {
-		const sameLabel =
-			locationName.localeCompare(locationId, undefined, {
-				sensitivity: "base",
-			}) === 0;
-		displayName = locationName;
-		displayId = sameLabel ? null : locationId;
-	}
-	return displayId ? `${displayName} (${displayId})` : displayName;
 };
 
 // --- HELPER COMPONENTS ---
@@ -358,10 +342,7 @@ const VendorCard = React.memo(
 					WebkitBackdropFilter: "blur(6px)",
 					boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
 					transition: "box-shadow 0.2s, border-color 0.2s",
-					"&:hover": {
-						boxShadow: "0 8px 25px rgba(0, 0, 0, 0.5)",
-						borderColor: alpha(theme.palette.primary.main, 0.5),
-					},
+					borderColor: alpha(theme.palette.primary.main, 0.5),
 				}}
 			>
 				<CardContent
@@ -530,10 +511,7 @@ const VendorCard = React.memo(
 											gap: 0.5,
 											cursor: "default",
 											"&:hover": {
-												backgroundColor: alpha(
-													theme.palette.common.white,
-													0.03,
-												),
+												backgroundColor: alpha(theme.palette.primary.main, 0.2),
 											},
 										}}
 									>
@@ -932,6 +910,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		setVendorStores((prevStores) => [newVendorStore, ...prevStores]);
 		setUserVendorStore(newVendorStore);
 		setHasVendorStore(true);
+		setIsEditModalOpen(true);
 	}, []);
 
 	const handleOnStoreDeleted = useCallback((deletedVendorId: string) => {
@@ -1729,28 +1708,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								justifyContent: { xs: "center", sm: "flex-end" },
 							}}
 						>
-							<IconButton
-								onClick={handleOpenShoppingListModal}
-								sx={{
-									height: 40,
-									width: 40,
-									borderRadius: "50%",
-									color: "white",
-									bgcolor: "primary.main",
-									boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-									"&:hover": {
-										bgcolor: "primary.dark",
-									},
-								}}
-							>
-								<ShoppingBasket size={24} />
-							</IconButton>
-							{loggedIn && (
+							<Tooltip title="Shopping List">
 								<IconButton
-									onClick={
-										hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
-									}
-									disabled={isCheckingStore}
+									onClick={handleOpenShoppingListModal}
 									sx={{
 										height: 40,
 										width: 40,
@@ -1761,17 +1721,38 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										"&:hover": {
 											bgcolor: "primary.dark",
 										},
-										"&.Mui-disabled": {
-											bgcolor: alpha(theme.palette.primary.main, 0.5),
-										},
 									}}
 								>
-									{hasVendorStore ? (
-										<Edit size={24} />
-									) : (
-										<PlusCircle size={24} />
-									)}
+									<ShoppingBasket size={24} />
 								</IconButton>
+							</Tooltip>
+							{loggedIn && (
+								<Tooltip title="Your Store">
+									<IconButton
+										onClick={
+											hasVendorStore
+												? handleOpenEditModal
+												: handleOpenCreateModal
+										}
+										disabled={isCheckingStore}
+										sx={{
+											height: 40,
+											width: 40,
+											borderRadius: "50%",
+											color: "white",
+											bgcolor: "primary.main",
+											boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+											"&:hover": {
+												bgcolor: "primary.dark",
+											},
+											"&.Mui-disabled": {
+												bgcolor: alpha(theme.palette.primary.main, 0.5),
+											},
+										}}
+									>
+										<Store size={24} />
+									</IconButton>
+								</Tooltip>
 							)}
 						</Box>
 					</Box>
@@ -1805,7 +1786,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								"& .MuiDataGrid-row": {
 									borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
 									"&:hover": {
-										backgroundColor: alpha(theme.palette.primary.main, 0.04),
+										backgroundColor: alpha(theme.palette.primary.main, 0.2),
 									},
 									display: "flex",
 									alignItems: "center",
@@ -1878,7 +1859,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				open={isEditModalOpen}
 				handleClose={handleCloseEditModal}
 				vendorStore={userVendorStore}
-				setVendorStore={setUserVendorStore}
 				onStoreDeleted={handleOnStoreDeleted}
 				onVendorChanged={handleOnVendorChanged}
 			/>

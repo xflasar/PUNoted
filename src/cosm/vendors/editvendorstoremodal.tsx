@@ -32,7 +32,6 @@ interface EditVendorStoreModalProps {
 	/** Callback to close the modal */
 	handleClose: () => void;
 	/** State setter for the currently selected vendor store */
-	setVendorStore: React.Dispatch<React.SetStateAction<VendorStore | null>>;
 	/** The vendor store being edited */
 	vendorStore: VendorStore | null;
 	/** Callback fired when a store is successfully deleted */
@@ -73,15 +72,17 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 		handleEditMaterial,
 		handleRemoveMaterial,
 		setOrdersToDelete,
-		setStoreInstoreAmounts,
+		hydrateAvailableMaterials,
+		normalizeVendorStore,
 	} = useVendorStoreManager(vendorStore);
 
 	// Custom hook to fetch available materials based on current CX
-	const { materials } = useAvailableMaterials(
-		localVendorDetails.cx,
-		open,
-		setStoreInstoreAmounts,
-	);
+	const { materials } = useAvailableMaterials(localVendorDetails.cx, open);
+
+	useEffect(() => {
+		if (!open || materials.length === 0) return;
+		hydrateAvailableMaterials(materials);
+	}, [open, materials, hydrateAvailableMaterials]);
 
 	/**
 	 * Fetches the available locations when the modal opens.
@@ -143,7 +144,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				fixedprice: order.isPriceLocked ? -1 : order.price.fixedprice,
 				materialid: order.materialid,
 				reserved: order.reserved,
-				location: order.location.map((loc) => ({
+				location: order.locations.map((loc) => ({
 					id: loc.id,
 					amount: loc.amount,
 				})),
@@ -166,7 +167,11 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				throw new Error(result.message || "Failed to save changes.");
 			}
 
-			onVendorChanged(result.vendor_store);
+			if (!result.vendor_store) {
+				throw new Error("Save response missing updated store.");
+			}
+
+			onVendorChanged(normalizeVendorStore(result.vendor_store));
 			handleClose();
 		} catch (err) {
 			setError(
@@ -184,6 +189,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 		onVendorChanged,
 		handleClose,
 		setOrdersToDelete,
+		normalizeVendorStore,
 	]);
 
 	/**
@@ -262,7 +268,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 						<PlusCircle />
-						<Typography variant="h6">Edit Vendor Store</Typography>
+						<Typography variant="h6">Your Store</Typography>
 					</Box>
 					<IconButton onClick={handleClose}>
 						<X size={20} />
@@ -394,56 +400,78 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						background: theme.palette.background.default,
 						flexShrink: 0,
 						zIndex: 2,
+						position: "relative",
+						display: "flex",
+						flexDirection: "row",
+						justifyContent: "center",
+						alignItems: "center",
+						gap: 1,
 					}}
 				>
 					{error && (
 						<Typography
 							variant="body2"
 							color="error"
-							sx={{ mr: "auto", px: 2 }}
+							sx={{
+								position: "absolute",
+								left: 0,
+								right: 0,
+								textAlign: "center",
+								px: 2,
+							}}
 						>
 							{error}
 						</Typography>
 					)}
-					<Box sx={{ flexGrow: 1 }}>
-						<Button
-							fullWidth
-							variant="outlined"
-							color="error"
-							size="small"
-							onClick={handleDeleteVendorStore}
-							disabled={isSaving || isDeleting}
-							startIcon={
-								isDeleting ? (
-									<CircularProgress size={16} color="inherit" />
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "space-between",
+							gap: 1,
+							width: "100%",
+						}}
+					>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+							<Button
+								variant="outlined"
+								color="error"
+								size="small"
+								onClick={handleDeleteVendorStore}
+								disabled={isSaving || isDeleting}
+								startIcon={
+									isDeleting ? (
+										<CircularProgress size={16} color="inherit" />
+									) : (
+										<DeleteIcon fontSize="small" />
+									)
+								}
+								sx={{ height: "40px", whiteSpace: "nowrap", minWidth: 120 }}
+							>
+								Delete Store
+							</Button>
+						</Box>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 5 }}>
+							<Button
+								onClick={handleClose}
+								disabled={isSaving || isDeleting}
+								color="inherit"
+							>
+								Discard Changes
+							</Button>
+							<Button
+								onClick={handleSave}
+								variant="contained"
+								disabled={isSaving || isDeleting}
+							>
+								{isSaving ? (
+									<CircularProgress size={20} color="inherit" />
 								) : (
-									<DeleteIcon fontSize="small" />
-								)
-							}
-							sx={{ height: "40px", whiteSpace: "nowrap" }}
-						>
-							Delete Store
-						</Button>
+									"Save & Close"
+								)}
+							</Button>
+						</Box>
 					</Box>
-
-					<Button
-						onClick={handleClose}
-						disabled={isSaving || isDeleting}
-						color="inherit"
-					>
-						Cancel
-					</Button>
-					<Button
-						onClick={handleSave}
-						variant="contained"
-						disabled={isSaving || isDeleting}
-					>
-						{isSaving ? (
-							<CircularProgress size={20} color="inherit" />
-						) : (
-							"Save Changes"
-						)}
-					</Button>
 				</DialogActions>
 			</Dialog>
 

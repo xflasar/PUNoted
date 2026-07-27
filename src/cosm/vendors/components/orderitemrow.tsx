@@ -31,6 +31,7 @@ import type { OrderItem, Location } from "../types";
 import { formatCurrency } from "../../../dashboard/financial/utils/financeutils";
 import { formatAmount } from "../../../utils/formaters";
 import { pickPrice } from "../utils/pickprice";
+import { formatLocation } from "../utils/formatlocation";
 import MaterialBadge from "../../components/materialbadge";
 
 /**
@@ -131,6 +132,7 @@ export interface OrderLocationEntry {
 	location_code: string;
 	amount: number;
 	storage_amount?: number;
+	available?: number;
 }
 
 /**
@@ -151,7 +153,7 @@ interface OrderItemRowProps {
 	/** Callback to update a field in the material. */
 	onEditMaterial?: (
 		frontendId: string | undefined,
-		field: "ordertype" | "fixedprice" | "reserved" | "location" | "priceLock",
+		field: "ordertype" | "fixedprice" | "reserved" | "locations" | "priceLock",
 		value: any,
 	) => void;
 	/** Callback to add the material to active orders. */
@@ -185,10 +187,43 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 	}) => {
 		const theme = useTheme();
 		const [open, setOpen] = useState(false);
+		const [locationInputValue, setLocationInputValue] = useState("");
 
 		const currentLocations = useMemo(() => {
-			return Array.isArray(material.location) ? material.location : [];
-		}, [material.location]);
+			return Array.isArray(material.locations) ? material.locations : [];
+		}, [material.locations]);
+
+		const compareLocations = useCallback((a: Location, b: Location) => {
+			if (a.location_code === "HRT") return -1;
+			if (b.location_code === "HRT") return 1;
+			return `${a.location_name} [${a.location_code}]`.localeCompare(
+				`${b.location_name} [${b.location_code}]`,
+			);
+		}, []);
+
+		const sortedCurrentLocations = useMemo(() => {
+			return [...currentLocations].sort(compareLocations);
+		}, [currentLocations, compareLocations]);
+
+		const availableLocations = useMemo(() => {
+			return [...locations]
+				.filter(
+					(location) =>
+						!currentLocations.some((current) => current.id === location.id),
+				)
+				.sort(compareLocations);
+		}, [locations, currentLocations, compareLocations]);
+
+		const locationStockById = useMemo(() => {
+			const stocks = new Map<string, number>();
+			(material.locationSource || []).forEach((loc) => {
+				stocks.set(
+					loc.id,
+					loc.available ?? loc.storage_amount ?? loc.amount ?? 0,
+				);
+			});
+			return stocks;
+		}, [material.locationSource]);
 
 		const labelText = material.ordertype === "buy" ? "Demand" : "Reserve";
 		const isPriceLocked = Boolean(material.isPriceLocked);
@@ -199,6 +234,11 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			corpprice: material.price?.corpprice,
 			cxprice: material.price?.cxprice,
 		}).price;
+		const displayQuantity = currentLocations.reduce(
+			(sum: number, loc: any) =>
+				sum + (loc.available ?? loc.storage_amount ?? loc.amount ?? 0),
+			0,
+		);
 		const totalAmount = currentLocations.reduce(
 			(sum: number, l: any) => sum + (l.amount || 0),
 			0,
@@ -210,6 +250,9 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				if (!newLocationObj) return;
 				if (currentLocations.some((l: any) => l.id === newLocationObj.id))
 					return;
+				const sourceLocation = material.locationSource?.find(
+					(loc) => loc.id === newLocationObj.id,
+				);
 
 				let trueInStock = 0;
 
@@ -230,10 +273,21 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 					location_name: newLocationObj.location_name,
 					location_code: newLocationObj.location_code,
 					amount: 0,
-					storage_amount: trueInStock,
+					storage_amount:
+						sourceLocation?.available ??
+						sourceLocation?.storage_amount ??
+						newLocationObj.available ??
+						newLocationObj.storage_amount ??
+						0,
+					available:
+						sourceLocation?.available ??
+						sourceLocation?.storage_amount ??
+						newLocationObj.available ??
+						newLocationObj.storage_amount ??
+						0,
 				};
 
-				onEditMaterial?.(material.frontendId, "location", [
+				onEditMaterial?.(material.frontendId, "locations", [
 					...currentLocations,
 					newEntry,
 				]);
@@ -243,8 +297,8 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				currentLocations,
 				material.frontendId,
 				material.materialid,
+				material.locationSource,
 				onEditMaterial,
-				availableMaterialsList,
 			],
 		);
 
@@ -253,7 +307,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				const updated = currentLocations.map((l: any) =>
 					l.id === locId ? { ...l, amount: val } : l,
 				);
-				onEditMaterial?.(material.frontendId, "location", updated);
+				onEditMaterial?.(material.frontendId, "locations", updated);
 			},
 			[currentLocations, material.frontendId, onEditMaterial],
 		);
@@ -261,7 +315,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		const handleRemoveLocation = useCallback(
 			(locId: string) => {
 				const updated = currentLocations.filter((l: any) => l.id !== locId);
-				onEditMaterial?.(material.frontendId, "location", updated);
+				onEditMaterial?.(material.frontendId, "locations", updated);
 			},
 			[currentLocations, material.frontendId, onEditMaterial],
 		);
@@ -322,6 +376,16 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									}
 									disabled={hasOtherOrderType}
 									sx={{ fontSize: "0.875rem" }}
+									MenuProps={{
+										slotProps: {
+											paper: {
+												sx: {
+													bgcolor: theme.palette.background.default,
+													backgroundImage: "none",
+												},
+											},
+										},
+									}}
 								>
 									<MenuItem value="sell">Ask</MenuItem>
 									<MenuItem value="buy">Bid</MenuItem>
@@ -442,7 +506,9 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 
 						{/* 6. In Store */}
 						<Cell label="In Store">
-							<Typography variant="body2">{material.quantity}</Typography>
+							<Typography variant="body2">
+								{formatAmount(displayQuantity)}
+							</Typography>
 						</Cell>
 
 						{/* 7. Remove (Align right on mobile) */}
@@ -480,24 +546,45 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									px: 1,
 								}}
 							>
-								<Typography variant="caption" color="text.secondary">
+								<Typography
+									variant="caption"
+									sx={{
+										color: theme.palette.text.secondary,
+										fontWeight: "bold",
+										textTransform: "uppercase",
+										opacity: 0.5,
+									}}
+								>
 									Location
 								</Typography>
 								<Typography
 									variant="caption"
-									color="text.secondary"
-									align="right"
+									sx={{
+										color: theme.palette.text.secondary,
+										fontWeight: "bold",
+										textTransform: "uppercase",
+										opacity: 0.5,
+										textAlign: "right",
+									}}
 								>
 									In Stock
 								</Typography>
-								<Typography variant="caption" color="text.secondary">
+								<Typography
+									variant="caption"
+									sx={{
+										color: theme.palette.text.secondary,
+										fontWeight: "bold",
+										textTransform: "uppercase",
+										opacity: 0.5,
+									}}
+								>
 									{labelText}
 								</Typography>
 								<Box />
 							</Box>
 
 							{/* Location Rows */}
-							{currentLocations.map((loc: any) => (
+							{sortedCurrentLocations.map((loc: any) => (
 								<Box
 									key={loc.id}
 									sx={{
@@ -513,40 +600,29 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										},
 									}}
 								>
-									<Tooltip title={loc.location_name}>
-										<Box
-											sx={{
-												overflow: "hidden",
-												textOverflow: "ellipsis",
-												whiteSpace: "nowrap",
-											}}
-										>
-											<Chip
-												label={loc.location_code}
-												size="small"
-												sx={{ mr: 1, cursor: "help" }}
-											/>
-											<Typography
-												variant="caption"
-												sx={{ display: { xs: "none", md: "inline" } }}
-											>
-												{loc.location_name}
-											</Typography>
-										</Box>
-									</Tooltip>
+									<Typography
+										variant="caption"
+										sx={{
+											overflow: "hidden",
+											textOverflow: "ellipsis",
+											whiteSpace: "nowrap",
+										}}
+									>
+										{formatLocation(loc.location_name, loc.location_code)}
+									</Typography>
 
 									<Typography
 										variant="body2"
 										align="right"
 										sx={{
 											color:
-												(loc.storage_amount || 0) > 0
+												((loc.available ?? loc.storage_amount) || 0) > 0
 													? theme.palette.success.light
 													: theme.palette.text.disabled,
 											fontWeight: "bold",
 										}}
 									>
-										{loc.storage_amount || 0}
+										{formatAmount(loc.available ?? loc.storage_amount ?? 0)}
 									</Typography>
 
 									<DebouncedInput
@@ -566,27 +642,54 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										}}
 									/>
 
-									<IconButton
-										size="small"
-										onClick={() => handleRemoveLocation(loc.id)}
-									>
-										<RemoveCircleOutlineIcon fontSize="small" color="error" />
-									</IconButton>
+									{currentLocations.length > 1 ? (
+										<IconButton
+											size="small"
+											onClick={() => handleRemoveLocation(loc.id)}
+										>
+											<RemoveCircleOutlineIcon fontSize="small" color="error" />
+										</IconButton>
+									) : (
+										<Box />
+									)}
 								</Box>
 							))}
 
 							<Box sx={{ mt: 1.5, px: 1 }}>
 								<Autocomplete
-									options={locations}
+									options={availableLocations}
 									getOptionLabel={(option) =>
 										typeof option === "string"
 											? option
-											: `${option.location_name} [${option.location_code}]`
+											: `${formatLocation(option.location_name, option.location_code)}: ${formatAmount(locationStockById.get(option.id) ?? 0)}`
 									}
 									isOptionEqualToValue={(option, value) =>
 										option.id === value.id
 									}
+									renderOption={(props, option) => {
+										const quantity = locationStockById.get(option.id) ?? 0;
+										const { key, ...optionProps } = props;
+
+										return (
+											<li key={key} {...optionProps}>
+												{formatLocation(
+													option.location_name,
+													option.location_code,
+												)}
+												:&nbsp;
+												<Box component="span" sx={{ fontWeight: "bold" }}>
+													{formatAmount(quantity)}
+												</Box>
+											</li>
+										);
+									}}
 									onChange={(event, newValue) => handleAddLocation(newValue)}
+									inputValue={locationInputValue}
+									onInputChange={(_event, newInputValue, reason) => {
+										if (reason === "reset") return;
+										setLocationInputValue(newInputValue);
+									}}
+									onClose={() => setLocationInputValue("")}
 									value={null}
 									slotProps={{
 										paper: {
