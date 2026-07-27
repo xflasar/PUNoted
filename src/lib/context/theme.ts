@@ -45,8 +45,25 @@ export const getAppTheme = (mode: PaletteMode) =>
 			mode,
 		},
 		components: {
+			MuiMenu: {
+				styleOverrides: {
+					paper: {
+						backgroundColor: "#0F0F28 !important",
+					},
+				},
+			},
+			MuiAutocomplete: {
+				styleOverrides: {
+					paper: {
+						backgroundColor: "#0F0F28 !important",
+					},
+				},
+			},
 			MuiCssBaseline: {
 				styleOverrides: {
+					select: {
+						backgroundColor: "#0F0F28",
+					},
 					// Apply scrollbar styles for Firefox
 					body: {
 						scrollbarColor: "rgba(123, 104, 238, 1) rgba(43, 43, 43, 0.2)",
