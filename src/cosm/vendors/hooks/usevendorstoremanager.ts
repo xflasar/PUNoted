@@ -73,6 +73,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 							: o.quantity;
 				return {
 					...o,
+					locations: o.location,
 					frontendId: o.orderid || uuidv4(),
 					isPriceLocked,
 					available,
@@ -384,7 +385,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 				return {
 					...order,
 					locationSource: sourceLocations,
-					locations: (order.locations || order.location || []).map(
+					location: (order.locations || order.location || []).map(
 						(location) => {
 							const sourceLocation = sourceLocations.find(
 								(source) => source.id === location.id,
