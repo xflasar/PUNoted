@@ -218,25 +218,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
 							</Box>
 						);
 					}}
-					renderInput={(params) => {
-						const { InputProps, ...rest } = params;
-						return (
-							<TextField
-								{...rest}
-								variant="standard"
-								placeholder="Search for a system or planet..."
-								InputProps={{
-									...InputProps,
-									disableUnderline: true,
-									style: {
-										paddingLeft: "10px",
-										color: theme.palette.text.primary,
-										fontSize: "0.85rem",
-									},
-								}}
-							/>
-						);
-					}}
+					renderInput={(params) => (
+						<TextField
+							{...params}
+							variant="standard"
+							placeholder="Search for a system or planet..."
+							sx={{
+								"& .MuiInputBase-input::placeholder": {
+									color: "rgba(255, 255, 255, 0.4)",
+									opacity: 1,
+								},
+								"& .MuiInput-root": {
+									paddingLeft: "10px",
+									color: "#ffffff",
+									fontSize: "0.85rem",
+								},
+							}}
+							InputProps={{
+								...params.InputProps,
+								disableUnderline: true,
+							}}
+						/>
+					)}
 				/>
 				<IconButton
 					type="button"

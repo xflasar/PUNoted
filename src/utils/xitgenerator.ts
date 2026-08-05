@@ -95,3 +95,30 @@ export const generateSupplyXit = (config: XitSupplyConfig): string => {
 		{ type: "Manual", name: "S1", materials },
 	]);
 };
+
+export interface XitExportConfig {
+	siteName: string;
+	materials: Record<string, number>;
+	shipReg?: string;
+}
+
+/**
+ * Generates an Export / Transport XIT payload specifically for transferring cargo to a ship.
+ */
+export const generateExportXit = (config: XitExportConfig): string => {
+	const { siteName, materials, shipReg = "Configure on Execution" } = config;
+
+	const actions: XitAction[] = [
+		{
+			type: "MTRA",
+			name: "Export Transport",
+			group: "E1",
+			origin: siteName,
+			dest: shipReg,
+		},
+	];
+
+	return generateXit(`${siteName} Export`, actions, [
+		{ type: "Manual", name: "E1", materials },
+	]);
+};

@@ -123,9 +123,10 @@ export const ProductionTabContent = ({ site }: { site: SiteSummary }) => {
 						key={idx}
 						variant="outlined"
 						sx={{
-							borderRadius: 1.5,
+							borderRadius: "12px",
 							overflow: "hidden",
-							bgcolor: alpha(theme.palette.background.default, 0.4),
+							bgcolor: "rgba(16, 16, 32, 0.6)",
+							border: "1px solid rgba(123, 104, 238, 0.25)",
 						}}
 					>
 						{/* --- HEADER --- */}

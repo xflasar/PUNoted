@@ -17,7 +17,24 @@ export const useSitesManager = () => {
 	const [siteTargets, setSiteTargets] = useState<Record<string, number>>({});
 	const [summaryOpen, setSummaryOpen] = useState(false);
 
-	// --- FILTER STATE ---
+	// --- GROUPING & FILTER STATE ---
+	const [groupLoanedMode, setGroupLoanedModeState] = useState<"owned" | "user">(
+		() => {
+			try {
+				const saved = localStorage.getItem("punoted_group_loaned_mode");
+				if (saved === "user" || saved === "owned") return saved;
+			} catch {}
+			return "owned";
+		},
+	);
+
+	const setGroupLoanedMode = useCallback((mode: "owned" | "user") => {
+		setGroupLoanedModeState(mode);
+		try {
+			localStorage.setItem("punoted_group_loaned_mode", mode);
+		} catch {}
+	}, []);
+
 	const [leaseFilter, setLeaseFilter] = useState<
 		"all" | "owned" | "leased" | "loaned"
 	>("all");
@@ -32,6 +49,23 @@ export const useSitesManager = () => {
 			const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
 			if (stored) setSiteTargets(JSON.parse(stored));
 		} catch {}
+	}, []);
+
+	// --- HELPER TO EXTRACT CLEAN PARTNER USERNAME ---
+	const getCleanPartnerName = useCallback((site: any): string => {
+		const raw =
+			site.tenant ||
+			site.leased_to ||
+			site.leased_from ||
+			site.partner ||
+			"Partner";
+		if (typeof raw !== "string") return "Partner";
+		let clean = raw.trim();
+		if (clean.includes(" - ")) {
+			const parts = clean.split(" - ");
+			clean = parts[1] || parts[0] || clean;
+		}
+		return clean;
 	}, []);
 
 	// --- PROCESSING ---
@@ -99,18 +133,41 @@ export const useSitesManager = () => {
 				});
 			}
 
-			const siteStorage = storageUnits.find((u) => u.addressableid === siteId);
+			const siteStorage = storageUnits.find(
+				(u) =>
+					u.addressableid === siteId ||
+					(u.storageplanetid === site.planetid && u.type === "SITE"),
+			);
 			const siteOwner = siteStorage?.owner;
 
 			const matchingUnits = storageUnits.filter((u) => {
-				const isSiteStorage = u.addressableid === siteId;
+				const isSiteStorage =
+					u.addressableid === siteId ||
+					(u.storageplanetid === site.planetid && u.type === "SITE");
 				const isOwnerWarehouse =
 					u.storageplanetid === site.planetid &&
 					(u.type === "WAREHOUSE" || u.type === "WAREHOUSE_STORE") &&
-					u.owner === siteOwner;
+					(!siteOwner || u.owner === siteOwner);
 
 				return isSiteStorage || isOwnerWarehouse;
 			});
+
+			const matchingWarehouseUnits = storageUnits.filter((u) => {
+				return (
+					u.storageplanetid === site.planetid &&
+					(u.type === "WAREHOUSE" || u.type === "WAREHOUSE_STORE") &&
+					(!siteOwner || u.owner === siteOwner)
+				);
+			});
+
+			const totalWhVolCap = matchingWarehouseUnits.reduce(
+				(acc, u) => acc + (u.volumecapacity || 0),
+				0,
+			);
+			const totalWhWeightCap = matchingWarehouseUnits.reduce(
+				(acc, u) => acc + (u.weightcapacity || 0),
+				0,
+			);
 
 			let finalStorageItems: any[];
 
@@ -118,7 +175,9 @@ export const useSitesManager = () => {
 				const aggregatedItems = new Map<string, any>();
 				matchingUnits.forEach((u) => {
 					const displayType =
-						u.type === "WAREHOUSE_STORE" ? "warehouse" : "site";
+						u.type === "WAREHOUSE_STORE" || u.type === "WAREHOUSE"
+							? "warehouse"
+							: "site";
 					(u.items || []).forEach((item: any) => {
 						const key = `${item.name}-${displayType}`;
 						if (aggregatedItems.has(key)) {
@@ -172,6 +231,19 @@ export const useSitesManager = () => {
 					...site,
 					siteid: siteId,
 					storage_items: finalStorageItems,
+					storage_capacity:
+						siteStorage?.volumecapacity ||
+						site.storage_capacity ||
+						site.volumecapacity ||
+						site.volume_capacity ||
+						site.capacity,
+					weight_capacity:
+						siteStorage?.weightcapacity ||
+						site.weight_capacity ||
+						site.weightcapacity,
+					warehouse_capacity: totalWhVolCap || (site as any).warehouse_capacity,
+					warehouse_weight_capacity:
+						totalWhWeightCap || (site as any).warehouse_weight_capacity,
 					isLeased: isLeased,
 					type: leaseType,
 					partner: partner,
@@ -198,155 +270,154 @@ export const useSitesManager = () => {
 	}, [processedSites]);
 
 	const availableTenants = useMemo(() => {
-		const partners = new Set<string>();
-		processedSites.forEach((s) => {
-			if (s.site.partner) partners.add(s.site.partner);
+		const tenantsMap = new Map<string, string>();
+		processedSites.forEach(({ site }) => {
+			const rawTenant = getCleanPartnerName(site);
+			if (
+				rawTenant &&
+				typeof rawTenant === "string" &&
+				rawTenant !== "Partner"
+			) {
+				const trimmed = rawTenant.trim();
+				const normalizedKey = trimmed.toLowerCase();
+				if (!tenantsMap.has(normalizedKey)) {
+					tenantsMap.set(normalizedKey, trimmed);
+				}
+			}
 		});
-		return Array.from(partners).sort();
-	}, [processedSites]);
+		return Array.from(tenantsMap.values()).sort((a, b) => a.localeCompare(b));
+	}, [processedSites, getCleanPartnerName]);
 
-	const globalSummary = useMemo(() => {
-		const summary: Record<string, { prod: number; cons: number; net: number }> =
+	// --- FILTERED SITES ---
+	const filteredSites = useMemo(() => {
+		return processedSites.filter(({ site }) => {
+			const siteName = site.planet_name || "";
+			const matchesSearch = siteName
+				.toLowerCase()
+				.includes(searchTerm.toLowerCase());
+
+			let matchesLease = true;
+			if (leaseFilter === "owned") matchesLease = !site.isLeased;
+			else if (leaseFilter === "leased")
+				matchesLease = site.isLeased && site.type === "Inbound";
+			else if (leaseFilter === "loaned")
+				matchesLease = site.isLeased && site.type === "Outbound";
+
+			let matchesTenant = true;
+			if (selectedTenants.length > 0) {
+				const siteTenant = getCleanPartnerName(site).toLowerCase();
+				matchesTenant = selectedTenants.some(
+					(t) => t.trim().toLowerCase() === siteTenant,
+				);
+			}
+
+			return matchesSearch && matchesLease && matchesTenant;
+		});
+	}, [
+		processedSites,
+		searchTerm,
+		leaseFilter,
+		selectedTenants,
+		getCleanPartnerName,
+	]);
+
+	const ownSites = useMemo(() => {
+		if (groupLoanedMode === "owned") {
+			return filteredSites.filter(
+				({ site }) => !site.isLeased || site.type === "Outbound",
+			);
+		}
+		return filteredSites.filter(({ site }) => !site.isLeased);
+	}, [filteredSites, groupLoanedMode]);
+
+	const leasedSites = useMemo(() => {
+		const groupsMap = new Map<
+			string,
+			{ display: string; items: SiteWithFlows[] }
+		>();
+		filteredSites.forEach((item) => {
+			const isOutbound = item.site.type === "Outbound";
+			const isInbound =
+				item.site.type === "Inbound" || (item.site.isLeased && !isOutbound);
+
+			const shouldGroup =
+				groupLoanedMode === "user" ? isInbound || isOutbound : isInbound;
+
+			if (shouldGroup) {
+				const partnerDisplay = getCleanPartnerName(item.site);
+				const partnerKey = partnerDisplay.trim().toLowerCase();
+
+				if (!groupsMap.has(partnerKey)) {
+					groupsMap.set(partnerKey, { display: partnerDisplay, items: [] });
+				} else {
+					const existing = groupsMap.get(partnerKey)!;
+					if (
+						partnerDisplay !== partnerDisplay.toLowerCase() &&
+						existing.display === existing.display.toLowerCase()
+					) {
+						existing.display = partnerDisplay;
+					}
+				}
+				groupsMap.get(partnerKey)!.items.push(item);
+			}
+		});
+
+		const result: Record<string, SiteWithFlows[]> = {};
+		groupsMap.forEach(({ display, items }) => {
+			result[display] = items;
+		});
+		return result;
+	}, [filteredSites, groupLoanedMode, getCleanPartnerName]);
+
+	const globalSummary = useMemo<
+		[string, { prod: number; cons: number; net: number }][]
+	>(() => {
+		const flows: Record<string, { prod: number; cons: number; net: number }> =
 			{};
+
 		processedSites.forEach(({ site, richFlows }) => {
-			const isLoaned = site.isLeased && site.type === "Outbound";
-			if (!isLoaned && selectedSummarySites[site.siteid]) {
-				Object.values(richFlows).forEach((f) => {
-					if (!summary[f.ticker])
-						summary[f.ticker] = { prod: 0, cons: 0, net: 0 };
-					if (f.flow > 0) summary[f.ticker].prod += f.flow;
-					else summary[f.ticker].cons += f.flow;
-					summary[f.ticker].net += f.flow;
+			if (selectedSummarySites[site.siteid]) {
+				Object.entries(richFlows).forEach(([ticker, data]) => {
+					if (!flows[ticker]) {
+						flows[ticker] = { prod: 0, cons: 0, net: 0 };
+					}
+					if (data.flow > 0) {
+						flows[ticker].prod += data.flow;
+					} else if (data.flow < 0) {
+						flows[ticker].cons += Math.abs(data.flow);
+					}
+					flows[ticker].net += data.flow;
 				});
 			}
 		});
-		return Object.entries(summary)
-			.filter(([_, s]) => Math.abs(s.net) > 0.1)
-			.sort((a, b) => a[1].net - b[1].net);
+
+		return Object.entries(flows).sort(([a], [b]) => a.localeCompare(b));
 	}, [processedSites, selectedSummarySites]);
 
-	const filteredSites = useMemo(() => {
-		let result = processedSites;
-
-		if (leaseFilter === "owned") {
-			result = result.filter((s) => !s.site.isLeased);
-		} else if (leaseFilter === "leased") {
-			result = result.filter(
-				(s) => s.site.isLeased && s.site.type === "Inbound",
-			);
-			if (selectedTenants.length > 0) {
-				result = result.filter(
-					(s) => s.site.partner && selectedTenants.includes(s.site.partner),
-				);
-			}
-		} else if (leaseFilter === "loaned") {
-			result = result.filter(
-				(s) => s.site.isLeased && s.site.type === "Outbound",
-			);
-			if (selectedTenants.length > 0) {
-				result = result.filter(
-					(s) => s.site.partner && selectedTenants.includes(s.site.partner),
-				);
-			}
-		}
-
-		if (searchTerm) {
-			const term = searchTerm.toLowerCase();
-			result = result.filter(
-				({ site }) =>
-					site.planet_name.toLowerCase().includes(term) ||
-					(site.partner && site.partner.toLowerCase().includes(term)),
-			);
-		}
-
-		return result;
-	}, [processedSites, searchTerm, leaseFilter, selectedTenants]);
-
-	const ownSites = useMemo(
-		() =>
-			filteredSites
-				.filter(({ site }) => !site.isLeased)
-				.sort((a, b) => {
-					const aFlows = Object.values(a.richFlows).filter(
-						(f) => f.flow !== 0,
-					).length;
-					const aStorage = a.site.storage_items?.length || 0;
-					const aSize = Math.max(aFlows, aStorage);
-
-					const bFlows = Object.values(b.richFlows).filter(
-						(f) => f.flow !== 0,
-					).length;
-					const bStorage = b.site.storage_items?.length || 0;
-					const bSize = Math.max(bFlows, bStorage);
-
-					return bSize - aSize;
-				}),
-		[filteredSites],
-	);
-
-	const leasedSites = useMemo(() => {
-		const sortedLeased = filteredSites
-			.filter(({ site }) => site.isLeased && !!site.partner)
-			.sort((a, b) => {
-				const aFlows = Object.values(a.richFlows).filter(
-					(f) => f.flow !== 0,
-				).length;
-				const aStorage = a.site.storage_items?.length || 0;
-				const aSize = Math.max(aFlows, aStorage);
-
-				const bFlows = Object.values(b.richFlows).filter(
-					(f) => f.flow !== 0,
-				).length;
-				const bStorage = b.site.storage_items?.length || 0;
-				const bSize = Math.max(bFlows, bStorage);
-
-				return bSize - aSize;
-			});
-
-		return sortedLeased.reduce(
-			(acc, s) => {
-				const partner = s.site.partner || "Unknown";
-				const leaseType = s.site.type || "Unknown";
-				const compoundKey = `${leaseType} - ${partner}`;
-
-				if (!acc[compoundKey]) {
-					acc[compoundKey] = [];
-				}
-				acc[compoundKey].push(s);
-				return acc;
-			},
-			{} as Record<string, typeof filteredSites>,
-		);
-	}, [filteredSites]);
-
 	const handleTargetChange = useCallback((siteId: string, val: string) => {
-		const num = parseInt(val, 10);
-		if (!isNaN(num) && num >= 0) {
-			setSiteTargets((prev) => {
-				const next = { ...prev, [siteId]: num };
+		const num = parseFloat(val);
+		if (isNaN(num)) return;
+
+		setSiteTargets((prev) => {
+			const next = { ...prev, [siteId]: num };
+			try {
 				localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
-				return next;
-			});
-		}
+			} catch {}
+			return next;
+		});
 	}, []);
 
 	const handleSelectSite = useCallback(
 		(siteId: string) => {
-			setSelectedSite(
-				processedSites.find(({ site }) => site.siteid === siteId) || null,
+			const found = processedSites.find(
+				(s) => s.site.siteid === siteId || s.siteid === siteId,
 			);
+			if (found) setSelectedSite(found);
 		},
 		[processedSites],
 	);
 
 	return {
-		loading,
-		filteredSites,
-		ownSites,
-		leasedSites,
-		processedSites,
-		globalSummary,
-		availableTenants,
 		searchTerm,
 		setSearchTerm,
 		selectedSite,
@@ -355,12 +426,22 @@ export const useSitesManager = () => {
 		handleTargetChange,
 		summaryOpen,
 		setSummaryOpen,
+		groupLoanedMode,
+		setGroupLoanedMode,
 		leaseFilter,
 		setLeaseFilter,
 		selectedTenants,
 		setSelectedTenants,
 		selectedSummarySites,
 		setSelectedSummarySites,
+		availableTenants,
+		filteredSites,
+		ownSites,
+		leasedSites,
+		globalSummary,
 		handleSelectSite,
+		processedSites,
+		loading,
+		DEFAULT_DAYS,
 	};
 };

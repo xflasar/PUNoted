@@ -344,6 +344,86 @@ export const LogisticsTabContent: React.FC<any> = ({
 						)}
 					</Box>
 
+					{/* --- TABLE COLUMN HEADERS --- */}
+					{activeRows.length > 0 && (
+						<Box
+							sx={{
+								display: "grid",
+								gridTemplateColumns: "120px 100px 75px 65px 120px 1fr",
+								alignItems: "center",
+								gap: 1,
+								px: 1,
+								py: 0.5,
+								bgcolor: "rgba(123, 104, 238, 0.15)",
+								borderRadius: "6px",
+								border: "1px solid rgba(123, 104, 238, 0.25)",
+								mb: 0.75,
+							}}
+						>
+							<Typography
+								variant="caption"
+								sx={{ color: "#7B68EE", fontWeight: 800, fontSize: "0.68rem" }}
+							>
+								MATERIAL
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "#7B68EE",
+									fontWeight: 800,
+									fontSize: "0.68rem",
+									textAlign: "center",
+								}}
+							>
+								STOCK (DAYS)
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "#7B68EE",
+									fontWeight: 800,
+									fontSize: "0.68rem",
+									textAlign: "center",
+								}}
+							>
+								TARGET
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "#7B68EE",
+									fontWeight: 800,
+									fontSize: "0.68rem",
+									textAlign: "center",
+								}}
+							>
+								PRIO
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "#7B68EE",
+									fontWeight: 800,
+									fontSize: "0.68rem",
+									textAlign: "center",
+								}}
+							>
+								SUPPLY QTY
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "#7B68EE",
+									fontWeight: 800,
+									fontSize: "0.68rem",
+									textAlign: "right",
+								}}
+							>
+								MASS / VOL
+							</Typography>
+						</Box>
+					)}
+
 					{/* --- DATA ROWS --- */}
 					<Box sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
 						<Stack spacing={1}>

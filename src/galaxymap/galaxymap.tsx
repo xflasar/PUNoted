@@ -29,7 +29,7 @@ const GalaxyMap = () => {
 					variant="contained"
 					size="large"
 					startIcon={<ArrowBackIcon />}
-					onClick={() => navigate("/")}
+					onClick={() => (window.location.href = "/")}
 					sx={{
 						boxShadow: `0 0 15px ${theme.palette.primary.main}`,
 						textTransform: "none",

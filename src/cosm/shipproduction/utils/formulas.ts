@@ -1,5 +1,5 @@
 import { MATERIAL_SPECS, SHIP_SYSTEMS_MOCK } from "./constants";
-import optionsProfileData from "../data/optionsprofile.json";
+import optionsProfileData from "../data/optionsProfile.json";
 
 export interface CalculateStatsInput {
 	selections: Record<string, string>;
@@ -51,15 +51,14 @@ export interface CalculateBOMResult {
 /**
  * DETERMINISTIC RULES ENGINE
  * This calculates stats using verified additive deltas and
- * fixed game thresholds. No caching logic is used to ensure
- * live response to UI changes.
+ * fixed game thresholds.
  */
 export function calculateDynamicStats(
 	input: CalculateStatsInput,
 ): DynamicStatsResult {
 	const { selections, shipClass } = input;
 
-	// Base Chassis configuration from extracted data
+	// Base Chassis configuration
 	let total_volume = 0;
 	const optionsProfile = (optionsProfileData.optionsProfile || {}) as Record<
 		string,
@@ -170,7 +169,6 @@ export function calculateDynamicStats(
 		mfeCount = Math.floor(remainder1 / 300);
 		const remainder2 = remainder1 % 300;
 		sfeCount = Math.ceil(remainder2 / 100);
-		// Observed anomaly for 963m3 requiring 2 SFE instead of 1
 		if (total_volume < 1000 && sfeCount === 1) sfeCount = 2;
 	}
 
@@ -196,8 +194,8 @@ export function calculateDynamicStats(
 		cargoWgt: 0,
 		stlCapacity: 0,
 		ftlCapacity: 0,
-		calculatedMass: 0, // Migrated to calculateBOM
-		buildTime: 0, // Migrated to calculateBOM
+		calculatedMass: 0,
+		buildTime: 0,
 	};
 }
 

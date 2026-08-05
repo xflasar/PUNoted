@@ -8,17 +8,8 @@ import {
 	alpha,
 	useTheme,
 } from "@mui/material";
-import MaterialBadge from "../../../cosm/components/materialbadge";
-
-interface EmpireSummaryProps {
-	summaryOpen: boolean;
-	processedSites: any[];
-	selectedSummarySites: Record<string, boolean>;
-	setSelectedSummarySites: React.Dispatch<
-		React.SetStateAction<Record<string, boolean>>
-	>;
-	globalSummary: [string, { prod: number; cons: number; net: number }][];
-}
+import MaterialBadge from "../../../../cosm/components/materialbadge";
+import type { EmpireSummaryProps } from "./types";
 
 export const EmpireSummary: React.FC<EmpireSummaryProps> = ({
 	summaryOpen,
@@ -83,7 +74,10 @@ export const EmpireSummary: React.FC<EmpireSummaryProps> = ({
 						gap: 1,
 					}}
 				>
-					{globalSummary.map(([ticker, s]) => {
+					{(Array.isArray(globalSummary)
+						? globalSummary
+						: Object.entries(globalSummary || {})
+					).map(([ticker, s]) => {
 						const isDeficit = s.net < 0;
 						return (
 							<Paper

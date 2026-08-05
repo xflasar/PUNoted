@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-	Box,
-	Typography,
-	CircularProgress,
-	Paper,
-	useTheme,
-	alpha,
-} from "@mui/material";
+import { Box, Typography, CircularProgress, useTheme } from "@mui/material";
 
 import { ProductionCard } from "../production/productioncard";
 import { SiteDrawerContent } from "../production/components/sitedrawercontent";
@@ -38,6 +31,8 @@ const SitesPage: React.FC = () => {
 		handleTargetChange,
 		summaryOpen,
 		setSummaryOpen,
+		groupLoanedMode,
+		setGroupLoanedMode,
 		leaseFilter,
 		setLeaseFilter,
 		selectedTenants,
@@ -109,6 +104,8 @@ const SitesPage: React.FC = () => {
 						(acc, s) => acc + s.site.production_lines.length,
 						0,
 					)}
+					groupLoanedMode={groupLoanedMode}
+					setGroupLoanedMode={setGroupLoanedMode}
 					leaseFilter={leaseFilter}
 					setLeaseFilter={setLeaseFilter}
 					availableTenants={availableTenants}
@@ -131,35 +128,42 @@ const SitesPage: React.FC = () => {
 				sx={{
 					flex: 1,
 					overflowY: "auto",
-					p: { xs: 0.5, sm: 1 },
+					p: { xs: 1, sm: 2 },
 					width: "100%",
 					overflowX: "hidden",
 				}}
 			>
 				{/* 1. OWNED CORE SITES */}
-				{ownSites.length > 0 && (
-					<Paper
-						variant="outlined"
-						sx={{
-							p: 0.5,
-							borderRadius: "10px",
-							bgcolor: alpha(theme.palette.background.default, 0.1),
-							borderColor: alpha(theme.palette.primary.main, 0.25),
-							borderTop: `3px solid ${theme.palette.primary.main}`,
-						}}
-					>
-						<Typography
-							variant="caption"
+				{(ownSites || []).length > 0 && (
+					<Box sx={{ mb: 2 }}>
+						<Box
 							sx={{
-								fontWeight: 800,
-								color: "text.secondary",
-								display: "block",
-								mb: 0.5,
-								letterSpacing: 0.5,
+								display: "flex",
+								alignItems: "center",
+								gap: 1,
+								mb: 1,
+								px: 0.5,
 							}}
 						>
-							OWNED SITES ({ownSites.length} SITES)
-						</Typography>
+							<Box
+								sx={{
+									width: 4,
+									height: 16,
+									bgcolor: theme.palette.primary.main,
+									borderRadius: 1,
+								}}
+							/>
+							<Typography
+								sx={{
+									fontWeight: 800,
+									color: "text.primary",
+									fontSize: "0.78rem",
+									letterSpacing: "0.8px",
+								}}
+							>
+								OWNED SITES ({(ownSites || []).length})
+							</Typography>
+						</Box>
 						<Box
 							sx={{
 								display: "grid",
@@ -171,7 +175,7 @@ const SitesPage: React.FC = () => {
 								alignItems: "start",
 							}}
 						>
-							{ownSites.map(({ site, richFlows }) => (
+							{(ownSites || []).map(({ site, richFlows }) => (
 								<ProductionCard
 									key={site.siteid || site.planet_name}
 									siteId={site.siteid || ""}
@@ -181,16 +185,16 @@ const SitesPage: React.FC = () => {
 									onTargetDaysChange={(val) =>
 										handleTargetChange(site.siteid || "", val)
 									}
-									onSelect={(s) => handleSelectSite(s)}
+									onSelect={(s) => handleSelectSite && handleSelectSite(s)}
 								/>
 							))}
 						</Box>
-					</Paper>
+					</Box>
 				)}
 
 				{/* 2. LEASED / LOANED SITES */}
-				{Object.keys(leasedSites).length > 0 &&
-					Object.entries(leasedSites).map(([groupKey, sites]) => (
+				{Object.keys(leasedSites || {}).length > 0 &&
+					Object.entries(leasedSites || {}).map(([groupKey, sites]) => (
 						<LeasedSiteGroup
 							key={groupKey}
 							groupKey={groupKey}
@@ -199,10 +203,9 @@ const SitesPage: React.FC = () => {
 							onToggle={() => toggleTenant(groupKey)}
 							siteTargets={siteTargets}
 							onTargetDaysChange={handleTargetChange}
-							onSelectSite={handleSelectSite}
+							onSelectSite={(s) => handleSelectSite && handleSelectSite(s)}
 						/>
 					))}
-				<Box sx={{ height: 80 }} />
 			</Box>
 		</Box>
 	);

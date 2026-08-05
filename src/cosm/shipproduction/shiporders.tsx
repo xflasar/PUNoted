@@ -61,8 +61,8 @@ export interface ShipOrder {
 	waitTimeDays: number;
 	completionDate: string | Date;
 	processedParts: Part[];
-	status?: "QUEUED" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED";
-	ownerType?: "USER" | "GUEST" | "API";
+	status?: "QUEUED" | "COMPLETED";
+	ownerType?: "USER" | "GUEST";
 	ownerId?: string;
 	guestPin?: string;
 	notes?: string;
@@ -76,10 +76,7 @@ export interface ShipOrdersProps {
 	mockRole: "ADMIN" | "USER" | "GUEST";
 	onEditOrder: (orderId: string) => void;
 	onDeleteOrder: (orderId: number) => void;
-	onUpdateStatus: (
-		orderId: number,
-		status: "QUEUED" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
-	) => void;
+	onUpdateStatus: (orderId: number, status: "QUEUED" | "COMPLETED") => void;
 	disableActions?: boolean;
 	onNavigateToBuilder?: () => void;
 }
@@ -99,7 +96,7 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 	const isAdmin = mockRole === "ADMIN";
 	const isUser = mockRole === "USER";
 	const isGuest = mockRole === "GUEST";
-	const showActions = !disableActions;
+	const showActions = !isGuest && !disableActions;
 
 	const [pinInput, setPinInput] = useState("");
 
@@ -510,19 +507,7 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 							</TableHead>
 							<TableBody>
 								{filteredOrders.map((order) => {
-									const guestOrdersSaved =
-										localStorage.getItem("guest_ship_orders");
-									const guestOrders = guestOrdersSaved
-										? JSON.parse(guestOrdersSaved)
-										: [];
-									const hasLocalGuestPin = guestOrders.some(
-										(o: any) => o.id.toString() === order.id.toString(),
-									);
-									const isOwner =
-										isAdmin ||
-										order.isOwner ||
-										order.isAdmin ||
-										hasLocalGuestPin;
+									const isOwner = isAdmin || order.isOwner || order.isAdmin;
 
 									return (
 										<TableRow
@@ -530,14 +515,7 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 											onClick={() => setDetailsOrder(order)}
 											sx={{
 												cursor: "pointer",
-												background: isOwner
-													? "linear-gradient(90deg, rgba(123, 104, 238, 0.08) 0%, rgba(123, 104, 238, 0.02) 100%)"
-													: "transparent",
-												"&:hover": {
-													bgcolor: isOwner
-														? "rgba(123, 104, 238, 0.12)"
-														: "rgba(255,255,255,0.03)",
-												},
+												"&:hover": { bgcolor: "rgba(255,255,255,0.03)" },
 												transition: "background-color 0.15s ease",
 											}}
 										>

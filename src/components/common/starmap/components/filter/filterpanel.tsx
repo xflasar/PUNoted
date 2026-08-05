@@ -608,7 +608,6 @@ const FilterPanel: React.FC = () => {
 									placeholder="Select Origin System..."
 									InputProps={{
 										...params.InputProps,
-										style: { color: "white", fontSize: "0.75rem" },
 									}}
 									sx={{
 										"& .MuiInput-underline:before": {
@@ -619,6 +618,10 @@ const FilterPanel: React.FC = () => {
 										},
 										"& .MuiInput-underline:after": {
 											borderBottomColor: "#00e5ff",
+										},
+										"& .MuiInput-root": {
+											color: "white",
+											fontSize: "0.75rem",
 										},
 									}}
 								/>
@@ -664,7 +667,6 @@ const FilterPanel: React.FC = () => {
 									placeholder="Select Destination System..."
 									InputProps={{
 										...params.InputProps,
-										style: { color: "white", fontSize: "0.75rem" },
 									}}
 									sx={{
 										"& .MuiInput-underline:before": {
@@ -675,6 +677,10 @@ const FilterPanel: React.FC = () => {
 										},
 										"& .MuiInput-underline:after": {
 											borderBottomColor: "#00e5ff",
+										},
+										"& .MuiInput-root": {
+											color: "white",
+											fontSize: "0.75rem",
 										},
 									}}
 								/>

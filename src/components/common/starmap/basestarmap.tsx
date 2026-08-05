@@ -834,19 +834,37 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 				(!info.object.type && info.object.originalSystemId);
 			if (isSystemObj) {
 				if (t) t.style.display = "none";
-				setActiveShipTooltip(null);
-				setHoveredInfo({ object: info.object, x: info.x, y: info.y });
+				setActiveShipTooltip((prev) => (prev ? null : null));
+
+				setHoveredInfo((prev: any) => {
+					const prevId = prev?.object?.originalSystemId || prev?.object?.id;
+					const nextId = info.object.originalSystemId || info.object.id;
+					if (prevId === nextId && prev?.x === info.x && prev?.y === info.y) {
+						return prev;
+					}
+					return { object: info.object, x: info.x, y: info.y };
+				});
 				return;
 			}
 
 			const isPlanetObj = !!info.object.planetid;
 			if (isPlanetObj) {
 				if (t) t.style.display = "none";
-				setActiveShipTooltip(null);
-				setHoveredInfo({
-					object: { ...info.object, type: "planet" },
-					x: info.x,
-					y: info.y,
+				setActiveShipTooltip((prev) => (prev ? null : null));
+
+				setHoveredInfo((prev: any) => {
+					if (
+						prev?.object?.planetid === info.object.planetid &&
+						prev?.x === info.x &&
+						prev?.y === info.y
+					) {
+						return prev;
+					}
+					return {
+						object: { ...info.object, type: "planet" },
+						x: info.x,
+						y: info.y,
+					};
 				});
 				return;
 			}
@@ -854,11 +872,21 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			const isStationObj = !!info.object.stationid;
 			if (isStationObj) {
 				if (t) t.style.display = "none";
-				setActiveShipTooltip(null);
-				setHoveredInfo({
-					object: { ...info.object, type: "station" },
-					x: info.x,
-					y: info.y,
+				setActiveShipTooltip((prev) => (prev ? null : null));
+
+				setHoveredInfo((prev: any) => {
+					if (
+						prev?.object?.stationid === info.object.stationid &&
+						prev?.x === info.x &&
+						prev?.y === info.y
+					) {
+						return prev;
+					}
+					return {
+						object: { ...info.object, type: "station" },
+						x: info.x,
+						y: info.y,
+					};
 				});
 				return;
 			}
@@ -866,19 +894,27 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			const isShipObj =
 				info.object.ships || info.object.registration || info.object.ship_id;
 			if (isShipObj) {
-				setHoveredInfo(null);
-				setActiveShipTooltip({
-					object: info.object,
-					x: info.x,
-					y: info.y,
-					isLocked: false,
+				setHoveredInfo((prev) => (prev ? null : null));
+
+				setActiveShipTooltip((prev: any) => {
+					const prevId = prev?.object?.ship_id || prev?.object?.registration;
+					const nextId = info.object.ship_id || info.object.registration;
+					if (prevId === nextId && prev?.x === info.x && prev?.y === info.y) {
+						return prev;
+					}
+					return {
+						object: info.object,
+						x: info.x,
+						y: info.y,
+						isLocked: false,
+					};
 				});
 				if (t) t.style.display = "none";
 				return;
 			}
 
-			setHoveredInfo(null);
-			setActiveShipTooltip(null);
+			setHoveredInfo((prev) => (prev ? null : null));
+			setActiveShipTooltip((prev) => (prev ? null : null));
 			if (!t) return;
 			const content =
 				info.object.name || info.object.id || info.object.label || "";
@@ -887,8 +923,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			t.style.top = `${info.y}px`;
 			t.textContent = content;
 		} else {
-			setHoveredInfo(null);
-			setActiveShipTooltip(null);
+			setHoveredInfo((prev) => (prev ? null : null));
+			setActiveShipTooltip((prev) => (prev ? null : null));
 			if (t) t.style.display = "none";
 		}
 	}, []);
@@ -1427,23 +1463,25 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 									Star Systems (O-M Class)
 								</Typography>
 							</Box>
-							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-								<Box
-									sx={{
-										width: 12,
-										height: 12,
-										borderRadius: "50%",
-										border: "2px solid #00e5ff",
-										bgcolor: "rgba(0, 229, 255, 0.2)",
-									}}
-								/>
-								<Typography
-									variant="caption"
-									sx={{ fontSize: "0.6rem", color: "#00e5ff" }}
-								>
-									Your Sites / Bases
-								</Typography>
-							</Box>
+							{mode !== "public" && (
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									<Box
+										sx={{
+											width: 12,
+											height: 12,
+											borderRadius: "50%",
+											border: "2px solid #00e5ff",
+											bgcolor: "rgba(0, 229, 255, 0.2)",
+										}}
+									/>
+									<Typography
+										variant="caption"
+										sx={{ fontSize: "0.6rem", color: "#00e5ff" }}
+									>
+										Your Sites / Bases
+									</Typography>
+								</Box>
+							)}
 							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 								<Box
 									sx={{

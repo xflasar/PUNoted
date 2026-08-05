@@ -563,6 +563,39 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					break;
 				}
 
+				case "PRODUCTION_UPDATE":
+				case "SITE_UPDATE":
+				case "SITE_PLATFORM_UPDATE":
+					if (msg.data) {
+						setProductionData((prev) => {
+							const nextData = { ...prev };
+							if (Array.isArray(msg.data)) {
+								msg.data.forEach((site: SiteSummary) => {
+									if (site.siteid)
+										nextData[site.siteid] = {
+											...(nextData[site.siteid] || {}),
+											...site,
+										};
+								});
+							} else if (msg.data.siteid) {
+								nextData[msg.data.siteid] = {
+									...(nextData[msg.data.siteid] || {}),
+									...msg.data,
+								};
+							} else {
+								Object.entries(msg.data).forEach(
+									([key, site]: [string, any]) => {
+										const sid = site.siteid || key;
+										if (sid)
+											nextData[sid] = { ...(nextData[sid] || {}), ...site };
+									},
+								);
+							}
+							return nextData;
+						});
+					}
+					break;
+
 				case "SHIP_DATA_UPDATE": {
 					const shipUpdates = Array.isArray(msg.data) ? msg.data : [msg.data];
 
@@ -629,6 +662,16 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 						});
 						return next;
 					});
+					break;
+
+				case "MARKET_DATA_UPDATE":
+				case "CX_PRICE_UPDATE":
+					if (msg.data) {
+						setMarketData((prev) => ({
+							...prev,
+							...msg.data,
+						}));
+					}
 					break;
 
 				case "CONTRACTS_UPDATE":
