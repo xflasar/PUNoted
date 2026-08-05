@@ -391,7 +391,7 @@ export function useFastRepair({
 	const timelineGraphData = useMemo(() => {
 		const points = [];
 
-		for (let d = 0; d <= 180; d += 10) {
+		for (let d = 0; d <= 180; d += 1) {
 			let totalCond = 0;
 			let cost = 0;
 			const itemQtys: Record<string, number> = {};
@@ -438,6 +438,59 @@ export function useFastRepair({
 		return points;
 	}, [fullPlanetaryMaterials, platformEntries, getMatPrice, baseDailyProfit]);
 
+	// Compute projections for the next 90 days (or up to maxTimeOffset limit)
+	const projectedDays = useMemo(() => {
+		const days = [];
+		const limit = Math.min(180, Math.floor(maxTimeOffset));
+		for (let d = 0; d <= limit; d++) {
+			let totalCond = 0;
+			let cost = 0;
+			const itemQtys: Record<string, number> = {};
+
+			if (Object.keys(fullPlanetaryMaterials).length > 0) {
+				const plannedAvgAge = Math.min(180, avgAge + d);
+				totalCond =
+					calcBuildingCondition(plannedAvgAge) * platformEntries.length;
+				Object.entries(fullPlanetaryMaterials).forEach(([mat, fullAmount]) => {
+					const needed = calcRepairAmount(fullAmount, plannedAvgAge);
+					itemQtys[mat] = needed;
+				});
+			} else {
+				platformEntries.forEach((entry) => {
+					const plannedAge = Math.min(180, entry.currentAgeDays + d);
+					totalCond += calcBuildingCondition(plannedAge);
+					Object.entries(entry.fullMaterials).forEach(([mat, fullQty]) => {
+						const needed = calcRepairAmount(fullQty, plannedAge);
+						itemQtys[mat] = (itemQtys[mat] || 0) + needed;
+					});
+				});
+			}
+
+			const avgCondPct =
+				platformEntries.length > 0
+					? (totalCond / platformEntries.length) * 100
+					: 100;
+
+			Object.entries(itemQtys).forEach(([mat, qty]) => {
+				const price = getMatPrice(mat);
+				cost += qty * price;
+			});
+
+			days.push({
+				offset: d,
+				conditionPct: parseFloat(avgCondPct.toFixed(1)),
+				totalCost: Math.round(cost),
+			});
+		}
+		return days;
+	}, [
+		fullPlanetaryMaterials,
+		platformEntries,
+		avgAge,
+		maxTimeOffset,
+		getMatPrice,
+	]);
+
 	return {
 		minAge,
 		maxAge,
@@ -452,5 +505,6 @@ export function useFastRepair({
 		timelineGraphData,
 		getMatPrice,
 		getMatMarketInfo,
+		projectedDays,
 	};
 }

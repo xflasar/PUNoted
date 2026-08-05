@@ -1,8 +1,7 @@
 /**
- * Official Prosperous Universe XITREP extension building degradation formulas:
+ * Official Prosperous Universe building degradation formulas:
  */
 export function calcBuildingCondition(ageDays: number): number {
-	//return ageDays > 180 ? 0 : 1 - ageDays / 180;
 	return ageDays > 180
 		? 0
 		: 0.67 / (1 + Math.exp((1789 / 25000) * (ageDays - 100.87))) + 0.33;
@@ -12,17 +11,14 @@ export function calcRepairAmount(
 	fullMaterialAmount: number,
 	plannedRepairAgeDays: number,
 ): number {
-	//const condition = calcBuildingCondition(plannedRepairAgeDays);
 	plannedRepairAgeDays = Math.floor(plannedRepairAgeDays);
 	const reclaimableCost = Math.floor(
 		fullMaterialAmount * ((180 - Math.min(180, plannedRepairAgeDays)) / 180),
 	);
 	const repairCost = fullMaterialAmount - reclaimableCost;
 	return repairCost;
-	//return Math.ceil(fullMaterialAmount * (1 - condition));
 }
 
-// Standard PrUn building construction material requirements per building type (fallback)
 export const BUILDING_CONSTRUCTION_MATERIALS: Record<
 	string,
 	Record<string, number>
@@ -42,6 +38,7 @@ export const BUILDING_CONSTRUCTION_MATERIALS: Record<
 	DEFAULT: { BGC: 6, MCG: 6, SEA: 3 },
 };
 
+// Use Material Badge coloring instead
 export const MATERIAL_COLORS: Record<string, string> = {
 	BGC: "#ff9800",
 	MCG: "#2196f3",

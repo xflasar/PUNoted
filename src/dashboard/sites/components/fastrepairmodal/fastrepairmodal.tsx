@@ -20,6 +20,7 @@ import {
 	ToggleButton,
 	Select,
 	MenuItem,
+	Menu,
 	Tooltip as MuiTooltip,
 	useMediaQuery,
 } from "@mui/material";
@@ -53,9 +54,12 @@ import {
 import MaterialBadge from "../../../../cosm/components/materialbadge";
 import { copyToClipboard } from "../../../production/components/sitedrawer/utils";
 import { generateXit, XitAction } from "../../../../utils/xitgenerator";
-import { CX_EXCHANGES, MATERIAL_COLORS } from "./utils";
+import { CX_EXCHANGES, MATERIAL_COLORS, calcBuildingCondition } from "./utils";
 import { useFastRepair } from "./usefastrepair";
 import type { FastRepairModalProps } from "./types";
+import { DegradationChart } from "./degradationchart";
+import { BuildingsList } from "./buildingslist";
+import { ShoppingCartTable } from "./shoppingcarttable";
 
 export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 	open,
@@ -83,10 +87,8 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 	// Time Offset Slider (0 to maxOffset Days)
 	const [timeOffset, setTimeOffset] = useState<number>(0);
 
-	// XIT Command Payload Mode ("TRANSFER" | "BUY_TRANSFER")
-	const [xitMode, setXitMode] = useState<"TRANSFER" | "BUY_TRANSFER">(
-		"TRANSFER",
-	);
+	// XIT Copy Menu Anchor Element
+	const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
 
 	const {
 		minAge,
@@ -102,6 +104,7 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 		timelineGraphData,
 		getMatPrice,
 		getMatMarketInfo,
+		projectedDays,
 	} = useFastRepair({
 		currentCondition,
 		sitePlatformConditions,
@@ -119,6 +122,23 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 		});
 		return total;
 	}, [repairMaterials, getMatMarketInfo]);
+
+	const optimalAge = useMemo(() => {
+		let bestAge = 90;
+		let bestScore = -Infinity;
+		const dailyProfitBase = 35000;
+		for (let age = 50; age <= 120; age += 1) {
+			const cond = calcBuildingCondition(age);
+			const profitLossRate = dailyProfitBase * (1 - cond);
+			const costRate = totalRepairCost / age;
+			const score = -(profitLossRate + costRate);
+			if (score > bestScore) {
+				bestScore = score;
+				bestAge = age;
+			}
+		}
+		return Math.max(60, Math.min(105, bestAge));
+	}, [totalRepairCost]);
 
 	const buildingSummaryList = useMemo(() => {
 		const counts: Record<string, number> = {};
@@ -175,6 +195,15 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 		}));
 	}, [platformBreakdown]);
 
+	// Currency helper
+	const getCurrencyLabel = (ex: string) => {
+		if (ex.startsWith("IC")) return "ICA";
+		if (ex.startsWith("NC")) return "NCC";
+		if (ex.startsWith("AI")) return "AIC";
+		if (ex.startsWith("CI")) return "CIS";
+		return "ICA";
+	};
+
 	// Color helper
 	const getCondColor = (cond: number) => {
 		if (cond >= 0.85) return theme.palette.success.main;
@@ -184,7 +213,7 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 
 	const condColor = getCondColor(avgConditionPct);
 
-	const handleCopyRepairXit = () => {
+	const handleCopyRepairXit = (mode: "TRANSFER" | "BUY_TRANSFER") => {
 		if (Object.keys(repairMaterials).length === 0) {
 			if (onShowSnackbar)
 				onShowSnackbar("No repair materials needed for selected buildings!");
@@ -192,7 +221,7 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 		}
 
 		let actions: XitAction[] = [];
-		if (xitMode === "TRANSFER") {
+		if (mode === "TRANSFER") {
 			actions = [
 				{
 					type: "MTRA",
@@ -231,7 +260,7 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 		copyToClipboard(xit);
 		if (onShowSnackbar)
 			onShowSnackbar(
-				`Copied XIT Repair payload (${xitMode === "TRANSFER" ? "Just Transfer" : "Buy & Transfer"}) for ${siteName} to clipboard!`,
+				`Copied XIT Repair payload (${mode === "TRANSFER" ? "Just Transfer" : "Buy & Transfer"}) for ${siteName} to clipboard!`,
 			);
 	};
 
@@ -240,12 +269,28 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 		[repairMaterials],
 	);
 
+	const formatDateInput = (offset: number) => {
+		const d = new Date(Date.now() + offset * 24 * 60 * 60 * 1000);
+		return d.toISOString().split("T")[0];
+	};
+
+	const handleDateSelect = (dateStr: string) => {
+		if (!dateStr) return;
+		const selected = new Date(dateStr + "T00:00:00");
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+		selected.setHours(0, 0, 0, 0);
+		const diffMs = selected.getTime() - today.getTime();
+		const diffDays = Math.max(0, Math.round(diffMs / (24 * 60 * 60 * 1000)));
+		setTimeOffset(Math.min(maxTimeOffset, diffDays));
+	};
+
 	return (
 		<Dialog
 			open={open}
 			onClose={onClose}
 			fullScreen={isMobile}
-			maxWidth="md"
+			maxWidth="lg"
 			fullWidth
 			slotProps={{
 				paper: {
@@ -266,9 +311,10 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 					display: "flex",
 					justifyContent: "space-between",
 					alignItems: "center",
-					py: 1.25,
+					py: 1,
 					px: { xs: 1.5, sm: 2.5 },
-					borderBottom: "1px solid rgba(255,255,255,0.08)",
+					bgcolor: "rgba(0, 0, 0, 0.4)",
+					borderBottom: `1px solid ${condColor}44`,
 				}}
 			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -337,10 +383,10 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 			<DialogContent
 				sx={{
 					px: { xs: 1.5, sm: 2.5 },
-					py: 2,
+					py: 1,
 					display: "flex",
 					flexDirection: "column",
-					gap: 2.5,
+					gap: 1.5,
 					maxHeight: "82vh",
 					overflowY: "auto",
 				}}
@@ -348,13 +394,12 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 				{/* --- CONDITION STATUS & TIMELINE CONTROLS CARD --- */}
 				<Box
 					sx={{
-						p: 2,
-						borderRadius: "10px",
-						bgcolor: "rgba(0, 0, 0, 0.4)",
-						border: `1px solid ${condColor}44`,
+						p: 0,
+						bgcolor: "transparent",
+						border: "none",
 						display: "flex",
 						flexDirection: "column",
-						gap: 1.5,
+						gap: 1,
 					}}
 				>
 					<Box
@@ -417,7 +462,8 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 									fontFamily: "monospace",
 								}}
 							>
-								${totalRepairCost.toLocaleString()}{" "}
+								{totalRepairCost.toLocaleString()}{" "}
+								{getCurrencyLabel(selectedExchange)}{" "}
 								<span
 									style={{
 										color: "rgba(255,255,255,0.5)",
@@ -425,618 +471,374 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 										fontSize: "0.75rem",
 									}}
 								>
-									(${totalCorpCost.toLocaleString()} CORP)
+									({totalCorpCost.toLocaleString()} ICA)
 								</span>
 							</Typography>
 						</Box>
 					</Box>
 
-					{/* Time Offset Scrubber Slider bounded to maxTimeOffset */}
-					<Box sx={{ px: 1 }}>
+					{/* Custom Date/Timeline Scrubber & Calendar Picker */}
+					<Box sx={{ px: 1, display: "flex", flexDirection: "column", gap: 1 }}>
 						<Box
-							sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								flexWrap: "wrap",
+								gap: 1,
+							}}
 						>
-							<Typography
-								variant="caption"
-								sx={{
-									fontSize: "0.7rem",
-									color: "rgba(255,255,255,0.6)",
-									display: "flex",
-									alignItems: "center",
-									gap: 0.5,
-								}}
-							>
-								<Calendar size={12} /> Time Offset (Days into the future)
-							</Typography>
-							<Typography
-								variant="caption"
-								sx={{ fontSize: "0.72rem", fontWeight: 700, color: condColor }}
-							>
-								+{Math.round(timeOffset)} Days (Target Avg Age:{" "}
-								{Math.min(180, avgAge + timeOffset).toFixed(1)}d / 180d)
-							</Typography>
+							<Box sx={{ display: "flex", flexDirection: "column" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										fontSize: "0.7rem",
+										color: "rgba(255,255,255,0.6)",
+										display: "flex",
+										alignItems: "center",
+										gap: 0.5,
+										fontWeight: 800,
+									}}
+								>
+									<Calendar size={12} /> TARGET REPAIR DATE PLANNER
+								</Typography>
+								<Typography
+									variant="caption"
+									sx={{
+										fontSize: "0.65rem",
+										color: "rgba(255,255,255,0.45)",
+										mt: 0.25,
+									}}
+								>
+									Standard thresholds: 60d (conservative), 90d (normal).
+									Calculated Optimal:{" "}
+									<strong style={{ color: theme.palette.primary.main }}>
+										{optimalAge}d
+									</strong>{" "}
+									(in{" "}
+									<strong style={{ color: theme.palette.primary.main }}>
+										+{Math.max(0, optimalAge - Math.round(avgAge))}d
+									</strong>
+									).
+								</Typography>
+							</Box>
+
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										fontSize: "0.72rem",
+										fontWeight: 700,
+										color: condColor,
+									}}
+								>
+									Avg Age: {Math.min(180, avgAge + timeOffset).toFixed(1)}d /
+									180d
+								</Typography>
+
+								{/* Themed Number Offset Input */}
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										gap: 0.25,
+										ml: 1,
+									}}
+								>
+									<Typography
+										variant="caption"
+										sx={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.5)" }}
+									>
+										Offset:
+									</Typography>
+									<input
+										type="number"
+										min={0}
+										max={Math.floor(maxTimeOffset)}
+										value={Math.round(timeOffset)}
+										onChange={(e) => {
+											const val = parseInt(e.target.value);
+											if (!isNaN(val)) {
+												setTimeOffset(
+													Math.min(maxTimeOffset, Math.max(0, val)),
+												);
+											}
+										}}
+										style={{
+											width: "50px",
+											background: "rgba(0,0,0,0.5)",
+											border: `1px solid ${theme.palette.primary.main}55`,
+											borderRadius: "6px",
+											color: "white",
+											fontSize: "0.7rem",
+											padding: "2px 4px",
+											textAlign: "center",
+											outline: "none",
+											fontFamily: "monospace",
+											fontWeight: 700,
+										}}
+									/>
+									<Typography
+										variant="caption"
+										sx={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.5)" }}
+									>
+										days
+									</Typography>
+								</Box>
+
+								{/* Themed Date Picker */}
+								<input
+									type="date"
+									min={formatDateInput(0)}
+									max={formatDateInput(maxTimeOffset)}
+									value={formatDateInput(timeOffset)}
+									onChange={(e) => handleDateSelect(e.target.value)}
+									style={{
+										background: "rgba(0,0,0,0.5)",
+										border: `1px solid ${theme.palette.primary.main}55`,
+										borderRadius: "6px",
+										color: "white",
+										fontSize: "0.7rem",
+										padding: "2px 6px",
+										cursor: "pointer",
+										outline: "none",
+										fontFamily: "monospace",
+										marginLeft: "4px",
+										fontWeight: 700,
+									}}
+								/>
+							</Box>
 						</Box>
 
-						<Slider
-							value={timeOffset}
-							min={0}
-							max={maxTimeOffset}
-							step={1}
-							onChange={(_, v) => setTimeOffset(v as number)}
+						{/* Horizontal Date Scrubber Track */}
+						<Box
 							sx={{
-								color: condColor,
-								height: 6,
-								"& .MuiSlider-thumb": { width: 14, height: 14 },
-								"& .MuiSlider-track": { bgcolor: condColor },
-								"& .MuiSlider-rail": { bgcolor: "rgba(255,255,255,0.15)" },
-							}}
-						/>
-					</Box>
-				</Box>
-
-				{/* --- SECTION 1: RECHARTS GRAPH ANALYTICS --- */}
-				<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-						}}
-					>
-						<Typography
-							variant="subtitle2"
-							sx={{
-								fontWeight: 800,
-								fontSize: "0.8rem",
-								color: theme.palette.primary.main,
-							}}
-						>
-							DEGRADATION ANALYTICS & PROJECTION
-						</Typography>
-
-						<ToggleButtonGroup
-							size="small"
-							value={chartTab}
-							exclusive
-							onChange={(_, v) => v && setChartTab(v)}
-							sx={{
-								height: 24,
-								bgcolor: "rgba(0,0,0,0.5)",
-								border: "1px solid rgba(123, 104, 238, 0.2)",
-								borderRadius: "6px",
-								"& .MuiToggleButton-root": {
-									py: 0,
-									px: 1,
-									fontSize: "0.68rem",
-									fontWeight: 700,
-									color: "rgba(255,255,255,0.6)",
-									border: "none",
-									"&.Mui-selected": { color: "white", bgcolor: "#7B68EE" },
+								display: "flex",
+								gap: 0.75,
+								overflowX: "auto",
+								py: 0.5,
+								"&::-webkit-scrollbar": { height: 6 },
+								"&::-webkit-scrollbar-thumb": {
+									bgcolor: "rgba(255,255,255,0.12)",
+									borderRadius: 3,
 								},
 							}}
 						>
-							<ToggleButton value="cost">
-								<DollarSign size={12} style={{ marginRight: 3 }} /> Repair &
-								Profit
-							</ToggleButton>
-							<ToggleButton value="items">
-								<Package size={12} style={{ marginRight: 3 }} /> Material Items
-								(u)
-							</ToggleButton>
-						</ToggleButtonGroup>
-					</Box>
+							{projectedDays.map((day) => {
+								const date = new Date(
+									Date.now() + day.offset * 24 * 60 * 60 * 1000,
+								);
+								const dateLabel =
+									day.offset === 0
+										? "Today (+0d)"
+										: `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} (+${day.offset}d)`;
+								const isSelected = Math.round(timeOffset) === day.offset;
+								const cellColor = getCondColor(day.conditionPct / 100);
 
-					<Box
-						sx={{
-							width: "100%",
-							height: 210,
-							bgcolor: "rgba(0,0,0,0.3)",
-							p: 1,
-							borderRadius: "8px",
-							border: "1px solid rgba(255,255,255,0.06)",
-						}}
-					>
-						<ResponsiveContainer width="100%" height="100%">
-							{chartTab === "cost" ? (
-								<AreaChart
-									data={timelineGraphData}
-									margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-								>
-									<defs>
-										<linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1">
-											<stop offset="5%" stopColor="#ffd700" stopOpacity={0.4} />
-											<stop
-												offset="95%"
-												stopColor="#ffd700"
-												stopOpacity={0.0}
-											/>
-										</linearGradient>
-									</defs>
-									<CartesianGrid
-										strokeDasharray="3 3"
-										stroke="rgba(255,255,255,0.08)"
-									/>
-									<XAxis
-										dataKey="day"
-										type="number"
-										domain={[0, 180]}
-										stroke="rgba(255,255,255,0.5)"
-										fontSize={11}
-										tickFormatter={(v) => `${v}d`}
-									/>
-									<YAxis
-										stroke={theme.palette.warning.main}
-										fontSize={11}
-										tickFormatter={(v) => `$${v.toLocaleString()}`}
-									/>
-									<YAxis
-										yAxisId="right"
-										orientation="right"
-										domain={[0, 100]}
-										stroke="#69f0ae"
-										fontSize={11}
-										tickFormatter={(v) => `${v}%`}
-									/>
-									<RechartsTooltip
-										wrapperStyle={{ zIndex: 99999 }}
-										contentStyle={{
-											bgcolor: "rgba(16,16,32,0.95)",
-											borderColor: theme.palette.warning.main,
-											borderRadius: 8,
-											fontSize: "0.75rem",
-											zIndex: 99999,
-										}}
-										formatter={(val: any, name: any) =>
-											name.includes("Condition")
-												? [`${val}%`, name]
-												: [`$${Number(val).toLocaleString()}`, name]
-										}
-									/>
-									<Legend
-										wrapperStyle={{ fontSize: "0.72rem", paddingTop: 4 }}
-									/>
-									<Area
-										type="monotone"
-										dataKey="totalCost"
-										name="Total Repair Cost ($)"
-										stroke="#ffd700"
-										strokeWidth={2.5}
-										fillOpacity={1}
-										fill="url(#costGrad)"
-									/>
-									<Line
-										type="monotone"
-										dataKey="dailyProfit"
-										name="Projected Daily Profit (Est)"
-										stroke="rgba(255,255,255,0.25)"
-										strokeDasharray="4 4"
-										strokeWidth={2}
-										dot={{ r: 2 }}
-									/>
-									<Line
-										yAxisId="right"
-										type="monotone"
-										dataKey="conditionPct"
-										name="Condition (%)"
-										stroke="#69f0ae"
-										strokeWidth={2.5}
-										dot={{ r: 2 }}
-									/>
-									<ReferenceLine
-										x={Math.round(avgAge + timeOffset)}
-										stroke="#7B68EE"
-										strokeDasharray="3 3"
-										label={{
-											value: "Target",
-											fill: "#7B68EE",
-											fontSize: 10,
-											position: "top",
-										}}
-									/>
-								</AreaChart>
-							) : (
-								<LineChart
-									data={timelineGraphData}
-									margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-								>
-									<CartesianGrid
-										strokeDasharray="3 3"
-										stroke="rgba(255,255,255,0.08)"
-									/>
-									<XAxis
-										dataKey="day"
-										type="number"
-										domain={[0, 180]}
-										stroke="rgba(255,255,255,0.5)"
-										fontSize={11}
-										tickFormatter={(v) => `${v}d`}
-									/>
-									<YAxis
-										stroke="#00e5ff"
-										fontSize={11}
-										tickFormatter={(v) => `${v} u`}
-									/>
-									<RechartsTooltip
-										wrapperStyle={{ zIndex: 99999 }}
-										contentStyle={{
-											bgcolor: "rgba(16,16,32,0.95)",
-											borderColor: theme.palette.primary.main,
-											borderRadius: 8,
-											fontSize: "0.75rem",
-											zIndex: 99999,
-										}}
-										formatter={(val: any, name: any) => [`${val} u`, name]}
-									/>
-									<Legend
-										wrapperStyle={{ fontSize: "0.72rem", paddingTop: 4 }}
-									/>
-									<ReferenceLine
-										x={Math.round(avgAge + timeOffset)}
-										stroke="#7B68EE"
-										strokeDasharray="3 3"
-										label={{
-											value: "Target",
-											fill: "#7B68EE",
-											fontSize: 10,
-											position: "top",
-										}}
-									/>
-									{materialKeys.map((mat) => (
-										<Line
-											key={mat}
-											type="monotone"
-											dataKey={mat}
-											name={mat}
-											stroke={MATERIAL_COLORS[mat] || "#00e5ff"}
-											strokeWidth={2}
-											dot={{ r: 2 }}
-										/>
-									))}
-								</LineChart>
-							)}
-						</ResponsiveContainer>
-					</Box>
-				</Box>
-
-				{/* --- SECTION 2: PRODUCTION BUILDINGS --- */}
-				<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-						}}
-					>
-						<Typography
-							variant="subtitle2"
-							sx={{
-								fontWeight: 800,
-								fontSize: "0.8rem",
-								color: theme.palette.primary.main,
-							}}
-						>
-							PRODUCTION BUILDINGS ({platformBreakdown.length})
-						</Typography>
-					</Box>
-
-					<Box
-						sx={{
-							display: "flex",
-							flexDirection: "column",
-							gap: 0.75,
-							maxHeight: 150,
-							overflowY: "auto",
-							pr: 0.5,
-						}}
-					>
-						{groupedBuildings.map((g) => {
-							const bColor = getCondColor(g.avgCondition);
-
-							return (
-								<Box
-									key={g.ticker}
-									sx={{
-										p: 0.75,
-										bgcolor: "rgba(0, 0, 0, 0.4)",
-										borderRadius: "8px",
-										border: `1px solid ${bColor}44`,
-										display: "flex",
-										alignItems: "center",
-										justifyContent: "space-between",
-										gap: 1.5,
-									}}
-								>
-									<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-										<Typography
-											variant="body2"
-											sx={{
-												fontWeight: 900,
-												color: "#00e5ff",
-												fontFamily: "monospace",
-												minWidth: 40,
-											}}
-										>
-											{g.ticker}
-										</Typography>
-										<Chip
-											label={`${g.count} unit${g.count > 1 ? "s" : ""}`}
-											size="small"
-											sx={{
-												height: 18,
-												fontSize: "0.65rem",
-												fontWeight: 800,
-												bgcolor: "rgba(255,255,255,0.08)",
-												color: "rgba(255,255,255,0.8)",
-												border: "1px solid rgba(255,255,255,0.15)",
-											}}
-										/>
-									</Box>
-
+								return (
 									<Box
+										key={day.offset}
+										onClick={() => setTimeOffset(day.offset)}
 										sx={{
+											minWidth: 120,
+											p: 0.75,
+											borderRadius: "6px",
+											bgcolor: isSelected
+												? "rgba(123, 104, 238, 0.25)"
+												: "rgba(255,255,255,0.02)",
+											border: isSelected
+												? "1px solid #7B68EE"
+												: "1px solid rgba(255,255,255,0.06)",
+											cursor: "pointer",
 											display: "flex",
+											flexDirection: "column",
 											alignItems: "center",
-											gap: 2,
-											flex: 1,
-											justifyContent: "flex-end",
-											pr: 2,
+											gap: 0.2,
+											transition: "all 0.15s ease",
+											"&:hover": {
+												bgcolor: isSelected
+													? "rgba(123, 104, 238, 0.3)"
+													: "rgba(255,255,255,0.05)",
+												borderColor: isSelected
+													? "#7B68EE"
+													: "rgba(255,255,255,0.15)",
+											},
 										}}
 									>
+										<Typography
+											variant="caption"
+											sx={{
+												fontWeight: 800,
+												fontSize: "0.74rem",
+												color: "rgba(255,255,255,0.85)",
+											}}
+										>
+											{dateLabel}
+										</Typography>
 										<Typography
 											variant="caption"
 											sx={{
 												fontWeight: 700,
-												color: bColor,
-												fontSize: "0.72rem",
+												fontSize: "0.7rem",
+												color: cellColor,
 											}}
 										>
-											Avg Cond: {(g.avgCondition * 100).toFixed(0)}%
-											&nbsp;|&nbsp; Age:{" "}
-											{g.minAge === g.maxAge
-												? `${g.minAge.toFixed(0)}d`
-												: `${g.minAge.toFixed(0)}–${g.maxAge.toFixed(0)}d`}
+											{day.conditionPct}%
 										</Typography>
 										<Typography
 											variant="caption"
 											sx={{
 												fontWeight: 800,
+												fontSize: "0.72rem",
 												color: theme.palette.warning.main,
 												fontFamily: "monospace",
-												fontSize: "0.78rem",
 											}}
 										>
-											${g.totalCost.toLocaleString()}
+											{day.totalCost.toLocaleString()}{" "}
+											{getCurrencyLabel(selectedExchange)}
 										</Typography>
-									</Box>
 
-									{/* Mini Material Badges */}
-									<Box
-										sx={{
-											display: "flex",
-											flexWrap: "wrap",
-											gap: 0.25,
-											justifyContent: "flex-end",
-											maxWidth: 120,
-										}}
-									>
-										{Object.entries(g.materials).map(([m, q]) => (
-											<MuiTooltip key={m} title={`${m}: ${q} u`}>
-												<Box sx={{ fontSize: "0.6em" }}>
-													<MaterialBadge ticker={m} />
-												</Box>
-											</MuiTooltip>
-										))}
+										{Math.round(avgAge + day.offset) === 60 && (
+											<Box
+												sx={{
+													fontSize: "0.55rem",
+													bgcolor: "#4caf50",
+													color: "white",
+													px: 0.5,
+													py: 0.1,
+													borderRadius: "3px",
+													mt: 0.4,
+													fontWeight: 900,
+													textTransform: "uppercase",
+												}}
+											>
+												60d Mark
+											</Box>
+										)}
+										{Math.round(avgAge + day.offset) === 90 && (
+											<Box
+												sx={{
+													fontSize: "0.55rem",
+													bgcolor: "#ff9800",
+													color: "white",
+													px: 0.5,
+													py: 0.1,
+													borderRadius: "3px",
+													mt: 0.4,
+													fontWeight: 900,
+													textTransform: "uppercase",
+												}}
+											>
+												90d Mark
+											</Box>
+										)}
+										{Math.round(avgAge + day.offset) === optimalAge && (
+											<Box
+												sx={{
+													fontSize: "0.55rem",
+													bgcolor: theme.palette.primary.main,
+													color: "white",
+													px: 0.5,
+													py: 0.1,
+													borderRadius: "3px",
+													mt: 0.4,
+													fontWeight: 900,
+													textTransform: "uppercase",
+												}}
+											>
+												Optimal
+											</Box>
+										)}
 									</Box>
-								</Box>
-							);
-						})}
+								);
+							})}
+						</Box>
+					</Box>
+				</Box>
+
+				{/* Side-by-Side Flex Layout on Desktop (md+), Stacked on Mobile (xs) */}
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: { xs: "column", md: "row" },
+						gap: 2.5,
+					}}
+				>
+					{/* LEFT COLUMN: Graph */}
+					<Box
+						sx={{
+							flex: 1.2,
+							display: "flex",
+							flexDirection: "column",
+							gap: 1,
+							minWidth: 0,
+						}}
+					>
+						<DegradationChart
+							timelineGraphData={timelineGraphData}
+							chartTab={chartTab}
+							setChartTab={setChartTab}
+							avgAge={avgAge}
+							timeOffset={timeOffset}
+							optimalAge={optimalAge}
+							selectedExchange={selectedExchange}
+							getCurrencyLabel={getCurrencyLabel}
+							materialKeys={materialKeys}
+							getMatPrice={getMatPrice}
+						/>
+					</Box>
+
+					{/* RIGHT COLUMN: Buildings */}
+					<Box
+						sx={{
+							flex: 0.8,
+							display: "flex",
+							flexDirection: "column",
+							gap: 1,
+							minWidth: 0,
+						}}
+					>
+						<BuildingsList
+							platformBreakdown={platformBreakdown}
+							timeOffset={timeOffset}
+							selectedExchange={selectedExchange}
+							getCurrencyLabel={getCurrencyLabel}
+							getCondColor={getCondColor}
+						/>
 					</Box>
 				</Box>
 
 				{/* --- SECTION 3: SHOPPING CART REPAIR MATERIALS REQUIRED TABLE --- */}
-				<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-						}}
-					>
-						<Typography
-							variant="subtitle2"
-							sx={{
-								fontWeight: 800,
-								fontSize: "0.8rem",
-								color: theme.palette.primary.main,
-								display: "flex",
-								alignItems: "center",
-								gap: 0.5,
-							}}
-						>
-							<ShoppingCart size={15} /> SHOPPING CART (REPAIR MATERIALS
-							REQUIRED)
-						</Typography>
-						<Typography
-							variant="caption"
-							sx={{
-								color: "rgba(255,255,255,0.6)",
-								fontSize: "0.7rem",
-								fontFamily: "monospace",
-							}}
-						>
-							Payload: {totalVolume.toFixed(1)} m³ &nbsp;|&nbsp;{" "}
-							{totalWeight.toFixed(1)} t
-						</Typography>
-					</Box>
-
-					<Table
-						size="small"
-						sx={{
-							bgcolor: "rgba(0,0,0,0.3)",
-							borderRadius: "8px",
-							overflow: "hidden",
-						}}
-					>
-						<TableHead sx={{ bgcolor: `${theme.palette.primary.main}15` }}>
-							<TableRow>
-								<TableCell
-									sx={{
-										color: theme.palette.primary.main,
-										fontWeight: 800,
-										py: 0.5,
-									}}
-								>
-									Material
-								</TableCell>
-								<TableCell
-									align="right"
-									sx={{
-										color: theme.palette.primary.main,
-										fontWeight: 800,
-										py: 0.5,
-									}}
-								>
-									Required Qty
-								</TableCell>
-								<TableCell
-									align="right"
-									sx={{
-										color: theme.palette.primary.main,
-										fontWeight: 800,
-										py: 0.5,
-									}}
-								>
-									Price ({selectedExchange})
-								</TableCell>
-								<TableCell
-									align="right"
-									sx={{
-										color: theme.palette.primary.main,
-										fontWeight: 800,
-										py: 0.5,
-									}}
-								>
-									Total Cost
-								</TableCell>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							{materialKeys.length > 0 ? (
-								materialKeys.map((mat) => {
-									const qty = repairMaterials[mat] || 0;
-									const unitPrice = getMatPrice(mat);
-									const matCost = qty * unitPrice;
-									const info = getMatMarketInfo(mat);
-
-									return (
-										<TableRow
-											key={mat}
-											sx={{ "&:hover": { bgcolor: "rgba(255,255,255,0.03)" } }}
-										>
-											<TableCell sx={{ py: 0.4 }}>
-												<MaterialBadge ticker={mat} />
-											</TableCell>
-											<TableCell
-												align="right"
-												sx={{
-													py: 0.4,
-													fontFamily: "monospace",
-													fontSize: "0.78rem",
-													fontWeight: 700,
-													color: "white",
-												}}
-											>
-												{qty.toLocaleString()} u
-											</TableCell>
-											<TableCell
-												align="right"
-												sx={{
-													py: 0.4,
-													fontFamily: "monospace",
-													fontSize: "0.75rem",
-													color: "rgba(255,255,255,0.6)",
-													lineHeight: 1.2,
-												}}
-											>
-												<div>
-													${unitPrice.toLocaleString()}{" "}
-													<span
-														style={{
-															color: "rgba(255,255,255,0.45)",
-															fontSize: "0.68rem",
-														}}
-													>
-														(${info.corpPrice.toLocaleString()} CORP)
-													</span>
-												</div>
-												<div
-													style={{
-														fontSize: "0.65rem",
-														color: theme.palette.primary.main,
-													}}
-												>
-													CX Avail: {info.cxAvail.toLocaleString()} u
-												</div>
-											</TableCell>
-											<TableCell
-												align="right"
-												sx={{
-													py: 0.4,
-													fontFamily: "monospace",
-													fontSize: "0.78rem",
-													fontWeight: 700,
-													color: theme.palette.warning.main,
-												}}
-											>
-												<div>${matCost.toLocaleString()}</div>
-												<div
-													style={{
-														color: "rgba(255,255,255,0.45)",
-														fontSize: "0.68rem",
-														fontWeight: 500,
-													}}
-												>
-													(${(qty * info.corpPrice).toLocaleString()} CORP)
-												</div>
-											</TableCell>
-										</TableRow>
-									);
-								})
-							) : (
-								<TableRow>
-									<TableCell
-										colSpan={4}
-										align="center"
-										sx={{
-											py: 2,
-											color: "rgba(255,255,255,0.5)",
-											fontStyle: "italic",
-											fontSize: "0.75rem",
-										}}
-									>
-										No repair materials needed for selected buildings!
-									</TableCell>
-								</TableRow>
-							)}
-						</TableBody>
-					</Table>
-				</Box>
+				<ShoppingCartTable
+					materialKeys={materialKeys}
+					repairMaterials={repairMaterials}
+					getMatPrice={getMatPrice}
+					getMatMarketInfo={getMatMarketInfo}
+					selectedExchange={selectedExchange}
+					getCurrencyLabel={getCurrencyLabel}
+					totalVolume={totalVolume}
+					totalWeight={totalWeight}
+				/>
 			</DialogContent>
 
 			{/* Actions Footer */}
 			<DialogActions
 				sx={{
 					px: { xs: 1.5, sm: 2.5 },
-					py: 1.5,
+					py: 1,
 					borderTop: "1px solid rgba(255,255,255,0.08)",
 					justifyContent: "space-between",
+					gap: 1,
 				}}
 			>
 				<Typography
 					variant="caption"
 					sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.7rem" }}
 				>
-					Generates <strong style={{ color: condColor }}>XIT REPAIR</strong>{" "}
+					Generates{" "}
+					<strong style={{ color: theme.palette.primary.main }}>
+						XIT REPAIR
+					</strong>{" "}
 					command payload
 				</Typography>
 
@@ -1051,12 +853,12 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 						Close
 					</Button>
 					<Button
-						onClick={handleCopyRepairXit}
+						onClick={(e) => setMenuAnchorEl(e.currentTarget)}
 						variant="contained"
 						size="small"
 						startIcon={<Copy size={14} />}
 						sx={{
-							bgcolor: condColor,
+							bgcolor: theme.palette.primary.main,
 							color: "#fff",
 							fontWeight: 800,
 							fontSize: "0.75rem",
@@ -1066,6 +868,49 @@ export const FastRepairModal: React.FC<FastRepairModalProps> = ({
 					>
 						Copy XIT Repair
 					</Button>
+
+					{/* Copy Submenu */}
+					<Menu
+						anchorEl={menuAnchorEl}
+						open={Boolean(menuAnchorEl)}
+						onClose={() => setMenuAnchorEl(null)}
+						slotProps={{
+							paper: {
+								sx: {
+									bgcolor: "rgba(20, 20, 38, 0.97)",
+									border: "1px solid rgba(255,255,255,0.1)",
+									color: "white",
+								},
+							},
+						}}
+					>
+						<MenuItem
+							onClick={() => {
+								handleCopyRepairXit("TRANSFER");
+								setMenuAnchorEl(null);
+							}}
+							sx={{
+								fontSize: "0.75rem",
+								fontWeight: 700,
+								"&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
+							}}
+						>
+							Just Transfer XIT
+						</MenuItem>
+						<MenuItem
+							onClick={() => {
+								handleCopyRepairXit("BUY_TRANSFER");
+								setMenuAnchorEl(null);
+							}}
+							sx={{
+								fontSize: "0.75rem",
+								fontWeight: 700,
+								"&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
+							}}
+						>
+							Buy & Transfer XIT
+						</MenuItem>
+					</Menu>
 				</Box>
 			</DialogActions>
 		</Dialog>
