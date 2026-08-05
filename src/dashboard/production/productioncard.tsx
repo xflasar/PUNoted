@@ -356,7 +356,7 @@ export const ProductionCard = React.memo(
 						borderRadius: "12px",
 						overflow: "hidden",
 						border: `${borderWidth} ${borderStyle} ${alpha(statusColor, site.isLeased ? 0.6 : 0.35)}`,
-						bgcolor: "rgba(22, 22, 42, 0.85)",
+						bgcolor: "rgba(20, 20, 20, 0.65)",
 						backdropFilter: "blur(20px)",
 						boxShadow: "0 6px 24px 0 rgba(0, 0, 0, 0.4)",
 						transition: "all 0.15s ease",
@@ -365,7 +365,7 @@ export const ProductionCard = React.memo(
 						"&:hover": {
 							boxShadow: `0 8px 24px -2px ${alpha(statusColor, 0.4)}`,
 							borderColor: statusColor,
-							bgcolor: "rgba(28, 28, 52, 0.9)",
+							bgcolor: "rgba(28, 28, 28, 0.75)",
 						},
 					}}
 				>
@@ -384,7 +384,8 @@ export const ProductionCard = React.memo(
 						<Box
 							sx={{
 								display: "flex",
-								alignItems: "center",
+								flexDirection: "column",
+								alignItems: "flex-start",
 								gap: 0.75,
 								overflow: "hidden",
 								flexWrap: "wrap",
@@ -408,102 +409,106 @@ export const ProductionCard = React.memo(
 								size="small"
 								sx={{
 									height: 18,
-									fontSize: "0.65rem",
+									fontSize: "0.7rem",
 									fontWeight: 800,
 									bgcolor: "rgba(123, 104, 238, 0.35)",
 									color: "#B4A6FF",
 									border: "1px solid rgba(180, 166, 255, 0.5)",
 								}}
 							/>
-
-							{site.isLeased && (
-								<Chip
-									label={
-										site.type === "Inbound"
-											? `LEASED FROM: ${(site.partner || site.leased_from || "PARTNER").toUpperCase()}`
-											: `LOANED TO: ${(site.partner || site.leased_to || site.tenant || "PARTNER").toUpperCase()}`
-									}
-									size="small"
-									sx={{
-										height: 18,
-										fontSize: "0.6rem",
-										fontWeight: 800,
-										bgcolor:
-											site.type === "Inbound"
-												? "rgba(0, 229, 255, 0.15)"
-												: "rgba(255, 152, 0, 0.15)",
-										color: site.type === "Inbound" ? "#00e5ff" : "#ffb74d",
-										border: `1px dashed ${site.type === "Inbound" ? "rgba(0, 229, 255, 0.4)" : "rgba(255, 152, 0, 0.4)"}`,
-									}}
-								/>
-							)}
 						</Box>
+
+						{site.isLeased && (
+							<Chip
+								label={
+									site.type === "Inbound"
+										? `LEASED FROM: ${(site.partner || site.leased_from || "PARTNER").toUpperCase()}`
+										: `LOANED TO: ${(site.partner || site.leased_to || site.tenant || "PARTNER").toUpperCase()}`
+								}
+								size="small"
+								sx={{
+									height: 18,
+									fontSize: "0.75rem",
+									fontWeight: 600,
+									bgcolor:
+										site.type === "Inbound"
+											? "rgba(0, 229, 255, 0.15)"
+											: "rgba(255, 152, 0, 0.15)",
+									color: site.type === "Inbound" ? "#00e5ff" : "#ffb74d",
+									border: `1px dashed ${site.type === "Inbound" ? "rgba(0, 229, 255, 0.4)" : "rgba(255, 152, 0, 0.4)"}`,
+								}}
+							/>
+						)}
 
 						<Box
 							sx={{
 								display: "flex",
+								flexDirection: "row",
 								alignItems: "center",
-								gap: 0.75,
+								justifyContent: "flex-end",
+								gap: 0.5,
 								flexShrink: 0,
 							}}
 						>
-							<Button
-								size="small"
-								variant="contained"
-								onClick={(e) => {
-									e.stopPropagation();
-									setQuickResupplyOpen(true);
-								}}
-								sx={{
-									height: 24,
-									fontSize: "0.72rem",
-									fontWeight: 700,
-									bgcolor: "rgba(123, 104, 238, 0.2)",
-									color: "#7B68EE",
-									border: "1px solid rgba(123, 104, 238, 0.4)",
-									textTransform: "none",
-									whiteSpace: "nowrap",
-									px: 1.25,
-									py: 0,
-									lineHeight: 1,
-									minWidth: "auto",
-									"&:hover": { bgcolor: "rgba(123, 104, 238, 0.35)" },
-								}}
-							>
-								Logistics Planner
-							</Button>
-
-							<Tooltip title="Click to open Site Repair & Condition Planner">
-								<Chip
-									icon={
-										<Wrench
-											size={11}
-											color={conditionColor}
-											style={{ marginLeft: 6 }}
-										/>
-									}
-									label={`Repair (${(siteOverallCondition * 100).toFixed(0)}%)`}
+							<Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
+								<Button
 									size="small"
+									variant="contained"
 									onClick={(e) => {
 										e.stopPropagation();
-										setRepairPlannerOpen(true);
+										setQuickResupplyOpen(true);
 									}}
 									sx={{
 										height: 20,
 										fontSize: "0.68rem",
-										fontWeight: 700,
-										bgcolor: alpha(conditionColor, 0.12),
-										color: conditionColor,
-										border: `1px solid ${alpha(conditionColor, 0.3)}`,
-										cursor: "pointer",
-										transition: "all 0.15s ease",
-										"&:hover": {
-											bgcolor: alpha(conditionColor, 0.25),
-											transform: "scale(1.03)",
-										},
+										fontWeight: 800,
+										bgcolor: "rgba(123, 104, 238, 0.2)",
+										color: "#B4A6FF",
+										border: "1px solid rgba(123, 104, 238, 0.45)",
+										textTransform: "none",
+										whiteSpace: "nowrap",
+										px: 1,
+										py: 0,
+										lineHeight: 1,
+										minWidth: "auto",
+										"&:hover": { bgcolor: "rgba(123, 104, 238, 0.35)" },
 									}}
-								/>
-							</Tooltip>
+								>
+									Supply/Export
+								</Button>
+
+								<Tooltip title="Click to open Site Repair & Condition Planner">
+									<Chip
+										icon={
+											<Wrench
+												size={10}
+												color={conditionColor}
+												style={{ marginLeft: 4 }}
+											/>
+										}
+										label={`Repair (${(siteOverallCondition * 100).toFixed(0)}%)`}
+										size="small"
+										onClick={(e) => {
+											e.stopPropagation();
+											setRepairPlannerOpen(true);
+										}}
+										sx={{
+											height: 20,
+											fontSize: "0.7rem",
+											fontWeight: 700,
+											bgcolor: alpha(conditionColor, 0.12),
+											color: conditionColor,
+											border: `1px solid ${alpha(conditionColor, 0.3)}`,
+											cursor: "pointer",
+											transition: "all 0.15s ease",
+											"& .MuiChip-label": { px: 0.75 },
+											"&:hover": {
+												bgcolor: alpha(conditionColor, 0.25),
+											},
+										}}
+									/>
+								</Tooltip>
+							</Box>
 							<ChevronRight
 								size={14}
 								color={theme.palette.text.secondary}
@@ -676,12 +681,12 @@ export const ProductionCard = React.memo(
 									}}
 								>
 									<Box
-										sx={{ flex: "1 1 54%", minWidth: 0, overflowX: "hidden" }}
+										sx={{ flex: "1 1 66%", minWidth: 0, overflowX: "hidden" }}
 									>
 										{renderProductionFlows()}
 									</Box>
 									<Box
-										sx={{ flex: "1 1 46%", minWidth: 0, overflowX: "hidden" }}
+										sx={{ flex: "1 1 34%", minWidth: 0, overflowX: "hidden" }}
 									>
 										{renderStorage()}
 									</Box>

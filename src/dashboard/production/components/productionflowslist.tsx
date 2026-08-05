@@ -342,7 +342,7 @@ export const ProductionFlowsList: React.FC<ProductionFlowsListProps> = ({
 											sx={{
 												display: "flex",
 												alignItems: "center",
-												gap: 3,
+												gap: 0.75,
 												flexShrink: 0,
 											}}
 										>
