@@ -10,8 +10,8 @@ import { formatCurrency } from "../utils/financeutils";
 import { FlexCard } from "./sharedui";
 
 const KPIBlock = ({ title, value, icon, color, isNet = false, guide }: any) => (
-	<FlexCard sx={{ p: 2, justifyContent: "center" }}>
-		<Box display="flex" alignItems="center" gap={1} mb={1}>
+	<FlexCard sx={{ p: 1.5, justifyContent: "center" }}>
+		<Box display="flex" alignItems="center" gap={0.75} mb={0.5}>
 			<Box
 				sx={{
 					color,
@@ -41,7 +41,7 @@ const KPIBlock = ({ title, value, icon, color, isNet = false, guide }: any) => (
 		<Typography
 			sx={{
 				color: isNet && value < 0 ? "error.main" : "text.primary",
-				fontSize: { xs: "1.1rem", lg: "1.25rem" },
+				fontSize: { xs: "1rem", lg: "1.1rem" },
 				fontWeight: 800,
 				whiteSpace: "nowrap",
 			}}
@@ -64,7 +64,7 @@ export const KPISection = ({ currentData, netPending }: any) => {
 					md: "repeat(3, 1fr)",
 					xl: "repeat(6, 1fr)",
 				},
-				gap: 2,
+				gap: 1.5,
 				flexShrink: 0,
 			}}
 		>

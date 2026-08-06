@@ -69,14 +69,29 @@ export const useDrawerData = (
 		if (!selectedPartnerCode || transactions.length === 0) return null;
 		let totalReceived = 0,
 			totalPaid = 0;
+		let cxVolume = 0;
+		let contractVolume = 0;
 
 		transactions.forEach((tx) => {
 			if (tx.PartnerCode === selectedPartnerCode) {
+				const absAmt = Math.abs(tx.Amount);
 				if (tx.Amount > 0) totalReceived += tx.Amount;
-				else totalPaid += Math.abs(tx.Amount);
+				else totalPaid += absAmt;
+
+				if (tx.Type.includes("CX")) {
+					cxVolume += absAmt;
+				} else if (tx.Type.includes("CONTRACT")) {
+					contractVolume += absAmt;
+				}
 			}
 		});
-		return { totalReceived, totalPaid, net: totalReceived - totalPaid };
+		return {
+			totalReceived,
+			totalPaid,
+			net: totalReceived - totalPaid,
+			cxVolume,
+			contractVolume,
+		};
 	}, [selectedPartnerCode, transactions]);
 
 	return {

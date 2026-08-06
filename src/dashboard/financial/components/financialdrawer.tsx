@@ -34,13 +34,13 @@ export default function FinancialDrawer({
 			slotProps={{
 				paper: {
 					sx: {
-						backgroundColor: "rgba(20, 25, 40, 0.95)",
-						backdropFilter: "blur(12px)",
+						backgroundColor: "rgba(20, 20, 20, 0.85)",
+						backdropFilter: "blur(20px)",
 						backgroundImage: "none",
-						border: "1px solid rgba(255, 255, 255, 0.08)",
+						border: "1px solid rgba(255, 255, 255, 0.06)",
 						color: "text.primary",
 						boxShadow: "0 12px 40px 0 rgba(0, 0, 0, 0.5)",
-						borderRadius: "16px",
+						borderRadius: "12px",
 						margin: 2,
 					},
 				},

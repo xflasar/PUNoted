@@ -9,14 +9,17 @@ export const FlexCard = ({ children, sx = {} }: any) => {
 			sx={{
 				display: "flex",
 				flexDirection: "column",
-				backgroundColor: "rgba(30, 37, 52, 0.5)",
+				backgroundColor: "rgba(20, 20, 20, 0.65)",
 				border: "1px solid rgba(255, 255, 255, 0.06)",
 				borderRadius: "12px",
-				boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.15)",
+				boxShadow: "0 6px 24px 0 rgba(0, 0, 0, 0.35)",
 				overflow: "hidden",
-				transition: "transform 0.2s ease, box-shadow 0.2s ease",
+				transition: "all 0.2s ease",
+				backdropFilter: "blur(20px)",
 				"&:hover": {
-					boxShadow: "0 6px 24px 0 rgba(0, 0, 0, 0.22)",
+					boxShadow: `0 8px 24px -2px ${alpha(theme.palette.primary.main, 0.25)}`,
+					borderColor: alpha(theme.palette.primary.main, 0.4),
+					backgroundColor: "rgba(28, 28, 28, 0.75)",
 				},
 				...sx,
 			}}

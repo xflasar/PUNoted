@@ -51,8 +51,23 @@ export const LedgerStats = ({ stats }: LedgerStatsProps) => {
 					value={`${stats.net > 0 ? "+" : ""}${formatCurrency(stats.net)}`}
 					valueColor={stats.net >= 0 ? "success.main" : "error.main"}
 					isMonospace
-					noBorder
 				/>
+				{stats.cxVolume !== undefined && stats.cxVolume > 0 && (
+					<DrawerRow
+						label="CX Volume"
+						value={formatCurrency(stats.cxVolume)}
+						valueColor="primary.main"
+						isMonospace
+					/>
+				)}
+				{stats.contractVolume !== undefined && stats.contractVolume > 0 && (
+					<DrawerRow
+						label="Contract Volume"
+						value={formatCurrency(stats.contractVolume)}
+						valueColor="warning.main"
+						isMonospace
+					/>
+				)}
 			</Box>
 		</FlexCard>
 	);

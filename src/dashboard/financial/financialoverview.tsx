@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
 	Box,
 	Typography,
@@ -7,12 +7,16 @@ import {
 	CircularProgress,
 	Alert,
 	IconButton,
+	TextField,
+	InputAdornment,
 	alpha,
 	useTheme,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 
 import type { Transaction } from "./types/finances";
 import { useFinancialData } from "./hooks/usefinancialdata";
@@ -55,6 +59,20 @@ export default function FinancialOverview() {
 	const [selectedPartnerName, setSelectedPartnerName] = useState<string | null>(
 		null,
 	);
+	const [partnerFilter, setPartnerFilter] = useState<string>("");
+
+	// Filter transactions by partner code, partner name, or transaction type
+	const filteredTransactions = useMemo(() => {
+		if (!currentData?.Transactions) return [];
+		if (!partnerFilter) return currentData.Transactions;
+		const query = partnerFilter.toLowerCase().trim();
+		return currentData.Transactions.filter(
+			(tx) =>
+				(tx.PartnerCode && tx.PartnerCode.toLowerCase().includes(query)) ||
+				(tx.PartnerName && tx.PartnerName.toLowerCase().includes(query)) ||
+				(tx.Type && tx.Type.toLowerCase().includes(query)),
+		);
+	}, [currentData?.Transactions, partnerFilter]);
 
 	if (loading)
 		return (
@@ -88,11 +106,14 @@ export default function FinancialOverview() {
 		setSelectedPartnerCode(tx.PartnerCode);
 		setSelectedPartnerName(tx.PartnerName);
 	};
+
 	const openPartnerDrawer = (code: string, name: string) => {
 		setSelectedTx(null);
 		setSelectedPartnerCode(code);
 		setSelectedPartnerName(name);
+		setPartnerFilter(code); // Auto-filter activity log by this partner code!
 	};
+
 	const closeDrawer = () => {
 		setSelectedTx(null);
 		setSelectedPartnerCode(null);
@@ -116,7 +137,7 @@ export default function FinancialOverview() {
 			<Box
 				sx={{
 					px: 3,
-					pt: 2,
+					pt: 1.5,
 					display: "flex",
 					justifyContent: "space-between",
 					alignItems: "center",
@@ -184,11 +205,16 @@ export default function FinancialOverview() {
 				sx={{
 					flex: 1,
 					minHeight: 0,
-					overflow: "hidden",
+					overflowY: "auto",
 					display: "flex",
 					flexDirection: "column",
-					gap: 2.5,
-					p: { xs: 2, md: 3 },
+					gap: 2,
+					p: { xs: 1.5, md: 2 },
+					"&::-webkit-scrollbar": { width: "6px" },
+					"&::-webkit-scrollbar-thumb": {
+						backgroundColor: theme.palette.divider,
+						borderRadius: "4px",
+					},
 				}}
 			>
 				<KPISection currentData={currentData} netPending={netPending} />
@@ -197,15 +223,16 @@ export default function FinancialOverview() {
 					<FlexCard sx={{ minHeight: 500 }}>
 						<Box
 							sx={{
-								px: 2.5,
-								py: 1.5,
+								px: 2,
+								py: 1,
 								display: "flex",
 								alignItems: "center",
 								justifyContent: "space-between",
 								borderBottom: `1px solid ${theme.palette.divider}`,
+								gap: 2,
 							}}
 						>
-							<Box sx={{ display: "flex", alignItems: "center" }}>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
 								<Typography
 									fontWeight={700}
 									fontSize="0.85rem"
@@ -213,6 +240,38 @@ export default function FinancialOverview() {
 								>
 									Expanded Activity Log
 								</Typography>
+								<TextField
+									size="small"
+									placeholder="Search counterparty or type..."
+									value={partnerFilter}
+									onChange={(e) => setPartnerFilter(e.target.value)}
+									sx={{
+										width: 240,
+										"& .MuiInputBase-input": {
+											py: 0.4,
+											px: 1,
+											fontSize: "0.72rem",
+										},
+									}}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<SearchIcon sx={{ fontSize: 14, opacity: 0.6 }} />
+											</InputAdornment>
+										),
+										endAdornment: partnerFilter && (
+											<InputAdornment position="end">
+												<IconButton
+													size="small"
+													onClick={() => setPartnerFilter("")}
+													sx={{ p: 0 }}
+												>
+													<ClearIcon sx={{ fontSize: 14 }} />
+												</IconButton>
+											</InputAdornment>
+										),
+									}}
+								/>
 							</Box>
 							<IconButton
 								size="small"
@@ -242,7 +301,7 @@ export default function FinancialOverview() {
 							}}
 						>
 							<ActivityTableContent
-								transactions={currentData.Transactions}
+								transactions={filteredTransactions}
 								onRowClick={openTransactionDrawer}
 							/>
 						</Box>
@@ -254,7 +313,7 @@ export default function FinancialOverview() {
 							sx={{
 								display: "grid",
 								gridTemplateColumns: { xs: "1fr", lg: "1.8fr 1.2fr" },
-								gap: 2.5,
+								gap: 2,
 							}}
 						>
 							<LiquidityTrendChart
@@ -273,7 +332,7 @@ export default function FinancialOverview() {
 									md: "repeat(2, 1fr)",
 									lg: "repeat(3, 1fr)",
 								},
-								gap: 2.5,
+								gap: 2,
 							}}
 						>
 							<IncomeSourcesChart pieChartData={pieChartData} />
@@ -281,8 +340,8 @@ export default function FinancialOverview() {
 							<FlexCard sx={{ height: 260 }}>
 								<Box
 									sx={{
-										px: 3,
-										py: 1.5,
+										px: 2,
+										py: 1,
 										display: "flex",
 										alignItems: "center",
 										borderBottom: `1px solid ${theme.palette.divider}`,
@@ -314,22 +373,55 @@ export default function FinancialOverview() {
 						</Box>
 
 						{/* Row 4: Full-width Activity Log */}
-						<FlexCard sx={{ flex: 1, minHeight: 200 }}>
+						<FlexCard sx={{ flex: 1, minHeight: 280 }}>
 							<Box
 								sx={{
-									px: 3,
-									py: 1.5,
+									px: 2,
+									py: 1,
 									display: "flex",
 									alignItems: "center",
 									justifyContent: "space-between",
 									borderBottom: `1px solid ${theme.palette.divider}`,
+									gap: 2,
 								}}
 							>
-								<Box sx={{ display: "flex", alignItems: "center" }}>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
 									<Typography fontWeight={700} fontSize="0.85rem">
 										30-Day Activity Log
 									</Typography>
-									<Guide text="Click any row to view full transaction and counterparty details." />
+									<TextField
+										size="small"
+										placeholder="Search counterparty or type..."
+										value={partnerFilter}
+										onChange={(e) => setPartnerFilter(e.target.value)}
+										sx={{
+											width: 220,
+											"& .MuiInputBase-input": {
+												py: 0.35,
+												px: 0.8,
+												fontSize: "0.7rem",
+											},
+										}}
+										InputProps={{
+											startAdornment: (
+												<InputAdornment position="start">
+													<SearchIcon sx={{ fontSize: 13, opacity: 0.6 }} />
+												</InputAdornment>
+											),
+											endAdornment: partnerFilter && (
+												<InputAdornment position="end">
+													<IconButton
+														size="small"
+														onClick={() => setPartnerFilter("")}
+														sx={{ p: 0 }}
+													>
+														<ClearIcon sx={{ fontSize: 13 }} />
+													</IconButton>
+												</InputAdornment>
+											),
+										}}
+									/>
+									<Guide text="Click any row to view full transaction details. Clicking a partner in Top Partners filters this list." />
 								</Box>
 								<IconButton
 									size="small"
@@ -344,7 +436,7 @@ export default function FinancialOverview() {
 									flex: 1,
 									overflowY: "auto",
 									p: 0,
-									minHeight: 0,
+									minHeight: 180,
 									"&::-webkit-scrollbar": { width: "6px" },
 									"&::-webkit-scrollbar-thumb": {
 										backgroundColor: theme.palette.divider,
@@ -353,7 +445,7 @@ export default function FinancialOverview() {
 								}}
 							>
 								<ActivityTableContent
-									transactions={currentData.Transactions}
+									transactions={filteredTransactions}
 									onRowClick={openTransactionDrawer}
 								/>
 							</Box>
