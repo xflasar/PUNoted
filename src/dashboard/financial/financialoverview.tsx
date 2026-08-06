@@ -49,6 +49,7 @@ export default function FinancialOverview() {
 		topPartners,
 		incomeExpense30D,
 		pieChartData,
+		volumeBreakdown,
 	} = useFinancialData();
 
 	const [isActivityExpanded, setIsActivityExpanded] = useState<boolean>(false);
@@ -217,7 +218,11 @@ export default function FinancialOverview() {
 					},
 				}}
 			>
-				<KPISection currentData={currentData} netPending={netPending} />
+				<KPISection
+					currentData={currentData}
+					netPending={netPending}
+					volumeBreakdown={volumeBreakdown}
+				/>
 
 				{isActivityExpanded ? (
 					<FlexCard sx={{ minHeight: 500 }}>

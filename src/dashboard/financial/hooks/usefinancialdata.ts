@@ -105,6 +105,21 @@ export const useFinancialData = () => {
 			.slice(0, 15);
 	}, [currentData]);
 
+	// ponytail: CX vs Contract volume split from transaction types
+	const volumeBreakdown = useMemo(() => {
+		if (!currentData?.Transactions) return { cx: 0, contract: 0, corp: 0 };
+		let cx = 0,
+			contract = 0,
+			corp = 0;
+		currentData.Transactions.forEach((tx) => {
+			const abs = Math.abs(tx.Amount);
+			if (tx.Type.includes("CORP")) corp += abs;
+			else if (tx.Type.includes("CX")) cx += abs;
+			else if (tx.Type.includes("CONTRACT")) contract += abs;
+		});
+		return { cx, contract, corp };
+	}, [currentData]);
+
 	return {
 		data,
 		loading,
@@ -117,5 +132,6 @@ export const useFinancialData = () => {
 		incomeExpense30D,
 		pieChartData,
 		topPartners,
+		volumeBreakdown,
 	};
 };

@@ -52,17 +52,21 @@ const KPIBlock = ({ title, value, icon, color, isNet = false, guide }: any) => (
 	</FlexCard>
 );
 
-export const KPISection = ({ currentData, netPending }: any) => {
+export const KPISection = ({
+	currentData,
+	netPending,
+	volumeBreakdown,
+}: any) => {
 	const theme = useTheme();
 	return (
 		<Box
 			sx={{
 				display: "grid",
 				gridTemplateColumns: {
-					xs: "1fr",
-					sm: "repeat(2, 1fr)",
-					md: "repeat(3, 1fr)",
-					xl: "repeat(6, 1fr)",
+					xs: "repeat(2, 1fr)",
+					sm: "repeat(3, 1fr)",
+					md: "repeat(4, 1fr)",
+					xl: "repeat(8, 1fr)",
 				},
 				gap: 1.5,
 				flexShrink: 0,
@@ -115,6 +119,24 @@ export const KPISection = ({ currentData, netPending }: any) => {
 				isNet={true}
 				guide="Receivables minus Payables."
 			/>
+			{volumeBreakdown && (
+				<>
+					<KPIBlock
+						title="30D CX Vol."
+						value={volumeBreakdown.cx}
+						icon={<StorefrontIcon />}
+						color="#00e5ff"
+						guide="Total CX trade volume (buys + sells) in last 30 days."
+					/>
+					<KPIBlock
+						title="30D Contract Vol."
+						value={volumeBreakdown.contract}
+						icon={<SwapHorizIcon />}
+						color="#ffa726"
+						guide="Total contract payment volume in last 30 days."
+					/>
+				</>
+			)}
 		</Box>
 	);
 };
