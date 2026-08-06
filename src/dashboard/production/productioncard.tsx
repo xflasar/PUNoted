@@ -450,7 +450,14 @@ export const ProductionCard = React.memo(
 								flexShrink: 0,
 							}}
 						>
-							<Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
+							<Box
+								sx={{
+									display: "flex",
+									flexDirection: "column",
+									alignItems: "center",
+									gap: 0.5,
+								}}
+							>
 								<Button
 									size="small"
 									variant="contained"
