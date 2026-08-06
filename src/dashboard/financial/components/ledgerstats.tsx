@@ -1,34 +1,39 @@
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { DrawerRow, FlexCard } from "./sharedui";
-import { formatCurrency } from "../utils/financeutils";
+import { formatCurrency, SEMANTIC_COLORS } from "../utils/financeutils";
 
 interface LedgerStatsProps {
-	stats: { totalReceived: number; totalPaid: number; net: number } | null;
+	stats: {
+		totalReceived: number;
+		totalPaid: number;
+		net: number;
+		cxVolume?: number;
+		contractVolume?: number;
+	} | null;
 }
 
 export const LedgerStats = ({ stats }: LedgerStatsProps) => {
-	const theme = useTheme();
-
 	if (!stats) return null;
 
 	return (
 		<FlexCard>
 			<Box
-				px={2}
-				py={1}
+				px={2.5}
+				py={1.25}
 				display="flex"
 				alignItems="center"
-				borderBottom={`1px solid ${theme.palette.divider}`}
+				borderBottom="1px solid rgba(255, 255, 255, 0.06)"
 			>
-				<SwapHorizIcon
-					fontSize="small"
-					sx={{ color: theme.palette.warning.main, mr: 1 }}
-				/>
+				<SwapHorizIcon fontSize="small" sx={{ color: "#fbbf24", mr: 1 }} />
 				<Typography
 					fontWeight={700}
-					fontSize="0.85rem"
-					sx={{ textTransform: "uppercase" }}
+					fontSize="0.75rem"
+					sx={{
+						textTransform: "uppercase",
+						letterSpacing: "0.08em",
+						color: "rgba(255,255,255,0.8)",
+					}}
 				>
 					30-Day Ledger
 				</Typography>
@@ -37,26 +42,28 @@ export const LedgerStats = ({ stats }: LedgerStatsProps) => {
 				<DrawerRow
 					label="Total Received"
 					value={`+${formatCurrency(stats.totalReceived)}`}
-					valueColor="success.main"
+					valueColor={SEMANTIC_COLORS.neonGreen}
 					isMonospace
 				/>
 				<DrawerRow
 					label="Total Paid"
 					value={`-${formatCurrency(stats.totalPaid)}`}
-					valueColor="error.main"
+					valueColor={SEMANTIC_COLORS.neonRed}
 					isMonospace
 				/>
 				<DrawerRow
 					label="Net Volume"
 					value={`${stats.net > 0 ? "+" : ""}${formatCurrency(stats.net)}`}
-					valueColor={stats.net >= 0 ? "success.main" : "error.main"}
+					valueColor={
+						stats.net >= 0 ? SEMANTIC_COLORS.neonGreen : SEMANTIC_COLORS.neonRed
+					}
 					isMonospace
 				/>
 				{stats.cxVolume !== undefined && stats.cxVolume > 0 && (
 					<DrawerRow
 						label="CX Volume"
 						value={formatCurrency(stats.cxVolume)}
-						valueColor="primary.main"
+						valueColor="#60a5fa"
 						isMonospace
 					/>
 				)}
@@ -64,8 +71,9 @@ export const LedgerStats = ({ stats }: LedgerStatsProps) => {
 					<DrawerRow
 						label="Contract Volume"
 						value={formatCurrency(stats.contractVolume)}
-						valueColor="warning.main"
+						valueColor="#fbbf24"
 						isMonospace
+						noBorder
 					/>
 				)}
 			</Box>

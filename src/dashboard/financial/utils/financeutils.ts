@@ -1,6 +1,12 @@
+import { alpha } from "@mui/material";
+
 export const SEMANTIC_COLORS = {
-	neonBlue: "#00E5FF",
-	chartPalette: ["#8B5CF6", "#0EA5E9", "#10B981", "#F59E0B", "#EC4899"],
+	neonPurple: "#7b68ee",
+	neonBlue: "#60a5fa",
+	neonGreen: "#4ade80",
+	neonRed: "#f87171",
+	neonGold: "#fbbf24",
+	chartPalette: ["#7b68ee", "#60a5fa", "#4ade80", "#fbbf24", "#c084fc"],
 };
 
 export const formatCurrency = (val: number, decimals: number = 2) => {
@@ -11,8 +17,8 @@ export const formatCurrency = (val: number, decimals: number = 2) => {
 };
 
 export const compactFormatter = (value: number) => {
-	if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-	if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+	if (Math.abs(value) >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+	if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}K`;
 	return value.toString();
 };
 
@@ -24,6 +30,6 @@ export const formatCompactTimestamp = (timestamp: string) => {
 		day: "2-digit",
 		hour: "2-digit",
 		minute: "2-digit",
-		hour12: true,
+		hour12: false,
 	});
 };

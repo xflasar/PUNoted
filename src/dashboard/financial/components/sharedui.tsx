@@ -2,24 +2,29 @@ import React from "react";
 import { Box, Typography, Tooltip, alpha, useTheme } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
-export const FlexCard = ({ children, sx = {} }: any) => {
+export const FlexCard = ({
+	children,
+	sx = {},
+}: {
+	children: React.ReactNode;
+	sx?: object;
+}) => {
 	const theme = useTheme();
 	return (
 		<Box
 			sx={{
 				display: "flex",
 				flexDirection: "column",
-				backgroundColor: "rgba(20, 20, 20, 0.65)",
-				border: "1px solid rgba(255, 255, 255, 0.06)",
-				borderRadius: "12px",
-				boxShadow: "0 6px 24px 0 rgba(0, 0, 0, 0.35)",
+				backgroundColor: "rgba(4, 4, 10, 0.75)",
+				border: "1px solid rgba(123, 104, 238, 0.2)",
+				borderRadius: "16px",
+				boxShadow: "0 0 40px rgba(123, 104, 238, 0.08)",
 				overflow: "hidden",
-				transition: "all 0.2s ease",
-				backdropFilter: "blur(20px)",
+				backdropFilter: "blur(25px)",
+				transition: "all 0.25s ease-in-out",
 				"&:hover": {
-					boxShadow: `0 8px 24px -2px ${alpha(theme.palette.primary.main, 0.25)}`,
-					borderColor: alpha(theme.palette.primary.main, 0.4),
-					backgroundColor: "rgba(28, 28, 28, 0.75)",
+					borderColor: "rgba(123, 104, 238, 0.45)",
+					boxShadow: "0 4px 20px rgba(123, 104, 238, 0.15)",
 				},
 				...sx,
 			}}
@@ -35,79 +40,14 @@ export const Guide = ({ text }: { text: string }) => {
 		<Tooltip title={text} arrow placement="top">
 			<InfoOutlinedIcon
 				sx={{
-					ml: 1,
-					fontSize: "0.9rem",
-					color: theme.palette.text.secondary,
+					fontSize: "0.85rem",
+					color: "rgba(255, 255, 255, 0.5)",
 					cursor: "help",
+					transition: "color 0.2s",
+					"&:hover": { color: "#7b68ee" },
 				}}
 			/>
 		</Tooltip>
-	);
-};
-
-export const SectionHeader = ({ title, icon, color }: any) => (
-	<Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5, mt: 3 }}>
-		{React.cloneElement(icon, { sx: { color, fontSize: "1.1rem" } })}
-		<Typography
-			variant="caption"
-			sx={{
-				fontWeight: 800,
-				color: "text.secondary",
-				textTransform: "uppercase",
-				letterSpacing: 1,
-			}}
-		>
-			{title}
-		</Typography>
-	</Box>
-);
-
-export const InfoRow = ({
-	label,
-	value,
-	valueColor = "text.primary",
-	isMonospace = false,
-	isBold = true,
-	noBorder = false,
-}: any) => {
-	const theme = useTheme();
-	return (
-		<Box
-			sx={{
-				display: "flex",
-				justifyContent: "space-between",
-				alignItems: "center",
-				py: 1,
-				borderBottom: noBorder
-					? "none"
-					: `1px solid ${alpha(theme.palette.divider, 0.4)}`,
-			}}
-		>
-			<Typography
-				variant="caption"
-				sx={{
-					color: "text.secondary",
-					fontWeight: 700,
-					textTransform: "uppercase",
-					letterSpacing: 0.5,
-				}}
-			>
-				{label}
-			</Typography>
-			<Typography
-				variant="body2"
-				color={valueColor}
-				sx={{
-					fontWeight: isBold ? 800 : 600,
-					fontFamily: isMonospace ? "monospace" : "inherit",
-					textAlign: "right",
-					pl: 2,
-					wordBreak: "break-word",
-				}}
-			>
-				{value}
-			</Typography>
-		</Box>
 	);
 };
 
@@ -127,23 +67,19 @@ export const DrawerRow = ({
 				display: "flex",
 				justifyContent: "space-between",
 				alignItems: "center",
-				px: 2,
-				py: 1.5,
-				borderBottom: noBorder
-					? "none"
-					: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-				borderTop: isTopBorder
-					? `1px solid ${alpha(theme.palette.divider, 0.5)}`
-					: "none",
+				px: 2.5,
+				py: 1.25,
+				borderBottom: noBorder ? "none" : "1px solid rgba(255, 255, 255, 0.06)",
+				borderTop: isTopBorder ? "1px solid rgba(255, 255, 255, 0.06)" : "none",
 			}}
 		>
 			<Typography
 				sx={{
 					fontSize: "0.7rem",
-					color: "text.secondary",
-					fontWeight: 800,
+					color: "rgba(255, 255, 255, 0.5)",
+					fontWeight: 700,
 					textTransform: "uppercase",
-					letterSpacing: "0.5px",
+					letterSpacing: "0.08em",
 					flexShrink: 0,
 				}}
 			>

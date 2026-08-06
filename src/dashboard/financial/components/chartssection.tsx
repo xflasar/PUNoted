@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, alpha, useTheme } from "@mui/material";
+import { Box, Typography, CircularProgress } from "@mui/material";
 import {
 	BarChart,
 	Bar,
@@ -23,90 +23,122 @@ import {
 } from "../utils/financeutils";
 import { FlexCard } from "./sharedui";
 
-export const LiquidityTrendChart = ({ historyData, currency }: any) => {
-	const theme = useTheme();
+export const LiquidityTrendChart = ({
+	historyData,
+	currency,
+	loading,
+}: any) => {
 	return (
-		<FlexCard
-			sx={{
-				height: 280,
-			}}
-		>
+		<FlexCard sx={{ height: "100%" }}>
 			<Box
 				sx={{
-					px: 3,
-					py: 1.5,
+					px: 2.5,
+					py: 1.25,
 					display: "flex",
 					alignItems: "center",
-					borderBottom: `1px solid ${theme.palette.divider}`,
+					borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
 				}}
 			>
-				<Typography fontWeight={750} fontSize="0.85rem">
+				<Typography
+					fontWeight={800}
+					fontSize="0.75rem"
+					sx={{
+						textTransform: "uppercase",
+						letterSpacing: "0.08em",
+						color: "rgba(255,255,255,0.7)",
+					}}
+				>
 					30-Day Liquidity Trend ({currency})
 				</Typography>
 			</Box>
-			<Box sx={{ flex: 1, px: 1, pb: 1, pt: 1, minHeight: 0 }}>
-				{historyData && historyData.length > 0 ? (
+			<Box
+				sx={{
+					flex: 1,
+					px: 1,
+					pb: 1,
+					pt: 1.5,
+					minHeight: 0,
+					position: "relative",
+				}}
+			>
+				{loading ? (
+					<Box
+						display="flex"
+						flexDirection="column"
+						justifyContent="center"
+						alignItems="center"
+						height="100%"
+						width="100%"
+					>
+						<CircularProgress
+							size={30}
+							thickness={4}
+							sx={{ color: "#7b68ee" }}
+						/>
+					</Box>
+				) : historyData && historyData.length > 0 ? (
 					<ResponsiveContainer width="100%" height="100%">
 						<AreaChart
 							data={historyData}
-							margin={{ top: 5, right: 20, left: -10, bottom: 0 }}
+							margin={{ top: 5, right: 15, left: -15, bottom: 0 }}
 						>
 							<defs>
 								<linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="5%" stopColor="#00e5ff" stopOpacity={0.2} />
-									<stop offset="95%" stopColor="#00e5ff" stopOpacity={0} />
+									<stop offset="5%" stopColor="#7b68ee" stopOpacity={0.4} />
+									<stop offset="95%" stopColor="#7b68ee" stopOpacity={0.0} />
 								</linearGradient>
 							</defs>
 							<CartesianGrid
 								strokeDasharray="3 3"
 								vertical={false}
-								stroke="rgba(255, 255, 255, 0.05)"
+								stroke="rgba(255, 255, 255, 0.04)"
 							/>
 							<XAxis
 								dataKey="Date"
-								tick={{ fill: theme.palette.text.secondary, fontSize: 9 }}
+								tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }}
 								axisLine={false}
 								tickLine={false}
 								dy={5}
 							/>
 							<YAxis
 								tickFormatter={compactFormatter}
-								tick={{ fill: theme.palette.text.secondary, fontSize: 9 }}
+								tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }}
 								axisLine={false}
 								tickLine={false}
 							/>
 							<RechartsTooltip
-								formatter={(value: number) => formatCurrency(value)}
+								formatter={(value: number) => [
+									formatCurrency(value),
+									"Balance",
+								]}
 								contentStyle={{
-									backgroundColor: "rgba(10, 15, 30, 0.95)",
-									borderColor: "rgba(0, 229, 255, 0.25)",
-									color: theme.palette.text.primary,
-									borderRadius: "8px",
-									padding: "6px 12px",
-									fontSize: "0.8rem",
-									boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
-									backdropFilter: "blur(4px)",
+									backgroundColor: "rgba(4, 4, 10, 0.95)",
+									borderColor: "rgba(123, 104, 238, 0.35)",
+									color: "#fff",
+									borderRadius: "10px",
+									padding: "8px 12px",
+									fontSize: "0.75rem",
+									boxShadow: "0 0 20px rgba(123, 104, 238, 0.25)",
+									backdropFilter: "blur(20px)",
 								}}
 							/>
 							<Area
 								type="monotone"
 								dataKey="Balance"
-								stroke="#00e5ff"
-								strokeWidth={2}
+								stroke="#7b68ee"
+								strokeWidth={2.5}
 								fill="url(#colorBalance)"
 							/>
 						</AreaChart>
 					</ResponsiveContainer>
 				) : (
 					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							height: "100%",
-							color: "text.secondary",
-							fontSize: "0.8rem",
-						}}
+						display="flex"
+						justifyContent="center"
+						alignItems="center"
+						height="100%"
+						color="rgba(255,255,255,0.4)"
+						fontSize="0.8rem"
 					>
 						Insufficient historical data
 					</Box>
@@ -116,38 +148,54 @@ export const LiquidityTrendChart = ({ historyData, currency }: any) => {
 	);
 };
 
-export const IncomeSourcesChart = ({ pieChartData }: any) => {
-	const theme = useTheme();
+export const IncomeSourcesChart = ({ pieChartData, loading }: any) => {
 	return (
-		<FlexCard
-			sx={{
-				height: 260,
-			}}
-		>
+		<FlexCard sx={{ height: "100%" }}>
 			<Box
 				sx={{
-					px: 3,
-					py: 1.5,
-					display: "flex",
-					alignItems: "center",
-					borderBottom: `1px solid ${theme.palette.divider}`,
+					px: 2.5,
+					py: 1.25,
+					borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
 				}}
 			>
-				<Typography fontWeight={700} fontSize="0.85rem">
+				<Typography
+					fontWeight={800}
+					fontSize="0.75rem"
+					sx={{
+						textTransform: "uppercase",
+						letterSpacing: "0.08em",
+						color: "rgba(255,255,255,0.7)",
+					}}
+				>
 					30-Day Income Sources
 				</Typography>
 			</Box>
 			<Box sx={{ flex: 1, p: 1, minHeight: 0 }}>
-				{pieChartData.length > 0 ? (
+				{loading ? (
+					<Box
+						display="flex"
+						flexDirection="column"
+						justifyContent="center"
+						alignItems="center"
+						height="100%"
+						width="100%"
+					>
+						<CircularProgress
+							size={30}
+							thickness={4}
+							sx={{ color: "#7b68ee" }}
+						/>
+					</Box>
+				) : pieChartData.length > 0 ? (
 					<ResponsiveContainer width="100%" height="100%">
 						<PieChart>
 							<Pie
 								data={pieChartData}
 								cx="50%"
-								cy="45%"
-								innerRadius="55%"
-								outerRadius="80%"
-								paddingAngle={2}
+								cy="42%"
+								innerRadius="50%"
+								outerRadius="75%"
+								paddingAngle={3}
 								dataKey="value"
 								stroke="none"
 							>
@@ -165,14 +213,12 @@ export const IncomeSourcesChart = ({ pieChartData }: any) => {
 							<RechartsTooltip
 								formatter={(value: number) => formatCurrency(value)}
 								contentStyle={{
-									backgroundColor: "rgba(10, 15, 30, 0.95)",
-									borderColor: "rgba(255, 255, 255, 0.08)",
-									color: theme.palette.text.primary,
-									borderRadius: "8px",
-									padding: "6px 12px",
-									fontSize: "0.8rem",
-									boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
-									backdropFilter: "blur(4px)",
+									backgroundColor: "rgba(4, 4, 10, 0.95)",
+									borderColor: "rgba(255, 255, 255, 0.1)",
+									color: "#fff",
+									borderRadius: "10px",
+									fontSize: "0.75rem",
+									backdropFilter: "blur(20px)",
 								}}
 							/>
 							<Legend
@@ -180,22 +226,20 @@ export const IncomeSourcesChart = ({ pieChartData }: any) => {
 								align="center"
 								iconType="circle"
 								wrapperStyle={{
-									fontSize: "10px",
-									color: theme.palette.text.secondary,
+									fontSize: "11px",
+									color: "rgba(255,255,255,0.5)",
 								}}
 							/>
 						</PieChart>
 					</ResponsiveContainer>
 				) : (
 					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							height: "100%",
-							color: "text.secondary",
-							fontSize: "0.8rem",
-						}}
+						display="flex"
+						justifyContent="center"
+						alignItems="center"
+						height="100%"
+						color="rgba(255,255,255,0.4)"
+						fontSize="0.8rem"
 					>
 						No income generated
 					</Box>
@@ -205,29 +249,45 @@ export const IncomeSourcesChart = ({ pieChartData }: any) => {
 	);
 };
 
-export const VelocityBarChart = ({ incomeExpense30D }: any) => {
-	const theme = useTheme();
+export const VelocityBarChart = ({ incomeExpense30D, loading }: any) => {
 	return (
-		<FlexCard
-			sx={{
-				height: 260,
-			}}
-		>
+		<FlexCard sx={{ height: "100%" }}>
 			<Box
 				sx={{
-					px: 3,
-					py: 1.5,
-					display: "flex",
-					alignItems: "center",
-					borderBottom: `1px solid ${theme.palette.divider}`,
+					px: 2.5,
+					py: 1.25,
+					borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
 				}}
 			>
-				<Typography fontWeight={700} fontSize="0.85rem">
+				<Typography
+					fontWeight={800}
+					fontSize="0.75rem"
+					sx={{
+						textTransform: "uppercase",
+						letterSpacing: "0.08em",
+						color: "rgba(255,255,255,0.7)",
+					}}
+				>
 					30-Day Velocity
 				</Typography>
 			</Box>
-			<Box sx={{ flex: 1, px: 1, pt: 2, pb: 1, minHeight: 0 }}>
-				{incomeExpense30D.length > 0 ? (
+			<Box sx={{ flex: 1, px: 1, pt: 1.5, pb: 1, minHeight: 0 }}>
+				{loading ? (
+					<Box
+						display="flex"
+						flexDirection="column"
+						justifyContent="center"
+						alignItems="center"
+						height="100%"
+						width="100%"
+					>
+						<CircularProgress
+							size={30}
+							thickness={4}
+							sx={{ color: "#7b68ee" }}
+						/>
+					</Box>
+				) : incomeExpense30D.length > 0 ? (
 					<ResponsiveContainer width="100%" height="100%">
 						<BarChart
 							data={incomeExpense30D}
@@ -236,18 +296,18 @@ export const VelocityBarChart = ({ incomeExpense30D }: any) => {
 							<CartesianGrid
 								strokeDasharray="3 3"
 								vertical={false}
-								stroke="rgba(255, 255, 255, 0.05)"
+								stroke="rgba(255, 255, 255, 0.04)"
 							/>
 							<XAxis
 								dataKey="name"
-								tick={{ fill: theme.palette.text.secondary, fontSize: 9 }}
+								tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
 								axisLine={false}
 								tickLine={false}
 								dy={5}
 							/>
 							<YAxis
 								tickFormatter={compactFormatter}
-								tick={{ fill: theme.palette.text.secondary, fontSize: 9 }}
+								tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
 								axisLine={false}
 								tickLine={false}
 							/>
@@ -255,53 +315,48 @@ export const VelocityBarChart = ({ incomeExpense30D }: any) => {
 								cursor={{ fill: "rgba(255, 255, 255, 0.03)" }}
 								formatter={(value: number) => formatCurrency(Math.abs(value))}
 								contentStyle={{
-									backgroundColor: "rgba(10, 15, 30, 0.95)",
-									borderColor: "rgba(255, 255, 255, 0.08)",
-									color: theme.palette.text.primary,
-									borderRadius: "8px",
-									padding: "6px 12px",
-									fontSize: "0.8rem",
-									boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
-									backdropFilter: "blur(4px)",
+									backgroundColor: "rgba(4, 4, 10, 0.95)",
+									borderColor: "rgba(255, 255, 255, 0.1)",
+									color: "#fff",
+									borderRadius: "10px",
+									fontSize: "0.75rem",
+									backdropFilter: "blur(20px)",
 								}}
 							/>
 							<Legend
 								wrapperStyle={{
-									paddingTop: 0,
-									fontSize: "10px",
-									color: theme.palette.text.secondary,
+									fontSize: "11px",
+									color: "rgba(255,255,255,0.5)",
 								}}
 								iconType="circle"
 							/>
 							<ReferenceLine
 								y={0}
-								stroke={theme.palette.divider}
+								stroke="rgba(255, 255, 255, 0.1)"
 								strokeWidth={1}
 							/>
 							<Bar
 								dataKey="Income"
-								fill={theme.palette.success.main}
-								radius={[2, 2, 0, 0]}
-								maxBarSize={20}
+								fill={SEMANTIC_COLORS.neonGreen}
+								radius={[3, 3, 0, 0]}
+								maxBarSize={18}
 							/>
 							<Bar
 								dataKey="Expense"
-								fill={theme.palette.error.main}
-								radius={[0, 0, 2, 2]}
-								maxBarSize={20}
+								fill={SEMANTIC_COLORS.neonRed}
+								radius={[0, 0, 3, 3]}
+								maxBarSize={18}
 							/>
 						</BarChart>
 					</ResponsiveContainer>
 				) : (
 					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							height: "100%",
-							color: "text.secondary",
-							fontSize: "0.8rem",
-						}}
+						display="flex"
+						justifyContent="center"
+						alignItems="center"
+						height="100%"
+						color="rgba(255,255,255,0.4)"
+						fontSize="0.8rem"
 					>
 						No operational data
 					</Box>
@@ -311,24 +366,25 @@ export const VelocityBarChart = ({ incomeExpense30D }: any) => {
 	);
 };
 
-export const VelocityLedgerTable = ({ cashFlows }: any) => {
-	const theme = useTheme();
+export const VelocityLedgerTable = ({ cashFlows, loading }: any) => {
 	return (
-		<FlexCard
-			sx={{
-				height: 280,
-			}}
-		>
+		<FlexCard sx={{ height: "100%" }}>
 			<Box
 				sx={{
-					px: 3,
-					py: 1.5,
-					display: "flex",
-					alignItems: "center",
-					borderBottom: `1px solid ${theme.palette.divider}`,
+					px: 2.5,
+					py: 1.25,
+					borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
 				}}
 			>
-				<Typography fontWeight={700} fontSize="0.85rem">
+				<Typography
+					fontWeight={800}
+					fontSize="0.75rem"
+					sx={{
+						textTransform: "uppercase",
+						letterSpacing: "0.08em",
+						color: "rgba(255,255,255,0.7)",
+					}}
+				>
 					Velocity Ledger
 				</Typography>
 			</Box>
@@ -336,137 +392,156 @@ export const VelocityLedgerTable = ({ cashFlows }: any) => {
 				sx={{
 					flex: 1,
 					overflowY: "auto",
-					overflowX: "auto",
 					p: 0,
-					"&::-webkit-scrollbar": { width: "6px", height: "6px" },
+					"&::-webkit-scrollbar": { width: "4px" },
 					"&::-webkit-scrollbar-thumb": {
-						backgroundColor: theme.palette.divider,
+						backgroundColor: "rgba(255, 255, 255, 0.1)",
 						borderRadius: "4px",
 					},
 				}}
 			>
-				<table
-					style={{
-						width: "100%",
-						minWidth: "350px",
-						borderCollapse: "collapse",
-						textAlign: "left",
-					}}
-				>
-					<thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
-						<tr
+				{loading ? (
+					<Box
+						display="flex"
+						flexDirection="column"
+						justifyContent="center"
+						alignItems="center"
+						height="100%"
+						width="100%"
+					>
+						<CircularProgress
+							size={30}
+							thickness={4}
+							sx={{ color: "#7b68ee" }}
+						/>
+					</Box>
+				) : (
+					<table
+						style={{
+							width: "100%",
+							borderCollapse: "collapse",
+							textAlign: "left",
+						}}
+					>
+						<thead
 							style={{
-								backgroundColor: "rgba(20, 20, 20, 0.95)",
-								color: theme.palette.text.secondary,
-								fontSize: "0.65rem",
-								textTransform: "uppercase",
+								position: "sticky",
+								top: 0,
+								zIndex: 1,
+								backgroundColor: "rgba(4, 4, 10, 0.95)",
+								backdropFilter: "blur(20px)",
 							}}
 						>
-							<th
+							<tr
 								style={{
-									padding: "8px 12px",
-									fontWeight: 800,
-									borderBottom: `1px solid ${theme.palette.divider}`,
+									color: "rgba(255,255,255,0.4)",
+									fontSize: "0.65rem",
+									textTransform: "uppercase",
 								}}
 							>
-								Category
-							</th>
-							<th
-								style={{
-									padding: "8px 12px",
-									fontWeight: 800,
-									textAlign: "right",
-									borderBottom: `1px solid ${theme.palette.divider}`,
-								}}
-							>
-								7-Day Net
-							</th>
-							<th
-								style={{
-									padding: "8px 12px",
-									fontWeight: 800,
-									textAlign: "right",
-									borderBottom: `1px solid ${theme.palette.divider}`,
-								}}
-							>
-								30-Day Net
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						{cashFlows && cashFlows.length > 0 ? (
-							cashFlows.map((flow: any) => {
-								const isCorp = flow.Category.includes("CORP");
-								return (
-									<tr
-										key={flow.Category}
-										style={{
-											borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-										}}
-									>
-										<td
-											style={{
-												padding: "8px 12px",
-												fontWeight: 600,
-												color: isCorp
-													? SEMANTIC_COLORS.neonBlue
-													: theme.palette.text.primary,
-												fontSize: "0.75rem",
-												whiteSpace: "nowrap",
-											}}
-										>
-											{flow.Category.replace("_", " ")}
-										</td>
-										<td
-											style={{
-												padding: "8px 12px",
-												textAlign: "right",
-												fontFamily: "monospace",
-												fontSize: "0.75rem",
-												color:
-													flow["7D"].Net >= 0
-														? theme.palette.success.main
-														: theme.palette.error.main,
-											}}
-										>
-											{flow["7D"].Net > 0 ? "+" : ""}
-											{formatCurrency(flow["7D"].Net)}
-										</td>
-										<td
-											style={{
-												padding: "8px 12px",
-												textAlign: "right",
-												fontFamily: "monospace",
-												fontSize: "0.75rem",
-												color:
-													flow["30D"].Net >= 0
-														? theme.palette.success.main
-														: theme.palette.error.main,
-											}}
-										>
-											{flow["30D"].Net > 0 ? "+" : ""}
-											{formatCurrency(flow["30D"].Net)}
-										</td>
-									</tr>
-								);
-							})
-						) : (
-							<tr>
-								<td
-									colSpan={3}
+								<th
 									style={{
-										padding: "24px",
-										textAlign: "center",
-										color: theme.palette.text.secondary,
-										fontSize: "0.8rem",
+										padding: "8px 16px",
+										fontWeight: 800,
+										borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
 									}}
 								>
-									No ledger entries found.
-								</td>
+									Category
+								</th>
+								<th
+									style={{
+										padding: "8px 16px",
+										fontWeight: 800,
+										textAlign: "right",
+										borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+									}}
+								>
+									7D Net
+								</th>
+								<th
+									style={{
+										padding: "8px 16px",
+										fontWeight: 800,
+										textAlign: "right",
+										borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+									}}
+								>
+									30D Net
+								</th>
 							</tr>
-						)}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{cashFlows && cashFlows.length > 0 ? (
+								cashFlows.map((flow: any) => {
+									const isCorp = flow.Category.includes("CORP");
+									return (
+										<tr
+											key={flow.Category}
+											style={{
+												borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+											}}
+										>
+											<td
+												style={{
+													padding: "8px 16px",
+													fontWeight: 600,
+													color: isCorp ? SEMANTIC_COLORS.neonPurple : "#fff",
+													fontSize: "0.75rem",
+												}}
+											>
+												{flow.Category.replace("_", " ")}
+											</td>
+											<td
+												style={{
+													padding: "8px 16px",
+													textAlign: "right",
+													fontFamily: "monospace",
+													fontSize: "0.75rem",
+													color:
+														flow["7D"].Net >= 0
+															? SEMANTIC_COLORS.neonGreen
+															: SEMANTIC_COLORS.neonRed,
+												}}
+											>
+												{flow["7D"].Net > 0 ? "+" : ""}
+												{formatCurrency(flow["7D"].Net)}
+											</td>
+											<td
+												style={{
+													padding: "8px 16px",
+													textAlign: "right",
+													fontFamily: "monospace",
+													fontSize: "0.75rem",
+													color:
+														flow["30D"].Net >= 0
+															? SEMANTIC_COLORS.neonGreen
+															: SEMANTIC_COLORS.neonRed,
+												}}
+											>
+												{flow["30D"].Net > 0 ? "+" : ""}
+												{formatCurrency(flow["30D"].Net)}
+											</td>
+										</tr>
+									);
+								})
+							) : (
+								<tr>
+									<td
+										colSpan={3}
+										style={{
+											padding: "24px",
+											textAlign: "center",
+											color: "rgba(255,255,255,0.4)",
+											fontSize: "0.8rem",
+										}}
+									>
+										No ledger entries found.
+									</td>
+								</tr>
+							)}
+						</tbody>
+					</table>
+				)}
 			</Box>
 		</FlexCard>
 	);

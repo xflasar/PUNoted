@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, IconButton, useTheme, Dialog } from "@mui/material";
+import { Box, Typography, IconButton, Dialog } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useDrawerData } from "../hooks/usedrawerdata";
 import { EventSummary } from "./eventsummary";
@@ -15,7 +15,6 @@ export default function FinancialDrawer({
 	currency,
 	transactions,
 }: any) {
-	const theme = useTheme();
 	const {
 		txDetails,
 		loadingTxDetails,
@@ -34,13 +33,13 @@ export default function FinancialDrawer({
 			slotProps={{
 				paper: {
 					sx: {
-						backgroundColor: "rgba(20, 20, 20, 0.85)",
-						backdropFilter: "blur(20px)",
+						backgroundColor: "rgba(4, 4, 10, 0.95)",
+						backdropFilter: "blur(25px)",
 						backgroundImage: "none",
-						border: "1px solid rgba(255, 255, 255, 0.06)",
-						color: "text.primary",
-						boxShadow: "0 12px 40px 0 rgba(0, 0, 0, 0.5)",
-						borderRadius: "12px",
+						border: "1px solid rgba(123, 104, 238, 0.25)",
+						color: "white",
+						boxShadow: "0 0 50px rgba(123, 104, 238, 0.18)",
+						borderRadius: "20px",
 						margin: 2,
 					},
 				},
@@ -50,36 +49,35 @@ export default function FinancialDrawer({
 				<Box
 					sx={{
 						px: 3,
-						py: 2.25,
+						py: 2,
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "space-between",
-						borderBottom: `1px solid ${theme.palette.divider}`,
+						borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
 					}}
 				>
 					<Typography
 						variant="subtitle1"
-						sx={{ fontWeight: 800, color: "text.primary" }}
+						sx={{ fontWeight: 800, color: "white" }}
 					>
 						{selectedTx ? "Transaction Details" : "Entity Profile"}
 					</Typography>
 					<IconButton
 						onClick={onClose}
 						size="small"
-						sx={{ color: "text.secondary" }}
+						sx={{ color: "rgba(255,255,255,0.6)" }}
 					>
 						<CloseIcon fontSize="small" />
 					</IconButton>
 				</Box>
-
 				<Box
 					sx={{
 						flex: 1,
 						overflowY: "auto",
-						p: 3,
+						p: 2.5,
 						display: "flex",
 						flexDirection: "column",
-						gap: 2.5,
+						gap: 2,
 					}}
 				>
 					{selectedTx && (
@@ -90,7 +88,6 @@ export default function FinancialDrawer({
 							loading={loadingTxDetails}
 						/>
 					)}
-
 					{selectedPartnerCode && !selectedPartnerCode.includes("CORP") && (
 						<CounterpartyProfile
 							profile={companyProfile}
@@ -99,7 +96,6 @@ export default function FinancialDrawer({
 							fallbackName={selectedPartnerName}
 						/>
 					)}
-
 					{selectedPartnerStats && <LedgerStats stats={selectedPartnerStats} />}
 				</Box>
 			</Box>

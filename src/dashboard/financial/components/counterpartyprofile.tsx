@@ -22,25 +22,24 @@ export const CounterpartyProfile = ({
 	fallbackCode,
 	fallbackName,
 }: CounterpartyProps) => {
-	const theme = useTheme();
-
 	return (
 		<FlexCard>
 			<Box
-				px={2}
-				py={1}
+				px={2.5}
+				py={1.25}
 				display="flex"
 				alignItems="center"
-				borderBottom={`1px solid ${theme.palette.divider}`}
+				borderBottom="1px solid rgba(255, 255, 255, 0.06)"
 			>
-				<BusinessIcon
-					fontSize="small"
-					sx={{ color: theme.palette.info.main, mr: 1 }}
-				/>
+				<BusinessIcon fontSize="small" sx={{ color: "#60a5fa", mr: 1 }} />
 				<Typography
 					fontWeight={700}
-					fontSize="0.85rem"
-					sx={{ textTransform: "uppercase" }}
+					fontSize="0.75rem"
+					sx={{
+						textTransform: "uppercase",
+						letterSpacing: "0.08em",
+						color: "rgba(255,255,255,0.8)",
+					}}
 				>
 					Counterparty
 				</Typography>
@@ -48,7 +47,7 @@ export const CounterpartyProfile = ({
 			<Box sx={{ display: "flex", flexDirection: "column" }}>
 				{loading ? (
 					<Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-						<CircularProgress size={20} sx={{ color: "primary.main" }} />
+						<CircularProgress size={20} sx={{ color: "#7b68ee" }} />
 					</Box>
 				) : profile ? (
 					<>
@@ -64,21 +63,20 @@ export const CounterpartyProfile = ({
 								<Typography
 									variant="body2"
 									fontWeight={800}
-									color="text.primary"
+									color="#fff"
 									sx={{ textAlign: "right" }}
 								>
 									{profile.CompanyName}
 								</Typography>
 								<Typography
 									variant="caption"
-									color="text.secondary"
+									color="rgba(255,255,255,0.4)"
 									fontFamily="monospace"
 								>
 									{profile.CompanyCode}
 								</Typography>
 							</Box>
 						</DrawerRow>
-
 						{(profile.SubscriptionLevel ||
 							profile.Team ||
 							profile.Moderator ||
@@ -96,13 +94,14 @@ export const CounterpartyProfile = ({
 										<Chip
 											label={profile.SubscriptionLevel}
 											size="small"
-											sx={{
-												height: "20px",
-												fontSize: "0.65rem",
-												fontWeight: 800,
-											}}
 											variant="outlined"
-											color="primary"
+											sx={{
+												height: "18px",
+												fontSize: "0.62rem",
+												fontWeight: 800,
+												borderColor: "#7b68ee",
+												color: "#7b68ee",
+											}}
 										/>
 									)}
 									{profile.Team && (
@@ -110,11 +109,12 @@ export const CounterpartyProfile = ({
 											label="Team"
 											size="small"
 											sx={{
-												height: "20px",
-												fontSize: "0.65rem",
+												height: "18px",
+												fontSize: "0.62rem",
 												fontWeight: 800,
+												bgcolor: "rgba(248, 113, 113, 0.15)",
+												color: "#f87171",
 											}}
-											color="error"
 										/>
 									)}
 									{profile.Moderator && (
@@ -122,11 +122,12 @@ export const CounterpartyProfile = ({
 											label="Mod"
 											size="small"
 											sx={{
-												height: "20px",
-												fontSize: "0.65rem",
+												height: "18px",
+												fontSize: "0.62rem",
 												fontWeight: 800,
+												bgcolor: "rgba(251, 191, 36, 0.15)",
+												color: "#fbbf24",
 											}}
-											color="warning"
 										/>
 									)}
 									{profile.Pioneer && (
@@ -134,17 +135,17 @@ export const CounterpartyProfile = ({
 											label="Pioneer"
 											size="small"
 											sx={{
-												height: "20px",
-												fontSize: "0.65rem",
+												height: "18px",
+												fontSize: "0.62rem",
 												fontWeight: 800,
+												bgcolor: "rgba(74, 222, 128, 0.15)",
+												color: "#4ade80",
 											}}
-											color="success"
 										/>
 									)}
 								</Box>
 							</DrawerRow>
 						)}
-
 						<DrawerRow
 							label="Created"
 							value={new Date(profile.CreatedTimestamp).toLocaleDateString()}

@@ -1,4 +1,4 @@
-import { Box, Typography, alpha, useTheme } from "@mui/material";
+import { Box, Typography, CircularProgress } from "@mui/material";
 import type { Transaction, PartnerMetrics } from "../types/finances";
 import {
 	formatCurrency,
@@ -9,17 +9,33 @@ import {
 export const ActivityTableContent = ({
 	transactions,
 	onRowClick,
+	loading,
 }: {
 	transactions: Transaction[];
 	onRowClick: (tx: Transaction) => void;
+	loading?: boolean;
 }) => {
-	const theme = useTheme();
+	if (loading) {
+		return (
+			<Box
+				display="flex"
+				flexDirection="column"
+				justifyContent="center"
+				alignItems="center"
+				height="100%"
+				width="100%"
+				p={4}
+			>
+				<CircularProgress size={30} thickness={4} sx={{ color: "#7b68ee" }} />
+			</Box>
+		);
+	}
 
 	if (!transactions || transactions.length === 0) {
 		return (
 			<Box p={3} textAlign="center">
-				<Typography variant="body2" color="text.secondary">
-					No recent activity found.
+				<Typography variant="body2" color="rgba(255, 255, 255, 0.4)">
+					No recent activity matches your filter.
 				</Typography>
 			</Box>
 		);
@@ -29,53 +45,63 @@ export const ActivityTableContent = ({
 		<table
 			style={{
 				width: "100%",
-				minWidth: "500px",
 				borderCollapse: "collapse",
 				textAlign: "left",
+				tableLayout: "fixed",
 			}}
 		>
-			<thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
+			<thead
+				style={{
+					position: "sticky",
+					top: 0,
+					zIndex: 2,
+					backgroundColor: "rgba(4, 4, 10, 0.98)",
+				}}
+			>
 				<tr
 					style={{
-						backgroundColor: "rgba(20, 20, 20, 0.95)",
-						color: theme.palette.text.secondary,
-						fontSize: "0.65rem",
+						color: "rgba(255, 255, 255, 0.4)",
+						fontSize: "0.62rem",
 						textTransform: "uppercase",
 					}}
 				>
 					<th
 						style={{
-							padding: "8px 12px",
+							padding: "6px 12px",
 							fontWeight: 800,
-							borderBottom: `1px solid ${theme.palette.divider}`,
+							width: "20%",
+							borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
 						}}
 					>
 						Timestamp (UTC)
 					</th>
 					<th
 						style={{
-							padding: "8px 12px",
+							padding: "6px 12px",
 							fontWeight: 800,
-							borderBottom: `1px solid ${theme.palette.divider}`,
+							width: "28%",
+							borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
 						}}
 					>
-						Event Type
+						Type
 					</th>
 					<th
 						style={{
-							padding: "8px 12px",
+							padding: "6px 12px",
 							fontWeight: 800,
-							borderBottom: `1px solid ${theme.palette.divider}`,
+							width: "32%",
+							borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
 						}}
 					>
 						Counterparty
 					</th>
 					<th
 						style={{
-							padding: "8px 12px",
+							padding: "6px 12px",
 							fontWeight: 800,
 							textAlign: "right",
-							borderBottom: `1px solid ${theme.palette.divider}`,
+							width: "20%",
+							borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
 						}}
 					>
 						Amount
@@ -90,15 +116,13 @@ export const ActivityTableContent = ({
 							key={`${tx.Id}-${i}`}
 							onClick={() => onRowClick(tx)}
 							style={{
-								borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+								borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
 								cursor: "pointer",
 								transition: "background-color 0.15s ease",
 							}}
 							onMouseEnter={(e) =>
-								(e.currentTarget.style.backgroundColor = alpha(
-									theme.palette.primary.main,
-									0.1,
-								))
+								(e.currentTarget.style.backgroundColor =
+									"rgba(123, 104, 238, 0.08)")
 							}
 							onMouseLeave={(e) =>
 								(e.currentTarget.style.backgroundColor = "transparent")
@@ -106,34 +130,32 @@ export const ActivityTableContent = ({
 						>
 							<td
 								style={{
-									padding: "8px 12px",
-									color: theme.palette.text.secondary,
-									fontSize: "0.75rem",
+									padding: "6px 12px",
+									color: "rgba(255,255,255,0.4)",
+									fontSize: "0.72rem",
 									fontFamily: "monospace",
 									whiteSpace: "nowrap",
 								}}
 							>
 								{formatCompactTimestamp(tx.Timestamp)}
 							</td>
-							<td
-								style={{
-									padding: "8px 12px",
-									fontWeight: 600,
-									color: theme.palette.text.primary,
-									fontSize: "0.75rem",
-									whiteSpace: "nowrap",
-								}}
-							>
+							<td style={{ padding: "6px 12px", whiteSpace: "nowrap" }}>
 								<Box
 									component="span"
 									sx={{
-										px: 1,
-										py: 0.5,
+										px: 0.8,
+										py: 0.2,
 										borderRadius: "4px",
+										fontSize: "0.62rem",
+										fontWeight: 700,
+										display: "inline-block",
 										bgcolor: isCorpTx
-											? alpha(SEMANTIC_COLORS.neonBlue, 0.15)
-											: alpha(theme.palette.divider, 0.5),
-										color: isCorpTx ? SEMANTIC_COLORS.neonBlue : "inherit",
+											? "rgba(123, 104, 238, 0.15)"
+											: "rgba(255, 255, 255, 0.05)",
+										color: isCorpTx
+											? SEMANTIC_COLORS.neonPurple
+											: "rgba(255, 255, 255, 0.8)",
+										border: `1px solid ${isCorpTx ? "rgba(123, 104, 238, 0.35)" : "rgba(255, 255, 255, 0.08)"}`,
 									}}
 								>
 									{tx.Type}
@@ -141,23 +163,23 @@ export const ActivityTableContent = ({
 							</td>
 							<td
 								style={{
-									padding: "8px 12px",
+									padding: "6px 12px",
 									fontWeight: 600,
-									color: isCorpTx
-										? SEMANTIC_COLORS.neonBlue
-										: theme.palette.text.primary,
-									fontSize: "0.8rem",
+									color: isCorpTx ? SEMANTIC_COLORS.neonPurple : "#fff",
+									fontSize: "0.75rem",
+									overflow: "hidden",
+									textOverflow: "ellipsis",
 									whiteSpace: "nowrap",
 								}}
 							>
 								{tx.PartnerName}{" "}
 								<Typography
 									component="span"
-									fontSize="0.7rem"
+									fontSize="0.68rem"
 									color={
 										isCorpTx
-											? alpha(SEMANTIC_COLORS.neonBlue, 0.7)
-											: theme.palette.text.secondary
+											? "rgba(123, 104, 238, 0.7)"
+											: "rgba(255, 255, 255, 0.4)"
 									}
 								>
 									({tx.PartnerCode})
@@ -165,14 +187,15 @@ export const ActivityTableContent = ({
 							</td>
 							<td
 								style={{
-									padding: "8px 12px",
+									padding: "6px 12px",
 									textAlign: "right",
 									fontFamily: "monospace",
-									fontSize: "0.8rem",
+									fontSize: "0.75rem",
+									fontWeight: 700,
 									color:
 										tx.Amount >= 0
-											? theme.palette.success.main
-											: theme.palette.error.main,
+											? SEMANTIC_COLORS.neonGreen
+											: SEMANTIC_COLORS.neonRed,
 									whiteSpace: "nowrap",
 								}}
 							>
@@ -190,17 +213,33 @@ export const ActivityTableContent = ({
 export const TopPartnersTableContent = ({
 	partners,
 	onRowClick,
+	loading,
 }: {
 	partners: PartnerMetrics[];
 	onRowClick: (code: string, name: string) => void;
+	loading?: boolean;
 }) => {
-	const theme = useTheme();
+	if (loading) {
+		return (
+			<Box
+				display="flex"
+				flexDirection="column"
+				justifyContent="center"
+				alignItems="center"
+				height="100%"
+				width="100%"
+				p={4}
+			>
+				<CircularProgress size={30} thickness={4} sx={{ color: "#7b68ee" }} />
+			</Box>
+		);
+	}
 
 	if (!partners || partners.length === 0) {
 		return (
 			<Box p={3} textAlign="center">
-				<Typography variant="body2" color="text.secondary">
-					No partner data found.
+				<Typography variant="body2" color="rgba(255, 255, 255, 0.4)">
+					No partner metrics found.
 				</Typography>
 			</Box>
 		);
@@ -210,45 +249,54 @@ export const TopPartnersTableContent = ({
 		<table
 			style={{
 				width: "100%",
-				minWidth: "300px",
 				borderCollapse: "collapse",
 				textAlign: "left",
+				tableLayout: "fixed",
 			}}
 		>
-			<thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
+			<thead
+				style={{
+					position: "sticky",
+					top: 0,
+					zIndex: 1,
+					backgroundColor: "rgba(4, 4, 10, 0.95)",
+					backdropFilter: "blur(20px)",
+				}}
+			>
 				<tr
 					style={{
-						backgroundColor: "rgba(20, 20, 20, 0.95)",
-						color: theme.palette.text.secondary,
-						fontSize: "0.65rem",
+						color: "rgba(255, 255, 255, 0.4)",
+						fontSize: "0.62rem",
 						textTransform: "uppercase",
 					}}
 				>
 					<th
 						style={{
-							padding: "8px 12px",
+							padding: "6px 12px",
 							fontWeight: 800,
-							borderBottom: `1px solid ${theme.palette.divider}`,
+							borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
 						}}
 					>
 						Partner
 					</th>
 					<th
 						style={{
-							padding: "8px 12px",
+							padding: "6px 12px",
 							fontWeight: 800,
 							textAlign: "right",
-							borderBottom: `1px solid ${theme.palette.divider}`,
+							width: "90px",
+							borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
 						}}
 					>
 						Volume
 					</th>
 					<th
 						style={{
-							padding: "8px 12px",
+							padding: "6px 12px",
 							fontWeight: 800,
 							textAlign: "right",
-							borderBottom: `1px solid ${theme.palette.divider}`,
+							width: "90px",
+							borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
 						}}
 					>
 						Net
@@ -261,39 +309,39 @@ export const TopPartnersTableContent = ({
 						key={i}
 						onClick={() => onRowClick(partner.code, partner.name)}
 						style={{
-							borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+							borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
 							cursor: "pointer",
 							transition: "background-color 0.15s ease",
 						}}
 						onMouseEnter={(e) =>
-							(e.currentTarget.style.backgroundColor = alpha(
-								theme.palette.primary.main,
-								0.1,
-							))
+							(e.currentTarget.style.backgroundColor =
+								"rgba(123, 104, 238, 0.08)")
 						}
 						onMouseLeave={(e) =>
 							(e.currentTarget.style.backgroundColor = "transparent")
 						}
 					>
-						<td style={{ padding: "8px 12px" }}>
+						<td
+							style={{
+								padding: "6px 12px",
+								overflow: "hidden",
+								textOverflow: "ellipsis",
+								whiteSpace: "nowrap",
+							}}
+						>
 							<Typography
-								sx={{
-									fontWeight: 700,
-									color: "text.primary",
-									fontSize: "0.8rem",
-								}}
+								sx={{ fontWeight: 700, color: "#fff", fontSize: "0.75rem" }}
 							>
 								{partner.code}
 							</Typography>
 							{partner.name !== partner.code && (
 								<Typography
 									sx={{
-										color: "text.secondary",
-										fontSize: "0.7rem",
+										color: "rgba(255,255,255,0.4)",
+										fontSize: "0.65rem",
 										whiteSpace: "nowrap",
 										overflow: "hidden",
 										textOverflow: "ellipsis",
-										maxWidth: "120px",
 									}}
 								>
 									{partner.name}
@@ -302,29 +350,30 @@ export const TopPartnersTableContent = ({
 						</td>
 						<td
 							style={{
-								padding: "8px 12px",
+								padding: "6px 12px",
 								textAlign: "right",
 								fontFamily: "monospace",
-								fontSize: "0.8rem",
-								color: theme.palette.text.primary,
+								fontSize: "0.72rem",
+								color: "#fff",
 							}}
 						>
-							{formatCurrency(partner.volume)}
+							{formatCurrency(partner.volume, 0)}
 						</td>
 						<td
 							style={{
-								padding: "8px 12px",
+								padding: "6px 12px",
 								textAlign: "right",
 								fontFamily: "monospace",
-								fontSize: "0.8rem",
+								fontSize: "0.72rem",
+								fontWeight: 700,
 								color:
 									partner.net >= 0
-										? theme.palette.success.main
-										: theme.palette.error.main,
+										? SEMANTIC_COLORS.neonGreen
+										: SEMANTIC_COLORS.neonRed,
 							}}
 						>
 							{partner.net > 0 ? "+" : ""}
-							{formatCurrency(partner.net)}
+							{formatCurrency(partner.net, 0)}
 						</td>
 					</tr>
 				))}

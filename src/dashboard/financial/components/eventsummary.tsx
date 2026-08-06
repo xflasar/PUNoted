@@ -27,25 +27,24 @@ export const EventSummary = ({
 	details,
 	loading,
 }: EventSummaryProps) => {
-	const theme = useTheme();
-
 	return (
 		<FlexCard>
 			<Box
-				px={2}
-				py={1}
+				px={2.5}
+				py={1.25}
 				display="flex"
 				alignItems="center"
-				borderBottom={`1px solid ${theme.palette.divider}`}
+				borderBottom="1px solid rgba(255, 255, 255, 0.06)"
 			>
-				<ReceiptLongIcon
-					fontSize="small"
-					sx={{ color: theme.palette.primary.main, mr: 1 }}
-				/>
+				<ReceiptLongIcon fontSize="small" sx={{ color: "#7b68ee", mr: 1 }} />
 				<Typography
 					fontWeight={700}
-					fontSize="0.85rem"
-					sx={{ textTransform: "uppercase" }}
+					fontSize="0.75rem"
+					sx={{
+						textTransform: "uppercase",
+						letterSpacing: "0.08em",
+						color: "rgba(255,255,255,0.8)",
+					}}
 				>
 					Event Summary
 				</Typography>
@@ -55,7 +54,7 @@ export const EventSummary = ({
 					label="Type"
 					value={tx.Type}
 					valueColor={
-						tx.Type.includes("CORP") ? SEMANTIC_COLORS.neonBlue : "text.primary"
+						tx.Type.includes("CORP") ? SEMANTIC_COLORS.neonPurple : "#fff"
 					}
 				/>
 				<DrawerRow
@@ -67,25 +66,21 @@ export const EventSummary = ({
 					label="Amount"
 					value={`${tx.Amount > 0 ? "+" : ""}${formatCurrency(tx.Amount)} ${currency}`}
 					valueColor={
-						tx.Amount >= 0
-							? theme.palette.success.main
-							: theme.palette.error.main
+						tx.Amount >= 0 ? SEMANTIC_COLORS.neonGreen : SEMANTIC_COLORS.neonRed
 					}
 					isMonospace
 					noBorder={!loading && !details}
 				/>
-
 				{loading && (
 					<Box
 						display="flex"
 						justifyContent="center"
 						py={2}
-						borderTop={`1px solid ${alpha(theme.palette.divider, 0.5)}`}
+						borderTop="1px solid rgba(255, 255, 255, 0.06)"
 					>
-						<CircularProgress size={20} sx={{ color: "primary.main" }} />
+						<CircularProgress size={20} sx={{ color: "#7b68ee" }} />
 					</Box>
 				)}
-
 				{details && (
 					<>
 						<DrawerRow label="Location" value={details.Location} isTopBorder />
@@ -94,7 +89,7 @@ export const EventSummary = ({
 							<DrawerRow
 								label="Fees"
 								value={`${formatCurrency(details.FeeAmount)} ${details.FeeCurrency}`}
-								valueColor="error.main"
+								valueColor={SEMANTIC_COLORS.neonRed}
 								isMonospace
 							/>
 						)}
@@ -103,7 +98,6 @@ export const EventSummary = ({
 							value={details.ReferenceId}
 							isMonospace
 							noBorder
-							color="text.secondary"
 						/>
 					</>
 				)}
