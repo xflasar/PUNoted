@@ -512,8 +512,8 @@ const VendorCard = React.memo(
 										(vendor as typeof vendor & { activity?: unknown })
 											.activity || "-",
 									).trim();
-									if (act === "0 m" || act === "0m") return "Recently Active";
-									if (act === "-") return "Active Unknown";
+									if (act === "0 m" || act === "0m") return "Active Recently";
+									if (act === "-") return "Unknown";
 									return `Active ${act} ago`;
 								})()}
 							</Typography>
@@ -1189,7 +1189,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				const updated = String(
 					(vendor as typeof vendor & { activity?: unknown }).activity || "-",
 				);
-				const user = `${vendor.gamename} (${vendor.companycode}) ${vendor.companyname}`;
+				const user = `${vendor.gamename} [${vendor.companycode}] ${vendor.companyname}`;
 
 				const buildRows = (
 					preparedOrder: (typeof buyOrders)[number],
@@ -1340,7 +1340,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				renderCell: ({ row }) => (
 					<Box sx={{ display: "flex", alignItems: "right", gap: 0.5 }}>
 						{row.corpStats && (
-							<PriceComparisonBadge label="COSM" stats={row.corpStats} />
+							<Box sx={{ display: { xs: "none", lg: "contents" } }}>
+								<PriceComparisonBadge label="COSM" stats={row.corpStats} />
+							</Box>
 						)}
 						{row.cxStats && (
 							<PriceComparisonBadge label="CX" stats={row.cxStats} />
@@ -1362,7 +1364,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							<Globe size={14} color={theme.palette.error.light} />
 						)}
 						<Typography variant="body2">
-							{formatLocation(row.locName, row.locCode)}
+							<Box component="span" sx={{ display: { lg: "none" } }}>
+								{row.locCode || formatLocation(row.locName, row.locCode)}
+							</Box>
+							<Box component="span" sx={{ display: { xs: "none", lg: "inline" } }}>
+								{formatLocation(row.locName, row.locCode)}
+							</Box>
 						</Typography>
 					</Box>
 				),
@@ -1375,16 +1382,27 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				align: "left",
 				renderCell: ({ value }) => {
 					const userText = String(value || "");
-					const match = userText.match(/^(.+)\s\((.+)\)\s(.+)$/);
+					const match = userText.match(/^(.+)\s\[(.+)]\s(.+)$/);
 					if (!match) {
 						return <Typography variant="body2">{userText}</Typography>;
 					}
 					return (
 						<Typography variant="body2">
-							<Box component="span" sx={{ fontWeight: "bold" }}>
+							<Box
+								component="span"
+								sx={{ display: { lg: "none" }, fontWeight: "bold" }}
+							>
 								{match[1]}
-							</Box>{" "}
-							({match[2]}) {match[3]}
+							</Box>
+							<Box component="span" sx={{ display: { xs: "none", lg: "inline" } }}>
+								<Box component="span" sx={{ fontWeight: "bold" }}>
+									{match[1]}
+								</Box>{" "}
+								<Box component="span" sx={{ fontFamily: "monospace" }}>
+									[{match[2]}]
+								</Box>{" "}
+								{match[3]}
+							</Box>
 						</Typography>
 					);
 				},
@@ -1400,19 +1418,82 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					if (act === "0 m" || act === "0m") {
 						return (
 							<Typography variant="caption" sx={{ opacity: 0.8 }}>
-								Recently Active
+								Recently
 							</Typography>
 						);
 					}
 					return (
 						<Typography variant="caption" sx={{ opacity: 0.8 }}>
-							{act === "-" ? "-" : `${act} ago`}
+							{act === "-" ? "Unknown" : `${act} ago`}
 						</Typography>
 					);
 				},
 			},
 		],
 		[theme],
+	);
+	const compactTableColumns = useMemo(
+		() =>
+			tableColumns
+				.filter(({ field }) => field !== "updated")
+				.map((column) =>
+					column.field === "user" || column.field === "location"
+						? { ...column, flex: 1 }
+						: column,
+				),
+		[tableColumns],
+	);
+	const renderTable = (columns: GridColDef[]) => (
+		<DataGrid
+			rows={tableRows}
+			columns={columns}
+			density="compact"
+			initialState={{
+				pagination: {
+					paginationModel: { page: 0, pageSize: -1 },
+				},
+			}}
+			hideFooter
+			disableColumnMenu
+			disableColumnSorting
+			disableRowSelectionOnClick
+			localeText={{ noRowsLabel: "No results" }}
+			sx={{
+				border: "none",
+				"& .MuiDataGrid-row": {
+					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+					"&:hover": { backgroundColor: alpha(theme.palette.primary.main, 0.2) },
+					display: "flex",
+					alignItems: "center",
+				},
+				"& .MuiDataGrid-cell": {
+					borderBottom: "none",
+					display: "flex",
+					alignItems: "center",
+					padding: "0 8px",
+					"&:focus": { outline: "none" },
+					"&:focus-within": { outline: "none" },
+				},
+				"& .MuiDataGrid-columnHeaders": {
+					backgroundColor: theme.palette.background.default,
+					color: theme.palette.primary.contrastText,
+					fontSize: "0.7rem",
+					fontWeight: "bold",
+					textTransform: "uppercase",
+					letterSpacing: "0.05em",
+					borderBottom: "none",
+					minHeight: "40px !important",
+					maxHeight: "40px !important",
+				},
+				"& .MuiDataGrid-columnHeader": {
+					padding: "0 10px",
+					"&:focus": { outline: "none" },
+					"&:focus-within": { outline: "none" },
+				},
+				"& .MuiDataGrid-columnSeparator": { display: "none" },
+				"& .MuiDataGrid-virtualScroller": { marginTop: "0 !important" },
+			}}
+		/>
 	);
 
 	return (
@@ -1498,7 +1579,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						variant="outlined"
 						size="small"
 						inputRef={searchInputRef}
-						placeholder="Search Materials & Vendors…"
+						placeholder="Search…"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						sx={{
@@ -1801,62 +1882,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			>
 				{vendorViewMode === "table" ? (
 					<Box sx={{ height: "100%", width: "100%" }}>
-						<DataGrid
-							rows={tableRows}
-							columns={tableColumns}
-							density="compact"
-							initialState={{
-								pagination: {
-									paginationModel: { page: 0, pageSize: -1 },
-								},
-							}}
-							hideFooter
-							disableColumnMenu
-							disableColumnSorting
-							disableRowSelectionOnClick
-							localeText={{ noRowsLabel: "No results" }}
-							sx={{
-								border: "none",
-								"& .MuiDataGrid-row": {
-									borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-									"&:hover": {
-										backgroundColor: alpha(theme.palette.primary.main, 0.2),
-									},
-									display: "flex",
-									alignItems: "center",
-								},
-								"& .MuiDataGrid-cell": {
-									borderBottom: "none",
-									display: "flex",
-									alignItems: "center",
-									padding: "0 8px",
-									"&:focus": { outline: "none" },
-									"&:focus-within": { outline: "none" },
-								},
-								"& .MuiDataGrid-columnHeaders": {
-									backgroundColor: theme.palette.background.default,
-									color: theme.palette.primary.contrastText,
-									fontSize: "0.7rem",
-									fontWeight: "bold",
-									textTransform: "uppercase",
-									letterSpacing: "0.05em",
-									borderBottom: "none",
-									minHeight: "40px !important",
-									maxHeight: "40px !important",
-								},
-								"& .MuiDataGrid-columnHeader": {
-									padding: "0 10px",
-									"&:focus": { outline: "none" },
-									"&:focus-within": { outline: "none" },
-								},
-								"& .MuiDataGrid-columnSeparator": {
-									display: "none",
-								},
-								"& .MuiDataGrid-virtualScroller": {
-									marginTop: "0 !important",
-								},
-							}}
-						/>
+						<Box sx={{ display: { xs: "block", lg: "none" }, height: "100%" }}>
+							{renderTable(compactTableColumns)}
+						</Box>
+						<Box sx={{ display: { xs: "none", lg: "block" }, height: "100%" }}>
+							{renderTable(tableColumns)}
+						</Box>
 					</Box>
 				) : (
 					<>
