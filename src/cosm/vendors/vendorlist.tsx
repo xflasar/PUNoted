@@ -49,8 +49,19 @@ import { formatLocation } from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
-type LocationOption = { id: string; name: string };
+type LocationOption = { id: string; name?: string; label?: string };
 const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
+const HORTUS_LOCATION_CODE = "HRT";
+const ALL_LOCATIONS_OPTION = {
+	id: "all-locations",
+	label: "All Locations",
+};
+const NOT_HORTUS_LOCATION = {
+	id: "not-hortus",
+	label: "Not Hortus Station",
+};
+const formatLocationOption = (option: LocationOption) =>
+	option.label ?? formatLocation(option.name, option.id);
 
 const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 	value === "grid" || value === "table";
@@ -1026,13 +1037,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			});
 		});
 
-		return [
-			...Array.from(locs.values()).sort((a, b) =>
-				formatLocation(a.name, a.id).localeCompare(
-					formatLocation(b.name, b.id),
-				),
-			),
-		];
+		const locations = Array.from(locs.values()).sort((a, b) => {
+			if (a.id === HORTUS_LOCATION_CODE) return -1;
+			if (b.id === HORTUS_LOCATION_CODE) return 1;
+			return formatLocationOption(a).localeCompare(formatLocationOption(b));
+		});
+		const [hortus, ...remainingLocations] = locations;
+		return hortus?.id === HORTUS_LOCATION_CODE
+			? [ALL_LOCATIONS_OPTION, hortus, NOT_HORTUS_LOCATION, ...remainingLocations]
+			: [ALL_LOCATIONS_OPTION, ...locations];
 	}, [
 		vendorsWithOrders,
 		searchQuery,
@@ -1048,7 +1061,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		setLocationInputValue(
 			selectedLocation === null
 				? ""
-				: formatLocation(selectedOption?.name, selectedLocation),
+				: selectedOption
+					? formatLocationOption(selectedOption)
+					: selectedLocation,
 		);
 	}, [selectedLocation, allLocations]);
 
@@ -1077,8 +1092,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						selectedLocation === null ||
 						order.item.location?.some((l: Location) => {
 							const nameMatches =
-								l.location_name === selectedLocation ||
-								l.location_code === selectedLocation;
+								selectedLocation === NOT_HORTUS_LOCATION.id
+									? l.location_code !== HORTUS_LOCATION_CODE
+									: l.location_name === selectedLocation ||
+										l.location_code === selectedLocation;
 
 							const qty = l.available;
 							const hasStock = typeof qty === "number" && qty > 0;
@@ -1225,8 +1242,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 				const locMatch =
 					selectedLocation === null ||
-					row.locName === selectedLocation ||
-					row.locCode === selectedLocation;
+					(selectedLocation === NOT_HORTUS_LOCATION.id
+						? row.locCode !== HORTUS_LOCATION_CODE
+						: row.locName === selectedLocation ||
+							row.locCode === selectedLocation);
 				if (!locMatch) return false;
 
 				if (terms.length === 0) return true;
@@ -1630,7 +1649,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										) || null
 							}
 							onChange={(_e, newValue) =>
-								setSelectedLocation(newValue?.id || null)
+								setSelectedLocation(
+									newValue?.id === ALL_LOCATIONS_OPTION.id ? null : newValue?.id || null,
+								)
 							}
 							inputValue={locationInputValue}
 							onInputChange={(_e, newInputValue, reason) => {
@@ -1639,23 +1660,32 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										(option) => option.id === selectedLocation,
 									);
 									setLocationInputValue(
+										newInputValue === ALL_LOCATIONS_OPTION.label ||
 										selectedLocation === null
 											? ""
-											: formatLocation(selectedOption?.name, selectedLocation),
+											: selectedOption
+												? formatLocationOption(selectedOption)
+												: selectedLocation,
 									);
 								} else {
 									setLocationInputValue(newInputValue);
 								}
 							}}
 							disableClearable={false}
-							getOptionLabel={(option) =>
-								formatLocation(option.name, option.id)
-							}
+							getOptionLabel={formatLocationOption}
 							isOptionEqualToValue={(option, value) => option.id === value.id}
 							renderOption={(props, option) => (
-								<Box component="li" {...props}>
+								<Box
+									component="li"
+									{...props}
+									sx={
+										option.id === NOT_HORTUS_LOCATION.id
+											? { borderBottom: `1px solid ${theme.palette.divider}`, mb: 0.5 }
+											: undefined
+									}
+								>
 									<Typography variant="body2">
-										{formatLocation(option.name, option.id)}
+										{formatLocationOption(option)}
 									</Typography>
 								</Box>
 							)}
