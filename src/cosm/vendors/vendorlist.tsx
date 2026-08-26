@@ -1367,7 +1367,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							<Box component="span" sx={{ display: { lg: "none" } }}>
 								{row.locCode || formatLocation(row.locName, row.locCode)}
 							</Box>
-							<Box component="span" sx={{ display: { xs: "none", lg: "inline" } }}>
+							<Box
+								component="span"
+								sx={{ display: { xs: "none", lg: "inline" } }}
+							>
 								{formatLocation(row.locName, row.locCode)}
 							</Box>
 						</Typography>
@@ -1394,7 +1397,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							>
 								{match[1]}
 							</Box>
-							<Box component="span" sx={{ display: { xs: "none", lg: "inline" } }}>
+							<Box
+								component="span"
+								sx={{ display: { xs: "none", lg: "inline" } }}
+							>
 								<Box component="span" sx={{ fontWeight: "bold" }}>
 									{match[1]}
 								</Box>{" "}
@@ -1462,7 +1468,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				border: "none",
 				"& .MuiDataGrid-row": {
 					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-					"&:hover": { backgroundColor: alpha(theme.palette.primary.main, 0.2) },
+					"&:hover": {
+						backgroundColor: alpha(theme.palette.primary.main, 0.2),
+					},
 					display: "flex",
 					alignItems: "center",
 				},
