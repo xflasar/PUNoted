@@ -366,10 +366,14 @@ const VendorPrioritySelector: React.FC<{
 											{entry.label === "Hortus Station (HRT)" ? (
 												<Warehouse
 													size={14}
+													color={theme.palette.success.light}
 													style={{ verticalAlign: "middle" }}
 												/>
 											) : (
-												<Globe size={14} style={{ verticalAlign: "middle" }} />
+												<Globe
+													size={14}
+													color={theme.palette.error.light}
+													style={{ verticalAlign: "middle" }} />
 											)}{" "}
 											{entry.label}:{" "}
 											<Box
