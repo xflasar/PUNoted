@@ -365,7 +365,10 @@ const VendorCard = React.memo(
 		const sortedList = useMemo(() => {
 			return [...buyOrders, ...sellOrders]
 				.map((order) => {
-					const activeLocations = filterAvailableLocations(order.item.location, null);
+					const activeLocations = filterAvailableLocations(
+						order.item.location,
+						null,
+					);
 
 					return {
 						...order,
@@ -643,67 +646,69 @@ const VendorCard = React.memo(
 													gap: 0.25,
 												}}
 											>
-												{[...item.location].sort(compareLocations).map((l, i) => (
-													<Box
-														key={i}
-														sx={{
-															display: "flex",
-															justifyContent: "space-between",
-															alignItems: "center",
-														}}
-													>
+												{[...item.location]
+													.sort(compareLocations)
+													.map((l, i) => (
 														<Box
+															key={i}
 															sx={{
 																display: "flex",
+																justifyContent: "space-between",
 																alignItems: "center",
-																gap: 0.5,
 															}}
 														>
-												{l.location_code === "HRT" ? (
-													<Warehouse
-														size={14}
-														color={theme.palette.success.light}
-														style={{ flexShrink: 0 }}
-													/>
-												) : (
-													<Globe
-														size={14}
-														color={theme.palette.error.light}
-														style={{ flexShrink: 0 }}
-													/>
-												)}
-															<Typography
-																variant="caption"
+															<Box
 																sx={{
-																	fontSize: "0.80rem",
+																	display: "flex",
+																	alignItems: "center",
+																	gap: 0.5,
 																}}
 															>
-																{formatLocation(
-																	l.location_name,
-																	l.location_code,
+																{l.location_code === "HRT" ? (
+																	<Warehouse
+																		size={14}
+																		color={theme.palette.success.light}
+																		style={{ flexShrink: 0 }}
+																	/>
+																) : (
+																	<Globe
+																		size={14}
+																		color={theme.palette.error.light}
+																		style={{ flexShrink: 0 }}
+																	/>
 																)}
+																<Typography
+																	variant="caption"
+																	sx={{
+																		fontSize: "0.80rem",
+																	}}
+																>
+																	{formatLocation(
+																		l.location_name,
+																		l.location_code,
+																	)}
+																</Typography>
+															</Box>
+															<Typography variant="caption">
+																{quantityLabel}{" "}
+																<Typography
+																	variant="caption"
+																	sx={{
+																		color: theme.palette.primary.light,
+																		fontWeight: "bold",
+																	}}
+																>
+																	{formatAmount(
+																		(
+																			l as typeof l & {
+																				available?: number;
+																			}
+																		).available ?? displayQuantity,
+																	)}
+																</Typography>
 															</Typography>
 														</Box>
-														<Typography variant="caption">
-															{quantityLabel}{" "}
-															<Typography
-																variant="caption"
-																sx={{
-																	color: theme.palette.primary.light,
-																	fontWeight: "bold",
-																}}
-															>
-																{formatAmount(
-																	(
-																		l as typeof l & {
-																			available?: number;
-																		}
-																	).available ?? displayQuantity,
-																)}
-															</Typography>
-														</Typography>
-													</Box>
-												))}
+													))}
 											</Box>
 										) : (
 											<Box
@@ -827,8 +832,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const querySubtab = searchParams.get("subtab");
 	const vendorViewMode: "grid" | "table" =
-		(isVendorViewMode(querySubtab) ? querySubtab : null) ||
-		marketOptions.view;
+		(isVendorViewMode(querySubtab) ? querySubtab : null) || marketOptions.view;
 
 	// Modal States
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -1062,12 +1066,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				)
 			);
 		},
-		[
-			orderTypeFilter,
-			searchTerms,
-			matchesMaterialSearch,
-			matchesVendorSearch,
-		],
+		[orderTypeFilter, searchTerms, matchesMaterialSearch, matchesVendorSearch],
 	);
 
 	const vendorsWithOrders = useMemo(
@@ -1111,12 +1110,14 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		});
 		const [hortus, ...remainingLocations] = locations;
 		return hortus?.id === HORTUS_LOCATION_CODE
-			? [ALL_LOCATIONS_OPTION, hortus, NOT_HORTUS_LOCATION, ...remainingLocations]
+			? [
+					ALL_LOCATIONS_OPTION,
+					hortus,
+					NOT_HORTUS_LOCATION,
+					...remainingLocations,
+				]
 			: [ALL_LOCATIONS_OPTION, ...locations];
-	}, [
-		vendorsWithOrders,
-		matchesOrderFilters,
-	]);
+	}, [vendorsWithOrders, matchesOrderFilters]);
 
 	useEffect(() => {
 		const selectedOption = allLocations.find(
@@ -1140,7 +1141,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 			const filterOrders = (orders: typeof preparedVendor.buyOrders) => {
 				return orders
-					.filter((order) => matchesOrderFilters(vendorStore.vendor, order.item))
+					.filter((order) =>
+						matchesOrderFilters(vendorStore.vendor, order.item),
+					)
 					.filter(
 						(order) =>
 							selectedLocation === null ||
@@ -1151,15 +1154,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						selectedLocation === null
 							? order
 							: {
-								...order,
-								item: {
-									...order.item,
-									location: filterAvailableLocations(
-										order.item.location,
-										selectedLocation,
-									),
+									...order,
+									item: {
+										...order.item,
+										location: filterAvailableLocations(
+											order.item.location,
+											selectedLocation,
+										),
+									},
 								},
-							},
 					);
 			};
 
@@ -1176,84 +1179,89 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		}
 
 		return result;
-	}, [
-		vendorsWithOrders,
-		selectedLocation,
-		cxPriceLookup,
-		matchesOrderFilters,
-	]);
+	}, [vendorsWithOrders, selectedLocation, cxPriceLookup, matchesOrderFilters]);
 
 	const tableRows = useMemo(() => {
-		return preparedFilteredVendors.flatMap((preparedVendor) => {
-			const { vendorStore, buyOrders, sellOrders } = preparedVendor;
-			const vendor = vendorStore.vendor;
-			const updated = String(
-				(vendor as typeof vendor & { activity?: unknown }).activity || "-",
-			);
-			const user = `${vendor.gamename} (${vendor.companycode}) ${vendor.companyname}`;
-
-			const buildRows = (
-				preparedOrder: (typeof buyOrders)[number],
-				typeLabel: "Ask" | "Bid",
-			) => {
-				const locations =
-					preparedOrder.item.location?.length > 0
-						? preparedOrder.item.location
-						: [null];
-
-				// FIXME: location.available is broken but works
-				return locations.map((location: Location, index: number) => {
-					const locationQuantity = location
-						? location.available
-						: preparedOrder.displayQuantity;
-
-					const locationLabel = formatLocation(
-						location?.location_name,
-						location?.location_code,
-					);
-
-					return {
-						id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
-						typeLabel,
-						orderType: preparedOrder.orderType,
-						material: preparedOrder.item.materialticker,
-						user,
-						ica: preparedOrder.fixedPrice,
-						location: locationLabel,
-						quantity: locationQuantity,
-						cxStats: preparedOrder.cxStats,
-						corpStats: preparedOrder.corpStats,
-						updated,
-						locCode: location?.location_code,
-						locName: location?.location_name,
-						rawVendor: vendor,
-					};
-				});
-			};
-
-			const askRows = sellOrders.flatMap((order) => buildRows(order, "Ask"));
-			const bidRows = buyOrders.flatMap((order) => buildRows(order, "Bid"));
-
-			return [...askRows, ...bidRows].filter(
-				(row) => typeof row.quantity !== "number" || row.quantity > 0,
-			);
-		}).sort((a, b) => {
-			const materialComparison = a.material.localeCompare(b.material, undefined, {
-				sensitivity: "base",
-			});
-			if (materialComparison !== 0) return materialComparison;
-
-			const sideComparison = a.typeLabel.localeCompare(b.typeLabel);
-			return sideComparison !== 0
-				? sideComparison
-				: compareLocations(
-					{ location_code: a.locCode ?? "", location_name: a.locName ?? "" },
-					{ location_code: b.locCode ?? "", location_name: b.locName ?? "" },
+		return preparedFilteredVendors
+			.flatMap((preparedVendor) => {
+				const { vendorStore, buyOrders, sellOrders } = preparedVendor;
+				const vendor = vendorStore.vendor;
+				const updated = String(
+					(vendor as typeof vendor & { activity?: unknown }).activity || "-",
 				);
-		});
-	}, [
-		preparedFilteredVendors,
-	]);
+				const user = `${vendor.gamename} (${vendor.companycode}) ${vendor.companyname}`;
+
+				const buildRows = (
+					preparedOrder: (typeof buyOrders)[number],
+					typeLabel: "Ask" | "Bid",
+				) => {
+					const locations =
+						preparedOrder.item.location?.length > 0
+							? preparedOrder.item.location
+							: [null];
+
+					// FIXME: location.available is broken but works
+					return locations.map((location: Location, index: number) => {
+						const locationQuantity = location
+							? location.available
+							: preparedOrder.displayQuantity;
+
+						const locationLabel = formatLocation(
+							location?.location_name,
+							location?.location_code,
+						);
+
+						return {
+							id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
+							typeLabel,
+							orderType: preparedOrder.orderType,
+							material: preparedOrder.item.materialticker,
+							user,
+							ica: preparedOrder.fixedPrice,
+							location: locationLabel,
+							quantity: locationQuantity,
+							cxStats: preparedOrder.cxStats,
+							corpStats: preparedOrder.corpStats,
+							updated,
+							locCode: location?.location_code,
+							locName: location?.location_name,
+							rawVendor: vendor,
+						};
+					});
+				};
+
+				const askRows = sellOrders.flatMap((order) => buildRows(order, "Ask"));
+				const bidRows = buyOrders.flatMap((order) => buildRows(order, "Bid"));
+
+				return [...askRows, ...bidRows].filter(
+					(row) => typeof row.quantity !== "number" || row.quantity > 0,
+				);
+			})
+			.sort((a, b) => {
+				const materialComparison = a.material.localeCompare(
+					b.material,
+					undefined,
+					{
+						sensitivity: "base",
+					},
+				);
+				if (materialComparison !== 0) return materialComparison;
+
+				const sideComparison = a.typeLabel.localeCompare(b.typeLabel);
+				return sideComparison !== 0
+					? sideComparison
+					: compareLocations(
+							{
+								location_code: a.locCode ?? "",
+								location_name: a.locName ?? "",
+							},
+							{
+								location_code: b.locCode ?? "",
+								location_name: b.locName ?? "",
+							},
+						);
+			});
+	}, [preparedFilteredVendors]);
 
 	const tableColumns = useMemo<GridColDef[]>(
 		() => [
@@ -1493,7 +1501,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						placeholder="Search Materials & Vendors…"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-							sx={{
+						sx={{
 							flexGrow: 1,
 							order: 3,
 							"& .MuiOutlinedInput-root": {
@@ -1568,11 +1576,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					/>
 
 					<Box
-							sx={{
-								display: "flex",
-								gap: 1.5,
-								flexDirection: { xs: "column", sm: "row" },
-								order: 2,
+						sx={{
+							display: "flex",
+							gap: 1.5,
+							flexDirection: { xs: "column", sm: "row" },
+							order: 2,
 						}}
 					>
 						<ToggleButtonGroup
@@ -1646,7 +1654,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							}
 							onChange={(_e, newValue) =>
 								setSelectedLocation(
-									newValue?.id === ALL_LOCATIONS_OPTION.id ? null : newValue?.id || null,
+									newValue?.id === ALL_LOCATIONS_OPTION.id
+										? null
+										: newValue?.id || null,
 								)
 							}
 							inputValue={locationInputValue}
@@ -1657,7 +1667,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									);
 									setLocationInputValue(
 										newInputValue === ALL_LOCATIONS_OPTION.label ||
-										selectedLocation === null
+											selectedLocation === null
 											? ""
 											: selectedOption
 												? formatLocationOption(selectedOption)
@@ -1676,7 +1686,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									{...props}
 									sx={
 										option.id === NOT_HORTUS_LOCATION.id
-											? { borderBottom: `1px solid ${theme.palette.divider}`, mb: 0.5 }
+											? {
+													borderBottom: `1px solid ${theme.palette.divider}`,
+													mb: 0.5,
+												}
 											: undefined
 									}
 								>
@@ -1693,7 +1706,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									},
 								},
 							}}
-								sx={{
+							sx={{
 								flexGrow: { xs: 1, sm: 0 },
 								minWidth: { sm: 260 },
 								order: -1,
@@ -1730,11 +1743,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						/>
 					</Box>
 					<Box
-							sx={{
-								display: "flex",
-								gap: 1,
-								justifyContent: { xs: "center", sm: "flex-end" },
-								order: 4,
+						sx={{
+							display: "flex",
+							gap: 1,
+							justifyContent: { xs: "center", sm: "flex-end" },
+							order: 4,
 						}}
 					>
 						<Tooltip title="Shopping List">
@@ -1756,7 +1769,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						{loggedIn && (
 							<Tooltip title="Your Store">
 								<IconButton
-									onClick={hasVendorStore ? handleOpenEditModal : handleOpenCreateModal}
+									onClick={
+										hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
+									}
 									disabled={isCheckingStore}
 									sx={{
 										height: 40,
@@ -1766,7 +1781,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										bgcolor: "primary.main",
 										boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
 										"&:hover": { bgcolor: "primary.dark" },
-										"&.Mui-disabled": { bgcolor: alpha(theme.palette.primary.main, 0.5) },
+										"&.Mui-disabled": {
+											bgcolor: alpha(theme.palette.primary.main, 0.5),
+										},
 									}}
 								>
 									<Store size={24} />

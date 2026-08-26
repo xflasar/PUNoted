@@ -373,7 +373,8 @@ const VendorPrioritySelector: React.FC<{
 												<Globe
 													size={14}
 													color={theme.palette.error.light}
-													style={{ verticalAlign: "middle" }} />
+													style={{ verticalAlign: "middle" }}
+												/>
 											)}{" "}
 											{entry.label}:{" "}
 											<Box
@@ -498,7 +499,8 @@ const CompactListItem: React.FC<{
 			return { locations: [...locations.values()], vendors };
 		}, [availableVendors, item.quantity, item.vendorPriority]);
 
-		const viaText = sourcing.vendors.length > 0 ? sourcing.vendors.join(", ") : "No Vendors";
+		const viaText =
+			sourcing.vendors.length > 0 ? sourcing.vendors.join(", ") : "No Vendors";
 
 		return (
 			<Box
@@ -665,7 +667,10 @@ const CompactListItem: React.FC<{
 										sx={{ alignItems: "center", display: "flex", gap: 0.25 }}
 									>
 										{location.isHortus ? (
-											<Warehouse size={14} color={theme.palette.success.light} />
+											<Warehouse
+												size={14}
+												color={theme.palette.success.light}
+											/>
 										) : (
 											<Globe size={14} color={theme.palette.error.light} />
 										)}
