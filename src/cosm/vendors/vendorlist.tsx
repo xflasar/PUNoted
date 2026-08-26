@@ -1441,6 +1441,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							display: "flex",
 							gap: 1.5,
 							flexDirection: { xs: "column", sm: "row" },
+							order: 1,
 						}}
 					>
 						<ToggleButtonGroup
@@ -1499,8 +1500,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						placeholder="Search Materials & Vendors…"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						sx={{
+							sx={{
 							flexGrow: 1,
+							order: 3,
 							"& .MuiOutlinedInput-root": {
 								height: 40,
 								bgcolor: alpha(theme.palette.background.default, 0.5),
@@ -1573,10 +1575,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					/>
 
 					<Box
-						sx={{
-							display: "flex",
-							gap: 1.5,
-							flexDirection: { xs: "column", sm: "row" },
+							sx={{
+								display: "flex",
+								gap: 1.5,
+								flexDirection: { xs: "column", sm: "row" },
+								order: 2,
 						}}
 					>
 						<ToggleButtonGroup
@@ -1697,9 +1700,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									},
 								},
 							}}
-							sx={{
+								sx={{
 								flexGrow: { xs: 1, sm: 0 },
 								minWidth: { sm: 260 },
+								order: -1,
 								"& .MuiAutocomplete-clearIndicator": {
 									visibility: selectedLocation ? "visible" : "hidden",
 									opacity: selectedLocation ? 1 : 0,
@@ -1731,16 +1735,36 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								/>
 							)}
 						/>
-						<Box
+					</Box>
+					<Box
 							sx={{
 								display: "flex",
 								gap: 1,
 								justifyContent: { xs: "center", sm: "flex-end" },
-							}}
-						>
-							<Tooltip title="Shopping List">
+								order: 4,
+						}}
+					>
+						<Tooltip title="Shopping List">
+							<IconButton
+								onClick={handleOpenShoppingListModal}
+								sx={{
+									height: 40,
+									width: 40,
+									borderRadius: "50%",
+									color: "white",
+									bgcolor: "primary.main",
+									boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+									"&:hover": { bgcolor: "primary.dark" },
+								}}
+							>
+								<ShoppingBasket size={24} />
+							</IconButton>
+						</Tooltip>
+						{loggedIn && (
+							<Tooltip title="Your Store">
 								<IconButton
-									onClick={handleOpenShoppingListModal}
+									onClick={hasVendorStore ? handleOpenEditModal : handleOpenCreateModal}
+									disabled={isCheckingStore}
 									sx={{
 										height: 40,
 										width: 40,
@@ -1748,43 +1772,14 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										color: "white",
 										bgcolor: "primary.main",
 										boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-										"&:hover": {
-											bgcolor: "primary.dark",
-										},
+										"&:hover": { bgcolor: "primary.dark" },
+										"&.Mui-disabled": { bgcolor: alpha(theme.palette.primary.main, 0.5) },
 									}}
 								>
-									<ShoppingBasket size={24} />
+									<Store size={24} />
 								</IconButton>
 							</Tooltip>
-							{loggedIn && (
-								<Tooltip title="Your Store">
-									<IconButton
-										onClick={
-											hasVendorStore
-												? handleOpenEditModal
-												: handleOpenCreateModal
-										}
-										disabled={isCheckingStore}
-										sx={{
-											height: 40,
-											width: 40,
-											borderRadius: "50%",
-											color: "white",
-											bgcolor: "primary.main",
-											boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-											"&:hover": {
-												bgcolor: "primary.dark",
-											},
-											"&.Mui-disabled": {
-												bgcolor: alpha(theme.palette.primary.main, 0.5),
-											},
-										}}
-									>
-										<Store size={24} />
-									</IconButton>
-								</Tooltip>
-							)}
-						</Box>
+						)}
 					</Box>
 				</Box>
 			</Box>
