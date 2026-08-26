@@ -43,7 +43,7 @@ import EditVendorStoreModal from "./editvendorstoremodal";
 import ShoppingListModal from "./shoppinglistmodal";
 import MaterialBadge from "../components/materialbadge";
 import { formatAmount } from "../../utils/formaters";
-import type { Location, VendorStore } from "./types";
+import type { Location, OrderItem, VendorStore } from "./types";
 import { getDiffStats } from "./utils/pricecomparison";
 import { formatLocation } from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
@@ -76,6 +76,29 @@ const compareLocations = (
 		{ sensitivity: "base" },
 	);
 };
+
+const matchesLocationFilter = (
+	location: Pick<Location, "location_code" | "location_name">,
+	selectedLocation: string | null,
+) =>
+	selectedLocation === null ||
+	(selectedLocation === NOT_HORTUS_LOCATION.id
+		? location.location_code !== HORTUS_LOCATION_CODE
+		: location.location_name === selectedLocation ||
+			location.location_code === selectedLocation);
+
+const hasAvailableStock = (location: Location) =>
+	typeof location.available === "number" && location.available > 0;
+
+const filterAvailableLocations = (
+	locations: Location[] | undefined,
+	selectedLocation: string | null,
+) =>
+	(locations || []).filter(
+		(location) =>
+			hasAvailableStock(location) &&
+			matchesLocationFilter(location, selectedLocation),
+	);
 
 const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 	value === "grid" || value === "table";
@@ -316,13 +339,7 @@ const VendorCard = React.memo(
 		const sortedList = useMemo(() => {
 			return [...buyOrders, ...sellOrders]
 				.map((order) => {
-					const activeLocations = order.item.location?.filter(
-						(loc: Location) => {
-							// FIXME: loc.amount is broken loc.available works...
-							const qty = loc.available;
-							return typeof qty === "number" && qty > 0;
-						},
-					);
+					const activeLocations = filterAvailableLocations(order.item.location, null);
 
 					return {
 						...order,
@@ -986,6 +1003,39 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		[matchesSearchValue],
 	);
 
+	const searchTerms = useMemo(
+		() =>
+			searchQuery
+				.split(",")
+				.map((term) => term.trim().toLowerCase())
+				.filter(Boolean),
+		[searchQuery],
+	);
+
+	const matchesOrderFilters = useCallback(
+		(
+			vendor: VendorStore["vendor"],
+			order: Pick<OrderItem, "materialticker" | "ordertype">,
+		) => {
+			if (orderTypeFilter === "ASK" && order.ordertype === "buy") return false;
+			if (orderTypeFilter === "BID" && order.ordertype === "sell") return false;
+			return (
+				searchTerms.length === 0 ||
+				searchTerms.some(
+					(term) =>
+						matchesMaterialSearch(order.materialticker, term) ||
+						matchesVendorSearch(vendor, term),
+				)
+			);
+		},
+		[
+			orderTypeFilter,
+			searchTerms,
+			matchesMaterialSearch,
+			matchesVendorSearch,
+		],
+	);
+
 	const vendorsWithOrders = useMemo(
 		() =>
 			sortedVendors.filter((vendor) =>
@@ -1000,39 +1050,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const allLocations = useMemo(() => {
 		const locs = new Map<string, LocationOption>();
 
-		const terms = searchQuery
-			.split(",")
-			.map((t) => t.trim().toLowerCase())
-			.filter(Boolean);
-
 		vendorsWithOrders.forEach((v) => {
-			const vendorMatchTerms = terms.filter((term) =>
-				matchesVendorSearch(v.vendor, term),
-			);
-
-			const hasAnyMaterialMatchInVendor = v.orders?.some((o) =>
-				terms.some((t) => matchesMaterialSearch(o.materialticker, t)),
-			);
-
 			v.orders?.forEach((o) => {
-				if (orderTypeFilter === "ASK" && o.ordertype === "buy") return;
-				if (orderTypeFilter === "BID" && o.ordertype === "sell") return;
-
-				const matchesMat = terms.some((term) =>
-					matchesMaterialSearch(o.materialticker, term),
-				);
-
-				const isValidForSearch =
-					terms.length === 0 ||
-					matchesMat ||
-					(vendorMatchTerms.length > 0 && !hasAnyMaterialMatchInVendor);
-
-				if (isValidForSearch) {
+				if (matchesOrderFilters(v.vendor, o)) {
 					o.location?.forEach((l: Location) => {
-						const qty = l.available;
-						const hasStock = typeof qty === "number" && qty > 0;
-
-						if (hasStock) {
+						if (hasAvailableStock(l)) {
 							const locationId = l.location_code?.trim();
 							const locationName = l.location_name?.trim();
 							const optionId = locationId || locationName;
@@ -1059,10 +1081,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			: [ALL_LOCATIONS_OPTION, ...locations];
 	}, [
 		vendorsWithOrders,
-		searchQuery,
-		orderTypeFilter,
-		matchesVendorSearch,
-		matchesMaterialSearch,
+		matchesOrderFilters,
 	]);
 
 	useEffect(() => {
@@ -1080,77 +1099,38 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	// Filter Logic for Grid View
 	const preparedFilteredVendors = useMemo(() => {
-		const terms = searchQuery
-			.split(",")
-			.map((t) => t.trim().toLowerCase())
-			.filter(Boolean);
-
 		const result: ReturnType<typeof prepareVendorStore>[] = [];
 
 		for (const vendorStore of vendorsWithOrders) {
 			const preparedVendor = prepareVendorStore(vendorStore, cxPriceLookup);
 
-			// Check which terms match the vendor metadata directly
-			const vendorMatchTerms = terms.filter((term) =>
-				matchesVendorSearch(vendorStore.vendor, term),
-			);
-
-			// Filter the buy/sell orders
 			const filterOrders = (orders: typeof preparedVendor.buyOrders) => {
-				return orders.filter((order) => {
-					// 1. Filter by location (AND ensure it actually has quantity > 0)
-					const locMatch =
-						selectedLocation === null ||
-						order.item.location?.some((l: Location) => {
-							const nameMatches =
-								selectedLocation === NOT_HORTUS_LOCATION.id
-									? l.location_code !== HORTUS_LOCATION_CODE
-									: l.location_name === selectedLocation ||
-										l.location_code === selectedLocation;
-
-							const qty = l.available;
-							const hasStock = typeof qty === "number" && qty > 0;
-
-							return nameMatches && hasStock;
-						});
-
-					if (!locMatch) return false;
-
-					// 2. Filter by search terms
-					if (terms.length === 0) return true;
-
-					// Does this order's material match ANY of the search terms?
-					const matchesMat = terms.some((term) =>
-						matchesMaterialSearch(order.item.materialticker, term),
+				return orders
+					.filter((order) => matchesOrderFilters(vendorStore.vendor, order.item))
+					.filter(
+						(order) =>
+							selectedLocation === null ||
+							filterAvailableLocations(order.item.location, selectedLocation)
+								.length > 0,
+					)
+					.map((order) =>
+						selectedLocation === null
+							? order
+							: {
+								...order,
+								item: {
+									...order.item,
+									location: filterAvailableLocations(
+										order.item.location,
+										selectedLocation,
+									),
+								},
+							},
 					);
-
-					if (matchesMat) return true;
-
-					// Did ANY material in this vendor match ANY of the search terms?
-					const allOrders = [
-						...preparedVendor.buyOrders,
-						...preparedVendor.sellOrders,
-					];
-					const hasAnyMaterialMatchInVendor = allOrders.some((o) =>
-						terms.some((t) => matchesMaterialSearch(o.item.materialticker, t)),
-					);
-
-					// If the vendor metadata matched, but we didn't specifically search for any materials
-					// that exist in this vendor, then show the order.
-					if (vendorMatchTerms.length > 0 && !hasAnyMaterialMatchInVendor) {
-						return true;
-					}
-
-					return false;
-				});
 			};
 
-			const filteredBuyOrders =
-				orderTypeFilter === "ASK" ? [] : filterOrders(preparedVendor.buyOrders);
-			const filteredSellOrders =
-				orderTypeFilter === "BID"
-					? []
-					: filterOrders(preparedVendor.sellOrders);
+			const filteredBuyOrders = filterOrders(preparedVendor.buyOrders);
+			const filteredSellOrders = filterOrders(preparedVendor.sellOrders);
 
 			if (filteredBuyOrders.length > 0 || filteredSellOrders.length > 0) {
 				result.push({
@@ -1163,36 +1143,14 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 		return result;
 	}, [
-		searchQuery,
 		vendorsWithOrders,
 		selectedLocation,
-		orderTypeFilter,
 		cxPriceLookup,
-		matchesVendorSearch,
-		matchesMaterialSearch,
+		matchesOrderFilters,
 	]);
 
-	const filteredVendors = useMemo(() => {
-		// tableRows uses filteredVendors ? No, it uses preparedVendorsWithOrders
-		// but we provide it here just in case it's used elsewhere, or just a dummy array
-		return preparedFilteredVendors.map((p) => p.vendorStore);
-	}, [preparedFilteredVendors]);
-
-	const preparedVendorsWithOrders = useMemo(
-		() =>
-			vendorsWithOrders.map((vendorStore) =>
-				prepareVendorStore(vendorStore, cxPriceLookup),
-			),
-		[vendorsWithOrders, cxPriceLookup],
-	);
-
 	const tableRows = useMemo(() => {
-		const terms = searchQuery
-			.split(",")
-			.map((t) => t.trim().toLowerCase())
-			.filter(Boolean);
-
-		return preparedVendorsWithOrders.flatMap((preparedVendor) => {
+		return preparedFilteredVendors.flatMap((preparedVendor) => {
 			const { vendorStore, buyOrders, sellOrders } = preparedVendor;
 			const vendor = vendorStore.vendor;
 			const updated = String(
@@ -1239,37 +1197,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				});
 			};
 
-			const askRows =
-				orderTypeFilter === "BID"
-					? []
-					: sellOrders.flatMap((order) => buildRows(order, "Ask"));
-			const bidRows =
-				orderTypeFilter === "ASK"
-					? []
-					: buyOrders.flatMap((order) => buildRows(order, "Bid"));
+			const askRows = sellOrders.flatMap((order) => buildRows(order, "Ask"));
+			const bidRows = buyOrders.flatMap((order) => buildRows(order, "Bid"));
 
-			return [...askRows, ...bidRows].filter((row) => {
-				if (typeof row.quantity === "number" && row.quantity <= 0) return false;
-
-				const locMatch =
-					selectedLocation === null ||
-					(selectedLocation === NOT_HORTUS_LOCATION.id
-						? row.locCode !== HORTUS_LOCATION_CODE
-						: row.locName === selectedLocation ||
-							row.locCode === selectedLocation);
-				if (!locMatch) return false;
-
-				if (terms.length === 0) return true;
-
-				const materialMatches = terms.some((term) =>
-					matchesMaterialSearch(row.material, term),
-				);
-				const vendorMatches = terms.some((term) =>
-					matchesVendorSearch(row.rawVendor, term),
-				);
-
-				return materialMatches || vendorMatches;
-			});
+			return [...askRows, ...bidRows].filter(
+				(row) => typeof row.quantity !== "number" || row.quantity > 0,
+			);
 		}).sort((a, b) => {
 			const materialComparison = a.material.localeCompare(b.material, undefined, {
 				sensitivity: "base",
@@ -1285,12 +1218,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				);
 		});
 	}, [
-		preparedVendorsWithOrders,
-		searchQuery,
-		orderTypeFilter,
-		selectedLocation,
-		matchesVendorSearch,
-		matchesMaterialSearch,
+		preparedFilteredVendors,
 	]);
 
 	const tableColumns = useMemo<GridColDef[]>(
@@ -1881,7 +1809,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					</Box>
 				) : (
 					<>
-						{filteredVendors.length > 0 ? (
+						{preparedFilteredVendors.length > 0 ? (
 							<Masonry
 								columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xll: 6 }}
 								spacing={2}
