@@ -50,7 +50,12 @@ import { pickPrice } from "./utils/pickprice";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
 type LocationOption = { id: string; name?: string; label?: string };
-const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
+type MarketOptions = {
+	view: "grid" | "table";
+	location: string;
+	side: "ask" | "bid" | "both";
+};
+const MARKET_OPTIONS_STORAGE_KEY = "marketOptions";
 const HORTUS_LOCATION_CODE = "HRT";
 const ALL_LOCATIONS_OPTION = {
 	id: "all-locations",
@@ -103,9 +108,30 @@ const filterAvailableLocations = (
 const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 	value === "grid" || value === "table";
 
-const getStoredVendorViewMode = (): "grid" | "table" | null => {
-	const storedValue = localStorage.getItem(VENDORS_VIEW_MODE_STORAGE_KEY);
-	return isVendorViewMode(storedValue) ? storedValue : null;
+const DEFAULT_MARKET_OPTIONS: MarketOptions = {
+	view: "table",
+	location: HORTUS_LOCATION_CODE,
+	side: "ask",
+};
+
+const getStoredMarketOptions = (): MarketOptions => {
+	try {
+		const options: unknown = JSON.parse(
+			localStorage.getItem(MARKET_OPTIONS_STORAGE_KEY) || "null",
+		);
+		if (
+			typeof options === "object" &&
+			options !== null &&
+			isVendorViewMode((options as MarketOptions).view) &&
+			typeof (options as MarketOptions).location === "string" &&
+			["ask", "bid", "both"].includes((options as MarketOptions).side)
+		) {
+			return options as MarketOptions;
+		}
+	} catch {
+		// Use the defaults when storage is unavailable or contains invalid JSON.
+	}
+	return DEFAULT_MARKET_OPTIONS;
 };
 
 // --- HELPER COMPONENTS ---
@@ -785,20 +811,24 @@ const VendorCard = React.memo(
 const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
 	const [searchParams, setSearchParams] = useSearchParams();
+	const [marketOptions] = useState(getStoredMarketOptions);
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [exactMatch, setExactMatch] = useState<boolean>(false);
-	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(
+		marketOptions.location === ALL_LOCATIONS_OPTION.id
+			? null
+			: marketOptions.location,
+	);
 	const [locationInputValue, setLocationInputValue] =
 		useState<string>("All Locations");
 	const [orderTypeFilter, setOrderTypeFilter] = useState<
 		"ASK" | "BID" | "BOTH"
-	>("BOTH");
+	>(marketOptions.side.toUpperCase() as "ASK" | "BID" | "BOTH");
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const querySubtab = searchParams.get("subtab");
 	const vendorViewMode: "grid" | "table" =
 		(isVendorViewMode(querySubtab) ? querySubtab : null) ||
-		getStoredVendorViewMode() ||
-		"grid";
+		marketOptions.view;
 
 	// Modal States
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -826,11 +856,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	}, [querySubtab, searchParams, setSearchParams, vendorViewMode]);
 
 	useEffect(() => {
-		if (getStoredVendorViewMode() === vendorViewMode) {
-			return;
-		}
-		localStorage.setItem(VENDORS_VIEW_MODE_STORAGE_KEY, vendorViewMode);
-	}, [vendorViewMode]);
+		localStorage.setItem(
+			MARKET_OPTIONS_STORAGE_KEY,
+			JSON.stringify({
+				view: vendorViewMode,
+				location: selectedLocation || ALL_LOCATIONS_OPTION.id,
+				side: orderTypeFilter.toLowerCase(),
+			}),
+		);
+	}, [vendorViewMode, selectedLocation, orderTypeFilter]);
 
 	useEffect(() => {
 		const frameId = requestAnimationFrame(() => {
