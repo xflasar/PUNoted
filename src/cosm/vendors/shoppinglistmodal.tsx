@@ -458,10 +458,8 @@ const CompactListItem: React.FC<{
 			[availableVendors],
 		);
 
-		// 2. Calculate "Contributing Vendors"
-		const contributingVendors = useMemo(() => {
-			if (availableVendors.length === 0) return [];
-
+		// 2. Allocate the requested quantity in sourcing-priority order.
+		const sourcing = useMemo(() => {
 			const pMap = new Map(item.vendorPriority.map((id, idx) => [id, idx]));
 			const sorted = [...availableVendors].sort((a, b) => {
 				const pA = pMap.get(a.vendorid);
@@ -471,24 +469,36 @@ const CompactListItem: React.FC<{
 				if (pB !== undefined) return 1;
 				return getOrderPrice(a).price - getOrderPrice(b).price;
 			});
-
+			const vendors: string[] = [];
+			const locations = new Map<string, { label: string; isHortus: boolean }>();
 			let remainingNeeded = item.quantity;
-			const usedVendors: string[] = [];
 
 			for (const vendor of sorted) {
 				if (remainingNeeded <= 0) break;
-				if (vendor.quantity > 0) {
-					usedVendors.push(vendor.gamename || vendor.vendorname);
-					remainingNeeded -= vendor.quantity;
+				const vendorAmount = Math.min(remainingNeeded, vendor.quantity);
+				if (vendorAmount <= 0) continue;
+				vendors.push(vendor.gamename || vendor.vendorname);
+				let remainingVendorAmount = vendorAmount;
+				for (const location of vendor.location || []) {
+					if (remainingVendorAmount <= 0) break;
+					const id = location.location_code || location.location_name;
+					const available =
+						location.available ?? location.amount ?? location.storage_amount;
+					if (!id || typeof available !== "number" || available <= 0) continue;
+					const locationAmount = Math.min(remainingVendorAmount, available);
+					locations.set(id, {
+						label: formatLocationLabel(location.location_name || id, id),
+						isHortus: location.location_code === "HRT",
+					});
+					remainingVendorAmount -= locationAmount;
 				}
+				remainingNeeded -= vendorAmount;
 			}
-			return usedVendors;
-		}, [availableVendors, item.vendorPriority, item.quantity]);
 
-		const viaText =
-			contributingVendors.length > 0
-				? contributingVendors.join(", ")
-				: "No Vendors";
+			return { locations: [...locations.values()], vendors };
+		}, [availableVendors, item.quantity, item.vendorPriority]);
+
+		const viaText = sourcing.vendors.length > 0 ? sourcing.vendors.join(", ") : "No Vendors";
 
 		return (
 			<Box
@@ -542,7 +552,7 @@ const CompactListItem: React.FC<{
 							sx={{
 								display: "flex",
 								justifyContent: "space-between",
-								alignItems: "center",
+								alignItems: "flex-start",
 								mb: 0.5,
 							}}
 						>
@@ -568,60 +578,103 @@ const CompactListItem: React.FC<{
 									/>
 								)}
 							</Typography>
-							<Typography
-								variant="caption"
+							<Box
 								sx={{
-									fontSize: "0.75rem",
-									fontWeight: "medium",
-									whiteSpace: "nowrap",
+									alignItems: "flex-end",
+									display: "flex",
+									flexDirection: "column",
 									ml: 1,
 								}}
 							>
-								Supply:{" "}
-								<span
-									style={{
-										color:
-											totalAvail < item.quantity
-												? theme.palette.error.main
-												: theme.palette.success.main,
-										fontWeight: "bold",
+								<Typography
+									variant="caption"
+									sx={{
+										fontSize: "0.75rem",
+										fontWeight: "medium",
+										whiteSpace: "nowrap",
 									}}
 								>
-									{formatAmount(totalAvail)}
-								</span>
-							</Typography>
+									Supply:{" "}
+									<span
+										style={{
+											color:
+												totalAvail < item.quantity
+													? theme.palette.error.main
+													: theme.palette.success.main,
+											fontWeight: "bold",
+										}}
+									>
+										{formatAmount(totalAvail)}
+									</span>
+								</Typography>
+							</Box>
 						</Box>
 
 						{/* VIA ROW */}
 						<Box
 							sx={{
-								display: "flex",
 								alignItems: "center",
+								display: "flex",
+								flexWrap: "wrap",
 								gap: 1,
 								width: "100%",
 							}}
 						>
-							<Truck
-								size={14}
-								color={theme.palette.text.secondary}
-								style={{ flexShrink: 0 }}
-							/>
-							<Typography
-								variant="body2"
-								noWrap
+							<Box
 								sx={{
-									fontWeight: "bold",
-									fontSize: "0.85rem",
-									color: theme.palette.text.primary,
-									display: "block",
-									width: "100%",
+									alignItems: "center",
+									display: "flex",
+									flex: "1 1 0",
+									gap: 1,
+									minWidth: 0,
 								}}
 							>
-								Via:{" "}
-								<span style={{ color: theme.palette.text.secondary }}>
-									{viaText}
-								</span>
-							</Typography>
+								<Truck
+									size={14}
+									color={theme.palette.text.secondary}
+									style={{ flexShrink: 0 }}
+								/>
+								<Typography
+									variant="body2"
+									sx={{
+										color: theme.palette.text.primary,
+										fontSize: "0.85rem",
+										fontWeight: "bold",
+										minWidth: 0,
+									}}
+								>
+									Via:{" "}
+									<span style={{ color: theme.palette.text.secondary }}>
+										{viaText}
+									</span>
+								</Typography>
+							</Box>
+							<Box
+								sx={{
+									display: "flex",
+									flex: "1 1 0",
+									flexWrap: "wrap",
+									gap: 1,
+									justifyContent: "flex-end",
+									minWidth: 0,
+								}}
+							>
+								{sourcing.locations.map((location) => (
+									<Box
+										key={location.label}
+										sx={{ alignItems: "center", display: "flex", gap: 0.25 }}
+									>
+										{location.isHortus ? (
+											<Warehouse size={14} color={theme.palette.success.light} />
+										) : (
+											<Globe size={14} color={theme.palette.error.light} />
+										)}
+										<Typography variant="caption" color="text.secondary">
+											{location.label}
+										</Typography>
+									</Box>
+								))}
+							</Box>
 						</Box>
 					</Box>
 
