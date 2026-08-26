@@ -63,6 +63,20 @@ const NOT_HORTUS_LOCATION = {
 const formatLocationOption = (option: LocationOption) =>
 	option.label ?? formatLocation(option.name, option.id);
 
+const compareLocations = (
+	a?: Pick<Location, "location_code" | "location_name"> | null,
+	b?: Pick<Location, "location_code" | "location_name"> | null,
+) => {
+	const aIsHortus = a?.location_code === HORTUS_LOCATION_CODE;
+	const bIsHortus = b?.location_code === HORTUS_LOCATION_CODE;
+	if (aIsHortus !== bIsHortus) return aIsHortus ? -1 : 1;
+	return formatLocation(a?.location_name, a?.location_code).localeCompare(
+		formatLocation(b?.location_name, b?.location_code),
+		undefined,
+		{ sensitivity: "base" },
+	);
+};
+
 const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 	value === "grid" || value === "table";
 
@@ -94,11 +108,6 @@ const prepareVendorStore = (
 	const prepareOrders = (orderType: "buy" | "sell") =>
 		vendorStore.orders
 			.filter((order) => order.ordertype === orderType)
-			.sort((a, b) =>
-				a.materialticker.localeCompare(b.materialticker, undefined, {
-					sensitivity: "base",
-				}),
-			)
 			.map((item) => {
 				const available = Reflect.get(item as object, "available");
 				const displayQuantity =
@@ -591,7 +600,7 @@ const VendorCard = React.memo(
 													gap: 0.25,
 												}}
 											>
-												{item.location.map((l, i) => (
+												{[...item.location].sort(compareLocations).map((l, i) => (
 													<Box
 														key={i}
 														sx={{
@@ -1261,6 +1270,19 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 				return materialMatches || vendorMatches;
 			});
+		}).sort((a, b) => {
+			const materialComparison = a.material.localeCompare(b.material, undefined, {
+				sensitivity: "base",
+			});
+			if (materialComparison !== 0) return materialComparison;
+
+			const sideComparison = a.typeLabel.localeCompare(b.typeLabel);
+			return sideComparison !== 0
+				? sideComparison
+				: compareLocations(
+					{ location_code: a.locCode ?? "", location_name: a.locName ?? "" },
+					{ location_code: b.locCode ?? "", location_name: b.locName ?? "" },
+				);
 		});
 	}, [
 		preparedVendorsWithOrders,
@@ -1813,7 +1835,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							disableColumnMenu
 							disableColumnSorting
 							disableRowSelectionOnClick
-							sortModel={[{ field: "material", sort: "asc" }]}
 							localeText={{ noRowsLabel: "No results" }}
 							sx={{
 								border: "none",
