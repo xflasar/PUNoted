@@ -385,21 +385,6 @@ const VendorCard = React.memo(
 							>
 								{vendor.companyname}
 							</Typography>
-							<Typography
-								variant="caption"
-								sx={{
-									color: theme.palette.primary.light,
-									bgcolor: alpha(theme.palette.primary.main, 0.1),
-									border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-									px: 1,
-									py: 0.25,
-									borderRadius: "4px",
-									fontWeight: "bold",
-									lineHeight: 1.2,
-								}}
-							>
-								{vendor.companycode}
-							</Typography>
 						</Box>
 
 						<Box
@@ -420,6 +405,22 @@ const VendorCard = React.memo(
 									py: 0.25,
 									borderRadius: "8px",
 									fontWeight: 500,
+									lineHeight: 1.2,
+								}}
+							>
+								{vendor.companycode}
+							</Typography>
+
+							<Typography
+								variant="caption"
+								sx={{
+									color: theme.palette.primary.light,
+									bgcolor: alpha(theme.palette.primary.main, 0.1),
+									border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+									px: 1,
+									py: 0.25,
+									borderRadius: "4px",
+									fontWeight: "bold",
 									lineHeight: 1.2,
 								}}
 							>
