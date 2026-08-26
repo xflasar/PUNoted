@@ -606,18 +606,19 @@ const VendorCard = React.memo(
 																gap: 0.5,
 															}}
 														>
-															{"HRT" === l.location_code ? (
-																<Warehouse
-																	size={14}
-																	style={{ flexShrink: 0 }}
-																/>
-															) : (
-																<Globe
-																	size={14}
-																	color={theme.palette.text.secondary}
-																	style={{ flexShrink: 0 }}
-																/>
-															)}
+												{l.location_code === "HRT" ? (
+													<Warehouse
+														size={14}
+														color={theme.palette.success.light}
+														style={{ flexShrink: 0 }}
+													/>
+												) : (
+													<Globe
+														size={14}
+														color={theme.palette.error.light}
+														style={{ flexShrink: 0 }}
+													/>
+												)}
 															<Typography
 																variant="caption"
 																sx={{
@@ -1361,9 +1362,16 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				headerAlign: "left",
 				align: "left",
 				renderCell: ({ row }) => (
-					<Typography variant="body2">
-						{formatLocation(row.locName, row.locCode)}
-					</Typography>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+						{row.locCode === "HRT" ? (
+							<Warehouse size={14} color={theme.palette.success.light} />
+						) : (
+							<Globe size={14} color={theme.palette.error.light} />
+						)}
+						<Typography variant="body2">
+							{formatLocation(row.locName, row.locCode)}
+						</Typography>
+					</Box>
 				),
 			},
 			{
