@@ -1861,7 +1861,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					<>
 						{filteredVendors.length > 0 ? (
 							<Masonry
-								columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xll: 5 }}
+								columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xll: 6 }}
 								spacing={2}
 							>
 								{preparedFilteredVendors.map((preparedVendor) => (
