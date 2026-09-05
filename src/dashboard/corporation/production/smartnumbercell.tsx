@@ -108,7 +108,6 @@ export const SmartNumberCell = React.memo(
 						width: "100%",
 						display: "flex",
 						justifyContent: "flex-end",
-						overflow: "hidden",
 					}}
 				>
 					{renderFn(isCompact ? compactText : fullText, isCompact)}

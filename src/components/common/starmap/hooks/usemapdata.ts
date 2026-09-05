@@ -501,6 +501,8 @@ export const useMapData = (mapDataFromContext: any = null) => {
 			setIsLoading(true);
 			setFetchError(null);
 			try {
+				// Yield main thread so route transition and loading spinner render instantly
+				await new Promise((resolve) => setTimeout(resolve, 50));
 				const processed = await processMapDataSingleton(mapDataFromContext);
 
 				if (!mounted) return;

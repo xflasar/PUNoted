@@ -6,12 +6,15 @@ import {
 	Tooltip,
 	alpha,
 	useTheme,
+	Box,
+	Chip,
 } from "@mui/material";
 import type { ProductionSummaryItem, CorpMember } from "../types";
 import { SmartNumberCell } from "./smartnumbercell";
 import { ValueStack } from "./valuestack";
 import { DetailTooltip } from "./detailtooltip";
 import { getNetColor, formatSmartNumber, isUserStale } from "../utils";
+import MaterialBadge from "../../../cosm/components/materialbadge";
 
 interface Props {
 	row: ProductionSummaryItem;
@@ -87,7 +90,7 @@ export const CompactProductionRow = React.memo(
 					tooltipText: formatSmartNumber(percentage) + "%",
 				};
 			return {
-				text: percentage.toFixed(0) + "%",
+				text: (ratio >= 0 ? "+" : "-") + Math.round(percentage) + "%",
 				color,
 				hasTooltip: false,
 				tooltipText: "",
@@ -95,59 +98,117 @@ export const CompactProductionRow = React.memo(
 		}, [row.productionTotal, row.consumptionTotal, theme, isDrilldown]);
 
 		const renderProducers = useCallback(
-			(displayValue: string, isCompact: boolean) => (
-				<DetailTooltip
-					items={row.producers}
-					title="Producers"
-					color="success"
-					totalRaw={row.productionTotal}
-					accurateRaw={row.productionAccurate}
-					estimatedRaw={row.productionEstimated}
-					theme={theme}
-					members={members}
+			(displayValue: string) => (
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "flex-end",
+						gap: 0.25,
+						width: "100%",
+					}}
 				>
-					<ValueStack
-						displayTotal={displayValue}
-						accurate={row.productionAccurate}
-						estimated={row.productionEstimated}
-						isCompact={isCompact}
-						colorBase="success"
-						isGridMode={isGridMode}
+					<DetailTooltip
+						item={row}
+						type="prod"
 						isMobile={isMobile}
-						theme={theme}
-						stale={isRowStale}
-					/>
-				</DetailTooltip>
+						isGridMode={isGridMode}
+						members={members}
+					>
+						<Typography
+							variant="body2"
+							noWrap
+							sx={{
+								fontSize: isMobile || isGridMode ? "0.75rem" : "0.85rem",
+								fontWeight: 500,
+								color: isRowStale ? "warning.main" : "text.primary",
+								cursor: "pointer",
+							}}
+						>
+							{displayValue}
+						</Typography>
+					</DetailTooltip>
+					{((row.batchProdActive || 0) > 0 ||
+						(row.batchProdQueued || 0) > 0) && (
+						<Tooltip
+							title={`One-Time Orders: ${row.batchProdActive || 0} crafting now, ${row.batchProdQueued || 0} queued`}
+							arrow
+						>
+							<Chip
+								size="small"
+								label={`+${(row.batchProdActive || 0) > 0 ? Math.round(row.batchProdActive || 0) : 0}${(row.batchProdQueued || 0) > 0 ? ` (${Math.round(row.batchProdQueued || 0)})` : ""}`}
+								sx={{
+									height: 15,
+									fontSize: "0.55rem",
+									fontWeight: 700,
+									bgcolor: "rgba(129, 199, 132, 0.15)",
+									color: "#81C784",
+									border: "1px solid rgba(129, 199, 132, 0.3)",
+									cursor: "default",
+								}}
+							/>
+						</Tooltip>
+					)}
+				</Box>
 			),
-			[row, theme, isGridMode, isMobile, members, isRowStale],
+			[row, isMobile, isGridMode, members, isRowStale],
 		);
 
 		const renderConsumers = useCallback(
-			(displayValue: string, isCompact: boolean) => (
-				<DetailTooltip
-					items={row.consumers}
-					title="Consumers"
-					color="error"
-					totalRaw={row.consumptionTotal}
-					accurateRaw={row.consumptionAccurate}
-					estimatedRaw={row.consumptionEstimated}
-					theme={theme}
-					members={members}
+			(displayValue: string) => (
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "flex-end",
+						gap: 0.25,
+						width: "100%",
+					}}
 				>
-					<ValueStack
-						displayTotal={displayValue}
-						accurate={row.consumptionAccurate}
-						estimated={row.consumptionEstimated}
-						isCompact={isCompact}
-						colorBase="error"
-						isGridMode={isGridMode}
+					<DetailTooltip
+						item={row}
+						type="cons"
 						isMobile={isMobile}
-						theme={theme}
-						stale={isRowStale}
-					/>
-				</DetailTooltip>
+						isGridMode={isGridMode}
+						members={members}
+					>
+						<Typography
+							variant="body2"
+							noWrap
+							sx={{
+								fontSize: isMobile || isGridMode ? "0.75rem" : "0.85rem",
+								fontWeight: 500,
+								color: isRowStale ? "warning.main" : "text.secondary",
+								cursor: "pointer",
+							}}
+						>
+							{displayValue}
+						</Typography>
+					</DetailTooltip>
+					{((row.batchConsActive || 0) > 0 ||
+						(row.batchConsQueued || 0) > 0) && (
+						<Tooltip
+							title={`One-Time Batch Inputs: ${row.batchConsActive || 0} being consumed, ${row.batchConsQueued || 0} queued`}
+							arrow
+						>
+							<Chip
+								size="small"
+								label={`-${(row.batchConsActive || 0) > 0 ? Math.round(row.batchConsActive || 0) : 0}${(row.batchConsQueued || 0) > 0 ? ` (${Math.round(row.batchConsQueued || 0)})` : ""}`}
+								sx={{
+									height: 15,
+									fontSize: "0.55rem",
+									fontWeight: 700,
+									bgcolor: "rgba(255, 138, 128, 0.15)",
+									color: "#FF8A80",
+									border: "1px solid rgba(255, 138, 128, 0.3)",
+									cursor: "default",
+								}}
+							/>
+						</Tooltip>
+					)}
+				</Box>
 			),
-			[row, theme, isGridMode, isMobile, members, isRowStale],
+			[row, isMobile, isGridMode, members, isRowStale],
 		);
 
 		const renderNet = useCallback(
@@ -177,7 +238,7 @@ export const CompactProductionRow = React.memo(
 		);
 
 		// Ticker Width: 60px (Grid/List), 140px (Drilldown)
-		const tickerWidth = isGridMode ? "60px" : isDrilldown ? "140px" : "60px";
+		const tickerWidth = isGridMode ? "60px" : isDrilldown ? "140px" : "80px";
 
 		const content = (
 			<>
@@ -189,19 +250,7 @@ export const CompactProductionRow = React.memo(
 						px: isGridMode ? 0.25 : 1,
 					}}
 				>
-					<Tooltip title={row.ticker} arrow>
-						<Typography
-							variant="body2"
-							noWrap
-							sx={{
-								fontSize: isMobile || isGridMode ? "0.75rem" : "0.85rem",
-								fontWeight: 700,
-								color: isRowStale ? "warning.main" : "primary.light",
-							}}
-						>
-							{row.ticker}
-						</Typography>
-					</Tooltip>
+					<MaterialBadge ticker={row.ticker} />
 				</TableCell>
 
 				{/* FIXED: Removed wrapper TableCells */}
@@ -294,6 +343,56 @@ export const CompactProductionRow = React.memo(
 							</Typography>
 						)}
 					</TableCell>
+				)}
+
+				{/* Extra Corp Stats: Est Price, Est Net Value, Corp Storage, Share % */}
+				{!isDrilldown && !isGridMode && (
+					<>
+						<TableCell align="right" sx={{ py: 0.75, px: 1 }}>
+							<Typography
+								variant="body2"
+								sx={{
+									fontSize: "0.8rem",
+									color: "rgba(255,255,255,0.7)",
+									fontWeight: 600,
+								}}
+							>
+								{row.price ? `$${row.price.toLocaleString()}` : "-"}
+							</Typography>
+						</TableCell>
+						<TableCell align="right" sx={{ py: 0.75, px: 1 }}>
+							<Typography
+								variant="body2"
+								sx={{
+									fontSize: "0.8rem",
+									fontWeight: 700,
+									color: (row.net || 0) >= 0 ? "#81C784" : "#FF8A80",
+								}}
+							>
+								{row.price
+									? `${(row.net || 0) >= 0 ? "+" : ""}$${Math.round((row.net || 0) * row.price).toLocaleString()}`
+									: "-"}
+							</Typography>
+						</TableCell>
+						<TableCell align="right" sx={{ py: 0.75, px: 1 }}>
+							<Typography
+								variant="body2"
+								sx={{ fontSize: "0.8rem", color: "#64FFDA", fontWeight: 700 }}
+							>
+								{row.storageQty
+									? Math.round(row.storageQty).toLocaleString()
+									: "0"}
+							</Typography>
+						</TableCell>
+						<TableCell align="right" sx={{ py: 0.75, px: 1 }}>
+							<Typography
+								variant="body2"
+								sx={{ fontSize: "0.8rem", color: "#A594FF", fontWeight: 700 }}
+							>
+								{row.marketSharePct ? `${row.marketSharePct}%` : "0%"}
+							</Typography>
+						</TableCell>
+					</>
 				)}
 			</>
 		);

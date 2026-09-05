@@ -18,6 +18,7 @@ import {
 	YAxis,
 	Tooltip,
 	CartesianGrid,
+	Brush,
 } from "recharts";
 import type { HistoryPoint } from "./types";
 
@@ -92,12 +93,40 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 		days === -1,
 	);
 
-	const chartData = history.map((pt) => ({
-		time: pt.timestamp,
-		Ask: pt.askprice || null,
-		Bid: pt.bidprice || null,
-		Volume: pt.supply || 0,
-	}));
+	const chartData = React.useMemo(() => {
+		const points = history.map((pt) => ({
+			time: pt.timestamp,
+			Ask: pt.askprice || null,
+			Bid: pt.bidprice || null,
+			Volume: pt.supply || 0,
+		}));
+
+		if (currentPrice != null && currentPrice > 0 && points.length > 0) {
+			const lastPt = points[points.length - 1];
+			const nowIso = new Date().toISOString();
+			const lastTime = lastPt.time ? new Date(lastPt.time).getTime() : 0;
+			if (Date.now() - lastTime > 60000) {
+				points.push({
+					time: nowIso,
+					Ask: currentPrice,
+					Bid: currentPrice,
+					Volume: lastPt.Volume || 0,
+				});
+			}
+		}
+		return points;
+	}, [history, currentPrice]);
+
+	const displayChartData = React.useMemo(() => {
+		if (!chartData || chartData.length <= 90) return chartData;
+		const maxPts = 90;
+		const step = (chartData.length - 1) / (maxPts - 1);
+		const sampled: any[] = [];
+		for (let i = 0; i < maxPts; i++) {
+			sampled.push(chartData[Math.round(i * step)]);
+		}
+		return sampled;
+	}, [chartData]);
 
 	const handleTimeframeClick = (d: number) => {
 		if (d === -1) {
@@ -111,19 +140,17 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
 	return (
 		<Paper
-			elevation={3}
+			elevation={0}
 			sx={{
-				p: 2.5,
-				background: "rgba(16, 16, 32, 0.5)",
-				border: "1px solid rgba(123, 104, 238, 0.35)",
-				boxShadow:
-					"0 0 35px rgba(123, 104, 238, 0.18), inset 0 0 20px rgba(123, 104, 238, 0.06)",
-				backdropFilter: "blur(25px)",
-				borderRadius: "16px",
+				p: 0,
+				background: "transparent",
+				border: "none",
+				boxShadow: "none",
+				backdropFilter: "none",
 				display: "flex",
 				flexDirection: "column",
 				height: "100%",
-				minHeight: 380,
+				minHeight: 270,
 			}}
 		>
 			{/* Header with Ticker & Controls */}
@@ -173,7 +200,12 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 				{/* Timeframe Controls */}
 				<Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
 					{showCustomPicker && (
-						<Stack direction="row" spacing={1} alignItems="center">
+						<Stack
+							direction="row"
+							spacing={1}
+							alignItems="center"
+							justifyContent="space-between"
+						>
 							<TextField
 								type="date"
 								size="small"
@@ -217,10 +249,9 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
 					<ButtonGroup size="small" variant="outlined">
 						{[
-							{ label: "24H", value: 1 },
 							{ label: "7D", value: 7 },
 							{ label: "30D", value: 30 },
-							{ label: "ALL", value: 0 },
+							{ label: "ALL", value: 365 },
 							{ label: "CUSTOM", value: -1 },
 						].map((item) => (
 							<Button
@@ -255,7 +286,12 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 
 			{/* Chart Area */}
 			<Box
-				sx={{ flex: 1, width: "100%", position: "relative", minHeight: 280 }}
+				sx={{
+					flex: 1,
+					width: "100%",
+					position: "relative",
+					minHeight: 280,
+				}}
 			>
 				{loading ? (
 					<Box
@@ -268,7 +304,7 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 					>
 						<CircularProgress size={32} sx={{ color: "#7B68EE" }} />
 					</Box>
-				) : chartData.length === 0 ? (
+				) : displayChartData.length === 0 ? (
 					<Box
 						sx={{
 							display: "flex",
@@ -285,8 +321,8 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 				) : (
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart
-							data={chartData}
-							margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+							data={displayChartData}
+							margin={{ top: 0, right: -20, left: 0, bottom: 0 }}
 						>
 							<defs>
 								<linearGradient id="askGrad" x1="0" y1="0" x2="0" y2="1">
@@ -326,7 +362,14 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 								}
 							/>
 							<YAxis yAxisId="vol" orientation="left" hide />
-							<Tooltip content={<CustomTooltip />} />
+							<Tooltip
+								content={<CustomTooltip />}
+								cursor={{
+									stroke: "rgba(123, 104, 238, 0.6)",
+									strokeWidth: 1.5,
+									strokeDasharray: "4 4",
+								}}
+							/>
 							<Area
 								yAxisId="price"
 								type="monotone"
@@ -336,6 +379,13 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 								fillOpacity={1}
 								fill="url(#askGrad)"
 								connectNulls
+								isAnimationActive={false}
+								activeDot={{
+									r: 5,
+									fill: "#ff5252",
+									stroke: "#ffffff",
+									strokeWidth: 2,
+								}}
 							/>
 							<Area
 								yAxisId="price"
@@ -346,12 +396,27 @@ export const PriceChart: React.FC<PriceChartProps> = ({
 								fillOpacity={1}
 								fill="url(#bidGrad)"
 								connectNulls
+								isAnimationActive={false}
+								activeDot={{
+									r: 5,
+									fill: "#69f0ae",
+									stroke: "#ffffff",
+									strokeWidth: 2,
+								}}
 							/>
 							<Bar
 								yAxisId="vol"
 								dataKey="Volume"
 								fill="rgba(123, 104, 238, 0.3)"
 								barSize={6}
+								isAnimationActive={false}
+							/>
+							<Brush
+								dataKey="time"
+								height={14}
+								stroke="#7b68ee"
+								fill="rgba(4, 4, 10, 0.9)"
+								tickFormatter={() => ""}
 							/>
 						</ComposedChart>
 					</ResponsiveContainer>

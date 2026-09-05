@@ -52,7 +52,7 @@ import {
 	ReferenceLine,
 } from "recharts";
 import MaterialBadge from "../../../../cosm/components/materialbadge";
-import { copyToClipboard } from "../../../production/components/sitedrawer/utils";
+import { copyToClipboard } from "../../../production/utils/materialprops";
 import { generateXit, XitAction } from "../../../../utils/xitgenerator";
 import { CX_EXCHANGES, MATERIAL_COLORS, calcBuildingCondition } from "./utils";
 import { useFastRepair } from "./usefastrepair";

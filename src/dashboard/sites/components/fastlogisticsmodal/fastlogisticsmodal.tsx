@@ -33,8 +33,7 @@ import MaterialBadge from "../../../../cosm/components/materialbadge";
 import {
 	getMatProps,
 	CARGO_BAYS,
-	copyToClipboard,
-} from "../../../production/components/sitedrawer/utils";
+} from "../../../production/utils/materialprops";
 import {
 	generateSupplyXit,
 	generateExportXit,

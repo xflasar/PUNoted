@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
 	Box,
 	Paper,
@@ -8,161 +8,263 @@ import {
 	TableRow,
 	TableCell,
 	TableBody,
+	TablePagination,
 } from "@mui/material";
 import type { HistoryPoint } from "./types";
 
 export interface HistoryLogProps {
 	history: HistoryPoint[];
+	days?: number;
+	currentItem?: Record<string, any>;
+	exchange?: string;
 }
 
-export const HistoryLog: React.FC<HistoryLogProps> = ({ history }) => {
-	// Sort newest first for the history log table, limit to 10 entries
-	const recentHistory = [...history].reverse().slice(0, 10);
+export const HistoryLog: React.FC<HistoryLogProps> = React.memo(
+	({ history, days = 7, currentItem, exchange = "IC1" }) => {
+		const [page, setPage] = useState<number>(0);
+		const [rowsPerPage, setRowsPerPage] = useState<number>(5);
 
-	return (
-		<Paper
-			elevation={3}
-			sx={{
-				p: 2,
-				background: "rgba(16, 16, 32, 0.5)",
-				border: "1px solid rgba(123, 104, 238, 0.35)",
-				boxShadow:
-					"0 0 35px rgba(123, 104, 238, 0.18), inset 0 0 20px rgba(123, 104, 238, 0.06)",
-				backdropFilter: "blur(25px)",
-				borderRadius: "16px",
-				height: "100%",
-				width: "100%",
-				display: "flex",
-				flexDirection: "column",
-				flex: 1,
-			}}
-		>
-			<Typography
-				variant="subtitle2"
-				sx={{
-					fontWeight: 800,
-					color: "#7B68EE",
-					textTransform: "uppercase",
-					fontSize: "0.75rem",
-					letterSpacing: "0.15em",
-					mb: 1.5,
-				}}
-			>
-				Price & Volume History Log
-			</Typography>
+		// Reset page when history or days changes
+		useEffect(() => {
+			setPage(0);
+		}, [history, days]);
 
-			<Box
+		const dailyHistory = useMemo(() => {
+			const byDate = new Map<string, HistoryPoint>();
+
+			// 1. Add API history points
+			history.forEach((pt) => {
+				if (!pt.timestamp) return;
+				const dateKey = new Date(pt.timestamp).toISOString().split("T")[0];
+				byDate.set(dateKey, pt);
+			});
+
+			// 2. Append today's live data if current day is not in history
+			const todayKey = new Date().toISOString().split("T")[0];
+			const ex = exchange || "IC1";
+			const liveAsk =
+				currentItem?.[`${ex}-AskPrice`] || currentItem?.[`${ex}-Average`] || 0;
+			const liveBid =
+				currentItem?.[`${ex}-BidPrice`] || currentItem?.[`${ex}-Average`] || 0;
+			const liveSupply =
+				currentItem?.[`${ex}-AskAmt`] || currentItem?.[`${ex}-AskAvail`] || 0;
+
+			if (!byDate.has(todayKey) && (liveAsk > 0 || liveBid > 0)) {
+				byDate.set(todayKey, {
+					timestamp: new Date().toISOString(),
+					askprice: liveAsk,
+					bidprice: liveBid,
+					priceaverage: (liveAsk + liveBid) / 2,
+					supply: liveSupply,
+				});
+			}
+
+			// 3. Convert to array and sort newest first
+			let list = Array.from(byDate.values()).sort(
+				(a, b) =>
+					new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+			);
+
+			// 4. Filter by days timeframe if specified
+			if (days && days > 0 && days < 365) {
+				const cutoff = Date.now() - (days + 1) * 86400000;
+				list = list.filter(
+					(item) => new Date(item.timestamp).getTime() >= cutoff,
+				);
+			}
+
+			return list;
+		}, [history, currentItem, exchange, days]);
+
+		const handleChangePage = (_: unknown, newPage: number) => {
+			setPage(newPage);
+		};
+
+		const handleChangeRowsPerPage = (
+			event: React.ChangeEvent<HTMLInputElement>,
+		) => {
+			setRowsPerPage(parseInt(event.target.value, 10));
+			setPage(0);
+		};
+
+		const paginatedHistory = useMemo(() => {
+			return dailyHistory.slice(
+				page * rowsPerPage,
+				page * rowsPerPage + rowsPerPage,
+			);
+		}, [dailyHistory, page, rowsPerPage]);
+
+		return (
+			<Paper
+				elevation={3}
 				sx={{
-					flex: 1,
+					p: 2,
+					background: "rgba(16, 16, 32, 0.5)",
+					border: "1px solid rgba(123, 104, 238, 0.35)",
+					boxShadow:
+						"0 0 35px rgba(123, 104, 238, 0.18), inset 0 0 20px rgba(123, 104, 238, 0.06)",
+					backdropFilter: "blur(25px)",
+					borderRadius: "16px",
+					height: "100%",
 					width: "100%",
-					overflowY: "auto",
-					"&::-webkit-scrollbar": { width: "4px" },
-					"&::-webkit-scrollbar-track": { background: "transparent" },
-					"&::-webkit-scrollbar-thumb": {
-						backgroundColor: "rgba(123, 104, 238, 0.4)",
-						borderRadius: "2px",
-					},
+					display: "flex",
+					flexDirection: "column",
+					flex: 1,
 				}}
 			>
-				<Table
-					size="small"
-					stickyHeader
-					sx={{ bgcolor: "transparent", width: "100%" }}
+				<Typography
+					variant="subtitle2"
+					sx={{
+						fontWeight: 800,
+						color: "#7B68EE",
+						textTransform: "uppercase",
+						fontSize: "0.75rem",
+						letterSpacing: "0.15em",
+						mb: 1.5,
+					}}
 				>
-					<TableHead>
-						<TableRow
-							sx={{
-								"& th": {
-									bgcolor: "rgba(16, 16, 32, 0.95)",
-									color: "rgba(255,255,255,0.5)",
-									fontSize: "0.65rem",
-									fontWeight: 700,
-									borderBottom: "1px solid rgba(255,255,255,0.08)",
-									py: 0.75,
-								},
-							}}
-						>
-							<TableCell>DATE</TableCell>
-							<TableCell align="right">ASK</TableCell>
-							<TableCell align="right">BID</TableCell>
-							<TableCell align="right">SPREAD</TableCell>
-							<TableCell align="right">SUPPLY</TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{recentHistory.map((row, idx) => {
-							const ask = row.askprice || 0;
-							const bid = row.bidprice || 0;
-							const spread = ask && bid ? ask - bid : 0;
-							const dateStr = row.timestamp
-								? new Date(row.timestamp).toLocaleDateString(undefined, {
-										month: "short",
-										day: "numeric",
-									})
-								: "-";
+					Price & Volume History Log
+				</Typography>
 
-							return (
-								<TableRow
-									key={idx}
-									sx={{
-										"&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
-										"& td": {
-											borderBottom: "1px solid rgba(255,255,255,0.04)",
-											py: 0.75,
-											fontSize: "0.75rem",
-											fontVariantNumeric: "tabular-nums",
-										},
-									}}
-								>
-									<TableCell
-										sx={{ color: "rgba(255,255,255,0.7)", fontWeight: 600 }}
-									>
-										{dateStr}
-									</TableCell>
-									<TableCell
-										align="right"
-										sx={{ color: "#ff5252", fontWeight: 600 }}
-									>
-										{ask ? ask.toLocaleString() : "-"}
-									</TableCell>
-									<TableCell
-										align="right"
-										sx={{ color: "#69f0ae", fontWeight: 600 }}
-									>
-										{bid ? bid.toLocaleString() : "-"}
-									</TableCell>
-									<TableCell
-										align="right"
+				<Box
+					sx={{
+						flex: 1,
+						width: "100%",
+						overflowY: "auto",
+						"&::-webkit-scrollbar": { width: "4px" },
+						"&::-webkit-scrollbar-track": { background: "transparent" },
+						"&::-webkit-scrollbar-thumb": {
+							backgroundColor: "rgba(123, 104, 238, 0.4)",
+							borderRadius: "2px",
+						},
+					}}
+				>
+					<Table
+						size="small"
+						stickyHeader
+						sx={{ bgcolor: "transparent", width: "100%" }}
+					>
+						<TableHead>
+							<TableRow
+								sx={{
+									"& th": {
+										bgcolor: "rgba(16, 16, 32, 0.95)",
+										color: "rgba(255,255,255,0.5)",
+										fontSize: "0.65rem",
+										fontWeight: 700,
+										borderBottom: "1px solid rgba(255,255,255,0.08)",
+										py: 0.75,
+									},
+								}}
+							>
+								<TableCell>DATE</TableCell>
+								<TableCell align="right">ASK</TableCell>
+								<TableCell align="right">BID</TableCell>
+								<TableCell align="right">SPREAD</TableCell>
+								<TableCell align="right">SUPPLY</TableCell>
+							</TableRow>
+						</TableHead>
+						<TableBody>
+							{paginatedHistory.map((row, idx) => {
+								const ask = row.askprice || 0;
+								const bid = row.bidprice || 0;
+								const spread = ask && bid ? ask - bid : 0;
+								const isToday =
+									new Date(row.timestamp).toISOString().split("T")[0] ===
+									new Date().toISOString().split("T")[0];
+								const dateStr = row.timestamp
+									? `${new Date(row.timestamp).toLocaleDateString(undefined, {
+											month: "short",
+											day: "numeric",
+										})}${isToday ? " (Today)" : ""}`
+									: "-";
+
+								return (
+									<TableRow
+										key={idx}
 										sx={{
-											color: spread > 0 ? "#00e5ff" : "rgba(255,255,255,0.4)",
+											"&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
+											"& td": {
+												borderBottom: "1px solid rgba(255,255,255,0.04)",
+												py: 0.75,
+												fontSize: "0.75rem",
+												fontVariantNumeric: "tabular-nums",
+											},
 										}}
 									>
-										{spread ? spread.toLocaleString() : "-"}
-									</TableCell>
+										<TableCell
+											sx={{
+												color: isToday ? "#7B68EE" : "rgba(255,255,255,0.7)",
+												fontWeight: isToday ? 800 : 600,
+											}}
+										>
+											{dateStr}
+										</TableCell>
+										<TableCell
+											align="right"
+											sx={{ color: "#ff5252", fontWeight: 600 }}
+										>
+											{ask ? ask.toLocaleString() : "-"}
+										</TableCell>
+										<TableCell
+											align="right"
+											sx={{ color: "#69f0ae", fontWeight: 600 }}
+										>
+											{bid ? bid.toLocaleString() : "-"}
+										</TableCell>
+										<TableCell
+											align="right"
+											sx={{
+												color: spread > 0 ? "#00e5ff" : "rgba(255,255,255,0.4)",
+											}}
+										>
+											{spread ? spread.toLocaleString() : "-"}
+										</TableCell>
+										<TableCell
+											align="right"
+											sx={{ color: "rgba(255,255,255,0.8)" }}
+										>
+											{row.supply ? row.supply.toLocaleString() : "-"}
+										</TableCell>
+									</TableRow>
+								);
+							})}
+
+							{dailyHistory.length === 0 && (
+								<TableRow>
 									<TableCell
-										align="right"
-										sx={{ color: "rgba(255,255,255,0.8)" }}
+										colSpan={5}
+										align="center"
+										sx={{ color: "rgba(255,255,255,0.3)", py: 3 }}
 									>
-										{row.supply ? row.supply.toLocaleString() : "-"}
+										No history log recorded
 									</TableCell>
 								</TableRow>
-							);
-						})}
+							)}
+						</TableBody>
+					</Table>
+				</Box>
 
-						{recentHistory.length === 0 && (
-							<TableRow>
-								<TableCell
-									colSpan={5}
-									align="center"
-									sx={{ color: "rgba(255,255,255,0.3)", py: 3 }}
-								>
-									No history log recorded
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
-			</Box>
-		</Paper>
-	);
-};
+				{dailyHistory.length > 0 && (
+					<TablePagination
+						component="div"
+						count={dailyHistory.length}
+						page={page}
+						onPageChange={handleChangePage}
+						rowsPerPage={rowsPerPage}
+						onRowsPerPageChange={handleChangeRowsPerPage}
+						rowsPerPageOptions={[5, 10, 25]}
+						sx={{
+							color: "rgba(255, 255, 255, 0.7)",
+							fontSize: "0.75rem",
+							borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+							"& .MuiTablePagination-selectIcon": { color: "#7B68EE" },
+							"& .MuiTablePagination-actions": { color: "#7B68EE" },
+							py: 0,
+						}}
+					/>
+				)}
+			</Paper>
+		);
+	},
+);

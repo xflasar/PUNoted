@@ -29,7 +29,9 @@ import {
 	ToggleButton,
 	Autocomplete,
 	Slider,
+	IconButton,
 } from "@mui/material";
+import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import {
 	Search,
 	TrendingUp,
@@ -50,6 +52,7 @@ import {
 import MaterialBadge from "../cosm/components/materialbadge";
 import { fetchClient } from "../utils/apiclient";
 import { useNavigate } from "react-router-dom";
+import { useGlobalData } from "../context/globaldatacontext";
 
 export interface ArbitrageFinderProps {
 	marketData: Record<string, any>[];
@@ -156,10 +159,87 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 	return debounced;
 }
 
+// TODO: Rework this -> mostly doesn't work
 export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 	marketData,
 }) => {
 	const navigate = useNavigate();
+	const globalData = useGlobalData();
+
+	// Storage & Fleet from GlobalDataContext (Station Warehouses ONLY)
+	const userShips = globalData?.ownerShips || [];
+	const storageUnits = globalData?.storageState?.units;
+	const userStorages = useMemo(() => {
+		if (!storageUnits) return [];
+		return Object.values(storageUnits)
+			.filter((unit: any) => {
+				const uType = (unit.type || "").toUpperCase();
+				if (
+					uType.includes("SHIP") ||
+					uType.includes("FUEL") ||
+					uType === "SHIP_STORE"
+				) {
+					return false;
+				}
+				const rawLoc = String(
+					unit.storagelocation ||
+						unit.StorageLocation ||
+						unit.planetname ||
+						unit.PlanetName ||
+						unit.station_name ||
+						unit.stationname ||
+						unit.name ||
+						unit.Name ||
+						unit.addressableid ||
+						"",
+				).toUpperCase();
+
+				return (
+					uType.includes("STATION") ||
+					rawLoc.includes("STATION") ||
+					EXCHANGES.some((ex) => rawLoc.includes(ex))
+				);
+			})
+			.map((unit: any) => {
+				const stName =
+					unit.name ||
+					unit.storagelocation ||
+					unit.station_name ||
+					unit.planet_name ||
+					"Station Warehouse";
+				const reg =
+					unit.registration ||
+					unit.code ||
+					unit.addressableid ||
+					unit.storageid ||
+					"";
+				const volLoad = unit.volumeload || 0;
+				const volCap = unit.volumecapacity || 0;
+				const itemsList = Array.isArray(unit.items)
+					? unit.items
+					: Array.isArray(unit.storage_items)
+						? unit.storage_items
+						: Array.isArray(unit.contents)
+							? unit.contents
+							: [];
+				const itemCount = itemsList.length;
+
+				const displayName = `${stName}${reg ? ` (${reg})` : ""} — ${volLoad.toLocaleString()} / ${volCap.toLocaleString()} m³ (${itemCount} items)`;
+				return {
+					...unit,
+					stName,
+					reg,
+					displayName,
+					itemsList,
+				};
+			});
+	}, [storageUnits]);
+
+	const [selectedStorageId, setSelectedStorageId] = useState<string>("ALL");
+	const [selectedStorageMaterials, setSelectedStorageMaterials] = useState<
+		string[]
+	>([]);
+	const [selectedShipId, setSelectedShipId] = useState<string>("HERCULES");
 
 	// Sub-Tab Switcher: 'list' vs 'matrix'
 	const [subTab, setSubTab] = useState<"list" | "matrix">("list");
@@ -189,9 +269,8 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 		return DEFAULT_PRESETS;
 	});
 
-	const [userShips, setUserShips] = useState<any[]>([]);
-	const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-	const [selectedShipId, setSelectedShipId] = useState<string>("HERCULES");
+	const isLoggedIn =
+		globalData?.isLoggedIn ?? Boolean(localStorage.getItem("authToken"));
 
 	// Cargo Capacity Controls (% Load Slider & Direct m³ / t inputs)
 	const [cargoLoadPercent, setCargoLoadPercent] = useState<number>(100);
@@ -200,11 +279,12 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 
 	// Raw filter inputs
 	const [searchRaw, setSearchRaw] = useState<string>("");
+	const [exactMatch, setExactMatch] = useState<boolean>(false);
 	const [srcFilter, setSrcFilter] = useState<string>("ALL");
 	const [dstFilter, setDstFilter] = useState<string>("ALL");
 	const [fuelPriceRaw, setFuelPriceRaw] = useState<number>(18.0);
-	const [minMarginRaw, setMinMarginRaw] = useState<number>(-999);
-	const [minProfitRaw, setMinProfitRaw] = useState<number>(-999999);
+	const [minMarginRaw, setMinMarginRaw] = useState<number>(0);
+	const [minProfitRaw, setMinProfitRaw] = useState<number>(1);
 
 	// Custom Buy Simulator inputs (by ticker)
 	const [customBuyPrices, setCustomBuyPrices] = useState<
@@ -236,34 +316,15 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 		"SMALL" | "MEDIUM" | "HEAVY" | "SUPER"
 	>("MEDIUM");
 
-	useEffect(() => {
-		const token = localStorage.getItem("authToken");
-		if (token) {
-			setIsLoggedIn(true);
-			fetchClient("internal/ships/")
-				.then((res) => res.json())
-				.then((data) => Array.isArray(data) && setUserShips(data))
-				.catch(() => {
-					fetchClient("ships/user")
-						.then((r) => r.json())
-						.then((d) => Array.isArray(d) && setUserShips(d))
-						.catch(() => {});
-				});
-		}
-	}, []);
-
 	// Update cargo inputs when a ship or preset is selected
 	useEffect(() => {
 		const uShip = userShips.find(
-			(s) =>
-				(s.ShipRegistration || s.registration || s.shipname || s.id) ===
-				selectedShipId,
+			(s) => (s.registration || s.name || s.id) === selectedShipId,
 		);
 		if (uShip) {
-			const vol =
-				uShip.CargoVolume || uShip.volumecapacity || uShip.volume || 2000;
-			const mass =
-				uShip.CargoWeight || uShip.weightcapacity || uShip.mass || 500;
+			const storage = storageUnits?.[uShip.id_ship_store];
+			const vol = storage?.volumecapacity || 2000;
+			const mass = storage?.weightcapacity || 500;
 			setCargoVolumeRaw(vol);
 			setCargoMassRaw(mass);
 			return;
@@ -282,12 +343,10 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 		const effectiveMass = Math.round((cargoMassRaw || 500) * mult);
 
 		const uShip = userShips.find(
-			(s) =>
-				(s.ShipRegistration || s.registration || s.shipname || s.id) ===
-				selectedShipId,
+			(s) => (s.registration || s.name || s.id) === selectedShipId,
 		);
 		const shipName = uShip
-			? `${uShip.ShipName || uShip.shipname || "Ship"} (${uShip.ShipRegistration || uShip.registration || "REG"})`
+			? `${uShip.name || "Ship"} (${uShip.registration || "REG"})`
 			: presets.find((p) => p.id === selectedShipId)?.name || "User Ship";
 
 		const hullType =
@@ -324,7 +383,7 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 
 	// Fetch backend stability & average price time-series matrix when timeframe changes
 	useEffect(() => {
-		fetchClient(`cx/stability-matrix?days=${timeframeDays}`)
+		fetchClient(`internal/cx/stability-matrix?days=${timeframeDays}`)
 			.then((res) => res.json())
 			.then((data) => {
 				if (data && typeof data === "object") {
@@ -438,13 +497,65 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 
 		const hullMult = HULL_MULTIPLIERS[activeShip.hullType] || 3.0;
 
+		const searchTerms = searchQuery
+			.split(",")
+			.map((s) => s.trim().toUpperCase())
+			.filter(Boolean);
+
+		// Station Storage items set & multi-select filtering
+		let storageTickersSet: Set<string> | null = null;
+		if (selectedStorageMaterials.length > 0) {
+			storageTickersSet = new Set(
+				selectedStorageMaterials.map((t) => t.toUpperCase()),
+			);
+		} else if (selectedStorageId !== "ALL") {
+			const activeStorage = userStorages.find(
+				(s: any) => (s.storageid || s.id || s.storage_id) === selectedStorageId,
+			);
+			if (activeStorage) {
+				const itemsList = Array.isArray(activeStorage.items)
+					? activeStorage.items
+					: Array.isArray(activeStorage.storage_items)
+						? activeStorage.storage_items
+						: Array.isArray(activeStorage.contents)
+							? activeStorage.contents
+							: [];
+				storageTickersSet = new Set(
+					itemsList
+						.map((i: any) =>
+							(
+								i.ticker ||
+								i.material_ticker ||
+								i.materialid ||
+								""
+							).toUpperCase(),
+						)
+						.filter(Boolean),
+				);
+			}
+		}
+
 		marketData.forEach((row) => {
 			const ticker = (row.Ticker || row.ticker || "").toUpperCase();
 			if (!ticker) return;
 
+			if (storageTickersSet && !storageTickersSet.has(ticker)) return;
+
+			if (searchTerms.length > 0) {
+				const matches = searchTerms.some((term) =>
+					exactMatch ? ticker === term : ticker.includes(term),
+				);
+				if (!matches) return;
+			}
+
 			EXCHANGES.forEach((srcEx) => {
+				if (srcFilter !== "ALL" && srcEx !== srcFilter) return;
+
 				const srcAsk = row[`${srcEx}-AskPrice`] || 0;
 				const srcAskQty = row[`${srcEx}-AskAmt`] || 0;
+				const userBuyPrice = customBuyPrices[ticker] || srcAsk;
+
+				if (userBuyPrice <= 0 && srcAsk <= 0) return;
 
 				const srcKey = `${ticker}.${srcEx.toUpperCase()}`;
 				const srcHist = stabilityMap[srcKey];
@@ -454,7 +565,6 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 					srcHist?.avg_supply || srcRawTraded / timeframeDays,
 				);
 
-				const userBuyPrice = customBuyPrices[ticker] || srcAsk;
 				const userBuyQty =
 					customBuyQtys[ticker] || (srcAskQty > 0 ? srcAskQty : 100);
 				const rangeUpper = roundNum(
@@ -468,6 +578,7 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 
 				EXCHANGES.forEach((dstEx) => {
 					if (srcEx === dstEx) return;
+					if (dstFilter !== "ALL" && dstEx !== dstFilter) return;
 
 					const dstAsk = row[`${dstEx}-AskPrice`] || 0;
 					const dstBid = row[`${dstEx}-BidPrice`] || 0;
@@ -516,16 +627,35 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 					const instantMarginPct =
 						userBuyPrice > 0 ? (instantSpread / userBuyPrice) * 100 : 0;
 
-					// 2. Expected Velocity Calculations
-					const expectedTargetPrice =
-						dstAvg > 0 ? dstAvg : dstAsk > 0 ? dstAsk : dstBid;
-					const hasExpectedData = expectedTargetPrice > 0 && userBuyPrice > 0;
+					// 2. Expected Velocity Calculations (Filter out illiquid ask spikes without buyers)
+					let expectedTargetPrice = 0;
+					if (dstBid > 0) {
+						expectedTargetPrice = dstBid;
+					} else if (
+						dstAvg > 0 &&
+						(dstDailyTradedAvg > 0 || dstHist?.samples > 0)
+					) {
+						expectedTargetPrice = dstAvg;
+					} else if (
+						dstAsk > 0 &&
+						dstAsk <= userBuyPrice * 2.5 &&
+						dstDailyTradedAvg > 0
+					) {
+						expectedTargetPrice = dstAsk;
+					}
+
+					const hasExpectedData =
+						expectedTargetPrice > 0 &&
+						userBuyPrice > 0 &&
+						(dstBidQty > 0 || dstDailyTradedAvg > 0);
 					const expectedUnits = hasExpectedData
 						? Math.min(
 								purchasableUnits,
 								dstDailyTradedAvg > 0
 									? dstDailyTradedAvg
-									: dstBidQty || purchasableUnits,
+									: dstBidQty > 0
+										? dstBidQty
+										: purchasableUnits,
 							)
 						: 0;
 					const expectedSpread = expectedTargetPrice - userBuyPrice;
@@ -630,6 +760,12 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 		stabilityMap,
 		customBuyPrices,
 		customBuyQtys,
+		searchQuery,
+		exactMatch,
+		srcFilter,
+		dstFilter,
+		selectedStorageId,
+		userStorages,
 	]);
 
 	// Calculate Best Green Commodity (Highest Positive Matrix Routes & Profit)
@@ -895,6 +1031,37 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 											<Search size={14} color="rgba(255,255,255,0.5)" />
 										</InputAdornment>
 									),
+									endAdornment: (
+										<InputAdornment position="end">
+											<Tooltip
+												title={
+													exactMatch ? "Exact Match: ON" : "Exact Match: OFF"
+												}
+											>
+												<IconButton
+													size="small"
+													onClick={() => setExactMatch((prev) => !prev)}
+													sx={{
+														color: exactMatch
+															? "#7B68EE"
+															: "rgba(255, 255, 255, 0.4)",
+														bgcolor: exactMatch
+															? "rgba(123, 104, 238, 0.2)"
+															: "transparent",
+														p: "2px",
+														borderRadius: "4px",
+														"&:hover": {
+															bgcolor: exactMatch
+																? "rgba(123, 104, 238, 0.3)"
+																: "rgba(255, 255, 255, 0.1)",
+														},
+													}}
+												>
+													<CenterFocusStrongIcon sx={{ fontSize: 16 }} />
+												</IconButton>
+											</Tooltip>
+										</InputAdornment>
+									),
 								},
 							}}
 						/>
@@ -1022,13 +1189,11 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 									</MenuItem>
 								)}
 								{userShips.map((s) => {
-									const reg =
-										s.ShipRegistration || s.registration || s.id || "REG";
-									const name = s.ShipName || s.shipname || "User Ship";
-									const vol =
-										s.CargoVolume || s.volumecapacity || s.volume || 2000;
-									const mass =
-										s.CargoWeight || s.weightcapacity || s.mass || 500;
+									const reg = s.registration || s.id || "REG";
+									const name = s.name || "User Ship";
+									const storage = storageUnits?.[s.id_ship_store];
+									const vol = storage?.volumecapacity || 2000;
+									const mass = storage?.weightcapacity || 500;
 									return (
 										<MenuItem key={reg} value={reg}>
 											🚢 {name} ({reg}) — {vol.toLocaleString()} m³ /{" "}
@@ -1052,6 +1217,224 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 							</Select>
 						</FormControl>
 					</Box>
+
+					{/* User Station Inventory Selector (Logged-In Users) */}
+					{isLoggedIn && userStorages.length > 0 && (
+						<Box sx={{ flex: "2 1 240px" }}>
+							<FormControl size="small" fullWidth>
+								<InputLabel sx={{ color: "#4CAF50", fontSize: "0.8rem" }}>
+									Station Inventory / Storage
+								</InputLabel>
+								<Select
+									value={selectedStorageId}
+									label="Station Inventory / Storage"
+									onChange={(e) => {
+										const stId = e.target.value;
+										setSelectedStorageId(stId);
+										setPage(0);
+										if (stId !== "ALL") {
+											const st = userStorages.find(
+												(s: any) =>
+													(s.storageid || s.id || s.storage_id) === stId,
+											);
+											if (st) {
+												const loc = (
+													st.name ||
+													st.storagename ||
+													st.station_name ||
+													st.planet_name ||
+													st.location_name ||
+													st.addressableid ||
+													""
+												).toUpperCase();
+												const matchedEx = EXCHANGES.find((ex) =>
+													loc.includes(ex),
+												);
+												if (matchedEx) setSrcFilter(matchedEx);
+
+												const itemsList = Array.isArray(st.items)
+													? st.items
+													: Array.isArray(st.storage_items)
+														? st.storage_items
+														: Array.isArray(st.contents)
+															? st.contents
+															: [];
+												if (itemsList.length > 0) {
+													const newQtys: Record<string, number> = {};
+													itemsList.forEach((item: any) => {
+														const tk = (
+															item.ticker ||
+															item.material_ticker ||
+															item.materialid ||
+															""
+														).toUpperCase();
+														const qty = Number(
+															item.quantity ||
+																item.amount ||
+																item.currencyamount ||
+																0,
+														);
+														if (tk && qty > 0) newQtys[tk] = qty;
+													});
+													setCustomBuyQtys(newQtys);
+												}
+											}
+										}
+									}}
+									sx={{
+										bgcolor: "rgba(76, 175, 80, 0.1)",
+										color: "#4CAF50",
+										fontSize: "0.8rem",
+										"& .MuiOutlinedInput-notchedOutline": {
+											borderColor: "rgba(76, 175, 80, 0.4)",
+										},
+									}}
+								>
+									<MenuItem value="ALL">
+										All Commodities (Standard CX Search)
+									</MenuItem>
+									<MenuItem
+										disabled
+										sx={{
+											fontWeight: 800,
+											fontSize: "0.7rem",
+											color: "#4CAF50",
+										}}
+									>
+										--- YOUR STATION INVENTORIES ---
+									</MenuItem>
+									{userStorages.map((st: any) => {
+										const id = st.storageid || st.id || st.storage_id;
+										const name = st.displayName || "Station Storage";
+										const itemsList = Array.isArray(st.items)
+											? st.items
+											: Array.isArray(st.storage_items)
+												? st.storage_items
+												: Array.isArray(st.contents)
+													? st.contents
+													: [];
+										const itemCount = itemsList.length;
+										return (
+											<MenuItem key={id} value={id}>
+												🏬 {name} ({itemCount} stored items)
+											</MenuItem>
+										);
+									})}
+								</Select>
+							</FormControl>
+						</Box>
+					)}
+
+					{/* Station Storage Item Multi-Select Filter Bar */}
+					{selectedStorageId !== "ALL" && (
+						<Box
+							sx={{
+								width: "100%",
+								p: 1.5,
+								bgcolor: "rgba(76, 175, 80, 0.08)",
+								border: "1px solid rgba(76, 175, 80, 0.25)",
+								borderRadius: "10px",
+								display: "flex",
+								flexDirection: "column",
+								gap: 1,
+							}}
+						>
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "space-between",
+								}}
+							>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "#81C784",
+										fontWeight: 700,
+										textTransform: "uppercase",
+										fontSize: "0.7rem",
+									}}
+								>
+									Filter Warehouse Materials (Multi-Select)
+								</Typography>
+								<Box sx={{ display: "flex", gap: 1 }}>
+									<Button
+										size="small"
+										variant="text"
+										onClick={() => setSelectedStorageMaterials([])}
+										sx={{
+											color: "rgba(255,255,255,0.6)",
+											fontSize: "0.65rem",
+											py: 0,
+										}}
+									>
+										Select All
+									</Button>
+								</Box>
+							</Box>
+							<Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+								{(() => {
+									const st = userStorages.find(
+										(s: any) =>
+											(s.storageid || s.id || s.storage_id) ===
+											selectedStorageId,
+									);
+									if (!st) return null;
+									const itemsList = Array.isArray(st.items)
+										? st.items
+										: Array.isArray(st.storage_items)
+											? st.storage_items
+											: Array.isArray(st.contents)
+												? st.contents
+												: [];
+
+									return itemsList.map((item: any) => {
+										const tk = (
+											item.ticker ||
+											item.material_ticker ||
+											item.materialid ||
+											""
+										).toUpperCase();
+										const qty = Number(
+											item.quantity || item.amount || item.currencyamount || 0,
+										);
+										if (!tk) return null;
+
+										const isSelected = selectedStorageMaterials.includes(tk);
+										return (
+											<Chip
+												key={tk}
+												clickable
+												size="small"
+												label={`${tk}: ${qty.toLocaleString()} u`}
+												onClick={() => {
+													setPage(0);
+													setSelectedStorageMaterials((prev) =>
+														prev.includes(tk)
+															? prev.filter((t) => t !== tk)
+															: [...prev, tk],
+													);
+												}}
+												sx={{
+													bgcolor: isSelected
+														? "#4CAF50"
+														: "rgba(255,255,255,0.06)",
+													color: "white",
+													fontWeight: isSelected ? 700 : 400,
+													border: `1px solid ${isSelected ? "#81C784" : "rgba(255,255,255,0.15)"}`,
+													"&:hover": {
+														bgcolor: isSelected
+															? "#388E3C"
+															: "rgba(255,255,255,0.15)",
+													},
+												}}
+											/>
+										);
+									});
+								})()}
+							</Stack>
+						</Box>
+					)}
 
 					{/* Cargo Vol (m³) Input */}
 					<Box sx={{ flex: "1 1 110px" }}>

@@ -6,6 +6,10 @@ export interface ProducerConsumerItem {
 	player: string;
 	amount: number;
 	isAccurate: boolean;
+	batchProdActive?: number;
+	batchProdQueued?: number;
+	batchConsActive?: number;
+	batchConsQueued?: number;
 }
 
 /**
@@ -22,9 +26,31 @@ export interface ProductionSummaryItem {
 	consumptionAccurate: number;
 	consumptionEstimated: number;
 	net: number;
+	storageQty?: number;
+	price?: number;
+	marketSharePct?: number;
+	batchProdActive?: number;
+	batchProdQueued?: number;
+	batchConsActive?: number;
+	batchConsQueued?: number;
 	producers: ProducerConsumerItem[];
 	consumers: ProducerConsumerItem[];
-	name: string;
+	userRecipeInputs?: Record<string, number>;
+	userRecipesUsed?: Array<{
+		recipeKey: string;
+		building: string;
+		dailyOutput: number;
+		dailyCycles: number;
+		outputAmount: number;
+		inputs: Record<string, number>;
+		users?: Array<{
+			player: string;
+			loc: string;
+			dailyOutput: number;
+			dailyCycles: number;
+		}>;
+	}>;
+	name?: string;
 }
 
 /**
@@ -48,6 +74,7 @@ export interface CorpOverviewData {
 	headquarters: string;
 	productionSummary: ProductionSummaryItem[];
 	members?: CorpMember[];
+	balances?: { currency: string; amount: number }[];
 }
 
 /**
@@ -59,4 +86,12 @@ export interface CustomCategory {
 	items: ProductionSummaryItem[];
 	isDrilldown: boolean;
 	drillType?: "prod" | "cons";
+}
+
+/**
+ * Defines RecipeMaterial
+ */
+export interface RecipeMaterial {
+	ticker: string;
+	factor: number;
 }

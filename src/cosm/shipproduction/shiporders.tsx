@@ -107,7 +107,7 @@ export const ShipOrders: React.FC<ShipOrdersProps> = ({
 		}
 		try {
 			const res = await fetchClient(
-				`v1/corporation/ship-orders/by-pin?corporation_id=COSM&pin=${pinInput}`,
+				`internal/corporation/ship-orders/by-pin?corporation_id=COSM&pin=${pinInput}`,
 			);
 			if (!res.ok) {
 				throw new Error("Invalid PIN or order not found");

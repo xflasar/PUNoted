@@ -38,6 +38,7 @@ interface ProductionFlowsListProps {
 	productionList: FlowData[];
 	consumptionList: FlowData[];
 	targetDays: number;
+	materialTargetDays?: Record<string, number>;
 	dailyImportVolume: number;
 	dailyImportMass: number;
 	dailyExportVolume: number;
@@ -51,6 +52,7 @@ export const ProductionFlowsList: React.FC<ProductionFlowsListProps> = ({
 	productionList,
 	consumptionList,
 	targetDays,
+	materialTargetDays = {},
 	dailyImportVolume,
 	dailyImportMass,
 	dailyExportVolume,
@@ -306,11 +308,16 @@ export const ProductionFlowsList: React.FC<ProductionFlowsListProps> = ({
 							const siteDays = dailyCons > 0 ? siteStock / dailyCons : 999;
 							const whDays = dailyCons > 0 ? whStock / dailyCons : 0;
 
-							const targetQty = targetDays * dailyCons;
+							const effTargetDays =
+								materialTargetDays && materialTargetDays[c.ticker] !== undefined
+									? materialTargetDays[c.ticker]
+									: targetDays;
+
+							const targetQty = effTargetDays * dailyCons;
 							const siteMissing = Math.max(0, targetQty - siteStock);
 
-							const isCritical = siteDays < targetDays / 5;
-							const isWarning = siteDays < targetDays;
+							const isCritical = siteDays < effTargetDays / 5;
+							const isWarning = siteDays < effTargetDays;
 							const daysColor = isCritical
 								? "#ff5252"
 								: isWarning
@@ -382,7 +389,7 @@ export const ProductionFlowsList: React.FC<ProductionFlowsListProps> = ({
 										>
 											{/* Supply Days Status Chip */}
 											<Tooltip
-												title={`Site Inventory: ${siteDays > 999 ? "∞" : `${siteDays.toFixed(1)}d`} (${siteStock.toLocaleString()} u)${whDays > 0 ? ` | Warehouse Backup: ${whDays.toFixed(1)}d (${whStock.toLocaleString()} u)` : ""}`}
+												title={`Site Inventory: ${siteDays > 999 ? "∞" : `${siteDays.toFixed(1)}d`} (${siteStock.toLocaleString()} u) [Target: ${effTargetDays}d]${whDays > 0 ? ` | Warehouse Backup: ${whDays.toFixed(1)}d (${whStock.toLocaleString()} u)` : ""}`}
 											>
 												<Box
 													sx={{
@@ -425,7 +432,7 @@ export const ProductionFlowsList: React.FC<ProductionFlowsListProps> = ({
 
 											{/* Stored / Need Amount */}
 											<Tooltip
-												title={`Site Stock: ${siteStock.toLocaleString()} u | Need for ${targetDays}d: ${siteMissing > 0 ? siteMissingText : "Covered"}`}
+												title={`Site Stock: ${siteStock.toLocaleString()} u | Target (${effTargetDays}d): ${Math.ceil(targetQty).toLocaleString()} u | ${siteMissing > 0 ? `Missing: ${siteMissingText}` : "Covered"}`}
 											>
 												<Typography
 													variant="caption"

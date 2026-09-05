@@ -134,7 +134,7 @@ export function calculateDynamicStats(
 	} else if (total_volume >= 1700) {
 		crewTicker = "CQM";
 		crewLabel = "Medium";
-	} else if (total_volume >= 950) {
+	} else if (total_volume >= 945) {
 		crewTicker = "CQS";
 		crewLabel = "Small";
 	} else {

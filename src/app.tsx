@@ -27,6 +27,8 @@ import FinancialOverview from "./dashboard/financial/financialoverview";
 import { API_BASE_URL } from "./config/api";
 import { BasePlanner } from "./dashboard/planner/baseplanner";
 import ContractsPage from "./dashboard/contracts/contracts";
+import { GlobalWsProvider } from "./dashboard/websocket/globalwscontext";
+import { GlobalDataProvider } from "./context/globaldatacontext";
 
 const isTokenValid = () => {
 	const token = localStorage.getItem("authToken");
@@ -70,18 +72,7 @@ const ProtectedLayout = () => {
 function App() {
 	const [isLoggedIn, setIsLoggedIn] = useState(isTokenValid());
 	const [isLoading, setIsLoading] = useState(true);
-	const [apiStatus, setApiStatus] = useState<"online" | "offline">("online");
 	const navigate = useNavigate();
-
-	useEffect(() => {
-		const checkStatus = async () => {
-			const status = await getApiStatus();
-			setApiStatus(status);
-		};
-		checkStatus();
-		const intervalId = setInterval(checkStatus, 30000);
-		return () => clearInterval(intervalId);
-	}, []);
 
 	useEffect(() => {
 		const attemptSilentRefresh = async () => {
@@ -249,79 +240,95 @@ function App() {
 	};
 
 	return (
-		<Box sx={{ height: "100vh", width: "100vw" }}>
-			<Routes>
-				{/* Public Routes */}
-				<Route
-					path="/"
-					element={
-						<LandingPage
-							onLoginSuccess={handleLoginSuccess}
-							isLoggedIn={isLoggedIn}
-							onLogout={handleLogout}
-						/>
-					}
-				/>
-				<Route path="/privacy" element={<PrivacyPolicy />} />
-
-				<Route path="/cosm" element={<CosmPage isLoggedIn={isLoggedIn} />} />
-
-				<Route path="/galaxy-map" element={<GalaxyMap />} />
-
-				<Route path="/cx" element={<CX />} />
-				<Route path="/planner/:planId" element={<BasePlanner />} />
-
-				{/* Protected Routes - These are nested under a protected layout */}
-				<Route
-					element={
-						<ProtectedRoute isLoggedIn={isLoggedIn} isLoading={isLoading} />
-					}
-				>
-					<Route element={<ProtectedLayout />}>
-						<Route path="/dashboard/galaxy-map" element={<DashboardPage />} />
+		<GlobalWsProvider>
+			<GlobalDataProvider>
+				<Box sx={{ height: "100vh", width: "100vw" }}>
+					<Routes>
+						{/* Public Routes */}
 						<Route
-							path="/dashboard/public-data"
-							element={<div>PUBLIC DATA (WIP)</div>}
-						/>
-						<Route path="/dashboard/governance" element={<Governance />} />
-						<Route path="/dashboard/cx" element={<CXDashboard />} />
-						<Route
-							path="/dashboard/cooperation"
-							element={<>Cooperation (WIP)</>}
-						/>
-						<Route path="/dashboard/sites" element={<SitesPage />} />
-						<Route path="/dashboard/planner" element={<BasePlanner />} />
-						<Route
-							path="/dashboard/planner/:planId"
-							element={<BasePlanner />}
-						/>
-						<Route path="/dashboard/logistics" element={<Logistics />} />
-						<Route path="/dashboard/contracts" element={<ContractsPage />} />
-						<Route path="/dashboard/shipments" element={<ShipmentPage />} />
-						<Route path="/dashboard/storage" element={<StoragePage />} />
-						<Route
-							path="/dashboard/settings"
+							path="/"
 							element={
-								<Settings userId={localStorage.getItem("currentUserId")!} />
+								<LandingPage
+									onLoginSuccess={handleLoginSuccess}
+									isLoggedIn={isLoggedIn}
+									onLogout={handleLogout}
+								/>
 							}
 						/>
-						<Route path="/dashboard/corp" element={<CorporationOverview />} />
-						<Route
-							path="/dashboard/leaderboard"
-							element={<ProductionLeaderboard />}
-						/>
-						<Route
-							path="/dashboard/financial"
-							element={<FinancialOverview />}
-						/>
-					</Route>
-				</Route>
+						<Route path="/privacy" element={<PrivacyPolicy />} />
 
-				{/* Catch-all for unknown routes */}
-				<Route path="*" element={<Navigate to="/" replace />} />
-			</Routes>
-			<ApiStatus apiStatus={apiStatus} />
-		</Box>
+						<Route
+							path="/cosm"
+							element={<CosmPage isLoggedIn={isLoggedIn} />}
+						/>
+
+						<Route path="/galaxy-map" element={<GalaxyMap />} />
+
+						<Route path="/cx" element={<CX />} />
+						<Route path="/planner/:planId" element={<BasePlanner />} />
+
+						{/* Protected Routes - These are nested under a protected layout */}
+						<Route
+							element={
+								<ProtectedRoute isLoggedIn={isLoggedIn} isLoading={isLoading} />
+							}
+						>
+							<Route element={<ProtectedLayout />}>
+								<Route
+									path="/dashboard/galaxy-map"
+									element={<DashboardPage />}
+								/>
+								<Route
+									path="/dashboard/public-data"
+									element={<div>PUBLIC DATA (WIP)</div>}
+								/>
+								<Route path="/dashboard/governance" element={<Governance />} />
+								<Route path="/dashboard/cx" element={<CXDashboard />} />
+								<Route
+									path="/dashboard/cooperation"
+									element={<>Cooperation (WIP)</>}
+								/>
+								<Route path="/dashboard/sites" element={<SitesPage />} />
+								<Route path="/dashboard/planner" element={<BasePlanner />} />
+								<Route
+									path="/dashboard/planner/:planId"
+									element={<BasePlanner />}
+								/>
+								<Route path="/dashboard/logistics" element={<Logistics />} />
+								<Route
+									path="/dashboard/contracts"
+									element={<ContractsPage />}
+								/>
+								<Route path="/dashboard/shipments" element={<ShipmentPage />} />
+								<Route path="/dashboard/storage" element={<StoragePage />} />
+								<Route
+									path="/dashboard/settings"
+									element={
+										<Settings userId={localStorage.getItem("currentUserId")!} />
+									}
+								/>
+								<Route
+									path="/dashboard/corp"
+									element={<CorporationOverview />}
+								/>
+								<Route
+									path="/dashboard/leaderboard"
+									element={<ProductionLeaderboard />}
+								/>
+								<Route
+									path="/dashboard/financial"
+									element={<FinancialOverview />}
+								/>
+							</Route>
+						</Route>
+
+						{/* Catch-all for unknown routes */}
+						<Route path="*" element={<Navigate to="/" replace />} />
+					</Routes>
+					<ApiStatus />
+				</Box>
+			</GlobalDataProvider>
+		</GlobalWsProvider>
 	);
 }
 

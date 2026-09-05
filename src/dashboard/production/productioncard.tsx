@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
 	Box,
 	Typography,
@@ -23,15 +23,20 @@ import {
 	ChevronRight,
 	Rocket,
 	Wrench,
+	Bell,
+	Target,
 } from "lucide-react";
 import MaterialBadge from "../../cosm/components/materialbadge";
 import type { SiteSummary, FlowData } from "./types";
-import { MATERIAL_PROPS, getMatProps } from "./components/sitedrawer/utils";
+import { MATERIAL_PROPS, getMatProps } from "./utils/materialprops";
 import { FastLogisticsModal } from "../sites/components/fastlogisticsmodal";
 import { FastRepairModal } from "../sites/components/fastrepairmodal";
+import { SiteNotificationModal } from "../sites/components/sitenotificationmodal";
+import { SiteTargetModal } from "../sites/components/sitetargetmodal";
 import { useGlobalData } from "../../context/globaldatacontext";
 import { ProductionFlowsList } from "./components/productionflowslist";
 import { StorageItemsList } from "./components/storageitemslist";
+import { fetchClient } from "../../utils/apiclient";
 
 const formatFlow = (val: number) => {
 	const sign = val > 0 ? "+" : "";
@@ -89,6 +94,33 @@ export const ProductionCard = React.memo(
 		const [quickResupplyOpen, setQuickResupplyOpen] = useState(false);
 		const [quickExportOpen, setQuickExportOpen] = useState(false);
 		const [repairPlannerOpen, setRepairPlannerOpen] = useState(false);
+		const [siteNotifOpen, setSiteNotifOpen] = useState(false);
+		const [siteTargetModalOpen, setSiteTargetModalOpen] = useState(false);
+		const [materialTargetDays, setMaterialTargetDays] = useState<
+			Record<string, number>
+		>({});
+
+		useEffect(() => {
+			if (!siteId) return;
+			const loadSettings = async () => {
+				try {
+					const res = await fetchClient(
+						"/internal/entity-settings?domain=site",
+					);
+					if (res.ok) {
+						const json = await res.json();
+						if (json.entities && json.entities[siteId]) {
+							setMaterialTargetDays(
+								json.entities[siteId].material_target_days || {},
+							);
+						}
+					}
+				} catch (e) {
+					console.error("Failed to fetch site entity settings", e);
+				}
+			};
+			loadSettings();
+		}, [siteId, siteTargetModalOpen]);
 
 		const {
 			productionList,
@@ -278,7 +310,7 @@ export const ProductionCard = React.memo(
 			return { dailyRevenue: rev, dailyExpenses: exp, dailyProfit: rev - exp };
 		}, [richFlows, globalData?.marketData]);
 
-		// Incoming ships calculation for this site
+		// Incoming ships calculation for this site Not working for now
 		const incomingFlights = useMemo(() => {
 			if (!globalData?.activeFlightPlans) return [];
 			const sitePlanet = (
@@ -325,6 +357,7 @@ export const ProductionCard = React.memo(
 				productionList={productionList}
 				consumptionList={consumptionList}
 				targetDays={targetDays}
+				materialTargetDays={materialTargetDays}
 				dailyImportVolume={dailyImportVolume}
 				dailyImportMass={dailyImportMass}
 				dailyExportVolume={dailyExportVolume}
@@ -484,38 +517,68 @@ export const ProductionCard = React.memo(
 									Supply/Export
 								</Button>
 
-								<Tooltip title="Click to open Site Repair & Condition Planner">
-									<Chip
-										icon={
-											<Wrench
-												size={10}
-												color={conditionColor}
-												style={{ marginLeft: 4 }}
-											/>
-										}
-										label={`Repair (${(siteOverallCondition * 100).toFixed(0)}%)`}
-										size="small"
-										onClick={(e) => {
-											e.stopPropagation();
-											setRepairPlannerOpen(true);
-										}}
-										sx={{
-											height: 20,
-											fontSize: "0.7rem",
-											fontWeight: 700,
-											bgcolor: alpha(conditionColor, 0.12),
-											color: conditionColor,
-											border: `1px solid ${alpha(conditionColor, 0.3)}`,
-											cursor: "pointer",
-											transition: "all 0.15s ease",
-											"& .MuiChip-label": { px: 0.75 },
-											"&:hover": {
-												bgcolor: alpha(conditionColor, 0.25),
-											},
-										}}
-									/>
-								</Tooltip>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+									<Tooltip title="Site Notification Settings">
+										<Button
+											size="small"
+											variant="outlined"
+											onClick={(e) => {
+												e.stopPropagation();
+												setSiteNotifOpen(true);
+											}}
+											sx={{
+												height: 20,
+												minWidth: 22,
+												px: 0.5,
+												fontSize: "0.68rem",
+												fontWeight: 800,
+												color: "#A594FF",
+												borderColor: "rgba(165, 148, 255, 0.4)",
+												bgcolor: "rgba(123, 104, 238, 0.15)",
+												"&:hover": {
+													bgcolor: "rgba(123, 104, 238, 0.3)",
+													borderColor: "#A594FF",
+												},
+											}}
+										>
+											<Bell size={11} />
+										</Button>
+									</Tooltip>
+
+									<Tooltip title="Click to open Site Repair & Condition Planner">
+										<Chip
+											icon={
+												<Wrench
+													size={10}
+													color={conditionColor}
+													style={{ marginLeft: 4 }}
+												/>
+											}
+											label={`${(siteOverallCondition * 100).toFixed(0)}%`}
+											size="small"
+											onClick={(e) => {
+												e.stopPropagation();
+												setRepairPlannerOpen(true);
+											}}
+											sx={{
+												height: 20,
+												fontSize: "0.7rem",
+												fontWeight: 800,
+												bgcolor: alpha(conditionColor, 0.15),
+												color: conditionColor,
+												border: `1px solid ${alpha(conditionColor, 0.3)}`,
+												cursor: "pointer",
+												transition: "all 0.15s ease",
+												"& .MuiChip-label": { px: 0.75 },
+												"&:hover": {
+													bgcolor: alpha(conditionColor, 0.25),
+												},
+											}}
+										/>
+									</Tooltip>
+								</Box>
 							</Box>
+
 							<ChevronRight
 								size={14}
 								color={theme.palette.text.secondary}
@@ -523,6 +586,18 @@ export const ProductionCard = React.memo(
 							/>
 						</Box>
 					</Box>
+
+					{/* Site Notification Rules Modal */}
+					<SiteNotificationModal
+						open={siteNotifOpen}
+						onClose={() => setSiteNotifOpen(false)}
+						siteId={site.siteid || ""}
+						planetName={
+							site.planet_name_alt === site.planet_name
+								? site.planet_name
+								: `${site.planet_name_alt} (${site.planet_name})`
+						}
+					/>
 
 					{/* --- BODY --- */}
 					<Box
@@ -630,50 +705,33 @@ export const ProductionCard = React.memo(
 								<Tab label="STORAGE" value="storage" />
 							</Tabs>
 
-							<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-								<Typography
-									variant="caption"
+							<Tooltip title="Configure Site Global & Per-Material Supply Target Days (CONS)">
+								<Button
+									size="small"
+									variant="outlined"
+									onClick={(e) => {
+										e.stopPropagation();
+										setSiteTargetModalOpen(true);
+									}}
+									startIcon={<Target size={12} />}
 									sx={{
-										color: "text.primary",
-										fontWeight: 700,
-										fontSize: "0.75rem",
+										height: 24,
+										px: 1,
+										fontSize: "0.72rem",
+										fontWeight: 800,
+										borderColor: "rgba(123, 104, 238, 0.4)",
+										color: "#B4A6FF",
+										bgcolor: "rgba(123, 104, 238, 0.15)",
+										textTransform: "none",
+										"&:hover": {
+											bgcolor: "rgba(123, 104, 238, 0.3)",
+											borderColor: "#7B68EE",
+										},
 									}}
 								>
-									Target:
-								</Typography>
-								<TextField
-									size="small"
-									value={targetDays}
-									onChange={(e) => onTargetDaysChange(e.target.value)}
-									onClick={(e) => e.stopPropagation()}
-									sx={{
-										width: 68,
-										"& .MuiInputBase-input": {
-											py: 0.3,
-											px: 0.5,
-											fontSize: "0.75rem",
-											textAlign: "right",
-											fontWeight: 800,
-										},
-									}}
-									slotProps={{
-										input: {
-											endAdornment: (
-												<InputAdornment position="end" sx={{ mr: 0 }}>
-													<Typography
-														variant="caption"
-														fontSize="0.7rem"
-														color="text.secondary"
-														fontWeight={700}
-													>
-														d
-													</Typography>
-												</InputAdornment>
-											),
-										},
-									}}
-								/>
-							</Box>
+									Target: {targetDays}d
+								</Button>
+							</Tooltip>
 						</Box>
 
 						{/* Tab Content with Flexible Dynamic Column Widths & Perfect Horizontal Alignment */}
@@ -743,6 +801,21 @@ export const ProductionCard = React.memo(
 						richFlows={richFlows}
 					/>
 				)}
+
+				{/* Site Target Supply Modal (Global & CONS Material Targets) */}
+				<SiteTargetModal
+					open={siteTargetModalOpen}
+					onClose={() => setSiteTargetModalOpen(false)}
+					siteId={site.siteid || ""}
+					planetName={
+						site.planet_name_alt === site.planet_name
+							? site.planet_name
+							: `${site.planet_name_alt} (${site.planet_name})`
+					}
+					currentTargetDays={targetDays}
+					consumptionList={consumptionList}
+					onTargetDaysChange={onTargetDaysChange}
+				/>
 			</>
 		);
 	},

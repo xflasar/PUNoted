@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 
 import { navItems } from "../../../navitems.tsx";
+import { NotificationBell } from "../notifications/notificationbell";
 
 const TopNavbar: React.FC = () => {
 	const navigate = useNavigate();
@@ -64,6 +65,7 @@ const TopNavbar: React.FC = () => {
 				>
 					PUNoted
 				</Typography>
+				<NotificationBell />
 				<IconButton
 					size="large"
 					edge="end"
@@ -87,13 +89,15 @@ const TopNavbar: React.FC = () => {
 					}}
 					open={open}
 					onClose={handleClose}
-					PaperProps={{
-						sx: {
-							background: "rgba(25, 25, 40, 0.95)",
-							color: "white",
-							boxShadow: "0px 0px 20px rgba(123, 104, 238, 0.3)",
-							border: `1px solid ${theme.palette.primary.main}80`,
-							mt: 6,
+					slotProps={{
+						paper: {
+							sx: {
+								background: "rgba(25, 25, 40, 0.95)",
+								color: "white",
+								boxShadow: "0px 0px 20px rgba(123, 104, 238, 0.3)",
+								border: `1px solid ${theme.palette.primary.main}80`,
+								mt: 6,
+							},
 						},
 					}}
 				>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Button,
 	Typography,
@@ -26,6 +26,7 @@ import {
 	FaSignOutAlt,
 } from "react-icons/fa";
 import AuthenticationBox from "./auth/authenticationbox";
+import { useGlobalData } from "../context/globaldatacontext";
 
 interface GitCommit {
 	hash: string;
@@ -53,9 +54,10 @@ const glowPulse = keyframes`
   100% { box-shadow: 0 0 40px rgba(123, 104, 238, 0.12); }
 `;
 
-const BackgroundBox = styled(Box)(() => ({
-	width: "100vw",
-	minHeight: "100vh",
+const BackgroundBox = styled(Box)(({ theme }) => ({
+	width: "100%",
+	maxWidth: "100vw",
+	height: "100vh",
 	display: "flex",
 	justifyContent: "center",
 	alignItems: "center",
@@ -64,6 +66,8 @@ const BackgroundBox = styled(Box)(() => ({
 	backgroundImage:
 		"radial-gradient(circle at 50% 20%, #080816 0%, #030308 60%, #000000 100%)",
 	position: "relative",
+	boxSizing: "border-box",
+	overflow: "hidden",
 }));
 
 const TimelineContainer = styled(Box)(({ theme }) => ({
@@ -107,22 +111,32 @@ const TimelineBadge = styled(Box)(({ theme }) => ({
 }));
 
 const ConsoleWrapper = styled(Box)(({ theme }) => ({
-	background: "rgba(4, 4, 10, 0.85)",
-	border: "1px solid rgba(123, 104, 238, 0.2)",
+	background: "#06060e",
+	border: "1px solid rgba(123, 104, 238, 0.25)",
 	borderRadius: theme.spacing(3),
-	boxShadow: "0 0 50px rgba(123, 104, 238, 0.12)",
-	backdropFilter: "blur(25px)",
-	padding: theme.spacing(5),
+	boxShadow: "0 0 50px rgba(123, 104, 238, 0.15)",
 	maxWidth: 680,
 	width: "92%",
+	maxHeight: "94vh",
+	overflowY: "auto",
+	overflowX: "hidden",
+	boxSizing: "border-box",
 	display: "flex",
 	flexDirection: "column",
 	alignItems: "center",
-	margin: theme.spacing(4, 0),
+	margin: "auto",
 	animation: `${glowPulse} 6s infinite ease-in-out`,
+	position: "relative",
+	WebkitOverflowScrolling: "touch",
+	"&::-webkit-scrollbar": { width: "4px" },
+	"&::-webkit-scrollbar-thumb": {
+		backgroundColor: "rgba(123,104,238,0.3)",
+		borderRadius: "4px",
+	},
 	[theme.breakpoints.down("sm")]: {
-		padding: theme.spacing(3),
-		margin: theme.spacing(2, 0),
+		width: "calc(100% - 16px)",
+		maxHeight: "96vh",
+		borderRadius: theme.spacing(2),
 	},
 }));
 
@@ -131,9 +145,10 @@ const DownloadGrid = styled(Box)(({ theme }) => ({
 	display: "grid",
 	gridTemplateColumns: "1fr 1fr",
 	gap: theme.spacing(2),
-	marginBottom: theme.spacing(4.5),
-	[theme.breakpoints.down("xs")]: {
+	marginBottom: theme.spacing(3),
+	[theme.breakpoints.down("sm")]: {
 		gridTemplateColumns: "1fr",
+		gap: theme.spacing(1.5),
 	},
 }));
 
@@ -169,23 +184,233 @@ const NavButton = styled(Button)(({ theme }) => ({
 	minWidth: 120,
 }));
 
-const PreviewTabButton = styled(Button)<{ active: boolean }>(({ active }) => ({
-	color: active ? "white" : "rgba(255, 255, 255, 0.4)",
-	fontWeight: "bold",
-	fontSize: "0.75rem",
-	padding: "6px 16px",
-	borderRadius: "12px",
-	backgroundColor: active ? "rgba(123, 104, 238, 0.15)" : "transparent",
-	border: active
-		? "1px solid rgba(123, 104, 238, 0.25)"
-		: "1px solid transparent",
-	textTransform: "none",
-	transition: "all 0.2s",
-	"&:hover": {
-		backgroundColor: "rgba(255, 255, 255, 0.05)",
-		color: "white",
+const features = [
+	{
+		title: "Interactive Galaxy Map",
+		icon: <FaMap size={24} color="#7b68ee" />,
+		badge: "NAVIGATION",
+		description:
+			"Real-time 3D and 2D starmaps, system nodes, jump segment distance calculations, and sector routing across Prosperous Universe.",
 	},
-}));
+	{
+		title: "CX Market Intelligence",
+		icon: <FaStore size={24} color="#60a5fa" />,
+		badge: "EXCHANGE",
+		description:
+			"Commodity exchange order books, historical pricing trends, materials valuation, and trade margin calculators.",
+	},
+	{
+		title: "COSM Corp Operations",
+		icon: <FaChartLine size={24} color="#4ade80" />,
+		badge: "TELEMETRY",
+		description:
+			"Workforce buffer tracking, production burn rate analytics, inventory storage, loan tracking, and financial balance sheet ledgers.",
+	},
+];
+
+const FeatureCarousel: React.FC = React.memo(() => {
+	const [activeFeatureIdx, setActiveFeatureIdx] = useState(0);
+	const [isMouseDown, setIsMouseDown] = useState(false);
+	const [startX, setStartX] = useState(0);
+	const [scrollLeftPos, setScrollLeftPos] = useState(0);
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			if (!isMouseDown) {
+				setActiveFeatureIdx((prev) => {
+					const next = (prev + 1) % features.length;
+					const track = document.getElementById("features-carousel-track");
+					if (track) {
+						track.scrollTo({
+							left: next * track.clientWidth,
+							behavior: "smooth",
+						});
+					}
+					return next;
+				});
+			}
+		}, 4500);
+		return () => clearInterval(interval);
+	}, [isMouseDown]);
+
+	const handleMouseDown = (e: React.MouseEvent) => {
+		setIsMouseDown(true);
+		const track = document.getElementById("features-carousel-track");
+		if (track) {
+			setStartX(e.pageX - track.offsetLeft);
+			setScrollLeftPos(track.scrollLeft);
+		}
+	};
+
+	const handleMouseLeaveOrUp = () => {
+		setIsMouseDown(false);
+	};
+
+	const handleMouseMove = (e: React.MouseEvent) => {
+		if (!isMouseDown) return;
+		e.preventDefault();
+		const track = document.getElementById("features-carousel-track");
+		if (track) {
+			const x = e.pageX - track.offsetLeft;
+			const walk = (x - startX) * 1.6;
+			track.scrollLeft = scrollLeftPos - walk;
+		}
+	};
+
+	return (
+		<Box
+			sx={{
+				width: "100%",
+				borderRadius: 3,
+				bgcolor: "rgba(0, 0, 0, 0.45)",
+				border: "1px solid rgba(123, 104, 238, 0.2)",
+				p: { xs: 2, sm: 3 },
+				mb: 3.5,
+				display: "flex",
+				flexDirection: "column",
+				alignItems: "center",
+				position: "relative",
+			}}
+		>
+			<Box
+				id="features-carousel-track"
+				onMouseDown={handleMouseDown}
+				onMouseUp={handleMouseLeaveOrUp}
+				onMouseLeave={handleMouseLeaveOrUp}
+				onMouseMove={handleMouseMove}
+				onScroll={(e) => {
+					const target = e.currentTarget;
+					const width = target.clientWidth;
+					if (width > 0) {
+						const newIdx = Math.round(target.scrollLeft / width);
+						if (
+							newIdx !== activeFeatureIdx &&
+							newIdx >= 0 &&
+							newIdx < features.length
+						) {
+							setActiveFeatureIdx(newIdx);
+						}
+					}
+				}}
+				sx={{
+					width: "100%",
+					display: "flex",
+					overflowX: "auto",
+					scrollSnapType: isMouseDown ? "none" : "x mandatory",
+					scrollBehavior: isMouseDown ? "auto" : "smooth",
+					cursor: isMouseDown ? "grabbing" : "grab",
+					userSelect: "none",
+					WebkitOverflowScrolling: "touch",
+					scrollbarWidth: "none",
+					"&::-webkit-scrollbar": { display: "none" },
+				}}
+			>
+				{features.map((feat, idx) => (
+					<Box
+						key={idx}
+						sx={{
+							flex: "0 0 100%",
+							minWidth: "100%",
+							scrollSnapAlign: "center",
+							scrollSnapStop: "always",
+							display: "flex",
+							flexDirection: "column",
+							alignItems: "center",
+							textAlign: "center",
+							minHeight: 110,
+							justifyContent: "center",
+							boxSizing: "border-box",
+							px: 1,
+						}}
+					>
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 1.25,
+								mb: 1,
+							}}
+						>
+							<Box
+								sx={{
+									p: 1,
+									borderRadius: 2,
+									bgcolor: "rgba(255,255,255,0.05)",
+									display: "flex",
+								}}
+							>
+								{feat.icon}
+							</Box>
+							<Box sx={{ textAlign: "left" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "rgba(255,255,255,0.4)",
+										fontSize: "0.6rem",
+										fontWeight: 800,
+										letterSpacing: "0.08em",
+										display: "block",
+									}}
+								>
+									{feat.badge}
+								</Typography>
+								<Typography
+									sx={{
+										fontWeight: 800,
+										fontSize: { xs: "0.95rem", sm: "1.05rem" },
+										color: "white",
+									}}
+								>
+									{feat.title}
+								</Typography>
+							</Box>
+						</Box>
+
+						<Typography
+							sx={{
+								fontSize: { xs: "0.78rem", sm: "0.84rem" },
+								color: "rgba(255,255,255,0.65)",
+								lineHeight: 1.5,
+								maxWidth: 480,
+								mt: 0.5,
+							}}
+						>
+							{feat.description}
+						</Typography>
+					</Box>
+				))}
+			</Box>
+
+			<Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 2 }}>
+				{features.map((_, idx) => (
+					<Box
+						key={idx}
+						onClick={() => {
+							setActiveFeatureIdx(idx);
+							const track = document.getElementById("features-carousel-track");
+							if (track) {
+								track.scrollTo({
+									left: idx * track.clientWidth,
+									behavior: "smooth",
+								});
+							}
+						}}
+						sx={{
+							width: idx === activeFeatureIdx ? 22 : 6,
+							height: 6,
+							borderRadius: "4px",
+							bgcolor:
+								idx === activeFeatureIdx ? "#7b68ee" : "rgba(255,255,255,0.2)",
+							cursor: "pointer",
+							transition: "all 0.3s ease",
+							"&:hover": { bgcolor: "#7b68ee" },
+						}}
+					/>
+				))}
+			</Box>
+		</Box>
+	);
+});
 
 const LandingPage: React.FC<LandingPageProps> = ({
 	onLoginSuccess,
@@ -193,11 +418,10 @@ const LandingPage: React.FC<LandingPageProps> = ({
 	isLoggedIn,
 }) => {
 	const navigate = useNavigate();
+	const globalData = useGlobalData();
+	const apiStatus = globalData?.apiStatus || "online";
 	const [showAuth, setShowAuth] = useState(false);
 	const loggedInUsername = isLoggedIn ? localStorage.getItem("username") : null;
-	const [activePreview, setActivePreview] = useState<"map" | "cx" | "corp">(
-		"map",
-	);
 	const [showInstructionsDialog, setShowInstructionsDialog] = useState(false);
 	const [targetExtensionUrl, setTargetExtensionUrl] = useState("");
 	const [showChangelog, setShowChangelog] = useState(false);
@@ -326,377 +550,188 @@ const LandingPage: React.FC<LandingPageProps> = ({
 	return (
 		<BackgroundBox>
 			<ConsoleWrapper>
-				{/* Top Header Row */}
+				{/* Sticky Top Bar */}
 				<Box
 					sx={{
+						position: "sticky",
+						top: 0,
+						zIndex: 50,
 						width: "100%",
+						bgcolor: "#06060e",
+						boxSizing: "border-box",
+						pt: { xs: 1.5, sm: 2 },
+						pb: { xs: 1.25, sm: 1.75 },
+						px: { xs: 2, sm: 3.5 },
+						borderBottom: "1px solid rgba(123, 104, 238, 0.2)",
 						display: "flex",
-						justifyContent: "space-between",
+						flexDirection: "column",
 						alignItems: "center",
-						mb: 4,
 					}}
 				>
-					<Typography
-						variant="caption"
+					{/* Top Header Row */}
+					<Box
 						sx={{
-							color: "rgba(255,255,255,0.3)",
-							fontFamily: "monospace",
-							letterSpacing: "0.1em",
+							width: "100%",
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+							mb: 0.75,
 						}}
 					>
-						SYS.ONLINE
-					</Typography>
-					<Box display="flex" gap={2} alignItems="center">
-						{isLoggedIn ? (
-							<>
-								<Typography
-									variant="caption"
-									sx={{
-										color: "#4ade80",
-										background: "rgba(74, 222, 128, 0.08)",
-										px: 1.5,
-										py: 0.5,
-										borderRadius: 1.5,
-									}}
-								>
-									● {loggedInUsername}
-								</Typography>
+						<Typography
+							variant="caption"
+							sx={{
+								fontFamily: "monospace",
+								letterSpacing: "0.1em",
+								fontSize: "0.7rem",
+								fontWeight: 700,
+							}}
+						>
+							SYS.
+							<Typography
+								variant="caption"
+								sx={{
+									fontFamily: "monospace",
+									letterSpacing: "0.1em",
+									fontSize: "0.7rem",
+									fontWeight: 700,
+									color: apiStatus === "online" ? "#4ade80" : "#f87171",
+								}}
+							>
+								{apiStatus.toUpperCase()}
+							</Typography>
+						</Typography>
+						<Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+							{isLoggedIn ? (
+								<>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "#4ade80",
+											background: "rgba(74, 222, 128, 0.08)",
+											px: 1.5,
+											py: 0.5,
+											borderRadius: 1.5,
+										}}
+									>
+										● {loggedInUsername}
+									</Typography>
+									<Button
+										variant="text"
+										onClick={handleLogout}
+										size="small"
+										startIcon={<FaSignOutAlt />}
+										sx={{
+											color: "#f87171",
+											textTransform: "none",
+											fontSize: "0.85rem",
+											"&:hover": { color: "#ef4444" },
+										}}
+									>
+										Logout
+									</Button>
+								</>
+							) : (
 								<Button
 									variant="text"
-									onClick={handleLogout}
+									onClick={() => handleAuthButton("account")}
 									size="small"
-									startIcon={<FaSignOutAlt />}
+									startIcon={<FaUsers />}
 									sx={{
-										color: "#f87171",
+										color: "#7b68ee",
 										textTransform: "none",
 										fontSize: "0.85rem",
-										"&:hover": { color: "#ef4444" },
+										fontWeight: "bold",
 									}}
 								>
-									Logout
+									Log In
 								</Button>
-							</>
-						) : (
-							<Button
-								variant="text"
-								onClick={() => handleAuthButton("account")}
-								size="small"
-								startIcon={<FaUsers />}
-								sx={{
-									color: "#7b68ee",
-									textTransform: "none",
-									fontSize: "0.85rem",
-									fontWeight: "bold",
-								}}
-							>
-								Log In
-							</Button>
-						)}
-					</Box>
-				</Box>
-
-				{/* Brand Name - Huge Space Grade Title */}
-				<Typography
-					variant="h1"
-					sx={{
-						fontSize: { xs: "3.5rem", sm: "5rem" },
-						fontWeight: 900,
-						letterSpacing: "0.15em",
-						textAlign: "center",
-						mb: 2.5,
-						background: "linear-gradient(90deg, #60a5fa, #7b68ee, #c084fc)",
-						WebkitBackgroundClip: "text",
-						WebkitTextFillColor: "transparent",
-						textShadow: "0 0 40px rgba(123,104,238,0.25)",
-						lineHeight: 1,
-					}}
-				>
-					PUNOTED
-				</Typography>
-
-				{/* Application Subtext - Built from scratch for COSM */}
-				<Typography
-					variant="body2"
-					sx={{
-						color: "rgba(255, 255, 255, 0.6)",
-						mb: 4,
-						textAlign: "center",
-						maxWidth: 520,
-						lineHeight: 1.6,
-					}}
-				>
-					PUNoted is built from scratch to support <b>COSM Corporation</b>{" "}
-					operations. It allows players to securely synchronize in-game APEX
-					data to track markets, flight sectors, and production lines.
-				</Typography>
-
-				{/* Extension Download Capsules */}
-				<DownloadGrid>
-					<ExtensionButton
-						onClick={() =>
-							handleExtensionClick(
-								"https://addons.mozilla.org/en-US/firefox/addon/punoted-data-forwarder/",
-							)
-						}
-					>
-						<FaFirefoxBrowser color="#ff7139" size={28} />
-						<Box textAlign="left">
-							<Typography
-								variant="caption"
-								display="block"
-								sx={{
-									color: "rgba(255,255,255,0.4)",
-									fontSize: "0.6rem",
-									letterSpacing: "0.05em",
-									textTransform: "uppercase",
-								}}
-							>
-								Firefox Add-on
-							</Typography>
-							<Typography
-								variant="body2"
-								sx={{ fontWeight: "bold", color: "white" }}
-							>
-								Forward Data
-							</Typography>
+							)}
 						</Box>
-					</ExtensionButton>
-					<ExtensionButton
-						onClick={() =>
-							handleExtensionClick(
-								"https://chromewebstore.google.com/detail/ihaegkcnjjhofhplcjlcbbkeekbllfcc?utm_source=item-share-cb",
-							)
-						}
-					>
-						<FaChrome color="#4285f4" size={28} />
-						<Box textAlign="left">
-							<Typography
-								variant="caption"
-								display="block"
-								sx={{
-									color: "rgba(255,255,255,0.4)",
-									fontSize: "0.6rem",
-									letterSpacing: "0.05em",
-									textTransform: "uppercase",
-								}}
-							>
-								Chrome Store
-							</Typography>
-							<Typography
-								variant="body2"
-								sx={{ fontWeight: "bold", color: "white" }}
-							>
-								Forward Data
-							</Typography>
-						</Box>
-					</ExtensionButton>
-				</DownloadGrid>
-
-				{/* Interactive Feature Mockup Console */}
-				<Box
-					sx={{
-						width: "100%",
-						backgroundColor: "rgba(0,0,0,0.5)",
-						border: "1px solid rgba(255,255,255,0.06)",
-						borderRadius: 2.5,
-						p: 3,
-						mb: 4.5,
-					}}
-				>
-					<Box
-						display="flex"
-						justifyContent="center"
-						gap={1.5}
-						mb={3}
-						borderBottom="1px solid rgba(255,255,255,0.04)"
-						pb={2}
-					>
-						<PreviewTabButton
-							active={activePreview === "map"}
-							onClick={() => setActivePreview("map")}
-						>
-							Galaxy Map
-						</PreviewTabButton>
-						<PreviewTabButton
-							active={activePreview === "cx"}
-							onClick={() => setActivePreview("cx")}
-						>
-							CX Pricing
-						</PreviewTabButton>
-						<PreviewTabButton
-							active={activePreview === "corp"}
-							onClick={() => setActivePreview("corp")}
-						>
-							COSM Corp
-						</PreviewTabButton>
 					</Box>
 
-					{/* High-tech Visual Representations */}
-					<Box
+					{/* Brand Name - Space Grade Title */}
+					<Typography
+						variant="h1"
 						sx={{
-							minHeight: 120,
-							display: "flex",
-							flexDirection: "column",
-							justifyContent: "center",
+							fontSize: { xs: "2.25rem", sm: "3.5rem", md: "4rem" },
+							fontWeight: 900,
+							letterSpacing: "0.12em",
+							textAlign: "center",
+							background: "linear-gradient(90deg, #60a5fa, #7b68ee, #c084fc)",
+							WebkitBackgroundClip: "text",
+							WebkitTextFillColor: "transparent",
+							textShadow: "0 0 30px rgba(123,104,238,0.25)",
+							lineHeight: 1,
 						}}
 					>
-						{activePreview === "map" && (
-							<Box
-								sx={{
-									display: "flex",
-									flexDirection: "column",
-									alignItems: "center",
-								}}
-							>
-								<Box
-									component="img"
-									src="/galaxy_map_preview.png"
-									sx={{
-										width: "100%",
-										maxHeight: 220,
-										borderRadius: 2,
-										objectFit: "cover",
-										border: "1px solid rgba(255,255,255,0.08)",
-										mb: 1.5,
-									}}
-								/>
-								<Typography
-									variant="caption"
-									sx={{ color: "rgba(255,255,255,0.5)", textAlign: "center" }}
-								>
-									Real-time interactive starmaps, jump segments, and system
-									nodes.
-								</Typography>
-							</Box>
-						)}
-						{activePreview === "cx" && (
-							<Box
-								sx={{
-									display: "flex",
-									flexDirection: "column",
-									alignItems: "center",
-								}}
-							>
-								<Box
-									component="img"
-									src="/cx_pricing_preview.png"
-									sx={{
-										width: "100%",
-										maxHeight: 220,
-										borderRadius: 2,
-										objectFit: "cover",
-										border: "1px solid rgba(255,255,255,0.08)",
-										mb: 1.5,
-									}}
-								/>
-								<Typography
-									variant="caption"
-									sx={{ color: "rgba(255,255,255,0.5)", textAlign: "center" }}
-								>
-									Dynamic order books, candlestick trend lines, and commodity
-									exchange price feeds.
-								</Typography>
-							</Box>
-						)}
-						{activePreview === "corp" && (
-							<Box
-								sx={{
-									display: "flex",
-									flexDirection: "column",
-									alignItems: "center",
-								}}
-							>
-								<Box
-									component="img"
-									src="/cosm_corp_preview.png"
-									sx={{
-										width: "100%",
-										maxHeight: 220,
-										borderRadius: 2,
-										objectFit: "cover",
-										border: "1px solid rgba(255,255,255,0.08)",
-										mb: 1.5,
-									}}
-								/>
-								<Typography
-									variant="caption"
-									sx={{ color: "rgba(255,255,255,0.5)", textAlign: "center" }}
-								>
-									Corporate queue telemetry, workforce reserves, and production
-									logs.
-								</Typography>
-							</Box>
-						)}
-					</Box>
+						PUNOTED
+					</Typography>
 				</Box>
 
-				{/* Primary Navigation Actions */}
+				{/* Scrollable Main Content Container */}
 				<Box
 					sx={{
 						width: "100%",
+						px: { xs: 2, sm: 3.5 },
+						pt: 2.5,
+						pb: 3.5,
 						display: "flex",
-						flexWrap: "wrap",
-						justifyContent: "center",
-						gap: 2,
-						mb: 4.5,
+						flexDirection: "column",
+						alignItems: "center",
+						boxSizing: "border-box",
 					}}
 				>
-					<NavButton
-						variant="contained"
-						onClick={() => handleAuthButton("cosm")}
+					{/* Application Subtext */}
+					<Typography
+						variant="body2"
 						sx={{
-							bgcolor: "#7b68ee",
-							color: "white",
-							boxShadow: "0 4px 15px rgba(123, 104, 238, 0.3)",
-							"&:hover": {
-								bgcolor: "#6a5acd",
-								boxShadow: "0 6px 20px rgba(123, 104, 238, 0.4)",
-							},
-							minWidth: { xs: "100%", sm: "auto" },
-							flexGrow: { xs: 1, sm: 0 },
+							color: "rgba(255, 255, 255, 0.65)",
+							mb: 3,
+							textAlign: "center",
+							maxWidth: 520,
+							fontSize: { xs: "0.82rem", sm: "0.88rem" },
+							lineHeight: 1.55,
+							px: 1,
 						}}
 					>
-						COSM Portal <FaArrowRight style={{ marginLeft: "0.5rem" }} />
-					</NavButton>
+						PUNoted is built from scratch to support <b>COSM Corporation</b>{" "}
+						operations. Securely synchronize in-game APEX data to monitor market
+						exchanges, sector navigation, production burn rates, and financial
+						ledgers.
+					</Typography>
 
-					<NavButton
-						variant="outlined"
-						onClick={() => navigate("/cx")}
+					{/* 1. PRIMARY NAVIGATION BUTTONS FIRST */}
+					<Box
 						sx={{
-							color: "white",
-							borderColor: "rgba(255,255,255,0.15)",
-							"&:hover": {
-								borderColor: "#7b68ee",
-								bgcolor: "rgba(123,104,238,0.05)",
-							},
-							minWidth: { xs: "100%", sm: "auto" },
-							flexGrow: { xs: 1, sm: 0 },
+							width: "100%",
+							display: "flex",
+							flexDirection: { xs: "column", sm: "row" },
+							justifyContent: "center",
+							gap: 1.5,
+							mb: 3.5,
 						}}
 					>
-						<FaStore style={{ marginRight: "0.5rem" }} /> CX Prices
-					</NavButton>
+						<NavButton
+							variant="contained"
+							onClick={() => handleAuthButton("cosm")}
+							sx={{
+								bgcolor: "#7b68ee",
+								color: "white",
+								boxShadow: "0 4px 15px rgba(123, 104, 238, 0.3)",
+								"&:hover": {
+									bgcolor: "#6a5acd",
+									boxShadow: "0 6px 20px rgba(123, 104, 238, 0.4)",
+								},
+								width: { xs: "100%", sm: "auto" },
+							}}
+						>
+							COSM Portal <FaArrowRight style={{ marginLeft: "0.5rem" }} />
+						</NavButton>
 
-					<NavButton
-						variant="outlined"
-						onClick={() => navigate("/galaxy-map")}
-						sx={{
-							color: "white",
-							borderColor: "rgba(255,255,255,0.15)",
-							"&:hover": {
-								borderColor: "#7b68ee",
-								bgcolor: "rgba(123,104,238,0.05)",
-							},
-							minWidth: { xs: "100%", sm: "auto" },
-							flexGrow: { xs: 1, sm: 0 },
-						}}
-					>
-						<FaMap style={{ marginRight: "0.5rem" }} /> Galaxy Map
-					</NavButton>
-
-					{isLoggedIn && (
 						<NavButton
 							variant="outlined"
-							onClick={() => handleAuthButton("dashboard")}
+							onClick={() => navigate("/cx")}
 							sx={{
 								color: "white",
 								borderColor: "rgba(255,255,255,0.15)",
@@ -704,57 +739,180 @@ const LandingPage: React.FC<LandingPageProps> = ({
 									borderColor: "#7b68ee",
 									bgcolor: "rgba(123,104,238,0.05)",
 								},
-								minWidth: { xs: "100%", sm: "auto" },
-								flexGrow: { xs: 1, sm: 0 },
+								width: { xs: "100%", sm: "auto" },
 							}}
 						>
-							<FaChartLine style={{ marginRight: "0.5rem" }} /> Dashboard
+							<FaStore style={{ marginRight: "0.5rem" }} /> CX Prices
 						</NavButton>
-					)}
-				</Box>
 
-				{/* Footer Options - Changelog */}
-				<Box
-					sx={{
-						width: "100%",
-						borderTop: "1px solid rgba(255,255,255,0.05)",
-						pt: 3.5,
-						display: "flex",
-						justifyContent: "center",
-						alignItems: "center",
-					}}
-				>
-					<Button
-						startIcon={<FaHistory />}
-						size="small"
-						onClick={handleOpenChangelog}
-						sx={{ color: "rgba(255,255,255,0.4)", textTransform: "none" }}
+						<NavButton
+							variant="outlined"
+							onClick={() => navigate("/galaxy-map")}
+							sx={{
+								color: "white",
+								borderColor: "rgba(255,255,255,0.15)",
+								"&:hover": {
+									borderColor: "#7b68ee",
+									bgcolor: "rgba(123,104,238,0.05)",
+								},
+								width: { xs: "100%", sm: "auto" },
+							}}
+						>
+							<FaMap style={{ marginRight: "0.5rem" }} /> Galaxy Map
+						</NavButton>
+
+						{isLoggedIn && (
+							<NavButton
+								variant="outlined"
+								onClick={() => handleAuthButton("dashboard")}
+								sx={{
+									color: "white",
+									borderColor: "rgba(255,255,255,0.15)",
+									"&:hover": {
+										borderColor: "#7b68ee",
+										bgcolor: "rgba(123,104,238,0.05)",
+									},
+									width: { xs: "100%", sm: "auto" },
+								}}
+							>
+								<FaChartLine style={{ marginRight: "0.5rem" }} /> Dashboard
+							</NavButton>
+						)}
+					</Box>
+
+					{/* 2. HORIZONTALLY SCROLLABLE & SWIPABLE FEATURE CAROUSEL */}
+					<FeatureCarousel />
+
+					{/* 3. BROWSER EXTENSION DOWNLOADS AT BOTTOM (ABOVE CHANGELOG) */}
+					<Box sx={{ width: "100%", mb: 3 }}>
+						<Typography
+							variant="caption"
+							sx={{
+								color: "rgba(255,255,255,0.4)",
+								fontSize: "0.64rem",
+								fontWeight: 800,
+								letterSpacing: "0.08em",
+								textTransform: "uppercase",
+								mb: 1.25,
+								display: "block",
+								textAlign: "center",
+							}}
+						>
+							DATA FORWARDER EXTENSION DOWNLOADS
+						</Typography>
+						<DownloadGrid>
+							<ExtensionButton
+								onClick={() =>
+									handleExtensionClick(
+										"https://addons.mozilla.org/en-US/firefox/addon/punoted-data-forwarder/",
+									)
+								}
+							>
+								<FaFirefoxBrowser color="#ff7139" size={24} />
+								<Box sx={{ textAlign: "left" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											display: "block",
+											color: "rgba(255,255,255,0.4)",
+											fontSize: "0.56rem",
+											letterSpacing: "0.05em",
+											textTransform: "uppercase",
+										}}
+									>
+										Firefox Add-on
+									</Typography>
+									<Typography
+										variant="body2"
+										sx={{
+											fontWeight: "bold",
+											color: "white",
+											fontSize: "0.82rem",
+										}}
+									>
+										Forward Data
+									</Typography>
+								</Box>
+							</ExtensionButton>
+							<ExtensionButton
+								onClick={() =>
+									handleExtensionClick(
+										"https://chromewebstore.google.com/detail/ihaegkcnjjhofhplcjlcbbkeekbllfcc?utm_source=item-share-cb",
+									)
+								}
+							>
+								<FaChrome color="#4285f4" size={24} />
+								<Box sx={{ textAlign: "left" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											display: "block",
+											color: "rgba(255,255,255,0.4)",
+											fontSize: "0.56rem",
+											letterSpacing: "0.05em",
+											textTransform: "uppercase",
+										}}
+									>
+										Chrome Store
+									</Typography>
+									<Typography
+										variant="body2"
+										sx={{
+											fontWeight: "bold",
+											color: "white",
+											fontSize: "0.82rem",
+										}}
+									>
+										Forward Data
+									</Typography>
+								</Box>
+							</ExtensionButton>
+						</DownloadGrid>
+					</Box>
+
+					{/* Footer Options - Changelog */}
+					<Box
+						sx={{
+							width: "100%",
+							borderTop: "1px solid rgba(255,255,255,0.05)",
+							pt: 2.5,
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+						}}
 					>
-						Changelog
-					</Button>
+						<Button
+							startIcon={<FaHistory />}
+							size="small"
+							onClick={handleOpenChangelog}
+							sx={{ color: "rgba(255,255,255,0.4)", textTransform: "none" }}
+						>
+							Changelog
+						</Button>
+					</Box>
+
+					<Typography
+						variant="caption"
+						sx={{ mt: 2, color: "rgba(255,255,255,0.3)", textAlign: "center" }}
+					>
+						Developed by Martin Flasar (xsupefly) with contributions from Rich
+						Jenks and raylu.
+					</Typography>
+
+					<Link
+						component="button"
+						variant="caption"
+						color="inherit"
+						onClick={() => navigate("/privacy")}
+						sx={{
+							mt: 1.5,
+							opacity: 0.4,
+							"&:hover": { opacity: 0.8, textDecoration: "underline" },
+						}}
+					>
+						Privacy Policy
+					</Link>
 				</Box>
-
-				<Typography
-					variant="caption"
-					sx={{ mt: 3, color: "rgba(255,255,255,0.3)", textAlign: "center" }}
-				>
-					Developed by Martin Flasar (xsupefly) with contributions from Rich
-					Jenks and raylu.
-				</Typography>
-
-				<Link
-					component="button"
-					variant="caption"
-					color="inherit"
-					onClick={() => navigate("/privacy")}
-					sx={{
-						mt: 2,
-						opacity: 0.4,
-						"&:hover": { opacity: 0.8, textDecoration: "underline" },
-					}}
-				>
-					Privacy Policy
-				</Link>
 			</ConsoleWrapper>
 
 			{/* Notifications Snackbar */}
@@ -955,10 +1113,12 @@ const LandingPage: React.FC<LandingPageProps> = ({
 								<TimelineItem key={groupIdx}>
 									<TimelineNode />
 									<Box
-										display="flex"
-										justifyContent="space-between"
-										alignItems="center"
-										mb={1.5}
+										sx={{
+											display: "flex",
+											justifyContent: "space-between",
+											alignItems: "center",
+											mb: 1.5,
+										}}
 									>
 										<Typography
 											variant="body2"
@@ -973,17 +1133,21 @@ const LandingPage: React.FC<LandingPageProps> = ({
 										<TimelineBadge>{group.relativeStr}</TimelineBadge>
 									</Box>
 									<Box
-										display="flex"
-										flexDirection="column"
-										gap={1.5}
-										sx={{ pl: 0.5 }}
+										sx={{
+											display: "flex",
+											flexDirection: "column",
+											gap: 1.5,
+											pl: 0.5,
+										}}
 									>
 										{group.items.map((item, itemIdx) => (
 											<Box
 												key={itemIdx}
-												display="flex"
-												alignItems="flex-start"
-												gap={1.5}
+												sx={{
+													display: "flex",
+													alignItems: "flex-start",
+													gap: 1.5,
+												}}
 											>
 												<Box
 													sx={{

@@ -62,15 +62,8 @@ const getActiveStatus = (lastActive?: string) => {
 
 const MemberRow = React.memo(
 	({ member, isMobile }: { member: CorpMember; isMobile: boolean }) => {
+		const theme = useTheme();
 		const status = getActiveStatus(member.lastActive);
-		const avatarColor =
-			status.color === "warning.main"
-				? "warning.main"
-				: status.color === "success.main"
-					? "primary.main"
-					: status.color === "text.disabled"
-						? "grey.500"
-						: "error.main";
 
 		return (
 			<>
@@ -78,10 +71,11 @@ const MemberRow = React.memo(
 					<Stack sx={{ flexDirection: "row", gap: 1.5, alignItems: "center" }}>
 						<Avatar
 							sx={{
-								width: 36,
-								height: 36,
-								bgcolor: avatarColor,
-								color: "#fff",
+								width: 32,
+								height: 32,
+								bgcolor: alpha(theme.palette.primary.main, 0.2),
+								color: theme.palette.primary.light,
+								border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
 								fontSize: "0.65rem",
 								fontWeight: "bold",
 							}}
@@ -91,7 +85,7 @@ const MemberRow = React.memo(
 						<Box>
 							<Typography
 								variant="body2"
-								sx={{ fontWeight: "bold", color: status.color }}
+								sx={{ fontWeight: "bold", color: theme.palette.text.primary }}
 							>
 								{member.companyName}
 							</Typography>
@@ -99,7 +93,10 @@ const MemberRow = React.memo(
 					</Stack>
 				</TableCell>
 				<TableCell sx={{ py: 1 }}>
-					<Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
+					<Typography
+						variant="body2"
+						sx={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}
+					>
 						{member.joinedDate
 							? new Date(member.joinedDate).toLocaleDateString()
 							: "-"}
@@ -114,7 +111,7 @@ const MemberRow = React.memo(
 							gap: 0.5,
 						}}
 					>
-						<CircleIcon sx={{ width: 8, height: 8, color: status.dotColor }} />
+						<CircleIcon sx={{ width: 7, height: 7, color: status.dotColor }} />
 						<Typography
 							variant="caption"
 							sx={{ color: status.color, fontWeight: "bold" }}
@@ -127,12 +124,14 @@ const MemberRow = React.memo(
 					{member.isSynchronized ? (
 						<Tooltip title="Synchronized">
 							<CheckCircleIcon
-								sx={{ color: "success.main", fontSize: "small" }}
+								sx={{ color: theme.palette.success.main, fontSize: "small" }}
 							/>
 						</Tooltip>
 					) : (
 						<Tooltip title="Not Synchronized">
-							<CancelIcon sx={{ color: "text.disabled", fontSize: "small" }} />
+							<CancelIcon
+								sx={{ color: theme.palette.text.disabled, fontSize: "small" }}
+							/>
 						</Tooltip>
 					)}
 				</TableCell>
@@ -205,8 +204,8 @@ const CorpMembersTable = ({
 				display: "flex",
 				flexDirection: "column",
 				height: "100%",
-				gap: 2,
-				p: 1,
+				gap: 1.5,
+				p: 0,
 			}}
 		>
 			{/* STRICT SINGLE ROW TOOLBAR */}
@@ -285,14 +284,15 @@ const CorpMembersTable = ({
 			</Box>
 
 			<Paper
+				elevation={0}
 				sx={{
 					flex: 1,
-					bgcolor: alpha(theme.palette.background.default, 0.4),
-					backdropFilter: "blur(12px)",
-					WebkitBackdropFilter: "blur(12px)",
-					border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+					bgcolor: alpha(theme.palette.background.paper, 0.4),
+					backdropFilter: "blur(16px)",
+					border: "none",
 					overflow: "hidden",
 					position: "relative",
+					borderRadius: 2,
 				}}
 			>
 				{isLoading && (
@@ -343,7 +343,8 @@ const CorpMembersTable = ({
 						<TableRow>
 							<TableCell
 								sx={{
-									bgcolor: theme.palette.background.default,
+									bgcolor: "#0a0a14",
+									color: theme.palette.text.secondary,
 									fontWeight: "bold",
 									fontSize: "0.7rem",
 									py: 1,
@@ -354,7 +355,8 @@ const CorpMembersTable = ({
 							</TableCell>
 							<TableCell
 								sx={{
-									bgcolor: theme.palette.background.default,
+									bgcolor: "#0a0a14",
+									color: theme.palette.text.secondary,
 									fontWeight: "bold",
 									fontSize: "0.7rem",
 									py: 1,
@@ -365,7 +367,8 @@ const CorpMembersTable = ({
 							</TableCell>
 							<TableCell
 								sx={{
-									bgcolor: theme.palette.background.default,
+									bgcolor: "#0a0a14",
+									color: theme.palette.text.secondary,
 									fontWeight: "bold",
 									fontSize: "0.7rem",
 									py: 1,
@@ -377,7 +380,8 @@ const CorpMembersTable = ({
 							</TableCell>
 							<TableCell
 								sx={{
-									bgcolor: theme.palette.background.default,
+									bgcolor: "#0a0a14",
+									color: theme.palette.text.secondary,
 									fontWeight: "bold",
 									fontSize: "0.7rem",
 									width: isMobile ? 60 : 80,

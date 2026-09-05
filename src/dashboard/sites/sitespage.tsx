@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Box, Typography, CircularProgress, useTheme } from "@mui/material";
 
 import { ProductionCard } from "../production/productioncard";
-import { SiteDrawerContent } from "../production/components/sitedrawercontent";
 import { useSitesManager } from "./hooks/usesitesmanager";
 import { SitesToolbar } from "./components/sitestoolbar";
 import { EmpireSummary } from "./components/empiresummary";
@@ -57,30 +56,6 @@ const SitesPage: React.FC = () => {
 				}}
 			>
 				<CircularProgress color="primary" />
-			</Box>
-		);
-	}
-
-	if (selectedSite) {
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					flexDirection: "column",
-					height: "100vh",
-					bgcolor: theme.palette.background.default,
-					overflow: "hidden",
-				}}
-			>
-				<Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-					<SiteDrawerContent
-						siteFlow={selectedSite}
-						globalTargetDays={
-							siteTargets[selectedSite.siteid || ""] || DEFAULT_DAYS
-						}
-						onClose={() => setSelectedSite(null)}
-					/>
-				</Box>
 			</Box>
 		);
 	}

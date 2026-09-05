@@ -321,7 +321,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 		const resolveUserRole = async () => {
 			try {
 				const res = await fetchClient(
-					"v1/corporation/user-role?corporation_id=COSM",
+					"internal/corporation/user-role?corporation_id=COSM",
 				);
 				if (res.ok) {
 					const data = await res.json();
@@ -341,7 +341,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 		const headers = mockRole === "GUEST" ? { Authorization: "none" } : {};
 		try {
 			const res = await fetchClient(
-				"v1/corporation/ship-orders?corporation_id=COSM",
+				"internal/corporation/ship-orders?corporation_id=COSM",
 				{ headers },
 			);
 			if (!res.ok) throw new Error("Failed to load orders");

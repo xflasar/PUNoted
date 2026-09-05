@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from "react";
+import { getMatProps } from "../../../production/utils/materialprops";
 import { useGlobalData } from "../../../../context/globaldatacontext";
 import {
 	calcBuildingCondition,

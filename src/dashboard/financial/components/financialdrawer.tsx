@@ -14,14 +14,21 @@ export default function FinancialDrawer({
 	selectedPartnerName,
 	currency,
 	transactions,
+	isBasicMode = false,
+	showPartnerDetails = false,
 }: any) {
+	const activePartnerCode = selectedPartnerCode || selectedTx?.PartnerCode;
+	const activePartnerName = selectedPartnerName || selectedTx?.PartnerName;
+	const shouldShowPartnerInfo =
+		isBasicMode || showPartnerDetails || !selectedTx;
+
 	const {
 		txDetails,
 		loadingTxDetails,
 		companyProfile,
 		loadingProfile,
 		selectedPartnerStats,
-	} = useDrawerData(selectedTx, selectedPartnerCode, transactions);
+	} = useDrawerData(selectedTx, activePartnerCode, transactions);
 
 	return (
 		<Dialog
@@ -86,17 +93,20 @@ export default function FinancialDrawer({
 							currency={currency}
 							details={txDetails}
 							loading={loadingTxDetails}
+							transactions={transactions}
 						/>
 					)}
-					{selectedPartnerCode && !selectedPartnerCode.includes("CORP") && (
+					{shouldShowPartnerInfo && activePartnerCode && (
 						<CounterpartyProfile
 							profile={companyProfile}
 							loading={loadingProfile}
-							fallbackCode={selectedPartnerCode}
-							fallbackName={selectedPartnerName}
+							fallbackCode={activePartnerCode}
+							fallbackName={activePartnerName}
 						/>
 					)}
-					{selectedPartnerStats && <LedgerStats stats={selectedPartnerStats} />}
+					{shouldShowPartnerInfo && selectedPartnerStats && (
+						<LedgerStats stats={selectedPartnerStats} />
+					)}
 				</Box>
 			</Box>
 		</Dialog>

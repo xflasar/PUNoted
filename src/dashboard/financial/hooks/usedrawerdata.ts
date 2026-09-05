@@ -52,7 +52,7 @@ export const useDrawerData = (
 			setLoadingProfile(true);
 			try {
 				const response = await fetch(
-					`${API_BASE_URL}v1/company/${selectedPartnerCode}`,
+					`${API_BASE_URL}internal/company/${selectedPartnerCode}`,
 				);
 				if (response.ok) setCompanyProfile(await response.json());
 				else setCompanyProfile(null);

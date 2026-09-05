@@ -31,6 +31,8 @@ import {
 	VpnKey,
 	Security,
 	Group,
+	Storage,
+	NotificationsActive,
 } from "@mui/icons-material";
 import type {
 	UserSettings,
@@ -44,6 +46,8 @@ import PrivacySection from "../settings/components/privacysection";
 import GroupsSection from "../settings/components/groupssection";
 import ApiTokenSection from "../settings/components/apitokensection";
 import GlobalSettingsSection from "./components/globalsettingssection";
+import { DataSection } from "./components/datasection";
+import { NotificationSection } from "./components/notificationsection";
 import { fetchClient } from "../../utils/apiclient";
 
 const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
@@ -196,6 +200,7 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 		{ id: "tokens", label: "API Integrations", icon: <VpnKey /> },
 		{ id: "privacy", label: "Privacy Settings", icon: <Security /> },
 		{ id: "groups", label: "Data Groups", icon: <Group /> },
+		{ id: "data", label: "Data Management", icon: <Storage /> },
 	];
 
 	return (
@@ -395,6 +400,12 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 							</Box>
 						)}
 
+						{activeTab === "notifications" && (
+							<Box sx={{ width: "100%" }}>
+								<NotificationSection onShowMsg={showMsg} />
+							</Box>
+						)}
+
 						{activeTab === "tokens" && (
 							<Box sx={{ width: "100%" }}>
 								<ApiTokenSection
@@ -422,6 +433,12 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 									showSnackbar={showMsg}
 									wsTrigger={refreshTrigger}
 								/>
+							</Box>
+						)}
+
+						{activeTab === "data" && (
+							<Box sx={{ width: "100%" }}>
+								<DataSection onShowMsg={showMsg} />
 							</Box>
 						)}
 					</Box>

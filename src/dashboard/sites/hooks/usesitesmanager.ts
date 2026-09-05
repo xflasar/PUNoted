@@ -48,7 +48,38 @@ export const useSitesManager = () => {
 		try {
 			const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
 			if (stored) setSiteTargets(JSON.parse(stored));
-		} catch {}
+		} catch (e) {
+			console.error("Failed to load site targets", e);
+		}
+
+		// Sync with persistent backend user_entity_settings
+		const syncBackendSettings = async () => {
+			try {
+				const res = await fetch("/internal/entity-settings?domain=site", {
+					headers: {
+						"X-Internal-Origin": "true",
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+					},
+				});
+				if (res.ok) {
+					const json = await res.json();
+					if (json.entities) {
+						const backendTargets: Record<string, number> = {};
+						Object.entries(json.entities).forEach(
+							([sId, cfg]: [string, any]) => {
+								if (cfg.global_target_days) {
+									backendTargets[sId] = cfg.global_target_days;
+								}
+							},
+						);
+						if (Object.keys(backendTargets).length > 0) {
+							setSiteTargets((prev) => ({ ...prev, ...backendTargets }));
+						}
+					}
+				}
+			} catch {}
+		};
+		syncBackendSettings();
 	}, []);
 
 	// --- HELPER TO EXTRACT CLEAN PARTNER USERNAME ---

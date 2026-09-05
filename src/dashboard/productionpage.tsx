@@ -26,19 +26,16 @@ import {
 	Grid,
 	useTheme,
 	alpha,
-	AlertColor,
+	type AlertColor,
 	Stack,
 } from "@mui/material";
 import {
 	Archive,
 	Search,
 	Factory as FactoryIcon,
-	Layers,
 	ContentCopy as ContentCopyIcon,
 	FilterList,
-	Warning,
 	CheckCircle,
-	Inventory2,
 } from "@mui/icons-material";
 import {
 	Clock as ClockLucide,
@@ -47,9 +44,9 @@ import {
 	Flame,
 } from "lucide-react";
 import { Masonry } from "@mui/lab";
-import { styled } from "@mui/material/styles";
-// Assuming this component exists in your project structure
 import ConsumptionFlowDetail from "./production/flowdetail";
+
+// My god this needs refactoring!!!!
 
 // --- TYPES & INTERFACES ---
 
@@ -61,6 +58,12 @@ export interface SnackbarState {
 
 interface ProductionOrder {
 	order_id: string;
+	completion?: string | null;
+	duration?: number | null;
+	halted?: boolean | null;
+	completed?: boolean | null;
+	recurring?: boolean | null;
+	started?: string | null;
 	production_recipe: {
 		name: string;
 		inputs: { ticker: string; factor: number }[];
@@ -86,6 +89,10 @@ interface StorageItem {
 interface Site_daily_flow {
 	flow: number;
 	currentAmount: number;
+	batchProdActive?: number;
+	batchProdQueued?: number;
+	batchConsActive?: number;
+	batchConsQueued?: number;
 }
 
 export interface SiteSummary {
@@ -190,22 +197,46 @@ const getConditionColor = (condition: number, theme: any) => {
 // Compact Orders Logic
 const compactOrders = (
 	orders: ProductionOrder[],
-): { ticker: string; count: number }[] => {
+): {
+	ticker: string;
+	count: number;
+	active: number;
+	queued: number;
+	stalled: number;
+}[] => {
 	if (!orders || orders.length === 0) return [];
-	const counts: Record<string, number> = {};
+	const map: Record<
+		string,
+		{ count: number; active: number; queued: number; stalled: number }
+	> = {};
 
 	orders.forEach((order) => {
-		if (order.production_recipe?.outputs) {
-			order.production_recipe.outputs.forEach((out) => {
-				counts[out.ticker] = (counts[out.ticker] || 0) + 1;
-			});
-		} else {
-			counts["Unknown"] = (counts["Unknown"] || 0) + 1;
-		}
+		const isStalled =
+			order.completed === true ||
+			(order.completion
+				? new Date(order.completion).getTime() <= Date.now()
+				: false);
+		const isQueued = !order.completion;
+		const isActive = !isStalled && !isQueued;
+
+		const tickers = (order.production_recipe?.outputs || []).map(
+			(o) => o.ticker,
+		);
+		const targetTickers = tickers.length > 0 ? tickers : ["Unknown"];
+
+		targetTickers.forEach((t) => {
+			if (!map[t]) {
+				map[t] = { count: 0, active: 0, queued: 0, stalled: 0 };
+			}
+			map[t].count += 1;
+			if (isStalled) map[t].stalled += 1;
+			else if (isQueued) map[t].queued += 1;
+			else map[t].active += 1;
+		});
 	});
 
-	return Object.entries(counts)
-		.map(([ticker, count]) => ({ ticker, count }))
+	return Object.entries(map)
+		.map(([ticker, info]) => ({ ticker, ...info }))
 		.sort((a, b) => a.ticker.localeCompare(b.ticker));
 };
 
@@ -326,12 +357,23 @@ const SiteCard = React.memo(
 			const flows = Object.entries(site.site_daily_flow).sort((a, b) =>
 				a[0].localeCompare(b[0]),
 			);
-			const pos = flows.filter(([, f]) => f.flow > 0);
-			const neg = flows.filter(([, f]) => f.flow < 0);
+			const pos = flows.filter(
+				([, f]) =>
+					f.flow > 0 ||
+					(f.batchProdActive || 0) > 0 ||
+					(f.batchProdQueued || 0) > 0,
+			);
+			const neg = flows.filter(
+				([, f]) =>
+					f.flow < 0 ||
+					(f.batchConsActive || 0) > 0 ||
+					(f.batchConsQueued || 0) > 0,
+			);
 
 			let lvl = 3;
 			neg.forEach(([, f]) => {
-				const remaining = f.currentAmount / Math.abs(f.flow);
+				const remaining =
+					f.flow < 0 ? f.currentAmount / Math.abs(f.flow) : Infinity;
 				if (remaining < targetDaysValue / 5) lvl = Math.min(lvl, 1);
 				else if (remaining < targetDaysValue) lvl = Math.min(lvl, 2);
 			});
@@ -491,27 +533,59 @@ const SiteCard = React.memo(
 								PROD /d
 							</Typography>
 							{positiveFlows.length > 0 ? (
-								positiveFlows.map(([t, f]) => (
-									<Box
-										key={t}
-										sx={{
-											display: "flex",
-											justifyContent: "space-between",
-											fontSize: "0.75rem",
-											mb: 0.5,
-										}}
-									>
-										<span style={{ fontWeight: 600 }}>{t}</span>
-										<span
-											style={{
-												color: theme.palette.success.main,
-												fontWeight: 700,
+								positiveFlows.map(([t, f]) => {
+									const hasBatch =
+										(f.batchProdActive || 0) > 0 ||
+										(f.batchProdQueued || 0) > 0;
+									return (
+										<Box
+											key={t}
+											sx={{
+												display: "flex",
+												justifyContent: "space-between",
+												alignItems: "center",
+												fontSize: "0.75rem",
+												mb: 0.5,
 											}}
 										>
-											{formatFlow(f.flow)}
-										</span>
-									</Box>
-								))
+											<span style={{ fontWeight: 600 }}>{t}</span>
+											<Box
+												sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+											>
+												<span
+													style={{
+														color: theme.palette.success.main,
+														fontWeight: 700,
+													}}
+												>
+													{formatFlow(f.flow)}
+												</span>
+												{hasBatch && (
+													<Tooltip
+														title={`One-Time Orders: ${f.batchProdActive || 0} crafting now, ${f.batchProdQueued || 0} queued`}
+														arrow
+													>
+														<Chip
+															size="small"
+															label={`+${(f.batchProdActive || 0) > 0 ? Math.round(f.batchProdActive || 0) : 0}${(f.batchProdQueued || 0) > 0 ? ` (${Math.round(f.batchProdQueued || 0)})` : ""}`}
+															sx={{
+																height: 16,
+																fontSize: "0.58rem",
+																fontWeight: 700,
+																bgcolor: alpha(
+																	theme.palette.success.main,
+																	0.15,
+																),
+																color: theme.palette.success.main,
+																border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
+															}}
+														/>
+													</Tooltip>
+												)}
+											</Box>
+										</Box>
+									);
+								})
 							) : (
 								<Typography
 									variant="caption"
@@ -540,7 +614,8 @@ const SiteCard = React.memo(
 							{negativeFlows.length > 0 ? (
 								negativeFlows.map(([t, f]) => {
 									const consumption = Math.abs(f.flow);
-									const daysLeft = f.currentAmount / consumption;
+									const daysLeft =
+										consumption > 0 ? f.currentAmount / consumption : Infinity;
 									const targetAmount = consumption * targetDaysValue;
 									const missingAmount = Math.max(
 										0,
@@ -554,6 +629,10 @@ const SiteCard = React.memo(
 												? theme.palette.warning.main
 												: theme.palette.success.main;
 
+									const hasBatchCons =
+										(f.batchConsActive || 0) > 0 ||
+										(f.batchConsQueued || 0) > 0;
+
 									return (
 										<Box key={t} sx={{ mb: 0.5 }}>
 											{/* Top Row: Ticker | Flow | Days */}
@@ -566,8 +645,36 @@ const SiteCard = React.memo(
 												}}
 											>
 												<span style={{ fontWeight: 600 }}>{t}</span>
-												<Box sx={{ display: "flex", gap: 1 }}>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 0.75,
+													}}
+												>
 													<span>{formatFlow(f.flow)}</span>
+													{hasBatchCons && (
+														<Tooltip
+															title={`One-Time Batch Inputs: ${f.batchConsActive || 0} being consumed, ${f.batchConsQueued || 0} queued`}
+															arrow
+														>
+															<Chip
+																size="small"
+																label={`-${(f.batchConsActive || 0) > 0 ? Math.round(f.batchConsActive || 0) : 0}${(f.batchConsQueued || 0) > 0 ? ` (${Math.round(f.batchConsQueued || 0)})` : ""}`}
+																sx={{
+																	height: 16,
+																	fontSize: "0.58rem",
+																	fontWeight: 700,
+																	bgcolor: alpha(
+																		theme.palette.error.main,
+																		0.15,
+																	),
+																	color: theme.palette.error.main,
+																	border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`,
+																}}
+															/>
+														</Tooltip>
+													)}
 													<Tooltip
 														title={`${daysLeft.toFixed(1)} days remaining`}
 													>
@@ -707,16 +814,56 @@ const ProductionLineItem = ({
 
 			<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
 				{compacted.length > 0 ? (
-					compacted.map((co) => (
-						<Chip
-							key={co.ticker}
-							label={`${co.count}x ${co.ticker}`}
-							size="small"
-							variant="outlined"
-							color="primary"
-							sx={{ height: 20, fontSize: "0.65rem" }}
-						/>
-					))
+					compacted.map((co) => {
+						const tooltipParts = [];
+						if (co.active > 0) tooltipParts.push(`${co.active} crafting`);
+						if (co.queued > 0) tooltipParts.push(`${co.queued} queued`);
+						if (co.stalled > 0)
+							tooltipParts.push(
+								`${co.stalled} finished (uncollected/slots full)`,
+							);
+						const tooltipTitle = `${co.count}x ${co.ticker}: ${tooltipParts.join(", ")}`;
+
+						return (
+							<Tooltip key={co.ticker} title={tooltipTitle} arrow>
+								<Chip
+									label={
+										<span>
+											<strong>
+												{co.count}x {co.ticker}
+											</strong>
+											{co.stalled > 0 && (
+												<span
+													style={{
+														marginLeft: 4,
+														color: theme.palette.warning.light,
+													}}
+												>
+													({co.stalled} ready)
+												</span>
+											)}
+											{co.queued > 0 && co.stalled === 0 && (
+												<span style={{ marginLeft: 4, opacity: 0.7 }}>
+													({co.queued} queued)
+												</span>
+											)}
+										</span>
+									}
+									size="small"
+									variant="outlined"
+									color={co.stalled > 0 ? "warning" : "primary"}
+									sx={{
+										height: 20,
+										fontSize: "0.65rem",
+										bgcolor:
+											co.stalled > 0
+												? alpha(theme.palette.warning.main, 0.1)
+												: undefined,
+									}}
+								/>
+							</Tooltip>
+						);
+					})
 				) : (
 					<Typography
 						variant="caption"

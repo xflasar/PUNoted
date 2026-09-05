@@ -10,10 +10,11 @@ export const SEMANTIC_COLORS = {
 };
 
 export const formatCurrency = (val: number, decimals: number = 2) => {
+	const safeVal = Math.abs(Number(val) || 0) < 0.00001 ? 0 : Number(val);
 	return new Intl.NumberFormat("en-US", {
 		minimumFractionDigits: decimals,
 		maximumFractionDigits: decimals,
-	}).format(val);
+	}).format(safeVal);
 };
 
 export const compactFormatter = (value: number) => {

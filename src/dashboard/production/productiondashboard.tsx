@@ -29,16 +29,8 @@ import {
 } from "lucide-react";
 
 import { ProductionCard } from "./productioncard";
-import type {
-	SiteSummary,
-	ApiResponse,
-	ApiResponseWorkforce,
-	GroupedWorkforceData,
-	FlowData,
-	SiteWithFlows,
-} from "./types";
-import { SiteDrawerContent } from "./components/sitedrawercontent";
 import { useGlobalData } from "../../context/globaldatacontext";
+import type { FlowData, SiteWithFlows } from "./types";
 
 const LOCAL_STORAGE_KEY = "siteTargetSupplyDays";
 const DEFAULT_DAYS = 30;
@@ -506,12 +498,14 @@ const ProductionDashboard: React.FC = () => {
 								placeholder="Search planets..."
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
-								InputProps={{
-									startAdornment: (
-										<InputAdornment position="start">
-											<Search size={18} />
-										</InputAdornment>
-									),
+								slotProps={{
+									input: {
+										startAdornment: (
+											<InputAdornment position="start">
+												<Search size={18} />
+											</InputAdornment>
+										),
+									},
 								}}
 								sx={{
 									width: 250,
@@ -756,33 +750,6 @@ const ProductionDashboard: React.FC = () => {
 					))}
 				<Box sx={{ height: 80 }} />{" "}
 			</Box>
-
-			{/* --- DRAWER --- */}
-			<Drawer
-				anchor="right"
-				open={!!selectedSite}
-				onClose={() => setSelectedSite(null)}
-				slotProps={{
-					paper: {
-						sx: {
-							width: { xs: "100%", md: 600 },
-							bgcolor: "background.default",
-							borderLeft: `1px solid ${theme.palette.divider}`,
-							backgroundImage: "none",
-						},
-					},
-				}}
-			>
-				{selectedSite && (
-					<SiteDrawerContent
-						siteFlow={selectedSite}
-						globalTargetDays={
-							siteTargets[selectedSite.siteid || ""] || DEFAULT_DAYS
-						}
-						onClose={() => setSelectedSite(null)}
-					/>
-				)}
-			</Drawer>
 		</Box>
 	);
 };

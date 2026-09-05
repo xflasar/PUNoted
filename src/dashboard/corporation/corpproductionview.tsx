@@ -59,6 +59,8 @@ interface Props {
 	productionSummary: ProductionSummaryItem[];
 	members?: CorpMember[];
 	isLoading?: boolean;
+	hideZeroFlow?: boolean;
+	onHideZeroFlowChange?: (val: boolean) => void;
 }
 
 const MemberFilterSelect = React.memo(
@@ -232,7 +234,13 @@ const MemberFilterSelect = React.memo(
 );
 
 export const CorpProductionView = React.memo(
-	({ productionSummary, members, isLoading = false }: Props) => {
+	({
+		productionSummary,
+		members,
+		isLoading = false,
+		hideZeroFlow = false,
+		onHideZeroFlowChange,
+	}: Props) => {
 		const theme = useTheme();
 		const isMobile = false;
 		const [isPending, startTransition] = useTransition();
@@ -329,14 +337,26 @@ export const CorpProductionView = React.memo(
 
 		const handleDrilldown = useCallback(
 			(item: ProductionSummaryItem, type: "prod" | "cons") => {
-				const newCat: CustomCategory = {
-					id: `drill-${item.ticker}-${type}-${Date.now()}`,
-					title: `${item.ticker} (${type === "prod" ? "Producers" : "Consumers"})`,
-					items: [item],
-					isDrilldown: true,
-					drillType: type,
-				};
-				setCustomCategories((prev) => [newCat, ...prev]);
+				setCustomCategories((prev) => {
+					const categoryId = `drill-${item.ticker}-${type}`;
+					const existingIndex = prev.findIndex((c) => c.id === categoryId);
+					const updatedCat: CustomCategory = {
+						id: categoryId,
+						title: `${item.ticker} (${type === "prod" ? "Producers" : "Consumers"})`,
+						items: [item],
+						isDrilldown: true,
+						drillType: type,
+					};
+
+					if (existingIndex >= 0) {
+						// Move existing drilldown category to top and update item data
+						const newCats = [...prev];
+						newCats.splice(existingIndex, 1);
+						return [updatedCat, ...newCats];
+					}
+
+					return [updatedCat, ...prev];
+				});
 			},
 			[],
 		);
@@ -348,6 +368,14 @@ export const CorpProductionView = React.memo(
 			setIsProcessing(true);
 			const timer = setTimeout(() => {
 				let filtered = productionSummary;
+
+				// 0. Filter by hideZeroFlow
+				if (hideZeroFlow) {
+					filtered = filtered.filter(
+						(row) =>
+							(row.productionTotal || 0) > 0 || (row.consumptionTotal || 0) > 0,
+					);
+				}
 
 				// 1. Filter by selected members and recalculate totals/nets
 				if (selectedMembers.length > 0) {
@@ -497,14 +525,15 @@ export const CorpProductionView = React.memo(
 			customCategories,
 			selectedMembers,
 			isLoading,
+			hideZeroFlow,
 		]);
 
 		const glassyStyle = {
-			backgroundColor: alpha(theme.palette.background.default, 0.4),
-			backdropFilter: "blur(12px)",
-			WebkitBackdropFilter: "blur(12px)",
-			border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-			boxShadow: "none",
+			backgroundColor: "#06060e",
+			backdropFilter: "blur(16px)",
+			WebkitBackdropFilter: "blur(16px)",
+			border: "1px solid rgba(123, 104, 238, 0.2)",
+			boxShadow: "0 12px 32px rgba(0, 0, 0, 0.6)",
 		};
 
 		return (
@@ -514,8 +543,8 @@ export const CorpProductionView = React.memo(
 					flexDirection: "column",
 					flexGrow: 1,
 					minHeight: 0,
-					p: isMobile ? 0 : 1,
-					gap: 2,
+					p: 0,
+					gap: 1.5,
 					height: "100%",
 				}}
 			>
@@ -529,6 +558,7 @@ export const CorpProductionView = React.memo(
 						flexShrink: 0,
 					}}
 				>
+					{/* Single Compact Top Search Bar */}
 					<Box
 						sx={{
 							display: "flex",
@@ -536,7 +566,6 @@ export const CorpProductionView = React.memo(
 							gap: 1,
 							alignItems: "center",
 							width: "100%",
-							flexWrap: "nowrap",
 							flexShrink: 0,
 						}}
 					>
@@ -603,14 +632,15 @@ export const CorpProductionView = React.memo(
 														bgcolor: alpha(theme.palette.divider, 0.3),
 													}}
 												/>
-												<Tooltip title="Toggle Categories Filter">
+												<Tooltip title="Toggle Filters Drawer">
 													<IconButton
 														onClick={() => setFilterOpen(!filterOpen)}
 														sx={{
 															p: 0.5,
 															color:
 																filterOpen ||
-																!selectedCategories.includes("ALL")
+																!selectedCategories.includes("ALL") ||
+																selectedMembers.length > 0
 																	? "primary.main"
 																	: "text.secondary",
 															bgcolor: filterOpen
@@ -635,53 +665,147 @@ export const CorpProductionView = React.memo(
 										...glassyStyle,
 										borderRadius: 1,
 										fontSize: "0.85rem",
-										height: 40,
+										height: 36,
 									},
-									// eslint-disable-next-line @typescript-eslint/no-explicit-any
 								} as any,
 							}}
 						/>
+					</Box>
 
-						<MemberFilterSelect
-							members={members || []}
-							selectedMembers={selectedMembers}
-							onChange={setSelectedMembers}
-							theme={theme}
-						/>
-
-						{selectedMembers.length > 0 && (
-							<Tooltip title="Clear Member Filters">
+					{/* FLOATING ABSOLUTE FILTER CONTROLS OVERLAY DRAWER */}
+					<Collapse in={filterOpen} sx={{ position: "relative", zIndex: 200 }}>
+						<Paper
+							elevation={12}
+							sx={{
+								...glassyStyle,
+								position: "absolute",
+								top: 4,
+								left: 0,
+								right: 0,
+								zIndex: 200,
+								maxHeight: "65vh",
+								overflowY: "auto",
+								p: 1.5,
+								borderRadius: 2,
+								border: "1px solid rgba(100, 255, 218, 0.3)",
+								boxShadow: "0 12px 36px rgba(0, 0, 0, 0.8)",
+								display: "flex",
+								flexDirection: "column",
+								gap: 1.25,
+								bgcolor: "#141424",
+							}}
+						>
+							{/* Filter Drawer Title Bar */}
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "space-between",
+									pb: 0.5,
+									borderBottom: "1px solid rgba(255,255,255,0.08)",
+								}}
+							>
+								<Typography
+									variant="caption"
+									sx={{
+										fontWeight: 800,
+										color: "#64FFDA",
+										textTransform: "uppercase",
+										letterSpacing: "0.04em",
+									}}
+								>
+									FILTER & VIEW OPTIONS
+								</Typography>
 								<IconButton
-									onClick={() => setSelectedMembers([])}
 									size="small"
-									sx={{ ...glassyStyle, borderRadius: 1, flexShrink: 0 }}
+									onClick={() => setFilterOpen(false)}
+									sx={{ color: "rgba(255,255,255,0.6)", p: 0.25 }}
 								>
 									<CloseIcon fontSize="small" />
 								</IconButton>
-							</Tooltip>
-						)}
+							</Box>
 
-						<ToggleButtonGroup
-							value={layoutMode}
-							exclusive
-							onChange={handleLayoutChange}
-							size="small"
-							disabled={isLoading}
-							sx={{ ...glassyStyle, borderRadius: 1, flexShrink: 0 }}
-						>
-							<ToggleButton value="masonry" size="small">
-								<ViewModuleIcon fontSize="small" />
-							</ToggleButton>
-							<ToggleButton value="list" size="small">
-								<ViewListIcon fontSize="small" />
-							</ToggleButton>
-						</ToggleButtonGroup>
-					</Box>
+							{/* Filter Controls Row */}
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 1,
+									flexWrap: "wrap",
+									justifyContent: "space-between",
+								}}
+							>
+								<MemberFilterSelect
+									members={members || []}
+									selectedMembers={selectedMembers}
+									onChange={setSelectedMembers}
+									theme={theme}
+								/>
 
-					{/* CATEGORIES COLLAPSE */}
-					<Collapse in={filterOpen}>
-						<Paper sx={{ ...glassyStyle, p: 1.5, borderRadius: 1 }}>
-							<Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+								<Stack direction="row" spacing={1} alignItems="center">
+									{onHideZeroFlowChange && (
+										<ToggleButton
+											size="small"
+											value="hideZero"
+											selected={hideZeroFlow}
+											onChange={() => onHideZeroFlowChange(!hideZeroFlow)}
+											sx={{
+												height: 32,
+												fontSize: "0.68rem",
+												fontWeight: 700,
+												px: 1,
+												whiteSpace: "nowrap",
+												color: hideZeroFlow
+													? "#FFB74D"
+													: "rgba(255,255,255,0.5)",
+												bgcolor: hideZeroFlow
+													? "rgba(255, 183, 77, 0.15)"
+													: "rgba(255, 255, 255, 0.03)",
+												border: "1px solid rgba(255, 183, 77, 0.3) !important",
+												borderRadius: 1,
+											}}
+										>
+											HIDE 0-FLOW
+										</ToggleButton>
+									)}
+
+									<ToggleButtonGroup
+										value={layoutMode}
+										exclusive
+										onChange={handleLayoutChange}
+										size="small"
+										disabled={isLoading}
+										sx={{
+											...glassyStyle,
+											borderRadius: 1,
+											flexShrink: 0,
+											height: 32,
+										}}
+									>
+										<ToggleButton
+											value="masonry"
+											size="small"
+											sx={{ px: 0.75 }}
+										>
+											<ViewModuleIcon fontSize="small" />
+										</ToggleButton>
+										<ToggleButton value="list" size="small" sx={{ px: 0.75 }}>
+											<ViewListIcon fontSize="small" />
+										</ToggleButton>
+									</ToggleButtonGroup>
+								</Stack>
+							</Box>
+
+							{/* Category Filter Chips */}
+							<Box
+								sx={{
+									display: "flex",
+									flexWrap: "wrap",
+									gap: 0.75,
+									pt: 0.5,
+									borderTop: "1px solid rgba(255,255,255,0.08)",
+								}}
+							>
 								<ToggleButton
 									value="ALL"
 									selected={selectedCategories.includes("ALL")}
@@ -689,7 +813,7 @@ export const CorpProductionView = React.memo(
 									size="small"
 									sx={{
 										py: 0.25,
-										px: 1.5,
+										px: 1.25,
 										fontSize: "0.65rem",
 										fontWeight: "bold",
 										borderRadius: 1,
@@ -712,7 +836,7 @@ export const CorpProductionView = React.memo(
 										size="small"
 										sx={{
 											py: 0.25,
-											px: 1.5,
+											px: 1.25,
 											fontSize: "0.65rem",
 											borderRadius: 1,
 											border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
@@ -863,7 +987,7 @@ export const CorpProductionView = React.memo(
 												fontWeight: "bold",
 												color: "text.secondary",
 												bgcolor: theme.palette.background.paper,
-												width: "70px",
+												width: "80px",
 											}}
 										>
 											ITEM
@@ -875,7 +999,6 @@ export const CorpProductionView = React.memo(
 												fontWeight: "bold",
 												color: "text.secondary",
 												bgcolor: theme.palette.background.paper,
-												width: "30%",
 											}}
 										>
 											PROD
@@ -887,7 +1010,6 @@ export const CorpProductionView = React.memo(
 												fontWeight: "bold",
 												color: "text.secondary",
 												bgcolor: theme.palette.background.paper,
-												width: "30%",
 											}}
 										>
 											CONS
@@ -899,7 +1021,6 @@ export const CorpProductionView = React.memo(
 												fontWeight: "bold",
 												color: "text.secondary",
 												bgcolor: theme.palette.background.paper,
-												width: "auto",
 											}}
 										>
 											NET
@@ -911,10 +1032,53 @@ export const CorpProductionView = React.memo(
 												fontWeight: "bold",
 												color: "text.secondary",
 												bgcolor: theme.palette.background.paper,
-												width: "50px",
 											}}
 										>
 											RATIO
+										</TableCell>
+										<TableCell
+											align="right"
+											sx={{
+												fontSize: "0.75rem",
+												fontWeight: "bold",
+												color: "text.secondary",
+												bgcolor: theme.palette.background.paper,
+											}}
+										>
+											PRICE
+										</TableCell>
+										<TableCell
+											align="right"
+											sx={{
+												fontSize: "0.75rem",
+												fontWeight: "bold",
+												color: "text.secondary",
+												bgcolor: theme.palette.background.paper,
+											}}
+										>
+											NET VALUE
+										</TableCell>
+										<TableCell
+											align="right"
+											sx={{
+												fontSize: "0.75rem",
+												fontWeight: "bold",
+												color: "#64FFDA",
+												bgcolor: theme.palette.background.paper,
+											}}
+										>
+											CORP STOCK
+										</TableCell>
+										<TableCell
+											align="right"
+											sx={{
+												fontSize: "0.75rem",
+												fontWeight: "bold",
+												color: "#A594FF",
+												bgcolor: theme.palette.background.paper,
+											}}
+										>
+											SHARE %
 										</TableCell>
 									</TableRow>
 								)}
@@ -930,7 +1094,7 @@ export const CorpProductionView = React.memo(
 														: hideCategory
 												}
 												isDrilldown={data.isDrilldown}
-												colSpan={5}
+												colSpan={9}
 												noWrapper={true}
 											/>
 										);
