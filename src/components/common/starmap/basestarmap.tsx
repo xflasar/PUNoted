@@ -166,6 +166,13 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 				/* ignore */
 			}
 			animationWorkerRef.current = null;
+			try {
+				if (deckRef.current?.deck) {
+					deckRef.current.deck.finalize();
+				}
+			} catch {
+				/* ignore */
+			}
 		};
 	}, []);
 
@@ -834,15 +841,21 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 				(!info.object.type && info.object.originalSystemId);
 			if (isSystemObj) {
 				if (t) t.style.display = "none";
-				setActiveShipTooltip((prev) => (prev ? null : null));
+				setActiveShipTooltip((prev) => (prev === null ? null : null));
 
 				setHoveredInfo((prev: any) => {
 					const prevId = prev?.object?.originalSystemId || prev?.object?.id;
 					const nextId = info.object.originalSystemId || info.object.id;
-					if (prevId === nextId && prev?.x === info.x && prev?.y === info.y) {
+					const roundedX = Math.round(info.x);
+					const roundedY = Math.round(info.y);
+					if (
+						prevId === nextId &&
+						prev?.x === roundedX &&
+						prev?.y === roundedY
+					) {
 						return prev;
 					}
-					return { object: info.object, x: info.x, y: info.y };
+					return { object: info.object, x: roundedX, y: roundedY };
 				});
 				return;
 			}
@@ -850,20 +863,22 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			const isPlanetObj = !!info.object.planetid;
 			if (isPlanetObj) {
 				if (t) t.style.display = "none";
-				setActiveShipTooltip((prev) => (prev ? null : null));
+				setActiveShipTooltip((prev) => (prev === null ? null : null));
 
 				setHoveredInfo((prev: any) => {
+					const roundedX = Math.round(info.x);
+					const roundedY = Math.round(info.y);
 					if (
 						prev?.object?.planetid === info.object.planetid &&
-						prev?.x === info.x &&
-						prev?.y === info.y
+						prev?.x === roundedX &&
+						prev?.y === roundedY
 					) {
 						return prev;
 					}
 					return {
 						object: { ...info.object, type: "planet" },
-						x: info.x,
-						y: info.y,
+						x: roundedX,
+						y: roundedY,
 					};
 				});
 				return;
@@ -872,20 +887,22 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			const isStationObj = !!info.object.stationid;
 			if (isStationObj) {
 				if (t) t.style.display = "none";
-				setActiveShipTooltip((prev) => (prev ? null : null));
+				setActiveShipTooltip((prev) => (prev === null ? null : null));
 
 				setHoveredInfo((prev: any) => {
+					const roundedX = Math.round(info.x);
+					const roundedY = Math.round(info.y);
 					if (
 						prev?.object?.stationid === info.object.stationid &&
-						prev?.x === info.x &&
-						prev?.y === info.y
+						prev?.x === roundedX &&
+						prev?.y === roundedY
 					) {
 						return prev;
 					}
 					return {
 						object: { ...info.object, type: "station" },
-						x: info.x,
-						y: info.y,
+						x: roundedX,
+						y: roundedY,
 					};
 				});
 				return;
@@ -894,18 +911,24 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 			const isShipObj =
 				info.object.ships || info.object.registration || info.object.ship_id;
 			if (isShipObj) {
-				setHoveredInfo((prev) => (prev ? null : null));
+				setHoveredInfo((prev) => (prev === null ? null : null));
 
 				setActiveShipTooltip((prev: any) => {
 					const prevId = prev?.object?.ship_id || prev?.object?.registration;
 					const nextId = info.object.ship_id || info.object.registration;
-					if (prevId === nextId && prev?.x === info.x && prev?.y === info.y) {
+					const roundedX = Math.round(info.x);
+					const roundedY = Math.round(info.y);
+					if (
+						prevId === nextId &&
+						prev?.x === roundedX &&
+						prev?.y === roundedY
+					) {
 						return prev;
 					}
 					return {
 						object: info.object,
-						x: info.x,
-						y: info.y,
+						x: roundedX,
+						y: roundedY,
 						isLocked: false,
 					};
 				});
@@ -913,18 +936,18 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 				return;
 			}
 
-			setHoveredInfo((prev) => (prev ? null : null));
-			setActiveShipTooltip((prev) => (prev ? null : null));
+			setHoveredInfo((prev) => (prev === null ? null : null));
+			setActiveShipTooltip((prev) => (prev === null ? null : null));
 			if (!t) return;
 			const content =
 				info.object.name || info.object.id || info.object.label || "";
 			t.style.display = "block";
-			t.style.left = `${info.x}px`;
-			t.style.top = `${info.y}px`;
+			t.style.left = `${Math.round(info.x)}px`;
+			t.style.top = `${Math.round(info.y)}px`;
 			t.textContent = content;
 		} else {
-			setHoveredInfo((prev) => (prev ? null : null));
-			setActiveShipTooltip((prev) => (prev ? null : null));
+			setHoveredInfo((prev) => (prev === null ? null : null));
+			setActiveShipTooltip((prev) => (prev === null ? null : null));
 			if (t) t.style.display = "none";
 		}
 	}, []);

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Box, Button, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -6,6 +7,14 @@ import BaseStarMap from "../components/common/starmap/basestarmap";
 const GalaxyMap = () => {
 	const navigate = useNavigate();
 	const theme = useTheme();
+	const [isExiting, setIsExiting] = useState(false);
+
+	const handleBack = () => {
+		setIsExiting(true);
+		setTimeout(() => {
+			navigate("/");
+		}, 10);
+	};
 
 	return (
 		<Box
@@ -16,7 +25,7 @@ const GalaxyMap = () => {
 				height: "calc(var(--vh, 1vh) * 100)",
 			}}
 		>
-			<BaseStarMap mode="public" />
+			{!isExiting && <BaseStarMap mode="public" />}
 			<Box
 				sx={{
 					position: "absolute",
@@ -29,7 +38,7 @@ const GalaxyMap = () => {
 					variant="contained"
 					size="large"
 					startIcon={<ArrowBackIcon />}
-					onClick={() => navigate("/")}
+					onClick={handleBack}
 					sx={{
 						boxShadow: `0 0 15px ${theme.palette.primary.main}`,
 						textTransform: "none",

@@ -882,6 +882,10 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 	useEffect(() => {
 		if (props.isInteracting) return;
+		if (mode === "public") {
+			setClusteredData((prev) => (prev.length === 0 ? prev : []));
+			return;
+		}
 
 		const ships = updatedShips || [];
 		let visibleShips = ships.filter((s: any) => s.visible !== false);
@@ -917,8 +921,24 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			props.currentSystem?.originalSystemId || null,
 		);
 
-		setClusteredData(newClusters);
+		setClusteredData((prev) => {
+			if (prev.length !== newClusters.length) return newClusters;
+			for (let i = 0; i < prev.length; i++) {
+				const p = prev[i];
+				const n = newClusters[i];
+				if (
+					p.id !== n.id ||
+					p.count !== n.count ||
+					p.position[0] !== n.position[0] ||
+					p.position[1] !== n.position[1]
+				) {
+					return newClusters;
+				}
+			}
+			return prev;
+		});
 	}, [
+		mode,
 		updatedShips,
 		debouncedZoom,
 		props.isGalaxyView,

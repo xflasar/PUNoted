@@ -153,7 +153,6 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 			if (res?.ok) {
 				const json = await res.json();
 				if (Array.isArray(json)) {
-					console.log("Corporation data", json);
 					setCorpData(json);
 				}
 			}

@@ -99,7 +99,6 @@ export const CorporationOverview: React.FC = () => {
 	);
 
 	const corpList = useMemo(() => {
-		console.log(corpData);
 		return corpData.map((c) => ({ code: c.code, name: c.name }));
 	}, [corpData]);
 

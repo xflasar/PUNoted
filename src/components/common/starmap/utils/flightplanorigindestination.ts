@@ -8,13 +8,15 @@ import type {
 } from "../types/maptypes";
 
 export const findSystemById =
-	(systemsPoints: MapPoint[]) => (systemId: string) => {
+	(systemsPoints?: MapPoint[]) => (systemId: string) => {
+		if (!systemsPoints || !systemId) return null;
 		return systemsPoints.find((p: MapPoint) => p.originalSystemId === systemId);
 	};
 
 export const findPlanetById =
-	(allPlanetsData: Record<string, PlanetData[]>) =>
+	(allPlanetsData?: Record<string, PlanetData[]>) =>
 	(systemId: string, planetId: string) => {
+		if (!allPlanetsData || !systemId) return null;
 		const planetsInSystem = allPlanetsData[systemId];
 		const planet = planetsInSystem?.find(
 			(p: PlanetData) => p.planetid === planetId,
@@ -23,8 +25,9 @@ export const findPlanetById =
 	};
 
 export const findStationById =
-	(allStationsData: Record<string, StationData[]>) =>
+	(allStationsData?: Record<string, StationData[]>) =>
 	(systemId: string, stationId: string) => {
+		if (!allStationsData || !systemId) return null;
 		const stationsInSystem = allStationsData[systemId];
 		const station = stationsInSystem?.find(
 			(s: StationData) => s.stationid === stationId,
@@ -34,13 +37,13 @@ export const findStationById =
 
 export const getOriginDestinationLabel =
 	(
-		systemPoints: MapPoint[],
-		allPlanetsData: Record<string, PlanetData[]>,
-		allStationsData: Record<string, StationData[]>,
+		systemPoints?: MapPoint[],
+		allPlanetsData?: Record<string, PlanetData[]>,
+		allStationsData?: Record<string, StationData[]>,
 	) =>
-	(flightPlan: WorkerFlightPlan, isOrigin = true) => {
-		// Use Optional Chaining (?. ) to safely access properties on flightPlan.
-		// If flightPlan is null/undefined, the result will be undefined, not a crash.
+	(flightPlan?: WorkerFlightPlan, isOrigin = true) => {
+		if (!flightPlan) return "Unknown Location";
+
 		const planetId = isOrigin
 			? flightPlan?.originplanetid
 			: flightPlan?.destinationplanetid;
@@ -52,9 +55,6 @@ export const getOriginDestinationLabel =
 		const systemId = isOrigin
 			? flightPlan?.originsystemid
 			: flightPlan?.destinationsystemid;
-
-		// Note: systemId might be the only non-null one if the calling logic guarantees a system.
-		// You can now proceed with your lookup logic:
 
 		let specificLabel = null;
 		if (planetId && systemId)
@@ -71,7 +71,6 @@ export const getOriginDestinationLabel =
 		if (specificLabel) return specificLabel;
 		if (systemLabel) return systemLabel;
 
-		// This acts as the final guard if flightPlan was null and systemId was undefined.
 		return "Unknown Location";
 	};
 

@@ -197,7 +197,6 @@ export const aggregateProductionRows = ({
 		let selectedRecipeIdx = 0;
 
 		const recipeList = recipeMap.get(ticker.toUpperCase());
-		console.log("recipeList", ticker, recipeList, recipeMap);
 		if (recipeList && recipeList.length > 0) {
 			recipeCount = recipeList.length;
 			const overrideIdx = recipeOverrides[ticker.toUpperCase()];
