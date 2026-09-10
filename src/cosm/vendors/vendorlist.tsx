@@ -673,7 +673,7 @@ const VendorCard = React.memo(
 																) : (
 																	<Globe
 																		size={14}
-																		color={theme.palette.error.light}
+																		color={theme.palette.warning.main}
 																		style={{ flexShrink: 0 }}
 																	/>
 																)}
@@ -1361,7 +1361,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						{row.locCode === "HRT" ? (
 							<Warehouse size={14} color={theme.palette.success.light} />
 						) : (
-							<Globe size={14} color={theme.palette.error.light} />
+							<Globe size={14} color={theme.palette.warning.main} />
 						)}
 						<Typography variant="body2">
 							<Box component="span" sx={{ display: { lg: "none" } }}>

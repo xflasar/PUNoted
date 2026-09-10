@@ -24,7 +24,7 @@ import {
 	PlusCircle,
 	Trash2,
 	ChevronDown,
-	ChevronUp,
+	ChevronRight,
 	ArrowUp,
 	ArrowDown,
 	Store,
@@ -212,32 +212,16 @@ const DebouncedInput: React.FC<{
  *
  * @param {object} props - Component props.
  * @param {string} props.ticker - The material ticker symbol.
- * @param {OrderItem[]} props.availableVendors - List of vendors offering the material.
- * @param {string[]} props.currentPriority - The current ordered list of vendor IDs.
+ * @param {OrderItem[]} props.sortedVendors - Vendors in priority order.
  * @param {(newPriority: string[]) => void} props.onUpdatePriority - Callback when the priority changes.
  * @returns {React.ReactElement} The priority selector component.
  */
 const VendorPrioritySelector: React.FC<{
-	ticker: string;
-	availableVendors: OrderItem[];
-	currentPriority: string[];
+	sortedVendors: OrderItem[];
+	sourcedVendorIds: Set<string>;
 	onUpdatePriority: (newPriority: string[]) => void;
-}> = React.memo(({ availableVendors, currentPriority, onUpdatePriority }) => {
+}> = React.memo(({ sortedVendors, sourcedVendorIds, onUpdatePriority }) => {
 	const theme = useTheme();
-
-	const sortedVendors = useMemo(() => {
-		const copy = [...availableVendors];
-		const pMap = new Map(currentPriority.map((id, idx) => [id, idx]));
-
-		return copy.sort((a, b) => {
-			const pA = pMap.get(getSourceId(a));
-			const pB = pMap.get(getSourceId(b));
-			if (pA !== undefined && pB !== undefined) return pA - pB;
-			if (pA !== undefined) return -1;
-			if (pB !== undefined) return 1;
-			return getOrderPrice(a).price - getOrderPrice(b).price;
-		});
-	}, [availableVendors, currentPriority]);
 
 	const moveVendor = useCallback(
 		(index: number, direction: -1 | 1) => {
@@ -264,8 +248,9 @@ const VendorPrioritySelector: React.FC<{
 			}}
 		>
 			{sortedVendors.map((vendor, index) => {
-				const isFirst = index === 0;
+				const isSourced = sourcedVendorIds.has(getSourceId(vendor));
 				const displayPrice = getOrderPrice(vendor).price;
+				const formattedPrice = formatPrice(displayPrice);
 				const location = vendor.location?.[0];
 				const corpStats = getDiffStats(
 					displayPrice,
@@ -287,10 +272,10 @@ const VendorPrioritySelector: React.FC<{
 							mb: 0.5,
 							p: 1,
 							borderRadius: 1.5,
-							bgcolor: isFirst
+							bgcolor: isSourced
 								? alpha(theme.palette.success.main, 0.1)
 								: "transparent",
-							border: isFirst
+							border: isSourced
 								? `1px solid ${alpha(theme.palette.success.main, 0.2)}`
 								: "1px solid transparent",
 						}}
@@ -317,7 +302,7 @@ const VendorPrioritySelector: React.FC<{
 								<Typography
 									variant="body2"
 									sx={{
-										color: isFirst ? theme.palette.success.light : "inherit",
+										color: isSourced ? theme.palette.success.light : "inherit",
 										fontSize: "0.9rem",
 									}}
 								>
@@ -341,7 +326,7 @@ const VendorPrioritySelector: React.FC<{
 											) : (
 												<Globe
 													size={14}
-													color={theme.palette.error.light}
+													color={theme.palette.warning.main}
 													style={{ verticalAlign: "middle" }}
 												/>
 											)}{" "}
@@ -377,16 +362,27 @@ const VendorPrioritySelector: React.FC<{
 								}}
 							>
 								<Typography variant="caption" color="text.secondary">
-									Price:{" "}
-									<Box
-										component="span"
-										sx={{
-											color: theme.palette.warning.main,
-											fontWeight: "bold",
-										}}
-									>
-										{formatPrice(displayPrice)}
-									</Box>
+									{formattedPrice === "N/A" ? (
+										formattedPrice
+									) : (
+										<>
+											<Box
+												component="span"
+												sx={{
+													color: theme.palette.warning.main,
+													fontWeight: "bold",
+												}}
+											>
+												{formattedPrice.slice(0, -4)}
+											</Box>{" "}
+											<Box
+												component="span"
+												sx={{ color: "text.primary", fontSize: "0.7rem" }}
+											>
+												ICA
+											</Box>
+										</>
+									)}
 								</Typography>
 								<Box sx={{ display: "flex", gap: 0.5 }}>
 									{corpStats && (
@@ -452,11 +448,9 @@ const CompactListItem: React.FC<{
 			() => availableVendors.reduce((s, v) => s + (v.quantity || 0), 0),
 			[availableVendors],
 		);
-
-		// 2. Allocate the requested quantity in sourcing-priority order.
-		const sourcing = useMemo(() => {
+		const sortedVendors = useMemo(() => {
 			const pMap = new Map(item.vendorPriority.map((id, idx) => [id, idx]));
-			const sorted = [...availableVendors].sort((a, b) => {
+			return [...availableVendors].sort((a, b) => {
 				const pA = pMap.get(getSourceId(a));
 				const pB = pMap.get(getSourceId(b));
 				if (pA !== undefined && pB !== undefined) return pA - pB;
@@ -464,15 +458,19 @@ const CompactListItem: React.FC<{
 				if (pB !== undefined) return 1;
 				return getOrderPrice(a).price - getOrderPrice(b).price;
 			});
+		}, [availableVendors, item.vendorPriority]);
+
+		// 2. Allocate the requested quantity in sourcing-priority order.
+		const sourcing = useMemo(() => {
 			const vendors = new Set<string>();
+			const sourcedVendorIds = new Set<string>();
 			const locations = new Map<string, { label: string; isHortus: boolean }>();
 			let remainingNeeded = item.quantity;
 
-			for (const vendor of sorted) {
+			for (const vendor of sortedVendors) {
 				if (remainingNeeded <= 0) break;
 				const vendorAmount = Math.min(remainingNeeded, vendor.quantity);
 				if (vendorAmount <= 0) continue;
-				vendors.add(vendor.gamename || vendor.vendorname);
 				let remainingVendorAmount = vendorAmount;
 				for (const location of vendor.location || []) {
 					if (remainingVendorAmount <= 0) break;
@@ -481,6 +479,8 @@ const CompactListItem: React.FC<{
 						location.available ?? location.amount ?? location.storage_amount;
 					if (!id || typeof available !== "number" || available <= 0) continue;
 					const locationAmount = Math.min(remainingVendorAmount, available);
+					vendors.add(vendor.gamename || vendor.vendorname);
+					sourcedVendorIds.add(getSourceId(vendor));
 					locations.set(id, {
 						label: formatLocationLabel(location.location_name || id, id),
 						isHortus: location.location_code === "HRT",
@@ -490,11 +490,15 @@ const CompactListItem: React.FC<{
 				remainingNeeded -= vendorAmount;
 			}
 
-			return { locations: [...locations.values()], vendors: [...vendors] };
-		}, [availableVendors, item.quantity, item.vendorPriority]);
-
-		const viaText =
-			sourcing.vendors.length > 0 ? sourcing.vendors.join(", ") : "No Vendors";
+			return {
+				vendors: [...vendors],
+				sourcedVendorIds,
+				locations: [...locations.values()].sort((a, b) => {
+					if (a.isHortus !== b.isHortus) return a.isHortus ? -1 : 1;
+					return a.label.localeCompare(b.label);
+				}),
+			};
+		}, [item.quantity, sortedVendors]);
 
 		return (
 			<Box
@@ -509,12 +513,19 @@ const CompactListItem: React.FC<{
 					"&:last-child": { borderBottom: "none" },
 				}}
 			>
-				<Box sx={{ display: "flex", alignItems: "center", p: 1.5, gap: 2 }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						p: 1.5,
+						gap: 2,
+						flexWrap: { xs: "wrap", md: "nowrap" },
+					}}
+				>
 					<Typography
 						variant="body1"
 						fontWeight="900"
 						sx={{
-							width: 60,
 							flexShrink: 0,
 							fontSize: "1.1rem",
 							color: theme.palette.text.primary,
@@ -522,14 +533,38 @@ const CompactListItem: React.FC<{
 					>
 						<MaterialBadge ticker={item.materialticker} />
 					</Typography>
+					<Typography
+						variant="caption"
+						sx={{
+							display: { xs: "block", md: "none" },
+							fontSize: "0.75rem",
+							whiteSpace: "nowrap",
+							marginLeft: { xs: "auto", md: 0 },
+						}}
+					>
+						Supply:{" "}
+						<Box
+							component="span"
+							sx={{
+								color:
+									totalAvail < item.quantity
+										? theme.palette.error.main
+										: theme.palette.success.main,
+								fontWeight: "bold",
+							}}
+						>
+							{formatAmount(totalAvail)}
+						</Box>
+					</Typography>
 
 					<Box
 						onClick={() => setExpanded(!expanded)}
 						sx={{
-							flex: 1,
+							flex: { xs: "1 1 calc(100% - 56px)", md: 1 },
+							order: { xs: 1, md: 0 },
 							display: "flex",
-							flexDirection: "column",
-							justifyContent: "center",
+							alignItems: "center",
+							gap: 0.5,
 							p: 1,
 							borderRadius: 1.5,
 							cursor: "pointer",
@@ -544,134 +579,131 @@ const CompactListItem: React.FC<{
 							},
 						}}
 					>
+						<Box sx={{ display: "flex", pr: 0.5 }}>
+							{expanded ? (
+								<ChevronDown size={16} />
+							) : (
+								<ChevronRight size={16} />
+							)}
+						</Box>
 						<Box
 							sx={{
 								display: "flex",
-								justifyContent: "space-between",
-								alignItems: "flex-start",
-								mb: 0.5,
+								flexDirection: "column",
+								gap: 0.25,
+								flex: 1,
+								minWidth: 0,
 							}}
 						>
 							<Typography
-								variant="caption"
-								sx={{
-									fontWeight: "bold",
-									color: theme.palette.primary.main,
-									letterSpacing: 0.5,
-									fontSize: "0.7rem",
-								}}
+								variant="body2"
+								sx={{ minWidth: 0, fontSize: "0.85rem" }}
 							>
-								SOURCING PRIORITY{" "}
-								{expanded ? (
-									<ChevronUp
-										size={12}
-										style={{ display: "inline", verticalAlign: "middle" }}
-									/>
-								) : (
-									<ChevronDown
-										size={12}
-										style={{ display: "inline", verticalAlign: "middle" }}
-									/>
-								)}
+								<Box
+									component="span"
+									sx={{ color: theme.palette.primary.dark, fontWeight: "bold" }}
+								>
+									From:
+								</Box>{" "}
+								{sourcing.vendors.length > 0
+									? sourcing.vendors.map((vendor) => (
+											<Box
+												component="span"
+												key={vendor}
+												sx={{
+													"& + &::before": {
+														content: '"•"',
+														margin: "0 0.5em",
+													},
+												}}
+											>
+												<Store
+													size={14}
+													color={theme.palette.primary.main}
+													style={{ verticalAlign: "middle" }}
+												/>{" "}
+												{vendor}
+											</Box>
+										))
+									: "—"}
 							</Typography>
-							<Box
-								sx={{
-									alignItems: "flex-end",
-									display: "flex",
-									flexDirection: "column",
-									ml: 1,
-								}}
+							<Typography
+								variant="body2"
+								sx={{ minWidth: 0, fontSize: "0.85rem" }}
 							>
-								<Typography
-									variant="caption"
-									sx={{
-										fontSize: "0.75rem",
-										fontWeight: "medium",
-										whiteSpace: "nowrap",
-									}}
+								<Box
+									component="span"
+									sx={{ color: theme.palette.primary.dark, fontWeight: "bold" }}
 								>
-									Supply:{" "}
-									<span
-										style={{
-											color:
-												totalAvail < item.quantity
-													? theme.palette.error.main
-													: theme.palette.success.main,
-											fontWeight: "bold",
-										}}
-									>
-										{formatAmount(totalAvail)}
-									</span>
-								</Typography>
-							</Box>
-						</Box>
-
-						{/* VIA ROW */}
-						<Box
-							sx={{
-								alignItems: "center",
-								display: "flex",
-								flexWrap: "wrap",
-								gap: 1,
-								width: "100%",
-							}}
-						>
-							<Box
-								sx={{
-									flex: "1 1 0",
-									minWidth: 0,
-								}}
-							>
-								<Typography
-									variant="body2"
-									sx={{
-										color: theme.palette.text.primary,
-										fontSize: "0.85rem",
-										fontWeight: "bold",
-										minWidth: 0,
-									}}
-								>
-									{viaText}
-								</Typography>
-							</Box>
-							<Box
-								sx={{
-									flex: "1 1 0",
-									minWidth: 0,
-									textAlign: "right",
-								}}
-							>
-								{sourcing.locations.map((location, index) => (
-									<React.Fragment key={location.label}>
-										{index > 0 && "\u00a0\u00a0"}
-										{location.isHortus ? (
-											<Warehouse
-												size={14}
-												color={theme.palette.success.light}
-												style={{ verticalAlign: "middle" }}
-											/>
-										) : (
-											<Globe
-												size={14}
-												color={theme.palette.error.light}
-												style={{ verticalAlign: "middle" }}
-											/>
-										)}
-										{"\u00a0"}
-										<Typography
-											component="span"
-											variant="caption"
-											color="text.secondary"
-										>
-											{location.label}
-										</Typography>
-									</React.Fragment>
-								))}
-							</Box>
+									At:
+								</Box>{" "}
+								{sourcing.locations.length > 0
+									? sourcing.locations.map((location) => (
+											<Box
+												component="span"
+												key={location.label}
+												sx={{
+													"& + &::before": {
+														content: '"•"',
+														margin: "0 0.5em",
+													},
+												}}
+											>
+												{location.isHortus ? (
+													<Warehouse
+														size={14}
+														color={theme.palette.success.light}
+														style={{ verticalAlign: "middle" }}
+													/>
+												) : (
+													<Globe
+														size={14}
+														color={theme.palette.warning.main}
+														style={{ verticalAlign: "middle" }}
+													/>
+												)}{" "}
+												{location.label}
+											</Box>
+										))
+									: "—"}
+							</Typography>
 						</Box>
 					</Box>
 
-					<DebouncedInput value={item.quantity} onChange={onUpdateQty} />
+					<Box
+						sx={{
+							display: "flex",
+							flexDirection: "column",
+							alignItems: "center",
+							flexShrink: 0,
+						}}
+					>
+						<DebouncedInput value={item.quantity} onChange={onUpdateQty} />
+						<Typography
+							variant="caption"
+							sx={{
+								display: { xs: "none", md: "block" },
+								fontSize: "0.75rem",
+								position: "relative",
+								top: "0.25em",
+								whiteSpace: "nowrap",
+							}}
+						>
+							Supply:{" "}
+							<Box
+								component="span"
+								sx={{
+									color:
+										totalAvail < item.quantity
+											? theme.palette.error.main
+											: theme.palette.success.main,
+									fontWeight: "bold",
+								}}
+							>
+								{formatAmount(totalAvail)}
+							</Box>
+						</Typography>
+					</Box>
 
 					<IconButton
 						onClick={onRemove}
@@ -693,8 +725,8 @@ const CompactListItem: React.FC<{
 				<Collapse in={expanded}>
 					<Box sx={{ px: 2, pb: 2 }}>
 						<VendorPrioritySelector
-							availableVendors={availableVendors}
-							currentPriority={item.vendorPriority}
+							sortedVendors={sortedVendors}
+							sourcedVendorIds={sourcing.sourcedVendorIds}
 							onUpdatePriority={onUpdatePriority}
 						/>
 					</Box>
@@ -709,19 +741,18 @@ const CompactListItem: React.FC<{
  * Renders a group of summary items assigned to a single vendor.
  *
  * @param {object} props - Component props.
- * @param {string} props.vendorName - Vendor's company name.
  * @param {string} props.gameName - Vendor's game name.
  * @param {ShoppingSummaryItem[]} props.items - The list of items calculated to be bought from this vendor.
  * @param {number} props.total - The total cost for this vendor.
  * @returns {React.ReactElement} The vendor summary group component.
  */
 const SummaryVendorGroup: React.FC<{
-	vendorName: string;
 	gameName: string;
 	items: ShoppingSummaryItem[];
 	total: number;
-}> = ({ vendorName, gameName, items, total }) => {
+}> = ({ gameName, items, total }) => {
 	const theme = useTheme();
+	const formattedTotal = formatPrice(total);
 
 	return (
 		<Box
@@ -744,76 +775,99 @@ const SummaryVendorGroup: React.FC<{
 					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
 				}}
 			>
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-					<Typography variant="subtitle2" fontWeight="bold">
-						{vendorName}
-						<Typography
-							component="span"
-							variant="caption"
-							color="text.secondary"
-							sx={{ ml: 1 }}
-						>
-							({gameName})
-						</Typography>
-					</Typography>
-				</Box>
-				<Typography variant="subtitle2" fontWeight="bold" color="primary.main">
-					{formatPrice(total)}
+				<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+					<Store
+						size={16}
+						color={theme.palette.primary.main}
+						style={{ verticalAlign: "middle" }}
+					/>{" "}
+					{gameName}
+				</Typography>
+				<Typography variant="subtitle2">
+					{formattedTotal === "N/A" ? (
+						formattedTotal
+					) : (
+						<>
+							<Box
+								component="span"
+								sx={{ color: theme.palette.warning.main, fontWeight: "bold" }}
+							>
+								{formattedTotal.slice(0, -4)}
+							</Box>{" "}
+							<Box
+								component="span"
+								sx={{ color: "text.primary", fontSize: "0.7rem" }}
+							>
+								ICA
+							</Box>
+						</>
+					)}
 				</Typography>
 			</Box>
 
 			{/* List of Items */}
 			<Box sx={{ p: 1 }}>
-				{items.map((item, idx) => (
-					<Box
-						key={idx}
-						sx={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-							mb: 0.8,
-						}}
-					>
-						{/* Left: Ticker & Amount */}
-						<Typography
-							variant="body2"
-							color="text.primary"
-							sx={{ fontSize: "0.75rem" }}
+				{items.map((item, idx) => {
+					const unitPrice = formatPrice(item.price);
+					const totalPrice = formatPrice(item.totalPrice);
+					return (
+						<Box
+							key={idx}
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 0.5,
+								fontSize: "0.75rem",
+								mb: idx < items.length - 1 ? 0.5 : 0,
+							}}
 						>
-							<MaterialBadge ticker={item.ticker} />{" "}
-							<span style={{ opacity: 0.8, fontWeight: 600 }}>
-								×{formatAmount(item.amount)}
-							</span>
-						</Typography>
-
-						{/* Right: Total Price & Unit Price */}
-						<Box sx={{ textAlign: "right" }}>
+							<Box sx={{ flex: "0 0 2.75rem" }}>
+								<MaterialBadge ticker={item.ticker} />
+							</Box>
 							<Typography
 								variant="body2"
-								color="text.secondary"
 								sx={{
-									fontSize: "0.75rem",
-									fontWeight: "bold",
-									lineHeight: 1.1,
+									flex: "0 0 3.5rem",
+									fontSize: "inherit",
+									textAlign: "right",
 								}}
 							>
-								{formatPrice(item.totalPrice)}
+								×
+								<Box component="span" sx={{ fontWeight: "bold" }}>
+									{formatAmount(item.amount)}
+								</Box>
 							</Typography>
 							<Typography
-								variant="caption"
+								variant="body2"
 								sx={{
-									color: theme.palette.text.secondary,
-									fontSize: "0.7rem",
-									display: "block",
-									marginTop: "-1px",
-									opacity: 0.5,
+									flex: 1,
+									fontSize: "inherit",
+									textAlign: "right",
+									whiteSpace: "nowrap",
 								}}
 							>
-								@ {formatPrice(item.price)}
+								<Box component="span" sx={{ fontWeight: "bold" }}>
+									{unitPrice === "N/A" ? unitPrice : unitPrice.slice(0, -4)}
+								</Box>{" "}
+								ppu
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{
+									flex: 1,
+									fontSize: "inherit",
+									textAlign: "right",
+									whiteSpace: "nowrap",
+								}}
+							>
+								<Box component="span" sx={{ fontWeight: "bold" }}>
+									{totalPrice === "N/A" ? totalPrice : totalPrice.slice(0, -4)}
+								</Box>{" "}
+								ICA
 							</Typography>
 						</Box>
-					</Box>
-				))}
+					);
+				})}
 			</Box>
 		</Box>
 	);
@@ -836,27 +890,12 @@ const AvailableItemRow: React.FC<{
 	isMobile?: boolean;
 	onCloseMobile?: () => void;
 }> = React.memo(({ mat, onAdd, isMobile, onCloseMobile }) => {
-	// Format price range
-	const priceDisplay = useMemo(() => {
-		const min = mat.minPrice || mat.fixedprice;
-		const max = mat.maxPrice || mat.fixedprice;
-
-		if (min !== max) {
-			return (
-				<span>
-					{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
-						min,
-					)}
-					&ndash;
-					{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
-						max,
-					)}{" "}
-					ICA
-				</span>
-			);
-		}
-		return formatPrice(min);
-	}, [mat]);
+	const min = mat.minPrice || mat.fixedprice;
+	const max = mat.maxPrice || mat.fixedprice;
+	const format = (price: number) =>
+		new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(price);
+	const priceDisplay =
+		min !== max ? `${format(min)}–${format(max)}` : format(min);
 
 	return (
 		<Box
@@ -864,45 +903,68 @@ const AvailableItemRow: React.FC<{
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "space-between",
-				p: 1.5,
+				p: 1.25,
 				px: 2,
 				borderBottom: `1px solid rgba(255,255,255,0.1)`,
 				"&:hover": { bgcolor: "rgba(255,255,255,0.03)" },
 			}}
 		>
-			<Box>
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-					<Typography variant="body2" fontWeight="bold">
-						<MaterialBadge ticker={mat.materialticker} />
-					</Typography>
-					{/* VENDOR COUNT BADGE */}
+			<Box
+				sx={{
+					display: "flex",
+					alignItems: "center",
+					gap: 0.75,
+					minWidth: 0,
+					whiteSpace: "nowrap",
+				}}
+			>
+				<Box component="span" sx={{ fontSize: "0.85rem" }}>
+					<MaterialBadge ticker={mat.materialticker} />
+				</Box>
+				<Typography
+					variant="caption"
+					color="text.secondary"
+					sx={{ fontSize: "0.85rem" }}
+				>
+					×
+					<Box component="span" sx={{ fontWeight: "bold" }}>
+						{formatAmount(mat.total_instore)}
+					</Box>
+				</Typography>
+				<Tooltip title={mat.vendorNames.join(", ")}>
 					<Box
 						sx={{
 							display: "flex",
 							alignItems: "center",
-							gap: 0.5,
+							gap: 0.25,
 							opacity: 0.6,
+							cursor: "help",
+							borderBottom: "1px dotted currentColor",
 						}}
 					>
 						<Store size={12} />
-						<Typography variant="caption">
-							{mat.vendorCount > 1
-								? `${mat.vendorCount} Vendors`
-								: `${mat.vendorCount} Vendor`}
+						<Typography variant="caption" sx={{ fontSize: "0.85rem" }}>
+							{mat.vendorCount}
 						</Typography>
 					</Box>
-				</Box>
-				<Typography variant="caption" color="text.secondary">
-					{formatAmount(mat.total_instore)} available
-				</Typography>
+				</Tooltip>
 			</Box>
-			<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+			<Box
+				sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}
+			>
 				<Typography
 					variant="body2"
-					color="success.main"
-					sx={{ fontWeight: "bold", fontSize: "0.85rem" }}
+					sx={{ color: "warning.main", fontSize: "0.85rem" }}
 				>
-					{priceDisplay}
+					<Box component="span" sx={{ fontWeight: "bold" }}>
+						{priceDisplay}
+					</Box>{" "}
+					<Box
+						component="span"
+						sx={{ color: "text.primary", fontSize: "0.75rem" }}
+					>
+						ICA
+					</Box>
 				</Typography>
 				<IconButton
 					size="small"
@@ -988,8 +1050,7 @@ const AvailableMaterialsPanel: React.FC<{
 				>
 					<Typography
 						variant="subtitle2"
-						fontWeight="bold"
-						color="primary.main"
+						sx={{ color: "text.primary", fontWeight: "bold" }}
 					>
 						AVAILABLE MATERIALS
 					</Typography>
@@ -1242,12 +1303,12 @@ const ShoppingListModal: React.FC<{
 						frontendId: uuidv4(),
 						minPrice: orderPrice,
 						maxPrice: orderPrice,
-						vendors: new Set(), // Track unique vendors
+						vendors: new Map(), // Track unique vendor usernames
 					};
 				}
 				// Update Totals & Vendor Set
 				acc[order.materialticker].total_instore += order.quantity;
-				acc[order.materialticker].vendors.add(order.vendorid);
+				acc[order.materialticker].vendors.set(order.vendorid, order.gamename);
 
 				// Update Price Range
 				if (orderPrice < acc[order.materialticker].minPrice) {
@@ -1266,10 +1327,10 @@ const ShoppingListModal: React.FC<{
 			{} as { [key: string]: any },
 		);
 
-		// Convert Set to count before returning
 		return Object.values(agg).map((item) => ({
 			...item,
 			vendorCount: item.vendors.size,
+			vendorNames: [...item.vendors.values()].sort(),
 		}));
 	}, [locationFilteredSellOrders]);
 
@@ -1392,7 +1453,6 @@ const ShoppingListModal: React.FC<{
 					string,
 					{
 						vendorId: string;
-						vendorName: string;
 						gameName: string;
 						items: ShoppingSummaryItem[];
 						total: number;
@@ -1412,7 +1472,6 @@ const ShoppingListModal: React.FC<{
 			});
 			const vendor = (locationGroup.vendors[item.vendorid] ||= {
 				vendorId: item.vendorid,
-				vendorName: item.vendorname,
 				gameName: item.gamename,
 				items: [],
 				total: 0,
@@ -1421,10 +1480,23 @@ const ShoppingListModal: React.FC<{
 			vendor.total += item.totalPrice;
 		});
 
-		return Object.values(groups).map(({ location, vendors }) => ({
-			location,
-			vendors: Object.values(vendors),
-		}));
+		return Object.values(groups)
+			.sort((a, b) => {
+				const aIsHrt = a.location?.location_code === "HRT";
+				const bIsHrt = b.location?.location_code === "HRT";
+				if (aIsHrt !== bIsHrt) return aIsHrt ? -1 : 1;
+				return (
+					a.location?.location_name ||
+					a.location?.location_code ||
+					""
+				).localeCompare(
+					b.location?.location_name || b.location?.location_code || "",
+				);
+			})
+			.map(({ location, vendors }) => ({
+				location,
+				vendors: Object.values(vendors),
+			}));
 	}, [shoppingSummary]);
 
 	// --- UTILS ---
@@ -1504,9 +1576,15 @@ const ShoppingListModal: React.FC<{
 					<ShoppingBasket size={24} />
 					<Typography variant="h6">Shopping List</Typography>
 				</Box>
-				<IconButton onClick={handleClose}>
-					<X />
-				</IconButton>
+				<Button
+					variant="outlined"
+					size="small"
+					startIcon={<X size={18} />}
+					onClick={handleClose}
+					sx={{ fontWeight: "bold" }}
+				>
+					CLOSE
+				</Button>
 			</DialogTitle>
 
 			<DialogContent
@@ -1560,7 +1638,7 @@ const ShoppingListModal: React.FC<{
 						>
 							<Box
 								sx={{
-									p: 1,
+									p: 1.5,
 									display: "flex",
 									alignItems: "center",
 									justifyContent: "space-between",
@@ -1571,8 +1649,7 @@ const ShoppingListModal: React.FC<{
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 									<Typography
 										variant="subtitle2"
-										fontWeight="bold"
-										color="primary.main"
+										sx={{ color: "text.primary", fontWeight: "bold" }}
 									>
 										YOUR SELECTION
 									</Typography>
@@ -1650,7 +1727,7 @@ const ShoppingListModal: React.FC<{
 						>
 							<Box
 								sx={{
-									p: 1,
+									p: 1.5,
 									display: "flex",
 									justifyContent: "space-between",
 									alignItems: "center",
@@ -1661,25 +1738,25 @@ const ShoppingListModal: React.FC<{
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 									<Typography
 										variant="subtitle2"
-										sx={{ fontWeight: "bold" }}
-										color="primary.main"
+										sx={{ color: "text.primary", fontWeight: "bold" }}
 									>
-										SUMMARY
+										ORDER SUMMARY
 									</Typography>
 								</Box>
 								<Tooltip title="Copy to Clipboard">
-									<IconButton
+									<Button
 										size="small"
+										variant="contained"
+										color={isCopied ? "success" : "primary"}
+										startIcon={<ContentCopy sx={{ fontSize: 16 }} />}
+										sx={{ fontWeight: "bold" }}
 										onClick={(e) => {
 											e.stopPropagation();
 											handleCopy();
 										}}
 									>
-										<ContentCopy
-											sx={{ fontSize: 16 }}
-											color={isCopied ? "success" : "inherit"}
-										/>
-									</IconButton>
+										COPY
+									</Button>
 								</Tooltip>
 							</Box>
 							<Box
@@ -1718,7 +1795,7 @@ const ShoppingListModal: React.FC<{
 													) : (
 														<Globe
 															size={16}
-															color={theme.palette.error.light}
+															color={theme.palette.warning.main}
 														/>
 													)}
 													<Typography variant="subtitle2" fontWeight="bold">
@@ -1728,7 +1805,6 @@ const ShoppingListModal: React.FC<{
 												{group.vendors.map((vendor) => (
 													<SummaryVendorGroup
 														key={vendor.vendorId}
-														vendorName={vendor.vendorName}
 														gameName={vendor.gameName}
 														items={vendor.items}
 														total={vendor.total}
@@ -1769,18 +1845,33 @@ const ShoppingListModal: React.FC<{
 										display: "flex",
 										justifyContent: "space-between",
 										alignItems: "flex-end",
-										width: "100%",
 									}}
 								>
 									<Typography variant="caption" color="text.secondary">
 										TOTAL PRICE
 									</Typography>
-									<Typography
-										variant="h6"
-										color="primary.main"
-										sx={{ lineHeight: 1 }}
-									>
-										{formatPrice(grandTotal)}
+									<Typography variant="h6" sx={{ lineHeight: 1 }}>
+										{formatPrice(grandTotal) === "N/A" ? (
+											"N/A"
+										) : (
+											<>
+												<Box
+													component="span"
+													sx={{
+														color: theme.palette.warning.main,
+														fontWeight: "bold",
+													}}
+												>
+													{formatPrice(grandTotal).slice(0, -4)}
+												</Box>{" "}
+												<Box
+													component="span"
+													sx={{ color: "text.primary", fontSize: "0.7rem" }}
+												>
+													ICA
+												</Box>
+											</>
+										)}
 									</Typography>
 								</Box>
 							</Box>
