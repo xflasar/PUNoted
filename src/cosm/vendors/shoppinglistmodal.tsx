@@ -121,6 +121,7 @@ interface ShoppingSummaryItem {
 	vendorid: string;
 	vendorname: string;
 	gamename: string;
+	companycode?: string;
 	amount: number;
 	price: number;
 	totalPrice: number;
@@ -134,11 +135,11 @@ interface ShoppingSummaryItem {
  * @param {number | null | undefined} p - The price to format.
  * @returns {string} The formatted price string.
  */
-const formatPrice = (p: number | null | undefined): string =>
+const formatPrice = (p: number | null | undefined, unit = "ICA"): string =>
 	p == null || isNaN(p)
 		? "N/A"
 		: new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(p) +
-			" ICA";
+			` ${unit}`;
 
 /**
  * Formats a numeric amount into a localized string without fraction digits.
@@ -1191,7 +1192,10 @@ const ShoppingListModal: React.FC<{
 	);
 
 	useEffect(() => {
-		localStorage.setItem(SHOPPING_LIST_STORAGE_KEY, JSON.stringify(shoppingList));
+		localStorage.setItem(
+			SHOPPING_LIST_STORAGE_KEY,
+			JSON.stringify(shoppingList),
+		);
 	}, [shoppingList]);
 
 	// 1. Memoize All Sell Orders
@@ -1417,6 +1421,7 @@ const ShoppingListModal: React.FC<{
 						vendorid: order.vendorid,
 						vendorname: order.vendorname,
 						gamename: order.gamename,
+						companycode: order.companycode,
 						ticker: order.materialticker,
 						amount: take,
 						price: displayPrice,
@@ -1494,24 +1499,26 @@ const ShoppingListModal: React.FC<{
 
 	// --- UTILS ---
 	const handleCopy = async () => {
-		const grouped = shoppingSummary.reduce((acc, i) => {
-			if (!acc[i.vendorid]) acc[i.vendorid] = { ...i, items: [], total: 0 };
-			acc[i.vendorid].items.push(i);
-			acc[i.vendorid].total += i.totalPrice;
-			return acc;
-		}, {} as any);
-
-		const total = shoppingSummary.reduce((s, i) => s + i.totalPrice, 0);
-		let text = "--- Shopping Summary ---\n";
-		Object.values(grouped).forEach((g: any) => {
-			text += `\nVendor: ${g.vendorname} (${g.gamename})\n`;
-			g.items.forEach(
-				(i: any) =>
-					(text += ` - ${i.ticker}: ${formatAmount(i.amount)} @ ${formatPrice(i.price)} = ${formatPrice(i.totalPrice)}\n`),
-			);
-			text += ` Vendor Total: ${formatPrice(g.total)}\n`;
-		});
-		text += `\nGrand Total: ${formatPrice(total)}`;
+		const text = [
+			...groupedSummary.map(({ location, vendors }) => {
+				const locationName =
+					location?.location_name || location?.location_code || "Unknown";
+				const locationCode = location?.location_code || locationName;
+				return [
+					`-- ${formatLocationLabel(locationName, locationCode).toUpperCase()} --`,
+					...vendors.flatMap((vendor) => [
+						"",
+						`Vendor: ${vendor.gameName}${vendor.items[0].companycode ? ` [${vendor.items[0].companycode}]` : ""} ${vendor.items[0].vendorname}`,
+						...vendor.items.map(
+							(item) =>
+								`- ${formatAmount(item.amount)} × [${item.ticker}] @ ${formatPrice(item.price, "ppu")} = ${formatPrice(item.totalPrice)}`,
+						),
+						`Total: ${formatPrice(vendor.total)}`,
+					]),
+				].join("\n");
+			}),
+			`GRAND TOTAL: ${formatPrice(grandTotal)}`,
+		].join("\n\n");
 
 		try {
 			await navigator.clipboard.writeText(text);
@@ -1964,7 +1971,9 @@ const ShoppingListModal: React.FC<{
 						setConfirmClear(false);
 					}}
 				>
-					<Typography>You can add materials again from the panel to the left.</Typography>
+					<Typography>
+						You can add materials again from the panel to the left.
+					</Typography>
 				</ConfirmationDialog>
 			</DialogContent>
 		</Dialog>
