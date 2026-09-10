@@ -42,6 +42,7 @@ import LocationFilter, {
 	matchesLocationFilter,
 	type LocationOption,
 } from "./components/locationfilter";
+import { ConfirmationDialog } from "./confirmationdialog";
 
 // --- Types ---
 /**
@@ -100,6 +101,18 @@ interface ShoppingListItem {
 	frontendId: string;
 	vendorPriority: string[];
 }
+
+const SHOPPING_LIST_STORAGE_KEY = "cosmShoppingList";
+const getStoredShoppingList = (): ShoppingListItem[] => {
+	try {
+		const list: unknown = JSON.parse(
+			localStorage.getItem(SHOPPING_LIST_STORAGE_KEY) || "[]",
+		);
+		return Array.isArray(list) ? (list as ShoppingListItem[]) : [];
+	} catch {
+		return [];
+	}
+};
 
 /**
  * Represents a calculated shopping summary item, assigned to a specific vendor.
@@ -1162,17 +1175,24 @@ const ShoppingListModal: React.FC<{
 
 	// State management
 	const [insufficientStock, setInsufficientStock] = useState(false);
-	const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([]);
+	const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>(
+		getStoredShoppingList,
+	);
 	const [shoppingSummary, setShoppingSummary] = useState<ShoppingSummaryItem[]>(
 		[],
 	);
 	const [isCopied, setIsCopied] = useState(false);
+	const [confirmClear, setConfirmClear] = useState(false);
 
 	// UI states
 	const [showAddItems, setShowAddItems] = useState(false);
 	const [selectedLocation, setSelectedLocation] = useState<string | null>(
 		HORTUS_LOCATION_CODE,
 	);
+
+	useEffect(() => {
+		localStorage.setItem(SHOPPING_LIST_STORAGE_KEY, JSON.stringify(shoppingList));
+	}, [shoppingList]);
 
 	// 1. Memoize All Sell Orders
 	const allSellOrders = useMemo(() => {
@@ -1627,10 +1647,23 @@ const ShoppingListModal: React.FC<{
 										YOUR SELECTION
 									</Typography>
 								</Box>
-								<Typography variant="caption" color="text.secondary">
-									{shoppingList.length}{" "}
-									{shoppingList.length === 1 ? "material" : "materials"}
-								</Typography>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									<Typography variant="caption" color="text.secondary">
+										{shoppingList.length}{" "}
+										{shoppingList.length === 1 ? "material" : "materials"}
+									</Typography>
+									<Button
+										size="small"
+										variant="outlined"
+										color="error"
+										startIcon={<Trash2 size={16} />}
+										disabled={shoppingList.length === 0}
+										onClick={() => setConfirmClear(true)}
+										sx={{ fontWeight: "bold" }}
+									>
+										CLEAR
+									</Button>
+								</Box>
 							</Box>
 							<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
 								{shoppingList.length === 0 ? (
@@ -1722,6 +1755,7 @@ const ShoppingListModal: React.FC<{
 										variant="contained"
 										color={isCopied ? "success" : "primary"}
 										startIcon={<ContentCopy sx={{ fontSize: 16 }} />}
+										disabled={shoppingList.length === 0}
 										sx={{ fontWeight: "bold" }}
 										onClick={(e) => {
 											e.stopPropagation();
@@ -1918,6 +1952,20 @@ const ShoppingListModal: React.FC<{
 						onCloseMobile={() => setShowAddItems(false)}
 					/>
 				</Drawer>
+				<ConfirmationDialog
+					open={confirmClear}
+					onClose={() => setConfirmClear(false)}
+					title="Clear your Shopping List?"
+					confirmLabel="YES"
+					cancelLabel="NO"
+					type="negative"
+					onConfirm={() => {
+						setShoppingList([]);
+						setConfirmClear(false);
+					}}
+				>
+					<Typography>You can add materials again from the panel to the left.</Typography>
+				</ConfirmationDialog>
 			</DialogContent>
 		</Dialog>
 	);

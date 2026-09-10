@@ -16,7 +16,7 @@ import { API_BASE_URL } from "../../config/api";
 import { DeleteIcon, PlusCircle, X } from "lucide-react";
 import AvailableMaterialsList from "./components/availablematerialslist";
 import MaterialTable from "./components/materialtable";
-import { DeleteConfirmationDialog } from "./deleteconfirmationdialog";
+import { ConfirmationDialog } from "./confirmationdialog";
 
 import { useVendorStoreManager } from "./hooks/usevendorstoremanager";
 import { useAvailableMaterials } from "./hooks/useavailablematerials";
@@ -437,7 +437,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								variant="outlined"
 								color="error"
 								size="small"
-								onClick={handleDeleteVendorStore}
+								onClick={() => setDeleteConfirmOpen(true)}
 								disabled={isSaving || isDeleting}
 								startIcon={
 									isDeleting ? (
@@ -475,12 +475,18 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				</DialogActions>
 			</Dialog>
 
-			<DeleteConfirmationDialog
+			<ConfirmationDialog
 				open={deleteConfirmOpen}
 				onClose={() => setDeleteConfirmOpen(false)}
 				onConfirm={handleDeleteVendorStore}
-				vendorName={vendorStore?.vendor.companyname || "this store"}
-			/>
+				title="Delete Store?"
+				confirmLabel="Delete"
+				type="negative"
+			>
+				<Typography>
+					You can create a new store later but your existing orders will be deleted.
+				</Typography>
+			</ConfirmationDialog>
 		</>
 	);
 };
