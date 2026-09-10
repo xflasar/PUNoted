@@ -3,7 +3,6 @@ import {
 	Dialog,
 	DialogTitle,
 	DialogContent,
-	Autocomplete,
 	Box,
 	Typography,
 	TextField,
@@ -38,6 +37,11 @@ import PriceComparisonBadge from "./components/pricecomparisonbadge";
 import { getDiffStats } from "./utils/pricecomparison";
 import { pickPrice } from "./utils/pickprice";
 import MaterialBadge from "../components/materialbadge";
+import LocationFilter, {
+	HORTUS_LOCATION_CODE,
+	matchesLocationFilter,
+	type LocationOption,
+} from "./components/locationfilter";
 
 // --- Types ---
 /**
@@ -109,7 +113,6 @@ interface ShoppingSummaryItem {
 	totalPrice: number;
 	location?: NonNullable<OrderItem["location"]>[number];
 }
-type LocationOption = { id: string; name: string };
 
 // --- Formatters ---
 /**
@@ -1097,50 +1100,12 @@ const AvailableMaterialsPanel: React.FC<{
 							},
 						}}
 					/>
-					<Autocomplete<LocationOption, false, false, false>
-						size="small"
-						options={allLocations}
-						value={
-							selectedLocation === null
-								? null
-								: allLocations.find(
-										(option) => option.id === selectedLocation,
-									) || null
-						}
-						onChange={(_e, newValue) => onChangeLocation(newValue?.id || null)}
-						getOptionLabel={(option) =>
-							formatLocationLabel(option.name, option.id)
-						}
-						slotProps={{
-							paper: {
-								sx: {
-									bgcolor: "background.default",
-									backgroundImage: "none",
-								},
-							},
-							popper: isMobile ? { sx: { zIndex: 10000 } } : undefined,
-						}}
-						sx={{
-							mt: 1,
-							"& .MuiAutocomplete-clearIndicator": {
-								visibility: selectedLocation ? "visible" : "hidden",
-								opacity: selectedLocation ? 1 : 0,
-							},
-						}}
-						renderInput={(params) => (
-							<TextField
-								{...params}
-								variant="outlined"
-								placeholder="All Locations"
-								sx={{
-									"& .MuiOutlinedInput-root": {
-										height: 40,
-										bgcolor: "rgba(0,0,0,0.2)",
-										borderRadius: "12px",
-									},
-								}}
-							/>
-						)}
+					<LocationFilter
+						locations={allLocations}
+						value={selectedLocation}
+						onChange={onChangeLocation}
+						sx={{ mt: 1 }}
+						popperSx={isMobile ? { zIndex: 10000 } : undefined}
 					/>
 				</Box>
 
@@ -1205,7 +1170,9 @@ const ShoppingListModal: React.FC<{
 
 	// UI states
 	const [showAddItems, setShowAddItems] = useState(false);
-	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(
+		HORTUS_LOCATION_CODE,
+	);
 
 	// 1. Memoize All Sell Orders
 	const allSellOrders = useMemo(() => {
@@ -1269,28 +1236,18 @@ const ShoppingListModal: React.FC<{
 				});
 			});
 		});
-		return [...locs.values()].sort((a, b) => {
-			if (a.id === "HRT") return -1;
-			if (b.id === "HRT") return 1;
-			return formatLocationLabel(a.name, a.id).localeCompare(
-				formatLocationLabel(b.name, b.id),
-			);
-		});
+		return [...locs.values()];
 	}, [allSellOrders]);
 
 	const locationFilteredSellOrders = useMemo(() => {
 		if (selectedLocation === null) return allSellOrders;
 		return allSellOrders.filter((order) =>
-			order.location?.some((loc) => {
-				const locationMatches =
-					loc.location_code === selectedLocation ||
-					loc.location_name === selectedLocation;
-				return (
-					locationMatches &&
+			order.location?.some(
+				(loc) =>
 					typeof loc.available === "number" &&
-					loc.available > 0
-				);
-			}),
+					loc.available > 0 &&
+					matchesLocationFilter(loc, selectedLocation),
+			),
 		);
 	}, [allSellOrders, selectedLocation]);
 

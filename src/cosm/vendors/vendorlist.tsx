@@ -23,7 +23,6 @@ import {
 	useTheme,
 	IconButton,
 	alpha,
-	Autocomplete,
 } from "@mui/material";
 import {
 	Search,
@@ -47,26 +46,20 @@ import type { Location, OrderItem, VendorStore } from "./types";
 import { getDiffStats } from "./utils/pricecomparison";
 import { formatLocation } from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
+import LocationFilter, {
+	ALL_LOCATIONS_ID,
+	HORTUS_LOCATION_CODE,
+	matchesLocationFilter,
+	type LocationOption,
+} from "./components/locationfilter";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
-type LocationOption = { id: string; name?: string; label?: string };
 type MarketOptions = {
 	view: "grid" | "table";
 	location: string;
 	side: "ask" | "bid" | "both";
 };
 const MARKET_OPTIONS_STORAGE_KEY = "marketOptions";
-const HORTUS_LOCATION_CODE = "HRT";
-const ALL_LOCATIONS_OPTION = {
-	id: "all-locations",
-	label: "All Locations",
-};
-const NOT_HORTUS_LOCATION = {
-	id: "not-hortus",
-	label: "Not Hortus Station",
-};
-const formatLocationOption = (option: LocationOption) =>
-	option.label ?? formatLocation(option.name, option.id);
 
 const compareLocations = (
 	a?: Pick<Location, "location_code" | "location_name"> | null,
@@ -81,16 +74,6 @@ const compareLocations = (
 		{ sensitivity: "base" },
 	);
 };
-
-const matchesLocationFilter = (
-	location: Pick<Location, "location_code" | "location_name">,
-	selectedLocation: string | null,
-) =>
-	selectedLocation === null ||
-	(selectedLocation === NOT_HORTUS_LOCATION.id
-		? location.location_code !== HORTUS_LOCATION_CODE
-		: location.location_name === selectedLocation ||
-			location.location_code === selectedLocation);
 
 const hasAvailableStock = (location: Location) =>
 	typeof location.available === "number" && location.available > 0;
@@ -820,12 +803,8 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [exactMatch, setExactMatch] = useState<boolean>(false);
 	const [selectedLocation, setSelectedLocation] = useState<string | null>(
-		marketOptions.location === ALL_LOCATIONS_OPTION.id
-			? null
-			: marketOptions.location,
+		marketOptions.location === ALL_LOCATIONS_ID ? null : marketOptions.location,
 	);
-	const [locationInputValue, setLocationInputValue] =
-		useState<string>("All Locations");
 	const [orderTypeFilter, setOrderTypeFilter] = useState<
 		"ASK" | "BID" | "BOTH"
 	>(marketOptions.side.toUpperCase() as "ASK" | "BID" | "BOTH");
@@ -864,7 +843,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			MARKET_OPTIONS_STORAGE_KEY,
 			JSON.stringify({
 				view: vendorViewMode,
-				location: selectedLocation || ALL_LOCATIONS_OPTION.id,
+				location: selectedLocation || ALL_LOCATIONS_ID,
 				side: orderTypeFilter.toLowerCase(),
 			}),
 		);
@@ -1103,34 +1082,8 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			});
 		});
 
-		const locations = Array.from(locs.values()).sort((a, b) => {
-			if (a.id === HORTUS_LOCATION_CODE) return -1;
-			if (b.id === HORTUS_LOCATION_CODE) return 1;
-			return formatLocationOption(a).localeCompare(formatLocationOption(b));
-		});
-		const [hortus, ...remainingLocations] = locations;
-		return hortus?.id === HORTUS_LOCATION_CODE
-			? [
-					ALL_LOCATIONS_OPTION,
-					hortus,
-					NOT_HORTUS_LOCATION,
-					...remainingLocations,
-				]
-			: [ALL_LOCATIONS_OPTION, ...locations];
+		return Array.from(locs.values());
 	}, [vendorsWithOrders, matchesOrderFilters]);
-
-	useEffect(() => {
-		const selectedOption = allLocations.find(
-			(option) => option.id === selectedLocation,
-		);
-		setLocationInputValue(
-			selectedLocation === null
-				? ""
-				: selectedOption
-					? formatLocationOption(selectedOption)
-					: selectedLocation,
-		);
-	}, [selectedLocation, allLocations]);
 
 	// Filter Logic for Grid View
 	const preparedFilteredVendors = useMemo(() => {
@@ -1731,104 +1684,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								</ToggleButton>
 							</Tooltip>
 						</ToggleButtonGroup>
-						<Autocomplete<LocationOption, false, false, false>
-							size="small"
-							options={allLocations}
-							value={
-								selectedLocation === null
-									? null
-									: allLocations.find(
-											(option) => option.id === selectedLocation,
-										) || null
-							}
-							onChange={(_e, newValue) =>
-								setSelectedLocation(
-									newValue?.id === ALL_LOCATIONS_OPTION.id
-										? null
-										: newValue?.id || null,
-								)
-							}
-							inputValue={locationInputValue}
-							onInputChange={(_e, newInputValue, reason) => {
-								if (reason === "reset") {
-									const selectedOption = allLocations.find(
-										(option) => option.id === selectedLocation,
-									);
-									setLocationInputValue(
-										newInputValue === ALL_LOCATIONS_OPTION.label ||
-											selectedLocation === null
-											? ""
-											: selectedOption
-												? formatLocationOption(selectedOption)
-												: selectedLocation,
-									);
-								} else {
-									setLocationInputValue(newInputValue);
-								}
-							}}
-							disableClearable={false}
-							getOptionLabel={formatLocationOption}
-							isOptionEqualToValue={(option, value) => option.id === value.id}
-							renderOption={(props, option) => (
-								<Box
-									component="li"
-									{...props}
-									sx={
-										option.id === NOT_HORTUS_LOCATION.id
-											? {
-													borderBottom: `1px solid ${theme.palette.divider}`,
-													mb: 0.5,
-												}
-											: undefined
-									}
-								>
-									<Typography variant="body2">
-										{formatLocationOption(option)}
-									</Typography>
-								</Box>
-							)}
-							slotProps={{
-								paper: {
-									sx: {
-										bgcolor: theme.palette.background.default,
-										backgroundImage: "none",
-									},
-								},
-							}}
+						<LocationFilter
+							locations={allLocations}
+							value={selectedLocation}
+							onChange={setSelectedLocation}
 							sx={{
 								flexGrow: { xs: 1, sm: 0 },
 								minWidth: { sm: 260 },
 								order: -1,
-								"& .MuiAutocomplete-clearIndicator": {
-									visibility: selectedLocation ? "visible" : "hidden",
-									opacity: selectedLocation ? 1 : 0,
-								},
 							}}
-							renderInput={(params) => (
-								<TextField
-									{...params}
-									variant="outlined"
-									placeholder="All Locations"
-									sx={{
-										"& .MuiOutlinedInput-root": {
-											height: 40,
-											bgcolor: alpha(theme.palette.background.default, 0.5),
-											backdropFilter: "blur(5px)",
-											borderRadius: "12px",
-											"& fieldset": {
-												borderColor: alpha(theme.palette.common.white, 0.1),
-											},
-											"&:hover fieldset": {
-												borderColor: theme.palette.primary.main,
-											},
-											"&.Mui-focused fieldset": {
-												borderColor: theme.palette.primary.main,
-											},
-											color: theme.palette.text.primary,
-										},
-									}}
-								/>
-							)}
 						/>
 					</Box>
 					<Box
