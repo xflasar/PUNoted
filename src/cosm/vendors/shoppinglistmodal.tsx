@@ -10,6 +10,7 @@ import {
 	Button,
 	Paper,
 	IconButton,
+	InputAdornment,
 	Tooltip,
 	useTheme,
 	useMediaQuery,
@@ -1069,10 +1070,25 @@ const AvailableMaterialsPanel: React.FC<{
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						size="small"
-						InputProps={{
-							startAdornment: (
-								<Search size={16} style={{ marginRight: 8, opacity: 0.5 }} />
-							),
+						slotProps={{
+							input: {
+								startAdornment: (
+									<Search size={16} style={{ marginRight: 8, opacity: 0.5 }} />
+								),
+								endAdornment: search ? (
+									<InputAdornment position="end">
+										<Tooltip title="Clear Search">
+											<IconButton
+												size="small"
+												aria-label="Clear material search"
+												onClick={() => setSearch("")}
+											>
+												<X size={16} />
+											</IconButton>
+										</Tooltip>
+									</InputAdornment>
+								) : null,
+							},
 						}}
 						sx={{
 							"& .MuiOutlinedInput-root": {
