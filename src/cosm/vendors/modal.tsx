@@ -7,13 +7,13 @@ import {
 	DialogTitle,
 } from "@mui/material";
 
-interface ConfirmationDialogProps {
+interface ModalProps {
 	open: boolean;
 	onClose: () => void;
-	onConfirm: () => void;
 	title: string;
 	children: React.ReactNode;
-	confirmLabel: string;
+	onAction?: () => void;
+	actionLabel?: string;
 	cancelLabel?: string;
 	type?: "positive" | "negative" | "neutral";
 }
@@ -24,13 +24,13 @@ const actionColors = {
 	neutral: "primary",
 } as const;
 
-export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
+export const Modal: React.FC<ModalProps> = ({
 	open,
 	onClose,
-	onConfirm,
 	title,
 	children,
-	confirmLabel,
+	onAction,
+	actionLabel,
 	cancelLabel = "Cancel",
 	type = "neutral",
 }) => (
@@ -63,14 +63,16 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 			>
 				{cancelLabel}
 			</Button>
-			<Button
-				onClick={onConfirm}
-				variant="contained"
-				color={actionColors[type]}
-				sx={{ fontWeight: "bold" }}
-			>
-				{confirmLabel}
-			</Button>
+			{onAction && actionLabel && (
+				<Button
+					onClick={onAction}
+					variant="contained"
+					color={actionColors[type]}
+					sx={{ fontWeight: "bold" }}
+				>
+					{actionLabel}
+				</Button>
+			)}
 		</DialogActions>
 	</Dialog>
 );

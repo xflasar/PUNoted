@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import {
 	ShoppingBasket,
+	CircleHelp,
 	X,
 	Search,
 	PlusCircle,
@@ -42,7 +43,10 @@ import LocationFilter, {
 	matchesLocationFilter,
 	type LocationOption,
 } from "./components/locationfilter";
-import { ConfirmationDialog } from "./confirmationdialog";
+import { Modal } from "./modal";
+import shoppingListHelp1 from "../../assets/screenshots/shopping_list_help_1.png";
+import shoppingListHelp2 from "../../assets/screenshots/shopping_list_help_2.png";
+import shoppingListHelp3 from "../../assets/screenshots/shopping_list_help_3.png";
 
 // --- Types ---
 /**
@@ -181,7 +185,8 @@ const getOrderPrice = (order: {
 const DebouncedInput: React.FC<{
 	value: number;
 	onChange: (val: number) => void;
-}> = React.memo(({ value, onChange }) => {
+	isInsufficient: boolean;
+}> = React.memo(({ value, onChange, isInsufficient }) => {
 	const [localValue, setLocalValue] = useState<string>(value.toString());
 
 	useEffect(() => {
@@ -215,8 +220,9 @@ const DebouncedInput: React.FC<{
 				"& .MuiInputBase-input": {
 					textAlign: "center",
 					py: 1,
-					fontSize: "1rem",
+					fontSize: "1.2rem",
 					fontWeight: "bold",
+					color: isInsufficient ? "error.main" : "inherit",
 				},
 				"& .MuiOutlinedInput-root": { bgcolor: "rgba(0,0,0,0.2)" },
 			}}
@@ -538,46 +544,44 @@ const CompactListItem: React.FC<{
 						flexWrap: { xs: "wrap", md: "nowrap" },
 					}}
 				>
-					<Typography
-						variant="body1"
-						fontWeight="900"
-						sx={{
-							flexShrink: 0,
-							fontSize: "1.1rem",
-							color: theme.palette.text.primary,
-						}}
+					<Box
+						sx={{ display: "flex", flexDirection: "column", flexShrink: 0 }}
 					>
-						<MaterialBadge ticker={item.materialticker} />
-					</Typography>
-					<Typography
-						variant="caption"
-						sx={{
-							display: { xs: "block", md: "none" },
-							fontSize: "0.75rem",
-							whiteSpace: "nowrap",
-							marginLeft: { xs: "auto", md: 0 },
-						}}
-					>
-						Supply:{" "}
-						<Box
-							component="span"
+						<Typography
+							variant="body1"
+							fontWeight="900"
+							sx={{
+								fontSize: "1.1rem",
+								color: theme.palette.text.primary,
+								textAlign: "center",
+							}}
+						>
+							<MaterialBadge ticker={item.materialticker} />
+						</Typography>
+						<Typography
+							variant="caption"
 							sx={{
 								color:
 									totalAvail < item.quantity
-										? theme.palette.error.main
-										: theme.palette.success.main,
-								fontWeight: "bold",
+											? theme.palette.error.main
+											: theme.palette.common.white,
+								fontSize: "0.75rem",
+								whiteSpace: "nowrap",
+								textAlign: "center",
 							}}
 						>
-							{formatAmount(totalAvail)}
-						</Box>
-					</Typography>
+							×
+							<Box component="span" sx={{ fontWeight: "bold" }}>
+								{formatAmount(totalAvail)}
+							</Box>
+						</Typography>
+					</Box>
 
 					<Box
 						onClick={() => setExpanded(!expanded)}
 						sx={{
 							flex: { xs: "1 1 calc(100% - 56px)", md: 1 },
-							order: { xs: 1, md: 0 },
+							order: 1,
 							display: "flex",
 							alignItems: "center",
 							gap: 0.5,
@@ -619,7 +623,7 @@ const CompactListItem: React.FC<{
 									component="span"
 									sx={{ color: theme.palette.primary.dark, fontWeight: "bold" }}
 								>
-									From:
+									Vendors:
 								</Box>{" "}
 								{sourcing.vendors.length > 0
 									? sourcing.vendors.map((vendor) => (
@@ -650,7 +654,7 @@ const CompactListItem: React.FC<{
 									component="span"
 									sx={{ color: theme.palette.primary.dark, fontWeight: "bold" }}
 								>
-									At:
+									Locations:
 								</Box>{" "}
 								{sourcing.locations.length > 0
 									? sourcing.locations.map((location) => (
@@ -685,42 +689,24 @@ const CompactListItem: React.FC<{
 
 					<Box
 						sx={{
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
 							flexShrink: 0,
+							alignSelf: { md: "stretch" },
+							"& > .MuiTextField-root, & .MuiOutlinedInput-root": {
+								height: "100%",
+							},
 						}}
 					>
-						<DebouncedInput value={item.quantity} onChange={onUpdateQty} />
-						<Typography
-							variant="caption"
-							sx={{
-								display: { xs: "none", md: "block" },
-								fontSize: "0.75rem",
-								position: "relative",
-								top: "0.25em",
-								whiteSpace: "nowrap",
-							}}
-						>
-							Supply:{" "}
-							<Box
-								component="span"
-								sx={{
-									color:
-										totalAvail < item.quantity
-											? theme.palette.error.main
-											: theme.palette.success.main,
-									fontWeight: "bold",
-								}}
-							>
-								{formatAmount(totalAvail)}
-							</Box>
-						</Typography>
+						<DebouncedInput
+							value={item.quantity}
+							onChange={onUpdateQty}
+							isInsufficient={totalAvail < item.quantity}
+						/>
 					</Box>
 
 					<IconButton
 						onClick={onRemove}
 						sx={{
+							order: { xs: 0, md: 2 },
 							color: "error.main",
 							opacity: 0.7,
 							p: 1,
@@ -736,7 +722,7 @@ const CompactListItem: React.FC<{
 				</Box>
 
 				<Collapse in={expanded}>
-					<Box sx={{ px: 2, pb: 2 }}>
+					<Box sx={{ px: 1.5, pb: 1.5 }}>
 						<VendorPrioritySelector
 							sortedVendors={sortedVendors}
 							sourcedVendorIds={sourcing.sourcedVendorIds}
@@ -1182,12 +1168,21 @@ const ShoppingListModal: React.FC<{
 	);
 	const [isCopied, setIsCopied] = useState(false);
 	const [confirmClear, setConfirmClear] = useState(false);
+	const [showHelp, setShowHelp] = useState(false);
 
 	// UI states
 	const [showAddItems, setShowAddItems] = useState(false);
 	const [selectedLocation, setSelectedLocation] = useState<string | null>(
 		HORTUS_LOCATION_CODE,
 	);
+	const helpImageSx = {
+		display: "block",
+		maxWidth: "min(99%, 350px)",
+		mt: 1,
+		mb: 2,
+		borderRadius: 1,
+		boxShadow: `0 0 8px ${alpha(theme.palette.primary.light, 0.75)}`,
+	};
 
 	useEffect(() => {
 		localStorage.setItem(
@@ -1574,15 +1569,27 @@ const ShoppingListModal: React.FC<{
 					<ShoppingBasket className="inline-icon" />
 					<Typography variant="h6">Shopping List</Typography>
 				</Box>
-				<Button
-					variant="outlined"
-					size="small"
-					startIcon={<X className="inline-icon" />}
-					onClick={handleClose}
-					sx={{ fontWeight: "bold" }}
-				>
-					CLOSE
-				</Button>
+				<Box sx={{ display: "flex", gap: 1 }}>
+					<Button
+						variant="outlined"
+						size="small"
+						startIcon={<CircleHelp className="inline-icon" />}
+						onClick={() => setShowHelp(true)}
+						sx={{ fontWeight: "bold" }}
+					>
+						HELP
+					</Button>
+					<Button
+						variant="outlined"
+						size="small"
+						color="warning"
+						startIcon={<X className="inline-icon" />}
+						onClick={handleClose}
+						sx={{ fontWeight: "bold" }}
+					>
+						CLOSE
+					</Button>
+				</Box>
 			</DialogTitle>
 
 			<DialogContent
@@ -1674,11 +1681,11 @@ const ShoppingListModal: React.FC<{
 								{shoppingList.length === 0 ? (
 									<Box sx={{ p: 4, textAlign: "center", opacity: 0.5, mt: 4 }}>
 										<ShoppingBasket className="inline-icon" />
-										<Typography variant="body1">Your list is empty</Typography>
+										<Typography variant="body1">Your Shopping List is empty</Typography>
 										<Typography variant="caption">
 											{isCompact
 												? "Use 'Add Materials' below"
-												: "Select materials from the left panel"}
+												: "Add materials on the left"}
 										</Typography>
 									</Box>
 								) : (
@@ -1954,14 +1961,14 @@ const ShoppingListModal: React.FC<{
 						onCloseMobile={() => setShowAddItems(false)}
 					/>
 				</Drawer>
-				<ConfirmationDialog
+				<Modal
 					open={confirmClear}
 					onClose={() => setConfirmClear(false)}
 					title="Clear your Shopping List?"
-					confirmLabel="YES"
-					cancelLabel="NO"
+					actionLabel="Clear"
+					cancelLabel="Cancel"
 					type="negative"
-					onConfirm={() => {
+					onAction={() => {
 						setShoppingList([]);
 						setConfirmClear(false);
 					}}
@@ -1969,7 +1976,51 @@ const ShoppingListModal: React.FC<{
 					<Typography>
 						You can add materials again from the panel to the left.
 					</Typography>
-				</ConfirmationDialog>
+				</Modal>
+				<Modal
+					open={showHelp}
+					onClose={() => setShowHelp(false)}
+					title="How to use the Shopping List"
+					cancelLabel="CLOSE"
+				>
+					<Typography>
+						<ol>
+							<li>
+								Click <PlusCircle className="inline-icon" color={theme.palette.success.main} /> in the left panel to select the materials you need.
+								<Box
+									component="img"
+									src={shoppingListHelp1}
+									alt="Selecting materials"
+									sx={helpImageSx}
+								/>
+							</li>
+							<li>
+								In the main panel, enter required quantities and check Vendors/Locations for each material.
+								<Box
+									component="img"
+									src={shoppingListHelp2}
+									alt="Setting quantities and sourcing priority"
+									sx={helpImageSx}
+								/>
+							</li>
+							<li>
+								The panel on the right shows everything you need to send a contract to each vendor (<strong><code>CONTD</code></strong> buffer in APEX).
+								<Box
+									component="img"
+									src={shoppingListHelp3}
+									alt="Order summary"
+									sx={helpImageSx}
+								/>
+							</li>
+						</ol>
+						<h3><strong>Contract Pro Tips</strong></h3>
+						<ol>
+							<li>Be careful not to send contracts with the wrong location.</li>
+							<li>Change contract deadlines from 3 to 5 days as a courtesy to people selling at reduced prices (they often fill in 24h anyway).</li>
+							<li>Use the <ContentCopy className="inline-icon" /> <strong>COPY</strong> button and an <strong><code>XIT NOTE</code></strong> buffer (from <a href="https://com.prosperousuniverse.com/t/refined-prun-qol-extension-for-prosperous-universe/6760" target="_blank">rprun</a>) to speed up contract creation.</li>
+						</ol>
+					</Typography>
+				</Modal>
 			</DialogContent>
 		</Dialog>
 	);
