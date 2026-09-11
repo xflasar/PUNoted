@@ -544,9 +544,7 @@ const CompactListItem: React.FC<{
 						flexWrap: { xs: "wrap", md: "nowrap" },
 					}}
 				>
-					<Box
-						sx={{ display: "flex", flexDirection: "column", flexShrink: 0 }}
-					>
+					<Box sx={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
 						<Typography
 							variant="body1"
 							fontWeight="900"
@@ -563,8 +561,8 @@ const CompactListItem: React.FC<{
 							sx={{
 								color:
 									totalAvail < item.quantity
-											? theme.palette.error.main
-											: theme.palette.common.white,
+										? theme.palette.error.main
+										: theme.palette.common.white,
 								fontSize: "0.75rem",
 								whiteSpace: "nowrap",
 								textAlign: "center",
@@ -1688,7 +1686,9 @@ const ShoppingListModal: React.FC<{
 								{shoppingList.length === 0 ? (
 									<Box sx={{ p: 4, textAlign: "center", opacity: 0.5, mt: 4 }}>
 										<ShoppingBasket className="inline-icon" />
-										<Typography variant="body1">Your Shopping List is empty</Typography>
+										<Typography variant="body1">
+											Your Shopping List is empty
+										</Typography>
 										<Typography variant="caption">
 											{isCompact
 												? "Use 'Add Materials' below"
@@ -1993,7 +1993,12 @@ const ShoppingListModal: React.FC<{
 					<Typography>
 						<ol>
 							<li>
-								Click <PlusCircle className="inline-icon" color={theme.palette.success.main} /> in the left panel to select the materials you need.
+								Click{" "}
+								<PlusCircle
+									className="inline-icon"
+									color={theme.palette.success.main}
+								/>{" "}
+								in the left panel to select the materials you need.
 								<Box
 									component="img"
 									src={shoppingListHelp1}
@@ -2002,7 +2007,8 @@ const ShoppingListModal: React.FC<{
 								/>
 							</li>
 							<li>
-								In the main panel, enter required quantities and check Vendors/Locations for each material.
+								In the main panel, enter required quantities and check
+								Vendors/Locations for each material.
 								<Box
 									component="img"
 									src={shoppingListHelp2}
@@ -2011,7 +2017,12 @@ const ShoppingListModal: React.FC<{
 								/>
 							</li>
 							<li>
-								The panel on the right shows everything you need to send a contract to each vendor (<strong><code>CONTD</code></strong> buffer in APEX).
+								The panel on the right shows everything you need to send a
+								contract to each vendor (
+								<strong>
+									<code>CONTD</code>
+								</strong>{" "}
+								buffer in APEX).
 								<Box
 									component="img"
 									src={shoppingListHelp3}
@@ -2020,11 +2031,31 @@ const ShoppingListModal: React.FC<{
 								/>
 							</li>
 						</ol>
-						<h3><strong>Contract Pro Tips</strong></h3>
+						<h3>
+							<strong>Contract Pro Tips</strong>
+						</h3>
 						<ol>
 							<li>Be careful not to send contracts with the wrong location.</li>
-							<li>Change contract deadlines from 3 to 5 days as a courtesy to people selling at reduced prices (they often fill in 24h anyway).</li>
-							<li>Use the <ContentCopy className="inline-icon" /> <strong>COPY</strong> button and an <strong><code>XIT NOTE</code></strong> buffer (from <a href="https://com.prosperousuniverse.com/t/refined-prun-qol-extension-for-prosperous-universe/6760" target="_blank">rprun</a>) to speed up contract creation.</li>
+							<li>
+								Change contract deadlines from 3 to 5 days as a courtesy to
+								people selling at reduced prices (they often fill in 24h
+								anyway).
+							</li>
+							<li>
+								Use the <ContentCopy className="inline-icon" />{" "}
+								<strong>COPY</strong> button and an{" "}
+								<strong>
+									<code>XIT NOTE</code>
+								</strong>{" "}
+								buffer (from{" "}
+								<a
+									href="https://com.prosperousuniverse.com/t/refined-prun-qol-extension-for-prosperous-universe/6760"
+									target="_blank"
+								>
+									rprun
+								</a>
+								) to speed up contract creation.
+							</li>
 						</ol>
 					</Typography>
 				</Modal>
