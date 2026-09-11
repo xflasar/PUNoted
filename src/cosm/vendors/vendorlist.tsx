@@ -226,7 +226,7 @@ const PriceComparisonBadge = ({
 			<Chip
 				icon={
 					stats.color === "neutral" ? (
-						<Target size={12} style={{ marginLeft: "5px" }} />
+						<Target className="inline-icon" />
 					) : undefined
 				}
 				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
@@ -649,15 +649,13 @@ const VendorCard = React.memo(
 															>
 																{l.location_code === "HRT" ? (
 																	<Warehouse
-																		size={14}
+																		className="inline-icon"
 																		color={theme.palette.success.light}
-																		style={{ flexShrink: 0 }}
 																	/>
 																) : (
 																	<Globe
-																		size={14}
+																		className="inline-icon"
 																		color={theme.palette.warning.main}
-																		style={{ flexShrink: 0 }}
 																	/>
 																)}
 																<Typography
@@ -710,9 +708,8 @@ const VendorCard = React.memo(
 													}}
 												>
 													<MapPin
-														size={10}
+														className="inline-icon"
 														color={theme.palette.text.secondary}
-														style={{ flexShrink: 0 }}
 													/>
 													<Typography
 														variant="caption"
@@ -776,7 +773,7 @@ const VendorCard = React.memo(
 									flexDirection: "column",
 								}}
 							>
-								<Minus size={20} />
+								<Minus className="inline-icon" />
 							</Box>
 						)}
 					</Box>
@@ -1312,9 +1309,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				renderCell: ({ row }) => (
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
 						{row.locCode === "HRT" ? (
-							<Warehouse size={14} color={theme.palette.success.light} />
+							<Warehouse
+								className="inline-icon"
+								color={theme.palette.success.light}
+							/>
 						) : (
-							<Globe size={14} color={theme.palette.warning.main} />
+							<Globe
+								className="inline-icon"
+								color={theme.palette.warning.main}
+							/>
 						)}
 						<Typography variant="body2">
 							<Box component="span" sx={{ display: { lg: "none" } }}>
@@ -1565,7 +1568,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							input: {
 								startAdornment: (
 									<InputAdornment position="start">
-										<Search size={20} color={theme.palette.primary.main} />
+										<Search
+											className="inline-icon"
+											color={theme.palette.primary.main}
+										/>
 									</InputAdornment>
 								),
 								endAdornment: (
@@ -1585,7 +1591,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 															aria-label="Clear material search"
 															onClick={() => setSearchQuery("")}
 														>
-															<X size={16} />
+															<X className="inline-icon" />
 														</IconButton>
 													</Tooltip>
 												</>
@@ -1607,7 +1613,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 															: "transparent",
 													}}
 												>
-													<CenterFocusStrongIcon fontSize="small" />
+													<CenterFocusStrongIcon className="inline-icon" />
 												</IconButton>
 											</Tooltip>
 										</Box>
@@ -1716,7 +1722,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									"&:hover": { bgcolor: "primary.dark" },
 								}}
 							>
-								<ShoppingBasket size={24} />
+								<ShoppingBasket className="inline-icon" />
 							</IconButton>
 						</Tooltip>
 						{loggedIn && (
@@ -1739,7 +1745,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										},
 									}}
 								>
-									<Store size={24} />
+									<Store className="inline-icon" />
 								</IconButton>
 							</Tooltip>
 						)}

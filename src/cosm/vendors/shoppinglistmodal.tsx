@@ -337,15 +337,13 @@ const VendorPrioritySelector: React.FC<{
 										<>
 											{location.location_code === "HRT" ? (
 												<Warehouse
-													size={14}
+													className="inline-icon"
 													color={theme.palette.success.light}
-													style={{ verticalAlign: "middle" }}
 												/>
 											) : (
 												<Globe
-													size={14}
+													className="inline-icon"
 													color={theme.palette.warning.main}
-													style={{ verticalAlign: "middle" }}
 												/>
 											)}{" "}
 											{formatLocationLabel(
@@ -420,7 +418,7 @@ const VendorPrioritySelector: React.FC<{
 								onClick={() => moveVendor(index, -1)}
 								sx={{ p: 0.5 }}
 							>
-								<ArrowUp size={14} />
+								<ArrowUp className="inline-icon" />
 							</IconButton>
 							<IconButton
 								size="small"
@@ -428,7 +426,7 @@ const VendorPrioritySelector: React.FC<{
 								onClick={() => moveVendor(index, 1)}
 								sx={{ p: 0.5 }}
 							>
-								<ArrowDown size={14} />
+								<ArrowDown className="inline-icon" />
 							</IconButton>
 						</Box>
 					</Box>
@@ -597,11 +595,11 @@ const CompactListItem: React.FC<{
 							},
 						}}
 					>
-						<Box sx={{ display: "flex", pr: 0.5 }}>
+						<Box sx={{ display: "flex", alignItems: "center", pr: 0.5 }}>
 							{expanded ? (
-								<ChevronDown size={16} />
+								<ChevronDown className="inline-icon" />
 							) : (
-								<ChevronRight size={16} />
+								<ChevronRight className="inline-icon" />
 							)}
 						</Box>
 						<Box
@@ -636,9 +634,8 @@ const CompactListItem: React.FC<{
 												}}
 											>
 												<Store
-													size={14}
+													className="inline-icon"
 													color={theme.palette.primary.main}
-													style={{ verticalAlign: "middle" }}
 												/>{" "}
 												{vendor}
 											</Box>
@@ -669,15 +666,13 @@ const CompactListItem: React.FC<{
 											>
 												{location.isHortus ? (
 													<Warehouse
-														size={14}
+														className="inline-icon"
 														color={theme.palette.success.light}
-														style={{ verticalAlign: "middle" }}
 													/>
 												) : (
 													<Globe
-														size={14}
+														className="inline-icon"
 														color={theme.palette.warning.main}
-														style={{ verticalAlign: "middle" }}
 													/>
 												)}{" "}
 												{location.label}
@@ -736,7 +731,7 @@ const CompactListItem: React.FC<{
 							},
 						}}
 					>
-						<Trash2 size={18} />
+						<Trash2 className="inline-icon" />
 					</IconButton>
 				</Box>
 
@@ -794,11 +789,7 @@ const SummaryVendorGroup: React.FC<{
 				}}
 			>
 				<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-					<Store
-						size={16}
-						color={theme.palette.primary.main}
-						style={{ verticalAlign: "middle" }}
-					/>{" "}
+					<Store className="inline-icon" color={theme.palette.primary.main} />{" "}
 					{gameName}
 				</Typography>
 				<Typography variant="subtitle2">
@@ -960,7 +951,7 @@ const AvailableItemRow: React.FC<{
 							borderBottom: "1px dotted currentColor",
 						}}
 					>
-						<Store size={12} />
+						<Store className="inline-icon" />
 						<Typography variant="caption" sx={{ fontSize: "0.85rem" }}>
 							{mat.vendorCount}
 						</Typography>
@@ -991,7 +982,7 @@ const AvailableItemRow: React.FC<{
 						if (isMobile && onCloseMobile) onCloseMobile();
 					}}
 				>
-					<PlusCircle size={20} color="#66bb6a" />
+					<PlusCircle className="inline-icon" color="#66bb6a" />
 				</IconButton>
 			</Box>
 		</Box>
@@ -1074,7 +1065,7 @@ const AvailableMaterialsPanel: React.FC<{
 					</Typography>
 					{isMobile && (
 						<IconButton onClick={onCloseMobile}>
-							<X size={20} />
+							<X className="inline-icon" />
 						</IconButton>
 					)}
 				</Box>
@@ -1090,7 +1081,10 @@ const AvailableMaterialsPanel: React.FC<{
 						slotProps={{
 							input: {
 								startAdornment: (
-									<Search size={16} style={{ marginRight: 8, opacity: 0.5 }} />
+									<Search
+										className="inline-icon"
+										style={{ marginRight: 8, opacity: 0.5 }}
+									/>
 								),
 								endAdornment: search ? (
 									<InputAdornment position="end">
@@ -1100,7 +1094,7 @@ const AvailableMaterialsPanel: React.FC<{
 												aria-label="Clear material search"
 												onClick={() => setSearch("")}
 											>
-												<X size={16} />
+												<X className="inline-icon" />
 											</IconButton>
 										</Tooltip>
 									</InputAdornment>
@@ -1573,13 +1567,13 @@ const ShoppingListModal: React.FC<{
 						color: theme.palette.primary.main,
 					}}
 				>
-					<ShoppingBasket size={24} />
+					<ShoppingBasket className="inline-icon" />
 					<Typography variant="h6">Shopping List</Typography>
 				</Box>
 				<Button
 					variant="outlined"
 					size="small"
-					startIcon={<X size={18} />}
+					startIcon={<X className="inline-icon" />}
 					onClick={handleClose}
 					sx={{ fontWeight: "bold" }}
 				>
@@ -1663,7 +1657,7 @@ const ShoppingListModal: React.FC<{
 										size="small"
 										variant="outlined"
 										color="error"
-										startIcon={<Trash2 size={16} />}
+										startIcon={<Trash2 className="inline-icon" />}
 										disabled={shoppingList.length === 0}
 										onClick={() => setConfirmClear(true)}
 										sx={{ fontWeight: "bold" }}
@@ -1675,10 +1669,7 @@ const ShoppingListModal: React.FC<{
 							<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
 								{shoppingList.length === 0 ? (
 									<Box sx={{ p: 4, textAlign: "center", opacity: 0.5, mt: 4 }}>
-										<ShoppingBasket
-											size={48}
-											style={{ margin: "0 auto", marginBottom: 10 }}
-										/>
+										<ShoppingBasket className="inline-icon" />
 										<Typography variant="body1">Your list is empty</Typography>
 										<Typography variant="caption">
 											{isCompact
@@ -1711,7 +1702,7 @@ const ShoppingListModal: React.FC<{
 									<Button
 										fullWidth
 										variant="contained"
-										startIcon={<PlusCircle />}
+										startIcon={<PlusCircle className="inline-icon" />}
 										onClick={(e) => {
 											e.stopPropagation();
 											setShowAddItems(true);
@@ -1761,7 +1752,7 @@ const ShoppingListModal: React.FC<{
 										size="small"
 										variant="contained"
 										color={isCopied ? "success" : "primary"}
-										startIcon={<ContentCopy sx={{ fontSize: 16 }} />}
+										startIcon={<ContentCopy className="inline-icon" />}
 										disabled={shoppingList.length === 0}
 										sx={{ fontWeight: "bold" }}
 										onClick={(e) => {
@@ -1803,12 +1794,12 @@ const ShoppingListModal: React.FC<{
 												>
 													{location?.location_code === "HRT" ? (
 														<Warehouse
-															size={16}
+															className="inline-icon"
 															color={theme.palette.success.light}
 														/>
 													) : (
 														<Globe
-															size={16}
+															className="inline-icon"
 															color={theme.palette.warning.main}
 														/>
 													)}

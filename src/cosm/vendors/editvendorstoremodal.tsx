@@ -267,11 +267,11 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 					}}
 				>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-						<PlusCircle />
+						<PlusCircle className="inline-icon" />
 						<Typography variant="h6">Your Store</Typography>
 					</Box>
 					<IconButton onClick={handleClose}>
-						<X size={20} />
+						<X className="inline-icon" />
 					</IconButton>
 				</DialogTitle>
 
@@ -441,9 +441,9 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								disabled={isSaving || isDeleting}
 								startIcon={
 									isDeleting ? (
-										<CircularProgress size={16} color="inherit" />
+										<CircularProgress className="inline-icon" color="inherit" />
 									) : (
-										<DeleteIcon fontSize="small" />
+										<DeleteIcon className="inline-icon" />
 									)
 								}
 								sx={{ height: "40px", whiteSpace: "nowrap", minWidth: 120 }}
@@ -465,7 +465,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								disabled={isSaving || isDeleting}
 							>
 								{isSaving ? (
-									<CircularProgress size={20} color="inherit" />
+									<CircularProgress className="inline-icon" color="inherit" />
 								) : (
 									"Save & Close"
 								)}
@@ -484,7 +484,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				type="negative"
 			>
 				<Typography>
-					You can create a new store later but your existing orders will be deleted.
+					You can create a new store later but existing orders will be deleted.
 				</Typography>
 			</ConfirmationDialog>
 		</>
