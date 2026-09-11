@@ -844,7 +844,14 @@ const SummaryVendorGroup: React.FC<{
 								<Box component="span" sx={{ fontWeight: "bold" }}>
 									{unitPrice === "N/A" ? unitPrice : unitPrice.slice(0, -4)}
 								</Box>{" "}
-								ppu
+								<Tooltip title="Price Per Unit">
+									<Box
+										component="span"
+										sx={{ cursor: "help", textDecoration: "underline dotted" }}
+									>
+										ppu
+									</Box>
+								</Tooltip>
 							</Typography>
 							<Typography
 								variant="body2"
