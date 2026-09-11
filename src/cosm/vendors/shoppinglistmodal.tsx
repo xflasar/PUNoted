@@ -899,6 +899,7 @@ const AvailableItemRow: React.FC<{
 	isMobile?: boolean;
 	onCloseMobile?: () => void;
 }> = React.memo(({ mat, onAdd, isMobile, onCloseMobile }) => {
+	const theme = useTheme();
 	const min = mat.minPrice || mat.fixedprice;
 	const max = mat.maxPrice || mat.fixedprice;
 	const format = (price: number) =>
@@ -982,7 +983,10 @@ const AvailableItemRow: React.FC<{
 						if (isMobile && onCloseMobile) onCloseMobile();
 					}}
 				>
-					<PlusCircle className="inline-icon" color="#66bb6a" />
+					<PlusCircle
+						className="inline-icon"
+						color={theme.palette.success.main}
+					/>
 				</IconButton>
 			</Box>
 		</Box>
