@@ -816,13 +816,13 @@ const SummaryVendorGroup: React.FC<{
 								mb: idx < items.length - 1 ? 0.5 : 0,
 							}}
 						>
-							<Box sx={{ flex: "0 0 2.75rem" }}>
+							<Box sx={{ flex: "0 0 3rem" }}>
 								<MaterialBadge ticker={item.ticker} />
 							</Box>
 							<Typography
 								variant="body2"
 								sx={{
-									flex: "0 0 3.5rem",
+									flex: "0 0 3rem",
 									fontSize: "inherit",
 									textAlign: "right",
 								}}
