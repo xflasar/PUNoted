@@ -19,6 +19,8 @@ import {
 } from "@mui/material";
 import {
 	ShoppingBasket,
+	ShoppingCart,
+	Handshake,
 	CircleHelp,
 	X,
 	Search,
@@ -130,6 +132,16 @@ interface ShoppingSummaryItem {
 	price: number;
 	totalPrice: number;
 	location?: NonNullable<OrderItem["location"]>[number];
+}
+
+interface SummaryLocationGroup {
+	location?: ShoppingSummaryItem["location"];
+	vendors: Array<{
+		vendorId: string;
+		gameName: string;
+		items: ShoppingSummaryItem[];
+		total: number;
+	}>;
 }
 
 // --- Formatters ---
@@ -541,14 +553,25 @@ const CompactListItem: React.FC<{
 						alignItems: "center",
 						p: 1.5,
 						gap: 2,
-						flexWrap: { xs: "wrap", md: "nowrap" },
+						flexWrap: "nowrap",
 					}}
 				>
-					<Box sx={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+					<Box
+						sx={{
+							display: "flex",
+							flexDirection: "column",
+							flexShrink: 0,
+							alignSelf: "stretch",
+						}}
+					>
 						<Typography
 							variant="body1"
 							fontWeight="900"
 							sx={{
+								flex: 2,
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
 								fontSize: "1.1rem",
 								color: theme.palette.text.primary,
 								textAlign: "center",
@@ -559,6 +582,10 @@ const CompactListItem: React.FC<{
 						<Typography
 							variant="caption"
 							sx={{
+								flex: 1,
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
 								color:
 									totalAvail < item.quantity
 										? theme.palette.error.main
@@ -578,7 +605,7 @@ const CompactListItem: React.FC<{
 					<Box
 						onClick={() => setExpanded(!expanded)}
 						sx={{
-							flex: { xs: "1 1 calc(100% - 56px)", md: 1 },
+							flex: 1,
 							order: 1,
 							display: "flex",
 							alignItems: "center",
@@ -624,24 +651,30 @@ const CompactListItem: React.FC<{
 									Vendors:
 								</Box>{" "}
 								{sourcing.vendors.length > 0
-									? sourcing.vendors.map((vendor) => (
-											<Box
-												component="span"
-												key={vendor}
-												sx={{
-													"& + &::before": {
-														content: '"•"',
-														margin: "0 0.5em",
-													},
-												}}
-											>
-												<Store
-													className="inline-icon"
-													color={theme.palette.primary.main}
-												/>{" "}
-												{vendor}
-											</Box>
-										))
+									? sourcing.vendors
+											.flatMap((vendor) => [
+												<Box
+													component="span"
+													key={vendor}
+													sx={{ whiteSpace: "nowrap" }}
+												>
+													<Store
+														className="inline-icon"
+														color={theme.palette.primary.main}
+													/>{" "}
+													{vendor}
+												</Box>,
+												" ",
+												<Box
+													component="span"
+													key={vendor + "-separator"}
+													aria-hidden
+												>
+													•
+												</Box>,
+												" ",
+											])
+											.slice(0, -3)
 									: "—"}
 							</Typography>
 							<Typography
@@ -655,31 +688,37 @@ const CompactListItem: React.FC<{
 									Locations:
 								</Box>{" "}
 								{sourcing.locations.length > 0
-									? sourcing.locations.map((location) => (
-											<Box
-												component="span"
-												key={location.label}
-												sx={{
-													"& + &::before": {
-														content: '"•"',
-														margin: "0 0.5em",
-													},
-												}}
-											>
-												{location.isHortus ? (
-													<Warehouse
-														className="inline-icon"
-														color={theme.palette.success.light}
-													/>
-												) : (
-													<Globe
-														className="inline-icon"
-														color={theme.palette.warning.main}
-													/>
-												)}{" "}
-												{location.label}
-											</Box>
-										))
+									? sourcing.locations
+											.flatMap((location) => [
+												<Box
+													component="span"
+													key={location.label}
+													sx={{ whiteSpace: "nowrap" }}
+												>
+													{location.isHortus ? (
+														<Warehouse
+															className="inline-icon"
+															color={theme.palette.success.light}
+														/>
+													) : (
+														<Globe
+															className="inline-icon"
+															color={theme.palette.warning.main}
+														/>
+													)}{" "}
+													{location.label}
+												</Box>,
+												" ",
+												<Box
+													component="span"
+													key={location.label + "-separator"}
+													aria-hidden
+												>
+													•
+												</Box>,
+												" ",
+											])
+											.slice(0, -3)
 									: "—"}
 							</Typography>
 						</Box>
@@ -688,7 +727,7 @@ const CompactListItem: React.FC<{
 					<Box
 						sx={{
 							flexShrink: 0,
-							alignSelf: { md: "stretch" },
+							alignSelf: "stretch",
 							"& > .MuiTextField-root, & .MuiOutlinedInput-root": {
 								height: "100%",
 							},
@@ -704,7 +743,7 @@ const CompactListItem: React.FC<{
 					<IconButton
 						onClick={onRemove}
 						sx={{
-							order: { xs: 0, md: 2 },
+							order: 2,
 							color: "error.main",
 							opacity: 0.7,
 							p: 1,
@@ -814,22 +853,22 @@ const SummaryVendorGroup: React.FC<{
 								mb: idx < items.length - 1 ? 0.5 : 0,
 							}}
 						>
-							<Box sx={{ flex: "0 0 3rem" }}>
-								<MaterialBadge ticker={item.ticker} />
-							</Box>
 							<Typography
 								variant="body2"
 								sx={{
-									flex: "0 0 3rem",
+									flex: "0 0 20%",
 									fontSize: "inherit",
-									textAlign: "right",
+									textAlign: "left",
 								}}
 							>
-								×
 								<Box component="span" sx={{ fontWeight: "bold" }}>
 									{formatAmount(item.amount)}
-								</Box>
+								</Box>{" "}
+								×
 							</Typography>
+							<Box sx={{ flex: "0 0 15%", textAlign: "right" }}>
+								<MaterialBadge ticker={item.ticker} />
+							</Box>
 							<Typography
 								variant="body2"
 								sx={{
@@ -870,6 +909,201 @@ const SummaryVendorGroup: React.FC<{
 				})}
 			</Box>
 		</Box>
+	);
+};
+
+const OrderSummaryPanel: React.FC<{
+	groups: SummaryLocationGroup[];
+	shoppingListLength: number;
+	isCopied: boolean;
+	onCopy: () => void;
+	onClose?: () => void;
+	insufficientStock: boolean;
+	grandTotal: number;
+}> = ({
+	groups,
+	shoppingListLength,
+	isCopied,
+	onCopy,
+	onClose,
+	insufficientStock,
+	grandTotal,
+}) => {
+	const theme = useTheme();
+
+	return (
+		<Paper
+			sx={{
+				flex: 1,
+				minWidth: 0,
+				height: "100%",
+				background: theme.palette.background.paper,
+				border: `1px solid ${theme.palette.divider}`,
+				display: "flex",
+				flexDirection: "column",
+				borderRadius: 2,
+				overflow: "hidden",
+			}}
+		>
+			<Box
+				sx={{
+					p: 1.5,
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					borderBottom: `1px solid ${theme.palette.divider}`,
+					bgcolor: "rgba(0,0,0,0.05)",
+				}}
+			>
+				<Typography
+					variant="subtitle2"
+					sx={{ color: "text.primary", fontWeight: "bold" }}
+				>
+					CONTRACT DETAILS
+				</Typography>
+				<Box sx={{ display: "flex", gap: 1 }}>
+					<Tooltip title="Copy to Clipboard">
+						<Button
+							size="small"
+							variant="contained"
+							color={isCopied ? "success" : "primary"}
+							startIcon={<ContentCopy className="inline-icon" />}
+							disabled={shoppingListLength === 0}
+							sx={{ fontWeight: "bold" }}
+							onClick={onCopy}
+						>
+							COPY
+						</Button>
+					</Tooltip>
+					{onClose && (
+						<Button
+							size="small"
+							variant="outlined"
+							startIcon={<X className="inline-icon" />}
+							onClick={onClose}
+							sx={{ fontWeight: "bold" }}
+						>
+							CLOSE
+						</Button>
+					)}
+				</Box>
+			</Box>
+			<Box sx={{ flex: 1, overflowY: "auto", p: 1.5, minHeight: "100px" }}>
+				{groups.length > 0 ? (
+					groups.map((group) => {
+						const location = group.location;
+						const locationName =
+							location?.location_name || location?.location_code || "Unknown";
+						const locationCode = location?.location_code || locationName;
+
+						return (
+							<Box key={locationCode} sx={{ mb: 2 }}>
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										gap: 0.5,
+										mb: 0.75,
+									}}
+								>
+									{location?.location_code === "HRT" ? (
+										<Warehouse
+											className="inline-icon"
+											color={theme.palette.success.light}
+										/>
+									) : (
+										<Globe
+											className="inline-icon"
+											color={theme.palette.warning.main}
+										/>
+									)}
+									<Typography variant="subtitle2" fontWeight="bold">
+										{formatLocationLabel(locationName, locationCode)}
+									</Typography>
+								</Box>
+								<Box
+									sx={{
+										display: "grid",
+										gridTemplateColumns: {
+											xs: "1fr",
+											sm: "repeat(2, minmax(0, 1fr))",
+											md: "repeat(3, minmax(0, 1fr))",
+											lg: "1fr",
+										},
+										gap: 1.5,
+										"& > *": { mb: 0 },
+									}}
+								>
+									{group.vendors.map((vendor) => (
+										<SummaryVendorGroup
+											key={vendor.vendorId}
+											gameName={vendor.gameName}
+											items={vendor.items}
+											total={vendor.total}
+										/>
+									))}
+								</Box>
+							</Box>
+						);
+					})
+				) : (
+					<Box sx={{ opacity: 0.5, textAlign: "center", py: 2 }}>
+						<Typography variant="caption">No items calculated yet.</Typography>
+					</Box>
+				)}
+			</Box>
+			<Box
+				sx={{
+					p: 1.5,
+					bgcolor: "rgba(0,0,0,0.3)",
+					display: "flex",
+					flexDirection: "column",
+					gap: 0.5,
+				}}
+			>
+				{insufficientStock && (
+					<Typography
+						variant="caption"
+						sx={{ color: "error.dark", textAlign: "center" }}
+					>
+						<Box component="span" sx={{ fontWeight: "bold" }}>
+							Warning: Not enough stock for full order.
+						</Box>
+					</Typography>
+				)}
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "flex-end",
+					}}
+				>
+					<Typography variant="caption" color="text.secondary">
+						TOTAL PRICE
+					</Typography>
+					<Typography variant="h6" sx={{ lineHeight: 1 }}>
+						{formatPrice(grandTotal) === "N/A" ? (
+							"N/A"
+						) : (
+							<>
+								<Box
+									component="span"
+									sx={{ color: theme.palette.warning.main, fontWeight: "bold" }}
+								>
+									{formatPrice(grandTotal).slice(0, -4)}
+								</Box>{" "}
+								<Box
+									component="span"
+									sx={{ color: "text.primary", fontSize: "0.7rem" }}
+								>
+									ICA
+								</Box>
+							</>
+						)}
+					</Typography>
+				</Box>
+			</Box>
+		</Paper>
 	);
 };
 
@@ -1174,6 +1408,7 @@ const ShoppingListModal: React.FC<{
 	const [isCopied, setIsCopied] = useState(false);
 	const [confirmClear, setConfirmClear] = useState(false);
 	const [showHelp, setShowHelp] = useState(false);
+	const [showSummary, setShowSummary] = useState(false);
 
 	// UI states
 	const [showAddItems, setShowAddItems] = useState(false);
@@ -1587,7 +1822,6 @@ const ShoppingListModal: React.FC<{
 					<Button
 						variant="outlined"
 						size="small"
-						color="warning"
 						startIcon={<X className="inline-icon" />}
 						onClick={handleClose}
 						sx={{ fontWeight: "bold" }}
@@ -1636,7 +1870,7 @@ const ShoppingListModal: React.FC<{
 								flex: isMobile ? 1 : "1 1 0",
 								order: isMobile ? 0 : 2,
 								minWidth: 0,
-								height: isMobile ? "auto" : "100%",
+								height: "100%",
 								minHeight: 0,
 								background: theme.palette.background.paper,
 								border: `1px solid ${theme.palette.divider}`,
@@ -1661,14 +1895,30 @@ const ShoppingListModal: React.FC<{
 										variant="subtitle2"
 										sx={{ color: "text.primary", fontWeight: "bold" }}
 									>
-										YOUR SELECTION
+										YOUR MATERIALS
 									</Typography>
+									{isCompact && (
+										<Button
+											size="small"
+											variant="contained"
+											startIcon={<PlusCircle className="inline-icon" />}
+											onClick={() => setShowAddItems(true)}
+										>
+											ADD
+										</Button>
+									)}
 								</Box>
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Typography variant="caption" color="text.secondary">
-										{shoppingList.length}{" "}
-										{shoppingList.length === 1 ? "material" : "materials"}
-									</Typography>
+									{isMobile && (
+										<Button
+											size="small"
+											variant="contained"
+											startIcon={<Handshake className="inline-icon" />}
+											onClick={() => setShowSummary(true)}
+										>
+											CONTRACTS
+										</Button>
+									)}
 									<Button
 										size="small"
 										variant="outlined"
@@ -1691,7 +1941,7 @@ const ShoppingListModal: React.FC<{
 										</Typography>
 										<Typography variant="caption">
 											{isCompact
-												? "Use 'Add Materials' below"
+												? "Use ADD above"
 												: "Add materials on the left"}
 										</Typography>
 									</Box>
@@ -1710,195 +1960,29 @@ const ShoppingListModal: React.FC<{
 									))
 								)}
 							</Box>
-							{isCompact && (
-								<Box
-									sx={{
-										p: 2,
-										borderTop: `1px solid ${theme.palette.divider}`,
-									}}
-								>
-									<Button
-										fullWidth
-										variant="contained"
-										startIcon={<PlusCircle className="inline-icon" />}
-										onClick={(e) => {
-											e.stopPropagation();
-											setShowAddItems(true);
-										}}
-									>
-										Add Materials
-									</Button>
-								</Box>
-							)}
 						</Paper>
 
 						{/* SUMMARY */}
-						<Paper
-							sx={{
-								flex: isMobile ? 1 : "0 0 380px",
-								height: isMobile ? "auto" : "100%",
-								order: isMobile ? 0 : 3,
-								minWidth: 0,
-								background: theme.palette.background.paper,
-								border: `1px solid ${theme.palette.divider}`,
-								display: "flex",
-								flexDirection: "column",
-								borderRadius: 2,
-								overflow: "hidden",
-							}}
-						>
+						{!isMobile && (
 							<Box
 								sx={{
-									p: 1.5,
+									flex: "0 0 380px",
+									order: 3,
+									minWidth: 0,
+									height: "100%",
 									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-									borderBottom: `1px solid ${theme.palette.divider}`,
-									bgcolor: "rgba(0,0,0,0.05)",
 								}}
 							>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Typography
-										variant="subtitle2"
-										sx={{ color: "text.primary", fontWeight: "bold" }}
-									>
-										ORDER SUMMARY
-									</Typography>
-								</Box>
-								<Tooltip title="Copy to Clipboard">
-									<Button
-										size="small"
-										variant="contained"
-										color={isCopied ? "success" : "primary"}
-										startIcon={<ContentCopy className="inline-icon" />}
-										disabled={shoppingList.length === 0}
-										sx={{ fontWeight: "bold" }}
-										onClick={(e) => {
-											e.stopPropagation();
-											handleCopy();
-										}}
-									>
-										COPY
-									</Button>
-								</Tooltip>
+								<OrderSummaryPanel
+									groups={groupedSummary}
+									shoppingListLength={shoppingList.length}
+									isCopied={isCopied}
+									onCopy={handleCopy}
+									insufficientStock={insufficientStock}
+									grandTotal={grandTotal}
+								/>
 							</Box>
-							<Box
-								sx={{
-									flex: 1,
-									overflowY: "auto",
-									p: 1.5,
-									minHeight: "100px",
-								}}
-							>
-								{groupedSummary.length > 0 ? (
-									groupedSummary.map((group) => {
-										const location = group.location;
-										const locationName =
-											location?.location_name ||
-											location?.location_code ||
-											"Unknown";
-										const locationCode =
-											location?.location_code || locationName;
-
-										return (
-											<Box key={locationCode} sx={{ mb: 2 }}>
-												<Box
-													sx={{
-														display: "flex",
-														alignItems: "center",
-														gap: 0.5,
-														mb: 0.75,
-													}}
-												>
-													{location?.location_code === "HRT" ? (
-														<Warehouse
-															className="inline-icon"
-															color={theme.palette.success.light}
-														/>
-													) : (
-														<Globe
-															className="inline-icon"
-															color={theme.palette.warning.main}
-														/>
-													)}
-													<Typography variant="subtitle2" fontWeight="bold">
-														{formatLocationLabel(locationName, locationCode)}
-													</Typography>
-												</Box>
-												{group.vendors.map((vendor) => (
-													<SummaryVendorGroup
-														key={vendor.vendorId}
-														gameName={vendor.gameName}
-														items={vendor.items}
-														total={vendor.total}
-													/>
-												))}
-											</Box>
-										);
-									})
-								) : (
-									<Box sx={{ opacity: 0.5, textAlign: "center", py: 2 }}>
-										<Typography variant="caption">
-											No items calculated yet.
-										</Typography>
-									</Box>
-								)}
-							</Box>
-							<Box
-								sx={{
-									p: 1.5,
-									bgcolor: "rgba(0,0,0,0.3)",
-									display: "flex",
-									flexDirection: "column",
-									gap: 0.5,
-								}}
-							>
-								{insufficientStock && (
-									<Typography
-										variant="caption"
-										sx={{ color: "error.dark", textAlign: "center" }}
-									>
-										<Box component="span" sx={{ fontWeight: "bold" }}>
-											Warning: Not enough stock for full order.
-										</Box>
-									</Typography>
-								)}
-								<Box
-									sx={{
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "flex-end",
-									}}
-								>
-									<Typography variant="caption" color="text.secondary">
-										TOTAL PRICE
-									</Typography>
-									<Typography variant="h6" sx={{ lineHeight: 1 }}>
-										{formatPrice(grandTotal) === "N/A" ? (
-											"N/A"
-										) : (
-											<>
-												<Box
-													component="span"
-													sx={{
-														color: theme.palette.warning.main,
-														fontWeight: "bold",
-													}}
-												>
-													{formatPrice(grandTotal).slice(0, -4)}
-												</Box>{" "}
-												<Box
-													component="span"
-													sx={{ color: "text.primary", fontSize: "0.7rem" }}
-												>
-													ICA
-												</Box>
-											</>
-										)}
-									</Typography>
-								</Box>
-							</Box>
-						</Paper>
+						)}
 					</Box>
 
 					{/* RIGHT COLUMN */}
@@ -1966,6 +2050,37 @@ const ShoppingListModal: React.FC<{
 						onChangeLocation={setSelectedLocation}
 						isMobile
 						onCloseMobile={() => setShowAddItems(false)}
+					/>
+				</Drawer>
+				<Drawer
+					anchor="bottom"
+					open={isMobile && showSummary}
+					onClose={() => setShowSummary(false)}
+					slotProps={{
+						paper: {
+							sx: {
+								height: "100%",
+								borderTopLeftRadius: 16,
+								borderTopRightRadius: 16,
+								background: theme.palette.background.paper,
+								backgroundImage: "none",
+								borderTop: `1px solid ${theme.palette.divider}`,
+							},
+						},
+						backdrop: {
+							sx: { backgroundColor: theme.palette.background.default },
+						},
+					}}
+					sx={{ zIndex: 9999 }}
+				>
+					<OrderSummaryPanel
+						groups={groupedSummary}
+						shoppingListLength={shoppingList.length}
+						isCopied={isCopied}
+						onCopy={handleCopy}
+						onClose={() => setShowSummary(false)}
+						insufficientStock={insufficientStock}
+						grandTotal={grandTotal}
 					/>
 				</Drawer>
 				<Modal
