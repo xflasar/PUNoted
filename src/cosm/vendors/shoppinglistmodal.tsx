@@ -3,14 +3,13 @@ import {
 	Dialog,
 	DialogTitle,
 	DialogContent,
-	DialogActions,
-	Autocomplete,
 	Box,
 	Typography,
 	TextField,
 	Button,
 	Paper,
 	IconButton,
+	InputAdornment,
 	Tooltip,
 	useTheme,
 	useMediaQuery,
@@ -20,17 +19,17 @@ import {
 } from "@mui/material";
 import {
 	ShoppingBasket,
+	ShoppingCart,
+	Handshake,
+	CircleHelp,
 	X,
 	Search,
 	PlusCircle,
 	Trash2,
 	ChevronDown,
-	ChevronUp,
 	ChevronRight,
-	ChevronLeft,
 	ArrowUp,
 	ArrowDown,
-	Truck,
 	Store,
 	Warehouse,
 	Globe,
@@ -41,6 +40,15 @@ import PriceComparisonBadge from "./components/pricecomparisonbadge";
 import { getDiffStats } from "./utils/pricecomparison";
 import { pickPrice } from "./utils/pickprice";
 import MaterialBadge from "../components/materialbadge";
+import LocationFilter, {
+	HORTUS_LOCATION_CODE,
+	matchesLocationFilter,
+	type LocationOption,
+} from "./components/locationfilter";
+import { Modal } from "./modal";
+import shoppingListHelp1 from "../../assets/screenshots/shopping_list_help_1.png";
+import shoppingListHelp2 from "../../assets/screenshots/shopping_list_help_2.png";
+import shoppingListHelp3 from "../../assets/screenshots/shopping_list_help_3.png";
 
 // --- Types ---
 /**
@@ -55,6 +63,7 @@ export interface OrderItem {
 	available?: number;
 	vendorname: string;
 	gamename: string;
+	companycode?: string;
 	vendorid: string;
 	reserved: number;
 	price?: {
@@ -77,6 +86,7 @@ export interface OrderItem {
 export interface VendorStore {
 	vendor: {
 		vendorid: string;
+		companycode: string;
 		companyname: string;
 		gamename: string;
 		cx?: string;
@@ -98,6 +108,18 @@ interface ShoppingListItem {
 	vendorPriority: string[];
 }
 
+const SHOPPING_LIST_STORAGE_KEY = "cosmShoppingList";
+const getStoredShoppingList = (): ShoppingListItem[] => {
+	try {
+		const list: unknown = JSON.parse(
+			localStorage.getItem(SHOPPING_LIST_STORAGE_KEY) || "[]",
+		);
+		return Array.isArray(list) ? (list as ShoppingListItem[]) : [];
+	} catch {
+		return [];
+	}
+};
+
 /**
  * Represents a calculated shopping summary item, assigned to a specific vendor.
  */
@@ -105,12 +127,22 @@ interface ShoppingSummaryItem {
 	vendorid: string;
 	vendorname: string;
 	gamename: string;
-	ticker: string;
+	companycode?: string;
 	amount: number;
 	price: number;
 	totalPrice: number;
+	location?: NonNullable<OrderItem["location"]>[number];
 }
-type LocationOption = { id: string; name: string };
+
+interface SummaryLocationGroup {
+	location?: ShoppingSummaryItem["location"];
+	vendors: Array<{
+		vendorId: string;
+		gameName: string;
+		items: ShoppingSummaryItem[];
+		total: number;
+	}>;
+}
 
 // --- Formatters ---
 /**
@@ -119,11 +151,11 @@ type LocationOption = { id: string; name: string };
  * @param {number | null | undefined} p - The price to format.
  * @returns {string} The formatted price string.
  */
-const formatPrice = (p: number | null | undefined): string =>
+const formatPrice = (p: number | null | undefined, unit = "ICA"): string =>
 	p == null || isNaN(p)
 		? "N/A"
 		: new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(p) +
-			" ICA";
+			` ${unit}`;
 
 /**
  * Formats a numeric amount into a localized string without fraction digits.
@@ -137,6 +169,10 @@ const formatAmount = (a: number | null | undefined): string =>
 		: new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(a);
 const formatLocationLabel = (name: string, id: string): string =>
 	name === id ? name : `${name} (${id})`;
+const getSourceId = (order: Pick<OrderItem, "vendorid" | "location">) => {
+	const location = order.location?.[0];
+	return `${order.vendorid}:${location?.location_code || location?.location_name || "unknown"}`;
+};
 
 const getOrderPrice = (order: {
 	fixedprice?: number;
@@ -161,7 +197,8 @@ const getOrderPrice = (order: {
 const DebouncedInput: React.FC<{
 	value: number;
 	onChange: (val: number) => void;
-}> = React.memo(({ value, onChange }) => {
+	isInsufficient: boolean;
+}> = React.memo(({ value, onChange, isInsufficient }) => {
 	const [localValue, setLocalValue] = useState<string>(value.toString());
 
 	useEffect(() => {
@@ -195,8 +232,9 @@ const DebouncedInput: React.FC<{
 				"& .MuiInputBase-input": {
 					textAlign: "center",
 					py: 1,
-					fontSize: "1rem",
+					fontSize: "1.2rem",
 					fontWeight: "bold",
+					color: isInsufficient ? "error.main" : "inherit",
 				},
 				"& .MuiOutlinedInput-root": { bgcolor: "rgba(0,0,0,0.2)" },
 			}}
@@ -210,36 +248,20 @@ const DebouncedInput: React.FC<{
  *
  * @param {object} props - Component props.
  * @param {string} props.ticker - The material ticker symbol.
- * @param {OrderItem[]} props.availableVendors - List of vendors offering the material.
- * @param {string[]} props.currentPriority - The current ordered list of vendor IDs.
+ * @param {OrderItem[]} props.sortedVendors - Vendors in priority order.
  * @param {(newPriority: string[]) => void} props.onUpdatePriority - Callback when the priority changes.
  * @returns {React.ReactElement} The priority selector component.
  */
 const VendorPrioritySelector: React.FC<{
-	ticker: string;
-	availableVendors: OrderItem[];
-	currentPriority: string[];
+	sortedVendors: OrderItem[];
+	sourcedVendorIds: Set<string>;
 	onUpdatePriority: (newPriority: string[]) => void;
-}> = React.memo(({ availableVendors, currentPriority, onUpdatePriority }) => {
+}> = React.memo(({ sortedVendors, sourcedVendorIds, onUpdatePriority }) => {
 	const theme = useTheme();
-
-	const sortedVendors = useMemo(() => {
-		const copy = [...availableVendors];
-		const pMap = new Map(currentPriority.map((id, idx) => [id, idx]));
-
-		return copy.sort((a, b) => {
-			const pA = pMap.get(a.vendorid);
-			const pB = pMap.get(b.vendorid);
-			if (pA !== undefined && pB !== undefined) return pA - pB;
-			if (pA !== undefined) return -1;
-			if (pB !== undefined) return 1;
-			return getOrderPrice(a).price - getOrderPrice(b).price;
-		});
-	}, [availableVendors, currentPriority]);
 
 	const moveVendor = useCallback(
 		(index: number, direction: -1 | 1) => {
-			const newOrder = sortedVendors.map((v) => v.vendorid);
+			const newOrder = sortedVendors.map(getSourceId);
 			const targetIndex = index + direction;
 			if (targetIndex < 0 || targetIndex >= newOrder.length) return;
 			[newOrder[index], newOrder[targetIndex]] = [
@@ -262,15 +284,10 @@ const VendorPrioritySelector: React.FC<{
 			}}
 		>
 			{sortedVendors.map((vendor, index) => {
-				const isFirst = index === 0;
+				const isSourced = sourcedVendorIds.has(getSourceId(vendor));
 				const displayPrice = getOrderPrice(vendor).price;
-				const locationEntries = (vendor.location || []).map((loc) => ({
-					label:
-						loc.location_name === loc.location_code
-							? loc.location_name
-							: `${loc.location_name} (${loc.location_code})`,
-					qty: loc.available ?? loc.amount ?? loc.storage_amount,
-				}));
+				const formattedPrice = formatPrice(displayPrice);
+				const location = vendor.location?.[0];
 				const corpStats = getDiffStats(
 					displayPrice,
 					vendor.price?.corpprice,
@@ -283,7 +300,7 @@ const VendorPrioritySelector: React.FC<{
 				);
 				return (
 					<Box
-						key={vendor.vendorid}
+						key={getSourceId(vendor)}
 						sx={{
 							display: "flex",
 							alignItems: "center",
@@ -291,10 +308,10 @@ const VendorPrioritySelector: React.FC<{
 							mb: 0.5,
 							p: 1,
 							borderRadius: 1.5,
-							bgcolor: isFirst
+							bgcolor: isSourced
 								? alpha(theme.palette.success.main, 0.1)
 								: "transparent",
-							border: isFirst
+							border: isSourced
 								? `1px solid ${alpha(theme.palette.success.main, 0.2)}`
 								: "1px solid transparent",
 						}}
@@ -308,95 +325,107 @@ const VendorPrioritySelector: React.FC<{
 							#{index + 1}
 						</Typography>
 
-						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Box
-								sx={{
-									display: "flex",
-									alignItems: "center",
-									gap: 1,
-									flexWrap: "wrap",
-								}}
-							>
+						<Box
+							sx={{
+								display: "flex",
+								flex: 1,
+								gap: 1,
+								justifyContent: "space-between",
+								minWidth: 0,
+							}}
+						>
+							<Box sx={{ flex: 1, minWidth: 0 }}>
 								<Typography
 									variant="body2"
 									sx={{
+										color: isSourced ? theme.palette.success.light : "inherit",
 										fontSize: "0.9rem",
-										fontWeight: isFirst ? "bold" : "normal",
-										color: isFirst ? theme.palette.success.light : "inherit",
 									}}
 								>
+									<Box component="span" sx={{ fontWeight: "bold" }}>
+										{vendor.gamename}
+									</Box>{" "}
+									<Box component="span" sx={{ fontFamily: "monospace" }}>
+										[{vendor.companycode || "—"}]
+									</Box>{" "}
 									{vendor.vendorname}
 								</Typography>
-								{corpStats && (
-									<PriceComparisonBadge label="COSM" stats={corpStats} />
-								)}
-								{cxStats && <PriceComparisonBadge label="CX" stats={cxStats} />}
-							</Box>
-							<Box
-								sx={{
-									display: "flex",
-									gap: 2,
-									flexWrap: "wrap",
-									alignItems: "center",
-								}}
-							>
 								<Typography variant="caption" color="text.secondary">
-									Price:{" "}
-									<Box
-										component="span"
-										sx={{
-											fontWeight: "bold",
-											color: theme.palette.warning.main,
-										}}
-									>
-										{new Intl.NumberFormat("en-US", {
-											minimumFractionDigits: 2,
-											maximumFractionDigits: 2,
-										}).format(displayPrice)}
-									</Box>{" "}
-									ICA
-								</Typography>
-								{locationEntries.length > 0 ? (
-									locationEntries.map((entry, entryIndex) => (
-										<Typography
-											key={`${vendor.vendorid}-${entryIndex}`}
-											variant="caption"
-											color="text.secondary"
-										>
-											{entry.label === "Hortus Station (HRT)" ? (
+									{location ? (
+										<>
+											{location.location_code === "HRT" ? (
 												<Warehouse
-													size={14}
-													style={{ verticalAlign: "middle" }}
+													className="inline-icon"
+													color={theme.palette.success.light}
 												/>
 											) : (
-												<Globe size={14} style={{ verticalAlign: "middle" }} />
+												<Globe
+													className="inline-icon"
+													color={theme.palette.warning.main}
+												/>
 											)}{" "}
-											{entry.label}:{" "}
+											{formatLocationLabel(
+												location.location_name ||
+													location.location_code ||
+													"Unknown",
+												location.location_code ||
+													location.location_name ||
+													"Unknown",
+											)}
+											:{" "}
 											<Box
 												component="span"
 												sx={{
-													fontWeight: "bold",
 													color: theme.palette.primary.light,
+													fontWeight: "bold",
 												}}
 											>
-												{formatAmount(entry.qty)}
+												{formatAmount(vendor.quantity)}
 											</Box>
-										</Typography>
-									))
-								) : (
-									<Typography variant="caption" color="text.secondary">
-										Stock:{" "}
-										<Box
-											component="span"
-											sx={{
-												fontWeight: "bold",
-												color: theme.palette.primary.light,
-											}}
-										>
-											{formatAmount(vendor.quantity)}
-										</Box>
-									</Typography>
-								)}
+										</>
+									) : (
+										<>Stock: {formatAmount(vendor.quantity)}</>
+									)}
+								</Typography>
+							</Box>
+							<Box
+								sx={{
+									alignItems: "flex-end",
+									display: "flex",
+									flexDirection: "column",
+								}}
+							>
+								<Typography variant="caption" color="text.secondary">
+									{formattedPrice === "N/A" ? (
+										formattedPrice
+									) : (
+										<>
+											<Box
+												component="span"
+												sx={{
+													color: theme.palette.warning.main,
+													fontWeight: "bold",
+												}}
+											>
+												{formattedPrice.slice(0, -4)}
+											</Box>{" "}
+											<Box
+												component="span"
+												sx={{ color: "text.primary", fontSize: "0.7rem" }}
+											>
+												ICA
+											</Box>
+										</>
+									)}
+								</Typography>
+								<Box sx={{ display: "flex", gap: 0.5 }}>
+									{corpStats && (
+										<PriceComparisonBadge label="COSM" stats={corpStats} />
+									)}
+									{cxStats && (
+										<PriceComparisonBadge label="CX" stats={cxStats} />
+									)}
+								</Box>
 							</Box>
 						</Box>
 
@@ -407,7 +436,7 @@ const VendorPrioritySelector: React.FC<{
 								onClick={() => moveVendor(index, -1)}
 								sx={{ p: 0.5 }}
 							>
-								<ArrowUp size={14} />
+								<ArrowUp className="inline-icon" />
 							</IconButton>
 							<IconButton
 								size="small"
@@ -415,7 +444,7 @@ const VendorPrioritySelector: React.FC<{
 								onClick={() => moveVendor(index, 1)}
 								sx={{ p: 0.5 }}
 							>
-								<ArrowDown size={14} />
+								<ArrowDown className="inline-icon" />
 							</IconButton>
 						</Box>
 					</Box>
@@ -453,38 +482,57 @@ const CompactListItem: React.FC<{
 			() => availableVendors.reduce((s, v) => s + (v.quantity || 0), 0),
 			[availableVendors],
 		);
-
-		// 2. Calculate "Contributing Vendors"
-		const contributingVendors = useMemo(() => {
-			if (availableVendors.length === 0) return [];
-
+		const sortedVendors = useMemo(() => {
 			const pMap = new Map(item.vendorPriority.map((id, idx) => [id, idx]));
-			const sorted = [...availableVendors].sort((a, b) => {
-				const pA = pMap.get(a.vendorid);
-				const pB = pMap.get(b.vendorid);
+			return [...availableVendors].sort((a, b) => {
+				const pA = pMap.get(getSourceId(a));
+				const pB = pMap.get(getSourceId(b));
 				if (pA !== undefined && pB !== undefined) return pA - pB;
 				if (pA !== undefined) return -1;
 				if (pB !== undefined) return 1;
 				return getOrderPrice(a).price - getOrderPrice(b).price;
 			});
+		}, [availableVendors, item.vendorPriority]);
 
+		// 2. Allocate the requested quantity in sourcing-priority order.
+		const sourcing = useMemo(() => {
+			const vendors = new Set<string>();
+			const sourcedVendorIds = new Set<string>();
+			const locations = new Map<string, { label: string; isHortus: boolean }>();
 			let remainingNeeded = item.quantity;
-			const usedVendors: string[] = [];
 
-			for (const vendor of sorted) {
+			for (const vendor of sortedVendors) {
 				if (remainingNeeded <= 0) break;
-				if (vendor.quantity > 0) {
-					usedVendors.push(vendor.gamename || vendor.vendorname);
-					remainingNeeded -= vendor.quantity;
+				const vendorAmount = Math.min(remainingNeeded, vendor.quantity);
+				if (vendorAmount <= 0) continue;
+				let remainingVendorAmount = vendorAmount;
+				for (const location of vendor.location || []) {
+					if (remainingVendorAmount <= 0) break;
+					const id = location.location_code || location.location_name;
+					const available =
+						location.available ?? location.amount ?? location.storage_amount;
+					if (!id || typeof available !== "number" || available <= 0) continue;
+					const locationAmount = Math.min(remainingVendorAmount, available);
+					vendors.add(vendor.gamename || vendor.vendorname);
+					sourcedVendorIds.add(getSourceId(vendor));
+					locations.set(id, {
+						label: formatLocationLabel(location.location_name || id, id),
+						isHortus: location.location_code === "HRT",
+					});
+					remainingVendorAmount -= locationAmount;
 				}
+				remainingNeeded -= vendorAmount;
 			}
-			return usedVendors;
-		}, [availableVendors, item.vendorPriority, item.quantity]);
 
-		const viaText =
-			contributingVendors.length > 0
-				? contributingVendors.join(", ")
-				: "No Vendors";
+			return {
+				vendors: [...vendors],
+				sourcedVendorIds,
+				locations: [...locations.values()].sort((a, b) => {
+					if (a.isHortus !== b.isHortus) return a.isHortus ? -1 : 1;
+					return a.label.localeCompare(b.label);
+				}),
+			};
+		}, [item.quantity, sortedVendors]);
 
 		return (
 			<Box
@@ -499,27 +547,69 @@ const CompactListItem: React.FC<{
 					"&:last-child": { borderBottom: "none" },
 				}}
 			>
-				<Box sx={{ display: "flex", alignItems: "center", p: 1.5, gap: 2 }}>
-					<Typography
-						variant="body1"
-						fontWeight="900"
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						p: 1.5,
+						gap: 2,
+						flexWrap: "nowrap",
+					}}
+				>
+					<Box
 						sx={{
-							width: 60,
+							display: "flex",
+							flexDirection: "column",
 							flexShrink: 0,
-							fontSize: "1.1rem",
-							color: theme.palette.text.primary,
+							alignSelf: "stretch",
 						}}
 					>
-						<MaterialBadge ticker={item.materialticker} />
-					</Typography>
+						<Typography
+							variant="body1"
+							fontWeight="900"
+							sx={{
+								flex: 2,
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+								fontSize: "1.1rem",
+								color: theme.palette.text.primary,
+								textAlign: "center",
+							}}
+						>
+							<MaterialBadge ticker={item.materialticker} />
+						</Typography>
+						<Typography
+							variant="caption"
+							sx={{
+								flex: 1,
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+								color:
+									totalAvail < item.quantity
+										? theme.palette.error.main
+										: theme.palette.common.white,
+								fontSize: "0.75rem",
+								whiteSpace: "nowrap",
+								textAlign: "center",
+							}}
+						>
+							×
+							<Box component="span" sx={{ fontWeight: "bold" }}>
+								{formatAmount(totalAvail)}
+							</Box>
+						</Typography>
+					</Box>
 
 					<Box
 						onClick={() => setExpanded(!expanded)}
 						sx={{
 							flex: 1,
+							order: 1,
 							display: "flex",
-							flexDirection: "column",
-							justifyContent: "center",
+							alignItems: "center",
+							gap: 0.5,
 							p: 1,
 							borderRadius: 1.5,
 							cursor: "pointer",
@@ -534,98 +624,126 @@ const CompactListItem: React.FC<{
 							},
 						}}
 					>
-						<Box
-							sx={{
-								display: "flex",
-								justifyContent: "space-between",
-								alignItems: "center",
-								mb: 0.5,
-							}}
-						>
-							<Typography
-								variant="caption"
-								sx={{
-									fontWeight: "bold",
-									color: theme.palette.primary.main,
-									letterSpacing: 0.5,
-									fontSize: "0.7rem",
-								}}
-							>
-								SOURCING PRIORITY{" "}
-								{expanded ? (
-									<ChevronUp
-										size={12}
-										style={{ display: "inline", verticalAlign: "middle" }}
-									/>
-								) : (
-									<ChevronDown
-										size={12}
-										style={{ display: "inline", verticalAlign: "middle" }}
-									/>
-								)}
-							</Typography>
-							<Typography
-								variant="caption"
-								sx={{
-									fontSize: "0.75rem",
-									fontWeight: "medium",
-									whiteSpace: "nowrap",
-									ml: 1,
-								}}
-							>
-								Supply:{" "}
-								<span
-									style={{
-										color:
-											totalAvail < item.quantity
-												? theme.palette.error.main
-												: theme.palette.success.main,
-										fontWeight: "bold",
-									}}
-								>
-									{formatAmount(totalAvail)}
-								</span>
-							</Typography>
+						<Box sx={{ display: "flex", alignItems: "center", pr: 0.5 }}>
+							{expanded ? (
+								<ChevronDown className="inline-icon" />
+							) : (
+								<ChevronRight className="inline-icon" />
+							)}
 						</Box>
-
-						{/* VIA ROW */}
 						<Box
 							sx={{
 								display: "flex",
-								alignItems: "center",
-								gap: 1,
-								width: "100%",
+								flexDirection: "column",
+								gap: 0.25,
+								flex: 1,
+								minWidth: 0,
 							}}
 						>
-							<Truck
-								size={14}
-								color={theme.palette.text.secondary}
-								style={{ flexShrink: 0 }}
-							/>
 							<Typography
 								variant="body2"
-								noWrap
-								sx={{
-									fontWeight: "bold",
-									fontSize: "0.85rem",
-									color: theme.palette.text.primary,
-									display: "block",
-									width: "100%",
-								}}
+								sx={{ minWidth: 0, fontSize: "0.85rem" }}
 							>
-								Via:{" "}
-								<span style={{ color: theme.palette.text.secondary }}>
-									{viaText}
-								</span>
+								<Box
+									component="span"
+									sx={{ color: theme.palette.primary.dark, fontWeight: "bold" }}
+								>
+									Vendors:
+								</Box>{" "}
+								{sourcing.vendors.length > 0
+									? sourcing.vendors
+											.flatMap((vendor) => [
+												<Box
+													component="span"
+													key={vendor}
+													sx={{ whiteSpace: "nowrap" }}
+												>
+													<Store
+														className="inline-icon"
+														color={theme.palette.primary.main}
+													/>{" "}
+													{vendor}
+												</Box>,
+												" ",
+												<Box
+													component="span"
+													key={vendor + "-separator"}
+													aria-hidden
+												>
+													•
+												</Box>,
+												" ",
+											])
+											.slice(0, -3)
+									: "—"}
+							</Typography>
+							<Typography
+								variant="body2"
+								sx={{ minWidth: 0, fontSize: "0.85rem" }}
+							>
+								<Box
+									component="span"
+									sx={{ color: theme.palette.primary.dark, fontWeight: "bold" }}
+								>
+									Locations:
+								</Box>{" "}
+								{sourcing.locations.length > 0
+									? sourcing.locations
+											.flatMap((location) => [
+												<Box
+													component="span"
+													key={location.label}
+													sx={{ whiteSpace: "nowrap" }}
+												>
+													{location.isHortus ? (
+														<Warehouse
+															className="inline-icon"
+															color={theme.palette.success.light}
+														/>
+													) : (
+														<Globe
+															className="inline-icon"
+															color={theme.palette.warning.main}
+														/>
+													)}{" "}
+													{location.label}
+												</Box>,
+												" ",
+												<Box
+													component="span"
+													key={location.label + "-separator"}
+													aria-hidden
+												>
+													•
+												</Box>,
+												" ",
+											])
+											.slice(0, -3)
+									: "—"}
 							</Typography>
 						</Box>
 					</Box>
 
-					<DebouncedInput value={item.quantity} onChange={onUpdateQty} />
+					<Box
+						sx={{
+							flexShrink: 0,
+							alignSelf: "stretch",
+							"& > .MuiTextField-root, & .MuiOutlinedInput-root": {
+								height: "100%",
+							},
+						}}
+					>
+						<DebouncedInput
+							value={item.quantity}
+							onChange={onUpdateQty}
+							isInsufficient={totalAvail < item.quantity}
+						/>
+					</Box>
 
 					<IconButton
 						onClick={onRemove}
 						sx={{
+							order: 2,
 							color: "error.main",
 							opacity: 0.7,
 							p: 1,
@@ -636,16 +754,15 @@ const CompactListItem: React.FC<{
 							},
 						}}
 					>
-						<Trash2 size={18} />
+						<Trash2 className="inline-icon" />
 					</IconButton>
 				</Box>
 
 				<Collapse in={expanded}>
-					<Box sx={{ px: 2, pb: 2 }}>
+					<Box sx={{ px: 1.5, pb: 1.5 }}>
 						<VendorPrioritySelector
-							ticker={item.materialticker}
-							availableVendors={availableVendors}
-							currentPriority={item.vendorPriority}
+							sortedVendors={sortedVendors}
+							sourcedVendorIds={sourcing.sourcedVendorIds}
 							onUpdatePriority={onUpdatePriority}
 						/>
 					</Box>
@@ -660,19 +777,18 @@ const CompactListItem: React.FC<{
  * Renders a group of summary items assigned to a single vendor.
  *
  * @param {object} props - Component props.
- * @param {string} props.vendorName - Vendor's company name.
  * @param {string} props.gameName - Vendor's game name.
  * @param {ShoppingSummaryItem[]} props.items - The list of items calculated to be bought from this vendor.
  * @param {number} props.total - The total cost for this vendor.
  * @returns {React.ReactElement} The vendor summary group component.
  */
 const SummaryVendorGroup: React.FC<{
-	vendorName: string;
 	gameName: string;
 	items: ShoppingSummaryItem[];
 	total: number;
-}> = ({ vendorName, gameName, items, total }) => {
+}> = ({ gameName, items, total }) => {
 	const theme = useTheme();
+	const formattedTotal = formatPrice(total);
 
 	return (
 		<Box
@@ -695,81 +811,299 @@ const SummaryVendorGroup: React.FC<{
 					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
 				}}
 			>
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-					<Typography variant="subtitle2" fontWeight="bold">
-						{vendorName}
-						<Typography
-							component="span"
-							variant="caption"
-							color="text.secondary"
-							sx={{ ml: 1 }}
-						>
-							({gameName})
-						</Typography>
-					</Typography>
-				</Box>
-				<Typography variant="subtitle2" fontWeight="bold" color="primary.main">
-					{formatPrice(total)}
+				<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+					<Store className="inline-icon" color={theme.palette.primary.main} />{" "}
+					{gameName}
+				</Typography>
+				<Typography variant="subtitle2">
+					{formattedTotal === "N/A" ? (
+						formattedTotal
+					) : (
+						<>
+							<Box
+								component="span"
+								sx={{ color: theme.palette.warning.main, fontWeight: "bold" }}
+							>
+								{formattedTotal.slice(0, -4)}
+							</Box>{" "}
+							<Box
+								component="span"
+								sx={{ color: "text.primary", fontSize: "0.7rem" }}
+							>
+								ICA
+							</Box>
+						</>
+					)}
 				</Typography>
 			</Box>
 
 			{/* List of Items */}
 			<Box sx={{ p: 1 }}>
-				{items.map((item, idx) => (
-					<Box
-						key={idx}
-						sx={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-							mb: 0.8,
-							pl: 1.5,
-							borderLeft: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-							ml: 0.5,
-						}}
-					>
-						{/* Left: Ticker & Amount */}
-						<Typography
-							variant="body2"
-							color="text.primary"
-							sx={{ fontSize: "0.75rem" }}
+				{items.map((item, idx) => {
+					const unitPrice = formatPrice(item.price);
+					const totalPrice = formatPrice(item.totalPrice);
+					return (
+						<Box
+							key={idx}
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 0.5,
+								fontSize: "0.75rem",
+								mb: idx < items.length - 1 ? 0.5 : 0,
+							}}
 						>
-							<MaterialBadge ticker={item.ticker} />{" "}
-							<span style={{ opacity: 0.8, fontWeight: 600 }}>
-								x{formatAmount(item.amount)}
-							</span>
-						</Typography>
-
-						{/* Right: Total Price & Unit Price */}
-						<Box sx={{ textAlign: "right" }}>
 							<Typography
 								variant="body2"
-								color="text.secondary"
 								sx={{
-									fontSize: "0.75rem",
-									fontWeight: "bold",
-									lineHeight: 1.1,
+									flex: "0 0 20%",
+									fontSize: "inherit",
+									textAlign: "left",
 								}}
 							>
-								{formatPrice(item.totalPrice)}
+								<Box component="span" sx={{ fontWeight: "bold" }}>
+									{formatAmount(item.amount)}
+								</Box>{" "}
+								×
+							</Typography>
+							<Box sx={{ flex: "0 0 15%", textAlign: "right" }}>
+								<MaterialBadge ticker={item.ticker} />
+							</Box>
+							<Typography
+								variant="body2"
+								sx={{
+									flex: 1,
+									fontSize: "inherit",
+									textAlign: "right",
+									whiteSpace: "nowrap",
+								}}
+							>
+								<Box component="span" sx={{ fontWeight: "bold" }}>
+									{unitPrice === "N/A" ? unitPrice : unitPrice.slice(0, -4)}
+								</Box>{" "}
+								<Tooltip title="Price Per Unit">
+									<Box
+										component="span"
+										sx={{ cursor: "help", textDecoration: "underline dotted" }}
+									>
+										ppu
+									</Box>
+								</Tooltip>
 							</Typography>
 							<Typography
-								variant="caption"
+								variant="body2"
 								sx={{
-									color: theme.palette.text.secondary,
-									fontSize: "0.7rem",
-									display: "block",
-									marginTop: "-1px",
-									opacity: 0.5,
+									flex: 1,
+									fontSize: "inherit",
+									textAlign: "right",
+									whiteSpace: "nowrap",
 								}}
 							>
-								@ {formatPrice(item.price)}
+								<Box component="span" sx={{ fontWeight: "bold" }}>
+									{totalPrice === "N/A" ? totalPrice : totalPrice.slice(0, -4)}
+								</Box>{" "}
+								ICA
 							</Typography>
 						</Box>
-					</Box>
-				))}
+					);
+				})}
 			</Box>
 		</Box>
+	);
+};
+
+const OrderSummaryPanel: React.FC<{
+	groups: SummaryLocationGroup[];
+	shoppingListLength: number;
+	isCopied: boolean;
+	onCopy: () => void;
+	onClose?: () => void;
+	insufficientStock: boolean;
+	grandTotal: number;
+}> = ({
+	groups,
+	shoppingListLength,
+	isCopied,
+	onCopy,
+	onClose,
+	insufficientStock,
+	grandTotal,
+}) => {
+	const theme = useTheme();
+
+	return (
+		<Paper
+			sx={{
+				flex: 1,
+				minWidth: 0,
+				height: "100%",
+				background: theme.palette.background.paper,
+				border: `1px solid ${theme.palette.divider}`,
+				display: "flex",
+				flexDirection: "column",
+				borderRadius: 2,
+				overflow: "hidden",
+			}}
+		>
+			<Box
+				sx={{
+					p: 1.5,
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					borderBottom: `1px solid ${theme.palette.divider}`,
+					bgcolor: "rgba(0,0,0,0.05)",
+				}}
+			>
+				<Typography
+					variant="subtitle2"
+					sx={{ color: "text.primary", fontWeight: "bold" }}
+				>
+					CONTRACT DETAILS
+				</Typography>
+				<Box sx={{ display: "flex", gap: 1 }}>
+					<Tooltip title="Copy to Clipboard">
+						<Button
+							size="small"
+							variant="contained"
+							color={isCopied ? "success" : "primary"}
+							startIcon={<ContentCopy className="inline-icon" />}
+							disabled={shoppingListLength === 0}
+							sx={{ fontWeight: "bold" }}
+							onClick={onCopy}
+						>
+							COPY
+						</Button>
+					</Tooltip>
+					{onClose && (
+						<Button
+							size="small"
+							variant="outlined"
+							startIcon={<X className="inline-icon" />}
+							onClick={onClose}
+							sx={{ fontWeight: "bold" }}
+						>
+							CLOSE
+						</Button>
+					)}
+				</Box>
+			</Box>
+			<Box sx={{ flex: 1, overflowY: "auto", p: 1.5, minHeight: "100px" }}>
+				{groups.length > 0 ? (
+					groups.map((group) => {
+						const location = group.location;
+						const locationName =
+							location?.location_name || location?.location_code || "Unknown";
+						const locationCode = location?.location_code || locationName;
+
+						return (
+							<Box key={locationCode} sx={{ mb: 2 }}>
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										gap: 0.5,
+										mb: 0.75,
+									}}
+								>
+									{location?.location_code === "HRT" ? (
+										<Warehouse
+											className="inline-icon"
+											color={theme.palette.success.light}
+										/>
+									) : (
+										<Globe
+											className="inline-icon"
+											color={theme.palette.warning.main}
+										/>
+									)}
+									<Typography variant="subtitle2" fontWeight="bold">
+										{formatLocationLabel(locationName, locationCode)}
+									</Typography>
+								</Box>
+								<Box
+									sx={{
+										display: "grid",
+										gridTemplateColumns: {
+											xs: "1fr",
+											sm: "repeat(2, minmax(0, 1fr))",
+											md: "repeat(3, minmax(0, 1fr))",
+											lg: "1fr",
+										},
+										gap: 1.5,
+										"& > *": { mb: 0 },
+									}}
+								>
+									{group.vendors.map((vendor) => (
+										<SummaryVendorGroup
+											key={vendor.vendorId}
+											gameName={vendor.gameName}
+											items={vendor.items}
+											total={vendor.total}
+										/>
+									))}
+								</Box>
+							</Box>
+						);
+					})
+				) : (
+					<Box sx={{ opacity: 0.5, textAlign: "center", py: 2 }}>
+						<Typography variant="caption">No items calculated yet.</Typography>
+					</Box>
+				)}
+			</Box>
+			<Box
+				sx={{
+					p: 1.5,
+					bgcolor: "rgba(0,0,0,0.3)",
+					display: "flex",
+					flexDirection: "column",
+					gap: 0.5,
+				}}
+			>
+				{insufficientStock && (
+					<Typography
+						variant="caption"
+						sx={{ color: "error.dark", textAlign: "center" }}
+					>
+						<Box component="span" sx={{ fontWeight: "bold" }}>
+							Warning: Not enough stock for full order.
+						</Box>
+					</Typography>
+				)}
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "flex-end",
+					}}
+				>
+					<Typography variant="caption" color="text.secondary">
+						TOTAL PRICE
+					</Typography>
+					<Typography variant="h6" sx={{ lineHeight: 1 }}>
+						{formatPrice(grandTotal) === "N/A" ? (
+							"N/A"
+						) : (
+							<>
+								<Box
+									component="span"
+									sx={{ color: theme.palette.warning.main, fontWeight: "bold" }}
+								>
+									{formatPrice(grandTotal).slice(0, -4)}
+								</Box>{" "}
+								<Box
+									component="span"
+									sx={{ color: "text.primary", fontSize: "0.7rem" }}
+								>
+									ICA
+								</Box>
+							</>
+						)}
+					</Typography>
+				</Box>
+			</Box>
+		</Paper>
 	);
 };
 
@@ -790,27 +1124,13 @@ const AvailableItemRow: React.FC<{
 	isMobile?: boolean;
 	onCloseMobile?: () => void;
 }> = React.memo(({ mat, onAdd, isMobile, onCloseMobile }) => {
-	// Format price range
-	const priceDisplay = useMemo(() => {
-		const min = mat.minPrice || mat.fixedprice;
-		const max = mat.maxPrice || mat.fixedprice;
-
-		if (min !== max) {
-			return (
-				<span>
-					{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
-						min,
-					)}
-					&ndash;
-					{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
-						max,
-					)}{" "}
-					ICA
-				</span>
-			);
-		}
-		return formatPrice(min);
-	}, [mat]);
+	const theme = useTheme();
+	const min = mat.minPrice || mat.fixedprice;
+	const max = mat.maxPrice || mat.fixedprice;
+	const format = (price: number) =>
+		new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(price);
+	const priceDisplay =
+		min !== max ? `${format(min)}–${format(max)}` : format(min);
 
 	return (
 		<Box
@@ -818,45 +1138,68 @@ const AvailableItemRow: React.FC<{
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "space-between",
-				p: 1.5,
+				p: 1.25,
 				px: 2,
 				borderBottom: `1px solid rgba(255,255,255,0.1)`,
 				"&:hover": { bgcolor: "rgba(255,255,255,0.03)" },
 			}}
 		>
-			<Box>
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-					<Typography variant="body2" fontWeight="bold">
-						<MaterialBadge ticker={mat.materialticker} />
-					</Typography>
-					{/* VENDOR COUNT BADGE */}
+			<Box
+				sx={{
+					display: "flex",
+					alignItems: "center",
+					gap: 0.75,
+					minWidth: 0,
+					whiteSpace: "nowrap",
+				}}
+			>
+				<Box component="span" sx={{ fontSize: "0.85rem" }}>
+					<MaterialBadge ticker={mat.materialticker} />
+				</Box>
+				<Typography
+					variant="caption"
+					color="text.secondary"
+					sx={{ fontSize: "0.85rem" }}
+				>
+					×
+					<Box component="span" sx={{ fontWeight: "bold" }}>
+						{formatAmount(mat.total_instore)}
+					</Box>
+				</Typography>
+				<Tooltip title={mat.vendorNames.join(", ")}>
 					<Box
 						sx={{
 							display: "flex",
 							alignItems: "center",
-							gap: 0.5,
+							gap: 0.25,
 							opacity: 0.6,
+							cursor: "help",
+							borderBottom: "1px dotted currentColor",
 						}}
 					>
-						<Store size={12} />
-						<Typography variant="caption">
-							{mat.vendorCount > 1
-								? `${mat.vendorCount} Vendors`
-								: `${mat.vendorCount} Vendor`}
+						<Store className="inline-icon" />
+						<Typography variant="caption" sx={{ fontSize: "0.85rem" }}>
+							{mat.vendorCount}
 						</Typography>
 					</Box>
-				</Box>
-				<Typography variant="caption" color="text.secondary">
-					{formatAmount(mat.total_instore)} available
-				</Typography>
+				</Tooltip>
 			</Box>
-			<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+			<Box
+				sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}
+			>
 				<Typography
 					variant="body2"
-					color="success.main"
-					sx={{ fontWeight: "bold", fontSize: "0.85rem" }}
+					sx={{ color: "warning.main", fontSize: "0.85rem" }}
 				>
-					{priceDisplay}
+					<Box component="span" sx={{ fontWeight: "bold" }}>
+						{priceDisplay}
+					</Box>{" "}
+					<Box
+						component="span"
+						sx={{ color: "text.primary", fontSize: "0.75rem" }}
+					>
+						ICA
+					</Box>
 				</Typography>
 				<IconButton
 					size="small"
@@ -865,7 +1208,10 @@ const AvailableItemRow: React.FC<{
 						if (isMobile && onCloseMobile) onCloseMobile();
 					}}
 				>
-					<PlusCircle size={20} color="#66bb6a" />
+					<PlusCircle
+						className="inline-icon"
+						color={theme.palette.success.main}
+					/>
 				</IconButton>
 			</Box>
 		</Box>
@@ -882,8 +1228,6 @@ const AvailableItemRow: React.FC<{
  * @param {(m: any) => void} props.onAdd - Callback to add material to the shopping list.
  * @param {boolean} [props.isMobile] - Whether the view is mobile.
  * @param {() => void} [props.onCloseMobile] - Callback to close the mobile view.
- * @param {boolean} [props.isCollapsed] - Whether the panel is currently collapsed (desktop).
- * @param {() => void} [props.onToggleCollapse] - Callback to toggle the collapse state.
  * @returns {React.ReactElement} The available materials panel.
  */
 const AvailableMaterialsPanel: React.FC<{
@@ -895,8 +1239,6 @@ const AvailableMaterialsPanel: React.FC<{
 	onChangeLocation: (next: string | null) => void;
 	isMobile?: boolean;
 	onCloseMobile?: () => void;
-	isCollapsed?: boolean;
-	onToggleCollapse?: () => void;
 }> = React.memo(
 	({
 		materials,
@@ -907,8 +1249,6 @@ const AvailableMaterialsPanel: React.FC<{
 		onChangeLocation,
 		isMobile,
 		onCloseMobile,
-		isCollapsed,
-		onToggleCollapse,
 	}) => {
 		const [search, setSearch] = useState("");
 
@@ -918,46 +1258,14 @@ const AvailableMaterialsPanel: React.FC<{
 				.split(",")
 				.map((t) => t.trim())
 				.filter((t) => t);
-			return materials.filter((m) => {
-				if (selectedTickers.has(m.materialticker)) return false;
-				if (terms.length === 0) return true;
-				return terms.some((t) => m.materialticker.toLowerCase().includes(t));
-			});
+			return materials
+				.filter((m) => {
+					if (selectedTickers.has(m.materialticker)) return false;
+					if (terms.length === 0) return true;
+					return terms.some((t) => m.materialticker.toLowerCase().includes(t));
+				})
+				.sort((a, b) => a.materialticker.localeCompare(b.materialticker));
 		}, [search, materials, selectedTickers]);
-
-		if (!isMobile && isCollapsed) {
-			return (
-				<Box
-					sx={{
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						pt: 1,
-						gap: 2,
-					}}
-				>
-					<IconButton onClick={onToggleCollapse} sx={{ mb: 1 }}>
-						<ChevronLeft />
-					</IconButton>
-					<Typography
-						variant="caption"
-						sx={{
-							writingMode: "vertical-rl",
-							textOrientation: "mixed",
-							letterSpacing: 2,
-							fontWeight: "bold",
-							color: "text.secondary",
-							userSelect: "none",
-						}}
-					>
-						ADD ITEMS
-					</Typography>
-					<Search size={20} style={{ opacity: 0.5, marginTop: 10 }} />
-				</Box>
-			);
-		}
 
 		return (
 			<Box
@@ -980,22 +1288,15 @@ const AvailableMaterialsPanel: React.FC<{
 				>
 					<Typography
 						variant="subtitle2"
-						fontWeight="bold"
-						color="primary.main"
+						sx={{ color: "text.primary", fontWeight: "bold" }}
 					>
 						AVAILABLE MATERIALS
 					</Typography>
-					<Box>
-						{isMobile ? (
-							<IconButton onClick={onCloseMobile}>
-								<X size={20} />
-							</IconButton>
-						) : (
-							<IconButton size="small" onClick={onToggleCollapse}>
-								<ChevronRight size={18} />
-							</IconButton>
-						)}
-					</Box>
+					{isMobile && (
+						<IconButton onClick={onCloseMobile}>
+							<X className="inline-icon" />
+						</IconButton>
+					)}
 				</Box>
 
 				<Box sx={{ p: isMobile ? 0 : 2, pb: 1 }}>
@@ -1006,10 +1307,28 @@ const AvailableMaterialsPanel: React.FC<{
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						size="small"
-						InputProps={{
-							startAdornment: (
-								<Search size={16} style={{ marginRight: 8, opacity: 0.5 }} />
-							),
+						slotProps={{
+							input: {
+								startAdornment: (
+									<Search
+										className="inline-icon"
+										style={{ marginRight: 8, opacity: 0.5 }}
+									/>
+								),
+								endAdornment: search ? (
+									<InputAdornment position="end">
+										<Tooltip title="Clear Search">
+											<IconButton
+												size="small"
+												aria-label="Clear material search"
+												onClick={() => setSearch("")}
+											>
+												<X className="inline-icon" />
+											</IconButton>
+										</Tooltip>
+									</InputAdornment>
+								) : null,
+							},
 						}}
 						sx={{
 							"& .MuiOutlinedInput-root": {
@@ -1018,49 +1337,12 @@ const AvailableMaterialsPanel: React.FC<{
 							},
 						}}
 					/>
-					<Autocomplete<LocationOption, false, false, false>
-						size="small"
-						options={allLocations}
-						value={
-							selectedLocation === null
-								? null
-								: allLocations.find(
-										(option) => option.id === selectedLocation,
-									) || null
-						}
-						onChange={(_e, newValue) => onChangeLocation(newValue?.id || null)}
-						getOptionLabel={(option) =>
-							formatLocationLabel(option.name, option.id)
-						}
-						slotProps={{
-							paper: {
-								sx: {
-									bgcolor: "background.default",
-									backgroundImage: "none",
-								},
-							},
-						}}
-						sx={{
-							mt: 1,
-							"& .MuiAutocomplete-clearIndicator": {
-								visibility: selectedLocation ? "visible" : "hidden",
-								opacity: selectedLocation ? 1 : 0,
-							},
-						}}
-						renderInput={(params) => (
-							<TextField
-								{...params}
-								variant="outlined"
-								placeholder="All Locations"
-								sx={{
-									"& .MuiOutlinedInput-root": {
-										height: 40,
-										bgcolor: "rgba(0,0,0,0.2)",
-										borderRadius: "12px",
-									},
-								}}
-							/>
-						)}
+					<LocationFilter
+						locations={allLocations}
+						value={selectedLocation}
+						onChange={onChangeLocation}
+						sx={{ mt: 1 }}
+						popperSx={isMobile ? { zIndex: 10000 } : undefined}
 					/>
 				</Box>
 
@@ -1112,30 +1394,49 @@ const ShoppingListModal: React.FC<{
 	cxPriceLookup: CxPriceLookup;
 }> = ({ open, handleClose, vendors, isLoggedIn, cxPriceLookup }) => {
 	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+	const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
+	const isCompact = useMediaQuery(theme.breakpoints.down("xl"));
 
 	// State management
-	const [isSaving, setIsSaving] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([]);
+	const [insufficientStock, setInsufficientStock] = useState(false);
+	const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>(
+		getStoredShoppingList,
+	);
 	const [shoppingSummary, setShoppingSummary] = useState<ShoppingSummaryItem[]>(
 		[],
 	);
 	const [isCopied, setIsCopied] = useState(false);
+	const [confirmClear, setConfirmClear] = useState(false);
+	const [showHelp, setShowHelp] = useState(false);
+	const [showSummary, setShowSummary] = useState(false);
 
 	// UI states
-	const [showMobileAdd, setShowMobileAdd] = useState(false);
-	const [isSelectionOpen, setIsSelectionOpen] = useState(true);
-	const [isSummaryOpen, setIsSummaryOpen] = useState(true);
-	const [isMaterialsOpen, setIsMaterialsOpen] = useState(true);
-	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+	const [showAddItems, setShowAddItems] = useState(false);
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(
+		HORTUS_LOCATION_CODE,
+	);
+	const helpImageSx = {
+		display: "block",
+		maxWidth: "min(99%, 350px)",
+		mt: 1,
+		mb: 2,
+		borderRadius: 1,
+		boxShadow: `0 0 8px ${alpha(theme.palette.primary.light, 0.75)}`,
+	};
+
+	useEffect(() => {
+		localStorage.setItem(
+			SHOPPING_LIST_STORAGE_KEY,
+			JSON.stringify(shoppingList),
+		);
+	}, [shoppingList]);
 
 	// 1. Memoize All Sell Orders
 	const allSellOrders = useMemo(() => {
 		return vendors.flatMap((v) =>
 			v.orders
 				.filter((o) => o.ordertype === "sell")
-				.map((o) => {
+				.flatMap((o) => {
 					const rawStock = o.available !== undefined ? o.available : o.quantity;
 					const reserved = o.reserved || 0;
 					const actualAvailable = Math.max(0, rawStock - reserved);
@@ -1144,13 +1445,14 @@ const ShoppingListModal: React.FC<{
 						cxPriceLookup[o.materialticker.trim().toUpperCase()]?.[sideKey];
 					const cxReferencePrice = Number(rawCxValue);
 
-					return {
+					const order = {
 						...o,
 						quantity: actualAvailable,
 						fixedprice: getOrderPrice(o).price,
 						vendorid: v.vendor.vendorid,
 						vendorname: v.vendor.companyname,
 						gamename: v.vendor.gamename,
+						companycode: v.vendor.companycode,
 						price: {
 							...o.price,
 							cxprice: Number.isFinite(cxReferencePrice)
@@ -1158,6 +1460,22 @@ const ShoppingListModal: React.FC<{
 								: o.price?.cxprice,
 						},
 					};
+					const locations = (o.location || []).filter(
+						(location) =>
+							typeof location.available === "number" && location.available > 0,
+					);
+					if (locations.length === 0) return [order];
+
+					let remainingAvailable = actualAvailable;
+					return locations.flatMap((location) => {
+						const quantity = Math.min(
+							remainingAvailable,
+							location.available || 0,
+						);
+						remainingAvailable -= quantity;
+						if (quantity <= 0) return [];
+						return [{ ...order, location: [location], quantity }];
+					});
 				}),
 		);
 	}, [vendors, cxPriceLookup]);
@@ -1175,28 +1493,18 @@ const ShoppingListModal: React.FC<{
 				});
 			});
 		});
-		return [...locs.values()].sort((a, b) => {
-			if (a.id === "HRT") return -1;
-			if (b.id === "HRT") return 1;
-			return formatLocationLabel(a.name, a.id).localeCompare(
-				formatLocationLabel(b.name, b.id),
-			);
-		});
+		return [...locs.values()];
 	}, [allSellOrders]);
 
 	const locationFilteredSellOrders = useMemo(() => {
 		if (selectedLocation === null) return allSellOrders;
 		return allSellOrders.filter((order) =>
-			order.location?.some((loc) => {
-				const locationMatches =
-					loc.location_code === selectedLocation ||
-					loc.location_name === selectedLocation;
-				return (
-					locationMatches &&
+			order.location?.some(
+				(loc) =>
 					typeof loc.available === "number" &&
-					loc.available > 0
-				);
-			}),
+					loc.available > 0 &&
+					matchesLocationFilter(loc, selectedLocation),
+			),
 		);
 	}, [allSellOrders, selectedLocation]);
 
@@ -1225,12 +1533,12 @@ const ShoppingListModal: React.FC<{
 						frontendId: uuidv4(),
 						minPrice: orderPrice,
 						maxPrice: orderPrice,
-						vendors: new Set(), // Track unique vendors
+						vendors: new Map(), // Track unique vendor usernames
 					};
 				}
 				// Update Totals & Vendor Set
 				acc[order.materialticker].total_instore += order.quantity;
-				acc[order.materialticker].vendors.add(order.vendorid);
+				acc[order.materialticker].vendors.set(order.vendorid, order.gamename);
 
 				// Update Price Range
 				if (orderPrice < acc[order.materialticker].minPrice) {
@@ -1249,10 +1557,10 @@ const ShoppingListModal: React.FC<{
 			{} as { [key: string]: any },
 		);
 
-		// Convert Set to count before returning
 		return Object.values(agg).map((item) => ({
 			...item,
 			vendorCount: item.vendors.size,
+			vendorNames: [...item.vendors.values()].sort(),
 		}));
 	}, [locationFilteredSellOrders]);
 
@@ -1264,27 +1572,23 @@ const ShoppingListModal: React.FC<{
 
 	// --- ACTIONS ---
 
-	const handleAdd = useCallback(
-		(mat: any) => {
-			setShoppingList((prev) => {
-				if (prev.some((i) => i.materialticker === mat.materialticker))
-					return prev;
-				return [
-					...prev,
-					{
-						materialid: mat.materialid,
-						materialticker: mat.materialticker,
-						quantity: 1,
-						fixedprice: mat.fixedprice, // Defaults to lowest
-						frontendId: uuidv4(),
-						vendorPriority: [],
-					},
-				];
-			});
-			if (!isSelectionOpen && !isMobile) setIsSelectionOpen(true);
-		},
-		[isSelectionOpen, isMobile],
-	);
+	const handleAdd = useCallback((mat: any) => {
+		setShoppingList((prev) => {
+			if (prev.some((i) => i.materialticker === mat.materialticker))
+				return prev;
+			return [
+				...prev,
+				{
+					materialid: mat.materialid,
+					materialticker: mat.materialticker,
+					quantity: 1,
+					fixedprice: mat.fixedprice, // Defaults to lowest
+					frontendId: uuidv4(),
+					vendorPriority: [],
+				},
+			];
+		});
+	}, []);
 
 	const handleUpdateQty = useCallback((id: string, qty: number) => {
 		setShoppingList((prev) => {
@@ -1330,8 +1634,8 @@ const ShoppingListModal: React.FC<{
 				if (item.vendorPriority.length > 0) {
 					const pMap = new Map(item.vendorPriority.map((id, idx) => [id, idx]));
 					orders.sort((a, b) => {
-						const pA = pMap.get(a.vendorid);
-						const pB = pMap.get(b.vendorid);
+						const pA = pMap.get(getSourceId(a));
+						const pB = pMap.get(getSourceId(b));
 						if (pA !== undefined && pB !== undefined) return pA - pB;
 						if (pA !== undefined) return -1;
 						if (pB !== undefined) return 1;
@@ -1350,10 +1654,12 @@ const ShoppingListModal: React.FC<{
 						vendorid: order.vendorid,
 						vendorname: order.vendorname,
 						gamename: order.gamename,
+						companycode: order.companycode,
 						ticker: order.materialticker,
 						amount: take,
 						price: displayPrice,
 						totalPrice: take * displayPrice,
+						location: order.location?.[0],
 					});
 					order.quantity -= take;
 					needed -= take;
@@ -1362,9 +1668,7 @@ const ShoppingListModal: React.FC<{
 			}
 
 			setShoppingSummary(summary);
-			setError(
-				insufficient ? "Warning: Not enough stock for full order." : null,
-			);
+			setInsufficientStock(insufficient);
 		}, 75);
 
 		return () => clearTimeout(timer);
@@ -1372,51 +1676,82 @@ const ShoppingListModal: React.FC<{
 
 	// Calculate Grouped Summary for Display
 	const groupedSummary = useMemo(() => {
-		const groups: {
-			[vendorId: string]: {
-				vendorName: string;
-				gameName: string;
-				items: ShoppingSummaryItem[];
-				total: number;
-			};
-		} = {};
+		const groups: Record<
+			string,
+			{
+				location?: ShoppingSummaryItem["location"];
+				vendors: Record<
+					string,
+					{
+						vendorId: string;
+						gameName: string;
+						items: ShoppingSummaryItem[];
+						total: number;
+					}
+				>;
+			}
+		> = {};
 
 		shoppingSummary.forEach((item) => {
-			if (!groups[item.vendorid]) {
-				groups[item.vendorid] = {
-					vendorName: item.vendorname,
-					gameName: item.gamename,
-					items: [],
-					total: 0,
-				};
-			}
-			groups[item.vendorid].items.push(item);
-			groups[item.vendorid].total += item.totalPrice;
+			const locationKey =
+				item.location?.location_code ||
+				item.location?.location_name ||
+				"unknown";
+			const locationGroup = (groups[locationKey] ||= {
+				location: item.location,
+				vendors: {},
+			});
+			const vendor = (locationGroup.vendors[item.vendorid] ||= {
+				vendorId: item.vendorid,
+				gameName: item.gamename,
+				items: [],
+				total: 0,
+			});
+			vendor.items.push(item);
+			vendor.total += item.totalPrice;
 		});
 
-		return Object.values(groups);
+		return Object.values(groups)
+			.sort((a, b) => {
+				const aIsHrt = a.location?.location_code === "HRT";
+				const bIsHrt = b.location?.location_code === "HRT";
+				if (aIsHrt !== bIsHrt) return aIsHrt ? -1 : 1;
+				return (
+					a.location?.location_name ||
+					a.location?.location_code ||
+					""
+				).localeCompare(
+					b.location?.location_name || b.location?.location_code || "",
+				);
+			})
+			.map(({ location, vendors }) => ({
+				location,
+				vendors: Object.values(vendors),
+			}));
 	}, [shoppingSummary]);
 
 	// --- UTILS ---
 	const handleCopy = async () => {
-		const grouped = shoppingSummary.reduce((acc, i) => {
-			if (!acc[i.vendorid]) acc[i.vendorid] = { ...i, items: [], total: 0 };
-			acc[i.vendorid].items.push(i);
-			acc[i.vendorid].total += i.totalPrice;
-			return acc;
-		}, {} as any);
-
-		const total = shoppingSummary.reduce((s, i) => s + i.totalPrice, 0);
-		let text = "--- Shopping Summary ---\n";
-		Object.values(grouped).forEach((g: any) => {
-			text += `\nVendor: ${g.vendorname} (${g.gamename})\n`;
-			g.items.forEach(
-				(i: any) =>
-					(text += ` - ${i.ticker}: ${formatAmount(i.amount)} @ ${formatPrice(i.price)} = ${formatPrice(i.totalPrice)}\n`),
-			);
-			text += ` Vendor Total: ${formatPrice(g.total)}\n`;
-		});
-		text += `\nGrand Total: ${formatPrice(total)}`;
+		const text = [
+			...groupedSummary.map(({ location, vendors }) => {
+				const locationName =
+					location?.location_name || location?.location_code || "Unknown";
+				const locationCode = location?.location_code || locationName;
+				return [
+					`-- ${formatLocationLabel(locationName, locationCode).toUpperCase()} --`,
+					...vendors.flatMap((vendor) => [
+						"",
+						`Vendor: ${vendor.gameName}${vendor.items[0].companycode ? ` [${vendor.items[0].companycode}]` : ""} ${vendor.items[0].vendorname}`,
+						...vendor.items.map(
+							(item) =>
+								`- ${formatAmount(item.amount)} × [${item.ticker}] @ ${formatPrice(item.price, "ppu")} = ${formatPrice(item.totalPrice)}`,
+						),
+						`Total: ${formatPrice(vendor.total)}`,
+					]),
+				].join("\n");
+			}),
+			`GRAND TOTAL: ${formatPrice(grandTotal)}`,
+		].join("\n\n");
 
 		try {
 			await navigator.clipboard.writeText(text);
@@ -1471,12 +1806,29 @@ const ShoppingListModal: React.FC<{
 						color: theme.palette.primary.main,
 					}}
 				>
-					<ShoppingBasket size={24} />
+					<ShoppingBasket className="inline-icon" />
 					<Typography variant="h6">Shopping List</Typography>
 				</Box>
-				<IconButton onClick={handleClose}>
-					<X />
-				</IconButton>
+				<Box sx={{ display: "flex", gap: 1 }}>
+					<Button
+						variant="outlined"
+						size="small"
+						startIcon={<CircleHelp className="inline-icon" />}
+						onClick={() => setShowHelp(true)}
+						sx={{ fontWeight: "bold" }}
+					>
+						HELP
+					</Button>
+					<Button
+						variant="outlined"
+						size="small"
+						startIcon={<X className="inline-icon" />}
+						onClick={handleClose}
+						sx={{ fontWeight: "bold" }}
+					>
+						CLOSE
+					</Button>
+				</Box>
 			</DialogTitle>
 
 			<DialogContent
@@ -1493,8 +1845,9 @@ const ShoppingListModal: React.FC<{
 					sx={{
 						display: "flex",
 						flexDirection: isMobile ? "column" : "row",
+						gap: isMobile ? 0 : 1,
+						p: isMobile ? 0 : 1,
 						width: "100%",
-						maxWidth: "1400px",
 						height: "100%",
 						overflow: "hidden",
 					}}
@@ -1503,258 +1856,145 @@ const ShoppingListModal: React.FC<{
 					<Box
 						sx={{
 							flex: 1,
-							display: "flex",
+							display: isMobile ? "flex" : "contents",
 							flexDirection: "column",
-							p: 1,
-							gap: 1,
+							p: isMobile ? 1 : 0,
+							gap: isMobile ? 1 : 0,
 							minHeight: 0,
-							maxWidth: isMobile ? "100%" : "65%",
+							maxWidth: "100%",
 						}}
 					>
 						{/* SELECTION */}
 						<Paper
 							sx={{
-								flex: isSelectionOpen ? 1 : "0 0 auto",
-								minHeight: isSelectionOpen ? 0 : "auto",
+								flex: isMobile ? 1 : "1 1 0",
+								order: isMobile ? 0 : 2,
+								minWidth: 0,
+								height: "100%",
+								minHeight: 0,
 								background: theme.palette.background.paper,
 								border: `1px solid ${theme.palette.divider}`,
 								display: "flex",
 								flexDirection: "column",
 								overflow: "hidden",
 								borderRadius: 2,
-								transition: "all 0.3s ease",
 							}}
 						>
 							<Box
 								sx={{
-									p: 1,
+									p: 1.5,
 									display: "flex",
 									alignItems: "center",
 									justifyContent: "space-between",
-									borderBottom: isSelectionOpen
-										? `1px solid ${theme.palette.divider}`
-										: "none",
-									cursor: "pointer",
+									borderBottom: `1px solid ${theme.palette.divider}`,
 									bgcolor: "rgba(0,0,0,0.05)",
 								}}
-								onClick={() => setIsSelectionOpen(!isSelectionOpen)}
 							>
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									{isSelectionOpen ? (
-										<ChevronDown size={16} />
-									) : (
-										<ChevronRight size={16} />
-									)}
 									<Typography
 										variant="subtitle2"
-										fontWeight="bold"
-										color="primary.main"
+										sx={{ color: "text.primary", fontWeight: "bold" }}
 									>
-										YOUR SELECTION
+										YOUR MATERIALS
 									</Typography>
-								</Box>
-								<Typography variant="caption" color="text.secondary">
-									{shoppingList.length} items
-								</Typography>
-							</Box>
-							{isSelectionOpen && (
-								<>
-									<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
-										{shoppingList.length === 0 ? (
-											<Box
-												sx={{ p: 4, textAlign: "center", opacity: 0.5, mt: 4 }}
-											>
-												<ShoppingBasket
-													size={48}
-													style={{ margin: "0 auto", marginBottom: 10 }}
-												/>
-												<Typography variant="body1">
-													Your list is empty
-												</Typography>
-												<Typography variant="caption">
-													{isMobile
-														? "Tap 'Add Items' below"
-														: "Select items from the right panel"}
-												</Typography>
-											</Box>
-										) : (
-											shoppingList.map((item) => (
-												<CompactListItem
-													key={item.frontendId}
-													item={item}
-													availableVendors={allSellOrders.filter(
-														(o) => o.materialticker === item.materialticker,
-													)}
-													onUpdateQty={(q) =>
-														handleUpdateQty(item.frontendId, q)
-													}
-													onRemove={() => handleRemove(item.frontendId)}
-													onUpdatePriority={(p) =>
-														handleUpdatePriority(item.frontendId, p)
-													}
-												/>
-											))
-										)}
-									</Box>
-									{isMobile && (
-										<Box
-											sx={{
-												p: 2,
-												borderTop: `1px solid ${theme.palette.divider}`,
-											}}
+									{isCompact && (
+										<Button
+											size="small"
+											variant="contained"
+											startIcon={<PlusCircle className="inline-icon" />}
+											onClick={() => setShowAddItems(true)}
 										>
-											<Button
-												fullWidth
-												variant="contained"
-												startIcon={<PlusCircle />}
-												onClick={(e) => {
-													e.stopPropagation();
-													setShowMobileAdd(true);
-												}}
-											>
-												Add Items
-											</Button>
-										</Box>
+											ADD
+										</Button>
 									)}
-								</>
-							)}
+								</Box>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									{isMobile && (
+										<Button
+											size="small"
+											variant="contained"
+											startIcon={<Handshake className="inline-icon" />}
+											onClick={() => setShowSummary(true)}
+										>
+											CONTRACTS
+										</Button>
+									)}
+									<Button
+										size="small"
+										variant="outlined"
+										color="error"
+										startIcon={<Trash2 className="inline-icon" />}
+										disabled={shoppingList.length === 0}
+										onClick={() => setConfirmClear(true)}
+										sx={{ fontWeight: "bold" }}
+									>
+										CLEAR
+									</Button>
+								</Box>
+							</Box>
+							<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
+								{shoppingList.length === 0 ? (
+									<Box sx={{ p: 4, textAlign: "center", opacity: 0.5, mt: 4 }}>
+										<ShoppingBasket className="inline-icon" />
+										<Typography variant="body1">
+											Your Shopping List is empty
+										</Typography>
+										<Typography variant="caption">
+											{isCompact
+												? "Use ADD above"
+												: "Add materials on the left"}
+										</Typography>
+									</Box>
+								) : (
+									shoppingList.map((item) => (
+										<CompactListItem
+											key={item.frontendId}
+											item={item}
+											availableVendors={inventoryMap[item.materialticker] || []}
+											onUpdateQty={(q) => handleUpdateQty(item.frontendId, q)}
+											onRemove={() => handleRemove(item.frontendId)}
+											onUpdatePriority={(p) =>
+												handleUpdatePriority(item.frontendId, p)
+											}
+										/>
+									))
+								)}
+							</Box>
 						</Paper>
 
 						{/* SUMMARY */}
-						<Paper
-							sx={{
-								flex: !isSelectionOpen && isSummaryOpen ? 1 : "0 0 auto",
-								height: isSummaryOpen
-									? isSelectionOpen
-										? isMobile
-											? "auto"
-											: "35%"
-										: "auto"
-									: "auto",
-								background: theme.palette.background.paper,
-								border: `1px solid ${theme.palette.divider}`,
-								display: "flex",
-								flexDirection: "column",
-								borderRadius: 2,
-								transition: "all 0.3s ease",
-								overflow: "hidden",
-							}}
-						>
+						{!isMobile && (
 							<Box
 								sx={{
-									p: 1,
+									flex: "0 0 380px",
+									order: 3,
+									minWidth: 0,
+									height: "100%",
 									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-									borderBottom: isSummaryOpen
-										? `1px solid ${theme.palette.divider}`
-										: "none",
-									cursor: "pointer",
-									bgcolor: "rgba(0,0,0,0.05)",
 								}}
-								onClick={() => setIsSummaryOpen(!isSummaryOpen)}
 							>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									{isSummaryOpen ? (
-										<ChevronDown size={16} />
-									) : (
-										<ChevronRight size={16} />
-									)}
-									<Typography
-										variant="subtitle2"
-										sx={{ fontWeight: "bold" }}
-										color="primary.main"
-									>
-										SUMMARY
-									</Typography>
-								</Box>
-								<Tooltip title="Copy to Clipboard">
-									<IconButton
-										size="small"
-										onClick={(e) => {
-											e.stopPropagation();
-											handleCopy();
-										}}
-									>
-										<ContentCopy
-											sx={{ fontSize: 16 }}
-											color={isCopied ? "success" : "inherit"}
-										/>
-									</IconButton>
-								</Tooltip>
+								<OrderSummaryPanel
+									groups={groupedSummary}
+									shoppingListLength={shoppingList.length}
+									isCopied={isCopied}
+									onCopy={handleCopy}
+									insufficientStock={insufficientStock}
+									grandTotal={grandTotal}
+								/>
 							</Box>
-							{isSummaryOpen && (
-								<>
-									<Box
-										sx={{
-											flex: 1,
-											overflowY: "auto",
-											p: 1.5,
-											minHeight: "100px",
-										}}
-									>
-										{groupedSummary.length > 0 ? (
-											groupedSummary.map((group) => (
-												<SummaryVendorGroup
-													key={group.vendorName}
-													vendorName={group.vendorName}
-													gameName={group.gameName}
-													items={group.items}
-													total={group.total}
-												/>
-											))
-										) : (
-											<Box sx={{ opacity: 0.5, textAlign: "center", py: 2 }}>
-												<Typography variant="caption">
-													No items calculated yet.
-												</Typography>
-											</Box>
-										)}
-									</Box>
-									<Box
-										sx={{
-											p: 1.5,
-											bgcolor: "rgba(0,0,0,0.3)",
-											display: "flex",
-											justifyContent: "space-between",
-											alignItems: "center",
-										}}
-									>
-										<Typography variant="caption" color="error">
-											{error}
-										</Typography>
-										<Box sx={{ textAlign: "right" }}>
-											<Typography
-												variant="caption"
-												display="block"
-												color="text.secondary"
-											>
-												TOTAL PRICE
-											</Typography>
-											<Typography
-												variant="h6"
-												color="primary.main"
-												sx={{ lineHeight: 1 }}
-											>
-												{formatPrice(grandTotal)}
-											</Typography>
-										</Box>
-									</Box>
-								</>
-							)}
-						</Paper>
+						)}
 					</Box>
 
 					{/* RIGHT COLUMN */}
-					{!isMobile && (
+					{!isCompact && (
 						<Box
 							sx={{
-								width: isMaterialsOpen ? 380 : 50,
-								p: 1,
-								pl: 0,
+								width: 380,
+								flex: "0 0 380px",
+								order: 1,
+								p: 0,
 								display: "flex",
 								flexDirection: "column",
-								transition: "width 0.3s ease",
 							}}
 						>
 							<Paper
@@ -1773,27 +2013,30 @@ const ShoppingListModal: React.FC<{
 									allLocations={allLocations}
 									selectedLocation={selectedLocation}
 									onChangeLocation={setSelectedLocation}
-									isCollapsed={!isMaterialsOpen}
-									onToggleCollapse={() => setIsMaterialsOpen(!isMaterialsOpen)}
 								/>
 							</Paper>
 						</Box>
 					)}
 				</Box>
 
-				{/* MOBILE DRAWER */}
+				{/* ADD MATERIALS DRAWER */}
 				<Drawer
 					anchor="bottom"
-					open={showMobileAdd}
-					onClose={() => setShowMobileAdd(false)}
-					PaperProps={{
-						sx: {
-							height: "80vh",
-							borderTopLeftRadius: 16,
-							borderTopRightRadius: 16,
-							background: theme.palette.background.paper,
-							backgroundImage: "none",
-							borderTop: `1px solid ${theme.palette.divider}`,
+					open={showAddItems}
+					onClose={() => setShowAddItems(false)}
+					slotProps={{
+						paper: {
+							sx: {
+								height: "100%",
+								borderTopLeftRadius: 16,
+								borderTopRightRadius: 16,
+								background: theme.palette.background.paper,
+								backgroundImage: "none",
+								borderTop: `1px solid ${theme.palette.divider}`,
+							},
+						},
+						backdrop: {
+							sx: { backgroundColor: theme.palette.background.default },
 						},
 					}}
 					sx={{ zIndex: 9999 }}
@@ -1806,28 +2049,132 @@ const ShoppingListModal: React.FC<{
 						selectedLocation={selectedLocation}
 						onChangeLocation={setSelectedLocation}
 						isMobile
-						onCloseMobile={() => setShowMobileAdd(false)}
+						onCloseMobile={() => setShowAddItems(false)}
 					/>
 				</Drawer>
-			</DialogContent>
-
-			<DialogActions
-				sx={{
-					p: 1.5,
-					borderTop: `1px solid ${theme.palette.divider}`,
-					zIndex: 2,
-					background: theme.palette.background.paper,
-					justifyContent: "center",
-				}}
-			>
-				<Button
-					onClick={handleClose}
-					color="primary"
-					sx={{ border: "1px solid" }}
+				<Drawer
+					anchor="bottom"
+					open={isMobile && showSummary}
+					onClose={() => setShowSummary(false)}
+					slotProps={{
+						paper: {
+							sx: {
+								height: "100%",
+								borderTopLeftRadius: 16,
+								borderTopRightRadius: 16,
+								background: theme.palette.background.paper,
+								backgroundImage: "none",
+								borderTop: `1px solid ${theme.palette.divider}`,
+							},
+						},
+						backdrop: {
+							sx: { backgroundColor: theme.palette.background.default },
+						},
+					}}
+					sx={{ zIndex: 9999 }}
 				>
-					Cancel
-				</Button>
-			</DialogActions>
+					<OrderSummaryPanel
+						groups={groupedSummary}
+						shoppingListLength={shoppingList.length}
+						isCopied={isCopied}
+						onCopy={handleCopy}
+						onClose={() => setShowSummary(false)}
+						insufficientStock={insufficientStock}
+						grandTotal={grandTotal}
+					/>
+				</Drawer>
+				<Modal
+					open={confirmClear}
+					onClose={() => setConfirmClear(false)}
+					title="Clear your Shopping List?"
+					actionLabel="Clear"
+					cancelLabel="Cancel"
+					type="negative"
+					onAction={() => {
+						setShoppingList([]);
+						setConfirmClear(false);
+					}}
+				>
+					<Typography>
+						You can add materials again from the panel to the left.
+					</Typography>
+				</Modal>
+				<Modal
+					open={showHelp}
+					onClose={() => setShowHelp(false)}
+					title="How to use the Shopping List"
+					cancelLabel="CLOSE"
+				>
+					<Typography>
+						<ol>
+							<li>
+								Click{" "}
+								<PlusCircle
+									className="inline-icon"
+									color={theme.palette.success.main}
+								/>{" "}
+								in the left panel to select the materials you need.
+								<Box
+									component="img"
+									src={shoppingListHelp1}
+									alt="Selecting materials"
+									sx={helpImageSx}
+								/>
+							</li>
+							<li>
+								In the main panel, enter required quantities and check
+								Vendors/Locations for each material.
+								<Box
+									component="img"
+									src={shoppingListHelp2}
+									alt="Setting quantities and sourcing priority"
+									sx={helpImageSx}
+								/>
+							</li>
+							<li>
+								The panel on the right shows everything you need to send a
+								contract to each vendor (
+								<strong>
+									<code>CONTD</code>
+								</strong>{" "}
+								buffer in APEX).
+								<Box
+									component="img"
+									src={shoppingListHelp3}
+									alt="Order summary"
+									sx={helpImageSx}
+								/>
+							</li>
+						</ol>
+						<h3>
+							<strong>Contract Pro Tips</strong>
+						</h3>
+						<ol>
+							<li>Be careful not to send contracts with the wrong location.</li>
+							<li>
+								Change contract deadlines from 3 to 5 days as a courtesy to
+								people selling at reduced prices (they often fill in 24h
+								anyway).
+							</li>
+							<li>
+								Use the <ContentCopy className="inline-icon" />{" "}
+								<strong>COPY</strong> button and an{" "}
+								<strong>
+									<code>XIT NOTE</code>
+								</strong>{" "}
+								buffer (from{" "}
+								<a
+									href="https://com.prosperousuniverse.com/t/refined-prun-qol-extension-for-prosperous-universe/6760"
+									target="_blank"
+								>
+									rprun
+								</a>
+								) to speed up contract creation.
+							</li>
+						</ol>
+					</Typography>
+				</Modal>
+			</DialogContent>
 		</Dialog>
 	);
 };

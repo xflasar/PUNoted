@@ -23,7 +23,6 @@ import {
 	useTheme,
 	IconButton,
 	alpha,
-	Autocomplete,
 } from "@mui/material";
 import {
 	Search,
@@ -43,21 +42,79 @@ import EditVendorStoreModal from "./editvendorstoremodal";
 import ShoppingListModal from "./shoppinglistmodal";
 import MaterialBadge from "../components/materialbadge";
 import { formatAmount } from "../../utils/formaters";
-import type { Location, VendorStore } from "./types";
+import type { Location, OrderItem, VendorStore } from "./types";
 import { getDiffStats } from "./utils/pricecomparison";
 import { formatLocation } from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
+import LocationFilter, {
+	ALL_LOCATIONS_ID,
+	HORTUS_LOCATION_CODE,
+	matchesLocationFilter,
+	type LocationOption,
+} from "./components/locationfilter";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
-type LocationOption = { id: string; name: string };
-const VENDORS_VIEW_MODE_STORAGE_KEY = "vendorsView";
+type MarketOptions = {
+	view: "grid" | "table";
+	location: string;
+	side: "ask" | "bid" | "both";
+};
+const MARKET_OPTIONS_STORAGE_KEY = "marketOptions";
+
+const compareLocations = (
+	a?: Pick<Location, "location_code" | "location_name"> | null,
+	b?: Pick<Location, "location_code" | "location_name"> | null,
+) => {
+	const aIsHortus = a?.location_code === HORTUS_LOCATION_CODE;
+	const bIsHortus = b?.location_code === HORTUS_LOCATION_CODE;
+	if (aIsHortus !== bIsHortus) return aIsHortus ? -1 : 1;
+	return formatLocation(a?.location_name, a?.location_code).localeCompare(
+		formatLocation(b?.location_name, b?.location_code),
+		undefined,
+		{ sensitivity: "base" },
+	);
+};
+
+const hasAvailableStock = (location: Location) =>
+	typeof location.available === "number" && location.available > 0;
+
+const filterAvailableLocations = (
+	locations: Location[] | undefined,
+	selectedLocation: string | null,
+) =>
+	(locations || []).filter(
+		(location) =>
+			hasAvailableStock(location) &&
+			matchesLocationFilter(location, selectedLocation),
+	);
 
 const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 	value === "grid" || value === "table";
 
-const getStoredVendorViewMode = (): "grid" | "table" | null => {
-	const storedValue = localStorage.getItem(VENDORS_VIEW_MODE_STORAGE_KEY);
-	return isVendorViewMode(storedValue) ? storedValue : null;
+const DEFAULT_MARKET_OPTIONS: MarketOptions = {
+	view: "table",
+	location: HORTUS_LOCATION_CODE,
+	side: "ask",
+};
+
+const getStoredMarketOptions = (): MarketOptions => {
+	try {
+		const options: unknown = JSON.parse(
+			localStorage.getItem(MARKET_OPTIONS_STORAGE_KEY) || "null",
+		);
+		if (
+			typeof options === "object" &&
+			options !== null &&
+			isVendorViewMode((options as MarketOptions).view) &&
+			typeof (options as MarketOptions).location === "string" &&
+			["ask", "bid", "both"].includes((options as MarketOptions).side)
+		) {
+			return options as MarketOptions;
+		}
+	} catch {
+		// Use the defaults when storage is unavailable or contains invalid JSON.
+	}
+	return DEFAULT_MARKET_OPTIONS;
 };
 
 // --- HELPER COMPONENTS ---
@@ -83,11 +140,6 @@ const prepareVendorStore = (
 	const prepareOrders = (orderType: "buy" | "sell") =>
 		vendorStore.orders
 			.filter((order) => order.ordertype === orderType)
-			.sort((a, b) =>
-				a.materialticker.localeCompare(b.materialticker, undefined, {
-					sensitivity: "base",
-				}),
-			)
 			.map((item) => {
 				const available = Reflect.get(item as object, "available");
 				const displayQuantity =
@@ -174,7 +226,7 @@ const PriceComparisonBadge = ({
 			<Chip
 				icon={
 					stats.color === "neutral" ? (
-						<Target size={12} style={{ marginLeft: "5px" }} />
+						<Target className="inline-icon" />
 					) : undefined
 				}
 				label={stats.color === "neutral" ? label : `${label} ${stats.label}`}
@@ -296,12 +348,9 @@ const VendorCard = React.memo(
 		const sortedList = useMemo(() => {
 			return [...buyOrders, ...sellOrders]
 				.map((order) => {
-					const activeLocations = order.item.location?.filter(
-						(loc: Location) => {
-							// FIXME: loc.amount is broken loc.available works...
-							const qty = loc.available;
-							return typeof qty === "number" && qty > 0;
-						},
+					const activeLocations = filterAvailableLocations(
+						order.item.location,
+						null,
 					);
 
 					return {
@@ -374,21 +423,6 @@ const VendorCard = React.memo(
 							>
 								{vendor.companyname}
 							</Typography>
-							<Typography
-								variant="caption"
-								sx={{
-									color: theme.palette.primary.light,
-									bgcolor: alpha(theme.palette.primary.main, 0.1),
-									border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-									px: 1,
-									py: 0.25,
-									borderRadius: "4px",
-									fontWeight: "bold",
-									lineHeight: 1.2,
-								}}
-							>
-								{vendor.companycode}
-							</Typography>
 						</Box>
 
 						<Box
@@ -409,6 +443,22 @@ const VendorCard = React.memo(
 									py: 0.25,
 									borderRadius: "8px",
 									fontWeight: 500,
+									lineHeight: 1.2,
+								}}
+							>
+								{vendor.companycode}
+							</Typography>
+
+							<Typography
+								variant="caption"
+								sx={{
+									color: theme.palette.primary.light,
+									bgcolor: alpha(theme.palette.primary.main, 0.1),
+									border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+									px: 1,
+									py: 0.25,
+									borderRadius: "4px",
+									fontWeight: "bold",
 									lineHeight: 1.2,
 								}}
 							>
@@ -445,8 +495,8 @@ const VendorCard = React.memo(
 										(vendor as typeof vendor & { activity?: unknown })
 											.activity || "-",
 									).trim();
-									if (act === "0 m" || act === "0m") return "Recently Active";
-									if (act === "-") return "Active Unknown";
+									if (act === "0 m" || act === "0m") return "Active Recently";
+									if (act === "-") return "Unknown";
 									return `Active ${act} ago`;
 								})()}
 							</Typography>
@@ -579,66 +629,67 @@ const VendorCard = React.memo(
 													gap: 0.25,
 												}}
 											>
-												{item.location.map((l, i) => (
-													<Box
-														key={i}
-														sx={{
-															display: "flex",
-															justifyContent: "space-between",
-															alignItems: "center",
-														}}
-													>
+												{[...item.location]
+													.sort(compareLocations)
+													.map((l, i) => (
 														<Box
+															key={i}
 															sx={{
 																display: "flex",
+																justifyContent: "space-between",
 																alignItems: "center",
-																gap: 0.5,
 															}}
 														>
-															{"HRT" === l.location_code ? (
-																<Warehouse
-																	size={14}
-																	style={{ flexShrink: 0 }}
-																/>
-															) : (
-																<Globe
-																	size={14}
-																	color={theme.palette.text.secondary}
-																	style={{ flexShrink: 0 }}
-																/>
-															)}
-															<Typography
-																variant="caption"
+															<Box
 																sx={{
-																	fontSize: "0.80rem",
+																	display: "flex",
+																	alignItems: "center",
+																	gap: 0.5,
 																}}
 															>
-																{formatLocation(
-																	l.location_name,
-																	l.location_code,
+																{l.location_code === "HRT" ? (
+																	<Warehouse
+																		className="inline-icon"
+																		color={theme.palette.success.light}
+																	/>
+																) : (
+																	<Globe
+																		className="inline-icon"
+																		color={theme.palette.warning.main}
+																	/>
 																)}
+																<Typography
+																	variant="caption"
+																	sx={{
+																		fontSize: "0.80rem",
+																	}}
+																>
+																	{formatLocation(
+																		l.location_name,
+																		l.location_code,
+																	)}
+																</Typography>
+															</Box>
+															<Typography variant="caption">
+																{quantityLabel}{" "}
+																<Typography
+																	variant="caption"
+																	sx={{
+																		color: theme.palette.primary.light,
+																		fontWeight: "bold",
+																	}}
+																>
+																	{formatAmount(
+																		(
+																			l as typeof l & {
+																				available?: number;
+																			}
+																		).available ?? displayQuantity,
+																	)}
+																</Typography>
 															</Typography>
 														</Box>
-														<Typography variant="caption">
-															{quantityLabel}{" "}
-															<Typography
-																variant="caption"
-																sx={{
-																	color: theme.palette.primary.light,
-																	fontWeight: "bold",
-																}}
-															>
-																{formatAmount(
-																	(
-																		l as typeof l & {
-																			available?: number;
-																		}
-																	).available ?? displayQuantity,
-																)}
-															</Typography>
-														</Typography>
-													</Box>
-												))}
+													))}
 											</Box>
 										) : (
 											<Box
@@ -657,9 +708,8 @@ const VendorCard = React.memo(
 													}}
 												>
 													<MapPin
-														size={10}
+														className="inline-icon"
 														color={theme.palette.text.secondary}
-														style={{ flexShrink: 0 }}
 													/>
 													<Typography
 														variant="caption"
@@ -723,7 +773,7 @@ const VendorCard = React.memo(
 									flexDirection: "column",
 								}}
 							>
-								<Minus size={20} />
+								<Minus className="inline-icon" />
 							</Box>
 						)}
 					</Box>
@@ -746,20 +796,19 @@ const VendorCard = React.memo(
 const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const theme = useTheme();
 	const [searchParams, setSearchParams] = useSearchParams();
+	const [marketOptions] = useState(getStoredMarketOptions);
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [exactMatch, setExactMatch] = useState<boolean>(false);
-	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-	const [locationInputValue, setLocationInputValue] =
-		useState<string>("All Locations");
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(
+		marketOptions.location === ALL_LOCATIONS_ID ? null : marketOptions.location,
+	);
 	const [orderTypeFilter, setOrderTypeFilter] = useState<
 		"ASK" | "BID" | "BOTH"
-	>("BOTH");
+	>(marketOptions.side.toUpperCase() as "ASK" | "BID" | "BOTH");
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const querySubtab = searchParams.get("subtab");
 	const vendorViewMode: "grid" | "table" =
-		(isVendorViewMode(querySubtab) ? querySubtab : null) ||
-		getStoredVendorViewMode() ||
-		"grid";
+		(isVendorViewMode(querySubtab) ? querySubtab : null) || marketOptions.view;
 
 	// Modal States
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -787,11 +836,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	}, [querySubtab, searchParams, setSearchParams, vendorViewMode]);
 
 	useEffect(() => {
-		if (getStoredVendorViewMode() === vendorViewMode) {
-			return;
-		}
-		localStorage.setItem(VENDORS_VIEW_MODE_STORAGE_KEY, vendorViewMode);
-	}, [vendorViewMode]);
+		localStorage.setItem(
+			MARKET_OPTIONS_STORAGE_KEY,
+			JSON.stringify({
+				view: vendorViewMode,
+				location: selectedLocation || ALL_LOCATIONS_ID,
+				side: orderTypeFilter.toLowerCase(),
+			}),
+		);
+	}, [vendorViewMode, selectedLocation, orderTypeFilter]);
 
 	useEffect(() => {
 		const frameId = requestAnimationFrame(() => {
@@ -964,6 +1017,34 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		[matchesSearchValue],
 	);
 
+	const searchTerms = useMemo(
+		() =>
+			searchQuery
+				.split(",")
+				.map((term) => term.trim().toLowerCase())
+				.filter(Boolean),
+		[searchQuery],
+	);
+
+	const matchesOrderFilters = useCallback(
+		(
+			vendor: VendorStore["vendor"],
+			order: Pick<OrderItem, "materialticker" | "ordertype">,
+		) => {
+			if (orderTypeFilter === "ASK" && order.ordertype === "buy") return false;
+			if (orderTypeFilter === "BID" && order.ordertype === "sell") return false;
+			return (
+				searchTerms.length === 0 ||
+				searchTerms.some(
+					(term) =>
+						matchesMaterialSearch(order.materialticker, term) ||
+						matchesVendorSearch(vendor, term),
+				)
+			);
+		},
+		[orderTypeFilter, searchTerms, matchesMaterialSearch, matchesVendorSearch],
+	);
+
 	const vendorsWithOrders = useMemo(
 		() =>
 			sortedVendors.filter((vendor) =>
@@ -978,39 +1059,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const allLocations = useMemo(() => {
 		const locs = new Map<string, LocationOption>();
 
-		const terms = searchQuery
-			.split(",")
-			.map((t) => t.trim().toLowerCase())
-			.filter(Boolean);
-
 		vendorsWithOrders.forEach((v) => {
-			const vendorMatchTerms = terms.filter((term) =>
-				matchesVendorSearch(v.vendor, term),
-			);
-
-			const hasAnyMaterialMatchInVendor = v.orders?.some((o) =>
-				terms.some((t) => matchesMaterialSearch(o.materialticker, t)),
-			);
-
 			v.orders?.forEach((o) => {
-				if (orderTypeFilter === "ASK" && o.ordertype === "buy") return;
-				if (orderTypeFilter === "BID" && o.ordertype === "sell") return;
-
-				const matchesMat = terms.some((term) =>
-					matchesMaterialSearch(o.materialticker, term),
-				);
-
-				const isValidForSearch =
-					terms.length === 0 ||
-					matchesMat ||
-					(vendorMatchTerms.length > 0 && !hasAnyMaterialMatchInVendor);
-
-				if (isValidForSearch) {
+				if (matchesOrderFilters(v.vendor, o)) {
 					o.location?.forEach((l: Location) => {
-						const qty = l.available;
-						const hasStock = typeof qty === "number" && qty > 0;
-
-						if (hasStock) {
+						if (hasAvailableStock(l)) {
 							const locationId = l.location_code?.trim();
 							const locationName = l.location_name?.trim();
 							const optionId = locationId || locationName;
@@ -1026,103 +1079,45 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			});
 		});
 
-		return [
-			...Array.from(locs.values()).sort((a, b) =>
-				formatLocation(a.name, a.id).localeCompare(
-					formatLocation(b.name, b.id),
-				),
-			),
-		];
-	}, [
-		vendorsWithOrders,
-		searchQuery,
-		orderTypeFilter,
-		matchesVendorSearch,
-		matchesMaterialSearch,
-	]);
-
-	useEffect(() => {
-		const selectedOption = allLocations.find(
-			(option) => option.id === selectedLocation,
-		);
-		setLocationInputValue(
-			selectedLocation === null
-				? ""
-				: formatLocation(selectedOption?.name, selectedLocation),
-		);
-	}, [selectedLocation, allLocations]);
+		return Array.from(locs.values());
+	}, [vendorsWithOrders, matchesOrderFilters]);
 
 	// Filter Logic for Grid View
 	const preparedFilteredVendors = useMemo(() => {
-		const terms = searchQuery
-			.split(",")
-			.map((t) => t.trim().toLowerCase())
-			.filter(Boolean);
-
 		const result: ReturnType<typeof prepareVendorStore>[] = [];
 
 		for (const vendorStore of vendorsWithOrders) {
 			const preparedVendor = prepareVendorStore(vendorStore, cxPriceLookup);
 
-			// Check which terms match the vendor metadata directly
-			const vendorMatchTerms = terms.filter((term) =>
-				matchesVendorSearch(vendorStore.vendor, term),
-			);
-
-			// Filter the buy/sell orders
 			const filterOrders = (orders: typeof preparedVendor.buyOrders) => {
-				return orders.filter((order) => {
-					// 1. Filter by location (AND ensure it actually has quantity > 0)
-					const locMatch =
-						selectedLocation === null ||
-						order.item.location?.some((l: Location) => {
-							const nameMatches =
-								l.location_name === selectedLocation ||
-								l.location_code === selectedLocation;
-
-							const qty = l.available;
-							const hasStock = typeof qty === "number" && qty > 0;
-
-							return nameMatches && hasStock;
-						});
-
-					if (!locMatch) return false;
-
-					// 2. Filter by search terms
-					if (terms.length === 0) return true;
-
-					// Does this order's material match ANY of the search terms?
-					const matchesMat = terms.some((term) =>
-						matchesMaterialSearch(order.item.materialticker, term),
+				return orders
+					.filter((order) =>
+						matchesOrderFilters(vendorStore.vendor, order.item),
+					)
+					.filter(
+						(order) =>
+							selectedLocation === null ||
+							filterAvailableLocations(order.item.location, selectedLocation)
+								.length > 0,
+					)
+					.map((order) =>
+						selectedLocation === null
+							? order
+							: {
+									...order,
+									item: {
+										...order.item,
+										location: filterAvailableLocations(
+											order.item.location,
+											selectedLocation,
+										),
+									},
+								},
 					);
-
-					if (matchesMat) return true;
-
-					// Did ANY material in this vendor match ANY of the search terms?
-					const allOrders = [
-						...preparedVendor.buyOrders,
-						...preparedVendor.sellOrders,
-					];
-					const hasAnyMaterialMatchInVendor = allOrders.some((o) =>
-						terms.some((t) => matchesMaterialSearch(o.item.materialticker, t)),
-					);
-
-					// If the vendor metadata matched, but we didn't specifically search for any materials
-					// that exist in this vendor, then show the order.
-					if (vendorMatchTerms.length > 0 && !hasAnyMaterialMatchInVendor) {
-						return true;
-					}
-
-					return false;
-				});
 			};
 
-			const filteredBuyOrders =
-				orderTypeFilter === "ASK" ? [] : filterOrders(preparedVendor.buyOrders);
-			const filteredSellOrders =
-				orderTypeFilter === "BID"
-					? []
-					: filterOrders(preparedVendor.sellOrders);
+			const filteredBuyOrders = filterOrders(preparedVendor.buyOrders);
+			const filteredSellOrders = filterOrders(preparedVendor.sellOrders);
 
 			if (filteredBuyOrders.length > 0 || filteredSellOrders.length > 0) {
 				result.push({
@@ -1134,121 +1129,89 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		}
 
 		return result;
-	}, [
-		searchQuery,
-		vendorsWithOrders,
-		selectedLocation,
-		orderTypeFilter,
-		cxPriceLookup,
-		matchesVendorSearch,
-		matchesMaterialSearch,
-	]);
-
-	const filteredVendors = useMemo(() => {
-		// tableRows uses filteredVendors ? No, it uses preparedVendorsWithOrders
-		// but we provide it here just in case it's used elsewhere, or just a dummy array
-		return preparedFilteredVendors.map((p) => p.vendorStore);
-	}, [preparedFilteredVendors]);
-
-	const preparedVendorsWithOrders = useMemo(
-		() =>
-			vendorsWithOrders.map((vendorStore) =>
-				prepareVendorStore(vendorStore, cxPriceLookup),
-			),
-		[vendorsWithOrders, cxPriceLookup],
-	);
+	}, [vendorsWithOrders, selectedLocation, cxPriceLookup, matchesOrderFilters]);
 
 	const tableRows = useMemo(() => {
-		const terms = searchQuery
-			.split(",")
-			.map((t) => t.trim().toLowerCase())
-			.filter(Boolean);
-
-		return preparedVendorsWithOrders.flatMap((preparedVendor) => {
-			const { vendorStore, buyOrders, sellOrders } = preparedVendor;
-			const vendor = vendorStore.vendor;
-			const updated = String(
-				(vendor as typeof vendor & { activity?: unknown }).activity || "-",
-			);
-			const user = `${vendor.gamename} (${vendor.companycode}) ${vendor.companyname}`;
-
-			const buildRows = (
-				preparedOrder: (typeof buyOrders)[number],
-				typeLabel: "Ask" | "Bid",
-			) => {
-				const locations =
-					preparedOrder.item.location?.length > 0
-						? preparedOrder.item.location
-						: [null];
-
-				// FIXME: location.available is broken but works
-				return locations.map((location: Location, index: number) => {
-					const locationQuantity = location
-						? location.available
-						: preparedOrder.displayQuantity;
-
-					const locationLabel = formatLocation(
-						location?.location_name,
-						location?.location_code,
-					);
-
-					return {
-						id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
-						typeLabel,
-						orderType: preparedOrder.orderType,
-						material: preparedOrder.item.materialticker,
-						user,
-						ica: preparedOrder.fixedPrice,
-						location: locationLabel,
-						quantity: locationQuantity,
-						cxStats: preparedOrder.cxStats,
-						corpStats: preparedOrder.corpStats,
-						updated,
-						locCode: location?.location_code,
-						locName: location?.location_name,
-						rawVendor: vendor,
-					};
-				});
-			};
-
-			const askRows =
-				orderTypeFilter === "BID"
-					? []
-					: sellOrders.flatMap((order) => buildRows(order, "Ask"));
-			const bidRows =
-				orderTypeFilter === "ASK"
-					? []
-					: buyOrders.flatMap((order) => buildRows(order, "Bid"));
-
-			return [...askRows, ...bidRows].filter((row) => {
-				if (typeof row.quantity === "number" && row.quantity <= 0) return false;
-
-				const locMatch =
-					selectedLocation === null ||
-					row.locName === selectedLocation ||
-					row.locCode === selectedLocation;
-				if (!locMatch) return false;
-
-				if (terms.length === 0) return true;
-
-				const materialMatches = terms.some((term) =>
-					matchesMaterialSearch(row.material, term),
+		return preparedFilteredVendors
+			.flatMap((preparedVendor) => {
+				const { vendorStore, buyOrders, sellOrders } = preparedVendor;
+				const vendor = vendorStore.vendor;
+				const updated = String(
+					(vendor as typeof vendor & { activity?: unknown }).activity || "-",
 				);
-				const vendorMatches = terms.some((term) =>
-					matchesVendorSearch(row.rawVendor, term),
-				);
+				const user = `${vendor.gamename} [${vendor.companycode}] ${vendor.companyname}`;
 
-				return materialMatches || vendorMatches;
+				const buildRows = (
+					preparedOrder: (typeof buyOrders)[number],
+					typeLabel: "Ask" | "Bid",
+				) => {
+					const locations =
+						preparedOrder.item.location?.length > 0
+							? preparedOrder.item.location
+							: [null];
+
+					// FIXME: location.available is broken but works
+					return locations.map((location: Location, index: number) => {
+						const locationQuantity = location
+							? location.available
+							: preparedOrder.displayQuantity;
+
+						const locationLabel = formatLocation(
+							location?.location_name,
+							location?.location_code,
+						);
+
+						return {
+							id: `${vendor.vendorid}-${preparedOrder.orderType}-${preparedOrder.item.orderid || preparedOrder.item.frontendId || preparedOrder.item.materialid}-${location?.id || locationLabel}-${index}`,
+							typeLabel,
+							orderType: preparedOrder.orderType,
+							material: preparedOrder.item.materialticker,
+							user,
+							ica: preparedOrder.fixedPrice,
+							location: locationLabel,
+							quantity: locationQuantity,
+							cxStats: preparedOrder.cxStats,
+							corpStats: preparedOrder.corpStats,
+							updated,
+							locCode: location?.location_code,
+							locName: location?.location_name,
+							rawVendor: vendor,
+						};
+					});
+				};
+
+				const askRows = sellOrders.flatMap((order) => buildRows(order, "Ask"));
+				const bidRows = buyOrders.flatMap((order) => buildRows(order, "Bid"));
+
+				return [...askRows, ...bidRows].filter(
+					(row) => typeof row.quantity !== "number" || row.quantity > 0,
+				);
+			})
+			.sort((a, b) => {
+				const materialComparison = a.material.localeCompare(
+					b.material,
+					undefined,
+					{
+						sensitivity: "base",
+					},
+				);
+				if (materialComparison !== 0) return materialComparison;
+
+				const sideComparison = a.typeLabel.localeCompare(b.typeLabel);
+				return sideComparison !== 0
+					? sideComparison
+					: compareLocations(
+							{
+								location_code: a.locCode ?? "",
+								location_name: a.locName ?? "",
+							},
+							{
+								location_code: b.locCode ?? "",
+								location_name: b.locName ?? "",
+							},
+						);
 			});
-		});
-	}, [
-		preparedVendorsWithOrders,
-		searchQuery,
-		orderTypeFilter,
-		selectedLocation,
-		matchesVendorSearch,
-		matchesMaterialSearch,
-	]);
+	}, [preparedFilteredVendors]);
 
 	const tableColumns = useMemo<GridColDef[]>(
 		() => [
@@ -1327,7 +1290,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				renderCell: ({ row }) => (
 					<Box sx={{ display: "flex", alignItems: "right", gap: 0.5 }}>
 						{row.corpStats && (
-							<PriceComparisonBadge label="COSM" stats={row.corpStats} />
+							<Box sx={{ display: { xs: "none", lg: "contents" } }}>
+								<PriceComparisonBadge label="COSM" stats={row.corpStats} />
+							</Box>
 						)}
 						{row.cxStats && (
 							<PriceComparisonBadge label="CX" stats={row.cxStats} />
@@ -1342,9 +1307,30 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				headerAlign: "left",
 				align: "left",
 				renderCell: ({ row }) => (
-					<Typography variant="body2">
-						{formatLocation(row.locName, row.locCode)}
-					</Typography>
+					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+						{row.locCode === "HRT" ? (
+							<Warehouse
+								className="inline-icon"
+								color={theme.palette.success.light}
+							/>
+						) : (
+							<Globe
+								className="inline-icon"
+								color={theme.palette.warning.main}
+							/>
+						)}
+						<Typography variant="body2">
+							<Box component="span" sx={{ display: { lg: "none" } }}>
+								{row.locCode || formatLocation(row.locName, row.locCode)}
+							</Box>
+							<Box
+								component="span"
+								sx={{ display: { xs: "none", lg: "inline" } }}
+							>
+								{formatLocation(row.locName, row.locCode)}
+							</Box>
+						</Typography>
+					</Box>
 				),
 			},
 			{
@@ -1355,16 +1341,30 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				align: "left",
 				renderCell: ({ value }) => {
 					const userText = String(value || "");
-					const match = userText.match(/^(.+)\s\((.+)\)\s(.+)$/);
+					const match = userText.match(/^(.+)\s\[(.+)]\s(.+)$/);
 					if (!match) {
 						return <Typography variant="body2">{userText}</Typography>;
 					}
 					return (
 						<Typography variant="body2">
-							<Box component="span" sx={{ fontWeight: "bold" }}>
+							<Box
+								component="span"
+								sx={{ display: { lg: "none" }, fontWeight: "bold" }}
+							>
 								{match[1]}
-							</Box>{" "}
-							({match[2]}) {match[3]}
+							</Box>
+							<Box
+								component="span"
+								sx={{ display: { xs: "none", lg: "inline" } }}
+							>
+								<Box component="span" sx={{ fontWeight: "bold" }}>
+									{match[1]}
+								</Box>{" "}
+								<Box component="span" sx={{ fontFamily: "monospace" }}>
+									[{match[2]}]
+								</Box>{" "}
+								{match[3]}
+							</Box>
 						</Typography>
 					);
 				},
@@ -1380,19 +1380,84 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					if (act === "0 m" || act === "0m") {
 						return (
 							<Typography variant="caption" sx={{ opacity: 0.8 }}>
-								Recently Active
+								Recently
 							</Typography>
 						);
 					}
 					return (
 						<Typography variant="caption" sx={{ opacity: 0.8 }}>
-							{act === "-" ? "-" : `${act} ago`}
+							{act === "-" ? "Unknown" : `${act} ago`}
 						</Typography>
 					);
 				},
 			},
 		],
 		[theme],
+	);
+	const compactTableColumns = useMemo(
+		() =>
+			tableColumns
+				.filter(({ field }) => field !== "updated")
+				.map((column) =>
+					column.field === "user" || column.field === "location"
+						? { ...column, flex: 1 }
+						: column,
+				),
+		[tableColumns],
+	);
+	const renderTable = (columns: GridColDef[]) => (
+		<DataGrid
+			rows={tableRows}
+			columns={columns}
+			density="compact"
+			initialState={{
+				pagination: {
+					paginationModel: { page: 0, pageSize: -1 },
+				},
+			}}
+			hideFooter
+			disableColumnMenu
+			disableColumnSorting
+			disableRowSelectionOnClick
+			localeText={{ noRowsLabel: "No results" }}
+			sx={{
+				border: "none",
+				"& .MuiDataGrid-row": {
+					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+					"&:hover": {
+						backgroundColor: alpha(theme.palette.primary.main, 0.2),
+					},
+					display: "flex",
+					alignItems: "center",
+				},
+				"& .MuiDataGrid-cell": {
+					borderBottom: "none",
+					display: "flex",
+					alignItems: "center",
+					padding: "0 8px",
+					"&:focus": { outline: "none" },
+					"&:focus-within": { outline: "none" },
+				},
+				"& .MuiDataGrid-columnHeaders": {
+					backgroundColor: theme.palette.background.default,
+					color: theme.palette.primary.contrastText,
+					fontSize: "0.7rem",
+					fontWeight: "bold",
+					textTransform: "uppercase",
+					letterSpacing: "0.05em",
+					borderBottom: "none",
+					minHeight: "40px !important",
+					maxHeight: "40px !important",
+				},
+				"& .MuiDataGrid-columnHeader": {
+					padding: "0 10px",
+					"&:focus": { outline: "none" },
+					"&:focus-within": { outline: "none" },
+				},
+				"& .MuiDataGrid-columnSeparator": { display: "none" },
+				"& .MuiDataGrid-virtualScroller": { marginTop: "0 !important" },
+			}}
+		/>
 	);
 
 	return (
@@ -1422,6 +1487,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							display: "flex",
 							gap: 1.5,
 							flexDirection: { xs: "column", sm: "row" },
+							order: 1,
 						}}
 					>
 						<ToggleButtonGroup
@@ -1477,11 +1543,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						variant="outlined"
 						size="small"
 						inputRef={searchInputRef}
-						placeholder="Search Materials & Vendors…"
+						placeholder="Search…"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						sx={{
 							flexGrow: 1,
+							order: 3,
 							"& .MuiOutlinedInput-root": {
 								height: 40,
 								bgcolor: alpha(theme.palette.background.default, 0.5),
@@ -1501,7 +1568,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							input: {
 								startAdornment: (
 									<InputAdornment position="start">
-										<Search size={20} color={theme.palette.primary.main} />
+										<Search
+											className="inline-icon"
+											color={theme.palette.primary.main}
+										/>
 									</InputAdornment>
 								),
 								endAdornment: (
@@ -1521,7 +1591,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 															aria-label="Clear material search"
 															onClick={() => setSearchQuery("")}
 														>
-															<X size={16} />
+															<X className="inline-icon" />
 														</IconButton>
 													</Tooltip>
 												</>
@@ -1543,7 +1613,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 															: "transparent",
 													}}
 												>
-													<CenterFocusStrongIcon fontSize="small" />
+													<CenterFocusStrongIcon className="inline-icon" />
 												</IconButton>
 											</Tooltip>
 										</Box>
@@ -1558,6 +1628,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 							display: "flex",
 							gap: 1.5,
 							flexDirection: { xs: "column", sm: "row" },
+							order: 2,
 						}}
 					>
 						<ToggleButtonGroup
@@ -1619,98 +1690,48 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 								</ToggleButton>
 							</Tooltip>
 						</ToggleButtonGroup>
-						<Autocomplete<LocationOption, false, false, false>
-							size="small"
-							options={allLocations}
-							value={
-								selectedLocation === null
-									? null
-									: allLocations.find(
-											(option) => option.id === selectedLocation,
-										) || null
-							}
-							onChange={(_e, newValue) =>
-								setSelectedLocation(newValue?.id || null)
-							}
-							inputValue={locationInputValue}
-							onInputChange={(_e, newInputValue, reason) => {
-								if (reason === "reset") {
-									const selectedOption = allLocations.find(
-										(option) => option.id === selectedLocation,
-									);
-									setLocationInputValue(
-										selectedLocation === null
-											? ""
-											: formatLocation(selectedOption?.name, selectedLocation),
-									);
-								} else {
-									setLocationInputValue(newInputValue);
-								}
-							}}
-							disableClearable={false}
-							getOptionLabel={(option) =>
-								formatLocation(option.name, option.id)
-							}
-							isOptionEqualToValue={(option, value) => option.id === value.id}
-							renderOption={(props, option) => (
-								<Box component="li" {...props}>
-									<Typography variant="body2">
-										{formatLocation(option.name, option.id)}
-									</Typography>
-								</Box>
-							)}
-							slotProps={{
-								paper: {
-									sx: {
-										bgcolor: theme.palette.background.default,
-										backgroundImage: "none",
-									},
-								},
-							}}
+						<LocationFilter
+							locations={allLocations}
+							value={selectedLocation}
+							onChange={setSelectedLocation}
 							sx={{
 								flexGrow: { xs: 1, sm: 0 },
 								minWidth: { sm: 260 },
-								"& .MuiAutocomplete-clearIndicator": {
-									visibility: selectedLocation ? "visible" : "hidden",
-									opacity: selectedLocation ? 1 : 0,
-								},
+								order: -1,
 							}}
-							renderInput={(params) => (
-								<TextField
-									{...params}
-									variant="outlined"
-									placeholder="All Locations"
-									sx={{
-										"& .MuiOutlinedInput-root": {
-											height: 40,
-											bgcolor: alpha(theme.palette.background.default, 0.5),
-											backdropFilter: "blur(5px)",
-											borderRadius: "12px",
-											"& fieldset": {
-												borderColor: alpha(theme.palette.common.white, 0.1),
-											},
-											"&:hover fieldset": {
-												borderColor: theme.palette.primary.main,
-											},
-											"&.Mui-focused fieldset": {
-												borderColor: theme.palette.primary.main,
-											},
-											color: theme.palette.text.primary,
-										},
-									}}
-								/>
-							)}
 						/>
-						<Box
-							sx={{
-								display: "flex",
-								gap: 1,
-								justifyContent: { xs: "center", sm: "flex-end" },
-							}}
-						>
-							<Tooltip title="Shopping List">
+					</Box>
+					<Box
+						sx={{
+							display: "flex",
+							gap: 1,
+							justifyContent: { xs: "center", sm: "flex-end" },
+							order: 4,
+						}}
+					>
+						<Tooltip title="Shopping List">
+							<IconButton
+								onClick={handleOpenShoppingListModal}
+								sx={{
+									height: 40,
+									width: 40,
+									borderRadius: "50%",
+									color: "white",
+									bgcolor: "primary.main",
+									boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+									"&:hover": { bgcolor: "primary.dark" },
+								}}
+							>
+								<ShoppingBasket className="inline-icon" />
+							</IconButton>
+						</Tooltip>
+						{loggedIn && (
+							<Tooltip title="Your Store">
 								<IconButton
-									onClick={handleOpenShoppingListModal}
+									onClick={
+										hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
+									}
+									disabled={isCheckingStore}
 									sx={{
 										height: 40,
 										width: 40,
@@ -1718,43 +1739,16 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										color: "white",
 										bgcolor: "primary.main",
 										boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-										"&:hover": {
-											bgcolor: "primary.dark",
+										"&:hover": { bgcolor: "primary.dark" },
+										"&.Mui-disabled": {
+											bgcolor: alpha(theme.palette.primary.main, 0.5),
 										},
 									}}
 								>
-									<ShoppingBasket size={24} />
+									<Store className="inline-icon" />
 								</IconButton>
 							</Tooltip>
-							{loggedIn && (
-								<Tooltip title="Your Store">
-									<IconButton
-										onClick={
-											hasVendorStore
-												? handleOpenEditModal
-												: handleOpenCreateModal
-										}
-										disabled={isCheckingStore}
-										sx={{
-											height: 40,
-											width: 40,
-											borderRadius: "50%",
-											color: "white",
-											bgcolor: "primary.main",
-											boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-											"&:hover": {
-												bgcolor: "primary.dark",
-											},
-											"&.Mui-disabled": {
-												bgcolor: alpha(theme.palette.primary.main, 0.5),
-											},
-										}}
-									>
-										<Store size={24} />
-									</IconButton>
-								</Tooltip>
-							)}
-						</Box>
+						)}
 					</Box>
 				</Box>
 			</Box>
@@ -1766,69 +1760,18 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			>
 				{vendorViewMode === "table" ? (
 					<Box sx={{ height: "100%", width: "100%" }}>
-						<DataGrid
-							rows={tableRows}
-							columns={tableColumns}
-							density="compact"
-							initialState={{
-								pagination: {
-									paginationModel: { page: 0, pageSize: -1 },
-								},
-							}}
-							hideFooter
-							disableColumnMenu
-							disableColumnSorting
-							disableRowSelectionOnClick
-							sortModel={[{ field: "material", sort: "asc" }]}
-							localeText={{ noRowsLabel: "No results" }}
-							sx={{
-								border: "none",
-								"& .MuiDataGrid-row": {
-									borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-									"&:hover": {
-										backgroundColor: alpha(theme.palette.primary.main, 0.2),
-									},
-									display: "flex",
-									alignItems: "center",
-								},
-								"& .MuiDataGrid-cell": {
-									borderBottom: "none",
-									display: "flex",
-									alignItems: "center",
-									padding: "0 8px",
-									"&:focus": { outline: "none" },
-									"&:focus-within": { outline: "none" },
-								},
-								"& .MuiDataGrid-columnHeaders": {
-									backgroundColor: theme.palette.background.default,
-									color: theme.palette.primary.contrastText,
-									fontSize: "0.7rem",
-									fontWeight: "bold",
-									textTransform: "uppercase",
-									letterSpacing: "0.05em",
-									borderBottom: "none",
-									minHeight: "40px !important",
-									maxHeight: "40px !important",
-								},
-								"& .MuiDataGrid-columnHeader": {
-									padding: "0 10px",
-									"&:focus": { outline: "none" },
-									"&:focus-within": { outline: "none" },
-								},
-								"& .MuiDataGrid-columnSeparator": {
-									display: "none",
-								},
-								"& .MuiDataGrid-virtualScroller": {
-									marginTop: "0 !important",
-								},
-							}}
-						/>
+						<Box sx={{ display: { xs: "block", lg: "none" }, height: "100%" }}>
+							{renderTable(compactTableColumns)}
+						</Box>
+						<Box sx={{ display: { xs: "none", lg: "block" }, height: "100%" }}>
+							{renderTable(tableColumns)}
+						</Box>
 					</Box>
 				) : (
 					<>
-						{filteredVendors.length > 0 ? (
+						{preparedFilteredVendors.length > 0 ? (
 							<Masonry
-								columns={{ xs: 1, sm: 1, md: 2, lg: 3, xl: 4, xll: 5 }}
+								columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xll: 6 }}
 								spacing={2}
 							>
 								{preparedFilteredVendors.map((preparedVendor) => (
