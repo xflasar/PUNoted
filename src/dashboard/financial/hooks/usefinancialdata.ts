@@ -7,13 +7,39 @@ export type TimeRangePreset = "24H" | "7D" | "30D" | "1Y" | "ALL" | "CUSTOM";
 export const useFinancialData = () => {
 	const {
 		financialData: data,
-		isFinancialLoading: loading,
+		isFinancialLoading: rawLoading,
 		fetchFinances,
+		marketData,
+		storageState,
+		userSites,
 	} = useGlobalData();
 	const [activeCurrencyIndex, setActiveCurrencyIndex] = useState<number>(0);
 	const [timeRange, setTimeRange] = useState<TimeRangePreset>("ALL");
 	const [customStartDate, setCustomStartDate] = useState<string>("");
 	const [customEndDate, setCustomEndDate] = useState<string>("");
+
+	// Compute step-by-step loading progress for sleek overlay
+	const { loadedSteps, totalSteps, statusText } = useMemo(() => {
+		const steps = [
+			{ name: "Financial Balances", ready: !rawLoading },
+			{ name: "Market Intelligence", ready: Boolean(marketData && (Array.isArray(marketData) ? marketData.length > 0 : Object.keys(marketData).length > 0)) },
+			{ name: "Inventory & Storages", ready: Boolean(storageState && (Array.isArray(storageState) ? storageState.length > 0 : (storageState.units && Object.keys(storageState.units).length > 0))) },
+			{ name: "Planetary Base Sites", ready: Boolean(Array.isArray(userSites) && userSites.length > 0) },
+		];
+
+		const completed = steps.filter((s) => s.ready).length;
+		const total = steps.length;
+		const activeStep = steps.find((s) => !s.ready);
+		const text = activeStep ? `Loading ${activeStep.name}... (${completed}/${total})` : "Compiling Financial Valuations...";
+
+		return { loadedSteps: completed, totalSteps: total, statusText: text };
+	}, [rawLoading, marketData, storageState, userSites]);
+
+	const error = !rawLoading && !data ? "Failed to load financial overview data. Please try refreshing." : null;
+	const isDataReady = loadedSteps === totalSteps;
+	const loading = !isDataReady && !error;
+
+
 
 	useEffect(() => {
 		if (data?.Currencies && data.Currencies.length > 0) {
@@ -177,5 +203,9 @@ export const useFinancialData = () => {
 		pieChartData,
 		topPartners,
 		volumeBreakdown,
+		loadedSteps,
+		totalSteps,
+		statusText,
 	};
 };
+

@@ -40,7 +40,9 @@ import type {
 	ApiToken,
 	GlobalSettings,
 } from "../settings/types";
-import ProfileSection from "../settings/components/profilesection";
+import GlobalLoadingOverlay from "../../components/common/globalloadingoverlay";
+
+import ProfileSection from "./components/profilesection";
 import PasswordSection from "../settings/components/passwordsection";
 import PrivacySection from "../settings/components/privacysection";
 import GroupsSection from "../settings/components/groupssection";
@@ -188,8 +190,8 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 
 	if (loading || !data.settings) {
 		return (
-			<Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-				<CircularProgress />
+			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
+				<GlobalLoadingOverlay loading={true} statusText="LOADING USER PREFERENCES & ACCOUNT SETTINGS..." />
 			</Box>
 		);
 	}

@@ -148,6 +148,9 @@ export function calculateMovingPlanetPosition(
 		fertility: planetData.fertility,
 		cogc: planetData.cogc,
 		type: planetData.type,
+		planetname: planetData.planetname,
+		Government: planetData.Government,
+		Motions: planetData.Motions,
 	};
 }
 

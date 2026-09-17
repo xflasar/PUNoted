@@ -207,9 +207,10 @@ export const KPISection = ({
 		siteGlobalStockValue: 0,
 		totalStockValue: 0,
 	},
-	loading,
+	loading = false,
 	isAdvancedView,
 }: any) => {
+
 	const { loansData } = useGlobalData();
 	const currency = currentData?.Currency || "";
 	const liquid = currentData?.Liquid || 0;

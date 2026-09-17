@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { Search } from "lucide-react";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import MaterialBadge from "../cosm/components/materialbadge";
+import MaterialBadge from "../../cosm/components/materialbadge";
 
 export interface CommoditySidebarProps {
 	marketData: Record<string, any>[];

@@ -183,20 +183,6 @@ export const CategoryCard = React.memo(
 						};
 					});
 
-				if (process.env.NODE_ENV !== "production") {
-					console.log(
-						`[CorpProd Debug] Player: ${i.player} | Loc: ${i.loc} | Matched Recipes:`,
-						matchedRecipes,
-						{
-							totalUserRecipes: userRecipes.length,
-							availableRecipes: userRecipes.map((r) => ({
-								key: r.recipeKey,
-								users: r.users,
-							})),
-						},
-					);
-				}
-
 				uGroup.planets.push({
 					item: i,
 					recipes: matchedRecipes,

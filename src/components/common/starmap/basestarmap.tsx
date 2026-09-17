@@ -132,6 +132,28 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		productionData,
 	} = useGlobalData();
 
+	const isLoggedIn = useMemo(() => {
+		if (typeof window === "undefined") return false;
+		return !!localStorage.getItem("authToken");
+	}, []);
+
+	const effectiveOwnerShips = useMemo(
+		() => (isLoggedIn ? ownerShips : []),
+		[isLoggedIn, ownerShips],
+	);
+	const effectiveOtherShips = useMemo(
+		() => (isLoggedIn ? otherShips : []),
+		[isLoggedIn, otherShips],
+	);
+	const effectiveStorageState = useMemo(
+		() => (isLoggedIn ? storageState : null),
+		[isLoggedIn, storageState],
+	);
+	const effectiveProductionData = useMemo(
+		() => (isLoggedIn ? productionData : {}),
+		[isLoggedIn, productionData],
+	);
+
 	const renderCountRef = useRef(0);
 	renderCountRef.current++;
 
@@ -708,8 +730,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		visibleAnimatedShipData,
 		effectiveFlightPlans,
 	} = useShipDataProcessor(
-		ownerShips,
-		otherShips,
+		effectiveOwnerShips,
+		effectiveOtherShips,
 		visibleCorpGroups,
 		ownShipsVisible,
 		visiblePathShipIds,
@@ -1411,8 +1433,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 						x={hoveredInfo.x}
 						y={hoveredInfo.y}
 						allPlanetsData={allPlanetsData}
-						ownerShips={ownerShips}
-						otherShips={otherShips}
+						ownerShips={effectiveOwnerShips}
+						otherShips={effectiveOtherShips}
 					/>
 				) : hoveredInfo ? (
 					<SystemHoverTooltip
@@ -1421,8 +1443,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 						y={hoveredInfo.y}
 						allPlanetsData={allPlanetsData}
 						allStationsData={allStationsData}
-						ownerShips={ownerShips}
-						otherShips={otherShips}
+						ownerShips={effectiveOwnerShips}
+						otherShips={effectiveOtherShips}
 					/>
 				) : null}
 

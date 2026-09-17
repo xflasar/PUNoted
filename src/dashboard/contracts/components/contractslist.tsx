@@ -33,6 +33,7 @@ import {
 } from "@mui/icons-material";
 import { alpha } from "@mui/material/styles";
 import { fetchClient } from "../../../utils/apiclient";
+import { useGlobalData } from "../../../context/globaldatacontext";
 import ContractRow from "./contractrow";
 import { formatCurrency, getStatusColor, getStatusBg } from "../helpers/helper";
 import type { ContractListItem } from "../types";
@@ -70,6 +71,17 @@ const MobileContractCard = ({
 				return <Handshake fontSize="small" color="secondary" />;
 		}
 	};
+
+	const hasAmount =
+		contract.total_amount !== undefined && contract.total_amount !== null && contract.total_amount !== 0;
+	const isPositive = contract.contracttype === "SELL" || contract.contracttype === "LOAN_TAKEN";
+	const isNegative = contract.contracttype === "BUY" || contract.contracttype === "LOAN_GIVEN";
+	const sign = isPositive ? "+" : isNegative ? "-" : "";
+	const amountColor = isPositive
+		? theme.palette.success.main
+		: isNegative
+			? theme.palette.error.main
+			: theme.palette.text.primary;
 
 	return (
 		<Paper
@@ -173,15 +185,10 @@ const MobileContractCard = ({
 						fontFamily: "monospace",
 						fontWeight: 700,
 						fontSize: "1rem",
-						color:
-							contract.total_amount > 0
-								? contract.is_income
-									? "success.main"
-									: "error.main"
-								: "text.primary",
+						color: amountColor,
 					}}
 				>
-					{contract.total_amount > 0 ? (contract.is_income ? "+" : "-") : ""}
+					{sign}
 					{formatCurrency(contract.total_amount, contract.currency)}
 				</Typography>
 			</Box>
@@ -199,8 +206,10 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 	const [search, setSearch] = useState("");
 	const [status, setStatus] = useState("ALL");
 	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(10);
+	const [rowsPerPage, setRowsPerPage] = useState(25);
 	const [totalCount, setTotalCount] = useState(0);
+
+	const { dashboardData } = useGlobalData();
 
 	useEffect(() => {
 		const fetchList = async () => {
@@ -216,9 +225,20 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						limit: rowsPerPage,
 					}),
 				});
-				const data = await res.json();
-				setContracts(data.items || []);
-				setTotalCount(data.total || 0);
+				if (res.ok) {
+					const data = await res.json();
+					const rawItems = data.items || [];
+					const seen = new Set();
+					const uniqueItems = rawItems.filter((item: any) => {
+						const key = item.id || item.localid;
+						if (!key) return true;
+						if (seen.has(key)) return false;
+						seen.add(key);
+						return true;
+					});
+					setContracts(uniqueItems);
+					setTotalCount(data.total !== undefined ? data.total : uniqueItems.length);
+				}
 			} catch (err) {
 				console.error("Failed to fetch contracts:", err);
 			} finally {
@@ -227,7 +247,7 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 		};
 		const timer = setTimeout(fetchList, 300);
 		return () => clearTimeout(timer);
-	}, [category, status, search, page, rowsPerPage]);
+	}, [category, status, search, page, rowsPerPage, dashboardData]);
 
 	return (
 		<Box
@@ -241,15 +261,18 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 		>
 			{/* Filter Bar */}
 			<Paper
+				elevation={0}
 				sx={{
-					p: 1,
+					p: 1.5,
 					display: "flex",
 					flexDirection: isMobile ? "column" : "row",
-					gap: 1,
+					gap: 1.5,
 					alignItems: isMobile ? "stretch" : "center",
-					background: alpha(theme.palette.background.default, 0.6),
-					backdropFilter: "blur(10px)",
-					border: `1px solid ${theme.palette.divider}`,
+					bgcolor: "rgba(4, 4, 10, 0.75)",
+					border: "1px solid rgba(123, 104, 238, 0.2)",
+					borderRadius: "14px",
+					boxShadow: "0 0 30px rgba(123, 104, 238, 0.08)",
+					backdropFilter: "blur(20px)",
 				}}
 			>
 				<TextField
@@ -257,15 +280,24 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 					placeholder={`Search ${category.toLowerCase()}...`}
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
-					sx={{ flexGrow: 1 }}
+					sx={{
+						flexGrow: 1,
+						"& .MuiOutlinedInput-root": {
+							bgcolor: "rgba(2, 2, 8, 0.6)",
+							borderRadius: "10px",
+							border: "1px solid rgba(123, 104, 238, 0.2)",
+							"&:hover fieldset": { borderColor: "rgba(123, 104, 238, 0.4)" },
+							"&.Mui-focused fieldset": { borderColor: "#7b68ee" },
+						},
+					}}
 					slotProps={{
 						input: {
 							startAdornment: (
 								<InputAdornment position="start">
-									<Search fontSize="small" />
+									<Search fontSize="small" sx={{ color: "rgba(255,255,255,0.6)" }} />
 								</InputAdornment>
 							),
-							style: { fontSize: "0.9rem" },
+							style: { fontSize: "0.85rem", color: "#ffffff" },
 						},
 					}}
 				/>
@@ -277,15 +309,18 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 					startAdornment={
 						<InputAdornment
 							position="start"
-							sx={{ pl: 1, color: "text.secondary" }}
+							sx={{ pl: 1, color: "rgba(255,255,255,0.6)" }}
 						>
 							<FilterList fontSize="small" />
 						</InputAdornment>
 					}
 					sx={{
-						minWidth: 150,
-						fontSize: "0.9rem",
-						bgcolor: theme.palette.background.default,
+						minWidth: 160,
+						fontSize: "0.85rem",
+						bgcolor: "rgba(2, 2, 8, 0.6)",
+						borderRadius: "10px",
+						border: "1px solid rgba(123, 104, 238, 0.2)",
+						color: "#ffffff",
 						"& .MuiSelect-select": {
 							display: "flex",
 							alignItems: "center",
@@ -295,11 +330,14 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 					MenuProps={{
 						PaperProps: {
 							sx: {
-								bgcolor: theme.palette.background.default,
+								bgcolor: "#080816",
 								backgroundImage: "none",
-								border: `1px solid ${theme.palette.divider}`,
+								border: "1px solid rgba(123, 104, 238, 0.3)",
+								color: "#ffffff",
 								"& .MuiMenuItem-root": {
-									fontSize: "0.9rem",
+									fontSize: "0.85rem",
+									"&:hover": { bgcolor: "rgba(123, 104, 238, 0.15)" },
+									"&.Mui-selected": { bgcolor: "rgba(123, 104, 238, 0.25)" },
 								},
 							},
 						},
@@ -318,13 +356,16 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 
 			{/* List Area */}
 			<Paper
+				elevation={0}
 				sx={{
 					flexGrow: 1,
 					display: "flex",
 					flexDirection: "column",
-					background: alpha(theme.palette.background.default, 0.4),
-					backdropFilter: "blur(10px)",
-					border: `1px solid ${theme.palette.divider}`,
+					bgcolor: "rgba(4, 4, 10, 0.75)",
+					border: "1px solid rgba(123, 104, 238, 0.2)",
+					borderRadius: "16px",
+					boxShadow: "0 0 30px rgba(123, 104, 238, 0.08)",
+					backdropFilter: "blur(20px)",
 					overflow: "hidden",
 				}}
 			>
@@ -386,11 +427,9 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 							</TableHead>
 							<TableBody>
 								{loading ? (
-									<TableRow>
-										<TableCell colSpan={5} align="center" sx={{ py: 10 }}>
-											<CircularProgress />
-										</TableCell>
-									</TableRow>
+									Array.from({ length: 6 }).map((_, i) => (
+										<ContractRow key={`skel-${i}`} loading={true} />
+									))
 								) : contracts.length === 0 ? (
 									<TableRow>
 										<TableCell
@@ -429,6 +468,7 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						page={page}
 						onPageChange={(_, p) => setPage(p)}
 						rowsPerPage={rowsPerPage}
+						rowsPerPageOptions={[25, 50, 100, 250]}
 						onRowsPerPageChange={(e) => {
 							setRowsPerPage(parseInt(e.target.value, 10));
 							setPage(0);

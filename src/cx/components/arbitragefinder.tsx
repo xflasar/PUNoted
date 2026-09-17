@@ -18,7 +18,6 @@ import {
 	Stack,
 	Chip,
 	Tooltip,
-	Grid,
 	InputAdornment,
 	Button,
 	Dialog,
@@ -34,9 +33,7 @@ import {
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import {
 	Search,
-	TrendingUp,
 	Award,
-	Layers,
 	Plus,
 	ExternalLink,
 	ShieldCheck,
@@ -49,10 +46,10 @@ import {
 	Sparkles,
 	Sliders,
 } from "lucide-react";
-import MaterialBadge from "../cosm/components/materialbadge";
-import { fetchClient } from "../utils/apiclient";
+import MaterialBadge from "../../cosm/components/materialbadge";
+import { fetchClient } from "../../utils/apiclient";
 import { useNavigate } from "react-router-dom";
-import { useGlobalData } from "../context/globaldatacontext";
+import { useGlobalData } from "../../context/globaldatacontext";
 
 export interface ArbitrageFinderProps {
 	marketData: Record<string, any>[];
@@ -183,15 +180,15 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 				}
 				const rawLoc = String(
 					unit.storagelocation ||
-						unit.StorageLocation ||
-						unit.planetname ||
-						unit.PlanetName ||
-						unit.station_name ||
-						unit.stationname ||
-						unit.name ||
-						unit.Name ||
-						unit.addressableid ||
-						"",
+					unit.StorageLocation ||
+					unit.planetname ||
+					unit.PlanetName ||
+					unit.station_name ||
+					unit.stationname ||
+					unit.name ||
+					unit.Name ||
+					unit.addressableid ||
+					"",
 				).toUpperCase();
 
 				return (
@@ -390,7 +387,7 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 					setStabilityMap(data);
 				}
 			})
-			.catch(() => {});
+			.catch(() => { });
 	}, [timeframeDays]);
 
 	// Unique Commodities List for Matrix Dropdown
@@ -615,9 +612,9 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 					const hasInstantData = dstBid > 0 && userBuyPrice > 0;
 					const instantUnits = hasInstantData
 						? Math.min(
-								purchasableUnits,
-								dstBidQty > 0 ? dstBidQty : purchasableUnits,
-							)
+							purchasableUnits,
+							dstBidQty > 0 ? dstBidQty : purchasableUnits,
+						)
 						: 0;
 					const instantSpread = dstBid - userBuyPrice;
 					const instantGrossProfit = instantSpread * instantUnits;
@@ -650,13 +647,13 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 						(dstBidQty > 0 || dstDailyTradedAvg > 0);
 					const expectedUnits = hasExpectedData
 						? Math.min(
-								purchasableUnits,
-								dstDailyTradedAvg > 0
-									? dstDailyTradedAvg
-									: dstBidQty > 0
-										? dstBidQty
-										: purchasableUnits,
-							)
+							purchasableUnits,
+							dstDailyTradedAvg > 0
+								? dstDailyTradedAvg
+								: dstBidQty > 0
+									? dstBidQty
+									: purchasableUnits,
+						)
 						: 0;
 					const expectedSpread = expectedTargetPrice - userBuyPrice;
 					const expectedGrossProfit = expectedSpread * expectedUnits;
@@ -1270,9 +1267,9 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 														).toUpperCase();
 														const qty = Number(
 															item.quantity ||
-																item.amount ||
-																item.currencyamount ||
-																0,
+															item.amount ||
+															item.currencyamount ||
+															0,
 														);
 														if (tk && qty > 0) newQtys[tk] = qty;
 													});
@@ -1977,8 +1974,8 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 															{!isLoss
 																? `+${cellProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 																: cellProfit.toLocaleString(undefined, {
-																		maximumFractionDigits: 0,
-																	})}{" "}
+																	maximumFractionDigits: 0,
+																})}{" "}
 															ICA
 														</Typography>
 														{cellOp.hasInstantData && (
@@ -2371,8 +2368,8 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 														{row.instantNetProfit >= 0
 															? `+${row.instantNetProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 															: row.instantNetProfit.toLocaleString(undefined, {
-																	maximumFractionDigits: 0,
-																})}{" "}
+																maximumFractionDigits: 0,
+															})}{" "}
 														ICA
 													</Typography>
 													<Typography
@@ -2418,9 +2415,9 @@ export const ArbitrageFinder: React.FC<ArbitrageFinderProps> = ({
 														{row.expectedNetProfit >= 0
 															? `+${row.expectedNetProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 															: row.expectedNetProfit.toLocaleString(
-																	undefined,
-																	{ maximumFractionDigits: 0 },
-																)}{" "}
+																undefined,
+																{ maximumFractionDigits: 0 },
+															)}{" "}
 														ICA
 													</Typography>
 													<Typography

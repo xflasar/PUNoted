@@ -8,6 +8,8 @@ import { EmpireSummary } from "./components/empiresummary";
 import { LeasedSiteGroup } from "./components/leasedsitegroup";
 import { DEFAULT_DAYS } from "./utils/constants";
 
+import GlobalLoadingOverlay from "../../components/common/globalloadingoverlay";
+
 const SitesPage: React.FC = () => {
 	const theme = useTheme();
 	const [collapsedTenants, setCollapsedTenants] = useState<
@@ -47,15 +49,8 @@ const SitesPage: React.FC = () => {
 
 	if (loading) {
 		return (
-			<Box
-				sx={{
-					height: "100vh",
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-				}}
-			>
-				<CircularProgress color="primary" />
+			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
+				<GlobalLoadingOverlay loading={true} statusText="LOADING PLANETARY SITES..." />
 			</Box>
 		);
 	}

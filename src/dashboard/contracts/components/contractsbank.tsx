@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import GlobalLoadingOverlay from "../../../components/common/globalloadingoverlay";
 import {
 	Box,
 	Typography,
@@ -203,16 +204,8 @@ export default function ContractsBank() {
 
 	if (loading) {
 		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100%",
-					p: 5,
-				}}
-			>
-				<CircularProgress />
+			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
+				<GlobalLoadingOverlay loading={true} statusText="AUDITING BANK VAULTS & CORPORATE ASSETS..." />
 			</Box>
 		);
 	}

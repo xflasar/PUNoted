@@ -132,6 +132,8 @@ export interface PlanetData {
 	temperature?: number;
 	fertility?: number;
 	cogc?: string | null;
+	Government?: any[];
+	Motions?: any[];
 }
 
 export interface Color {
@@ -142,7 +144,7 @@ export interface Color {
 }
 
 export interface PlanetPosition {
-	color: Color;
+	color?: Color;
 	orbitindex: number;
 	eccentricity: number;
 	inclination: number;
@@ -150,6 +152,7 @@ export interface PlanetPosition {
 	y: number;
 	planetid: string;
 	name: string;
+	planetname?: string;
 	parentSystemId: string;
 	orbitalRadius: number;
 	planetPopulation: number;
@@ -163,6 +166,8 @@ export interface PlanetPosition {
 	temperature?: number;
 	fertility?: number;
 	cogc?: string | null;
+	Government?: any[];
+	Motions?: any[];
 }
 
 export interface StationPosition {

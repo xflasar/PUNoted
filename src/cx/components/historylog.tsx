@@ -10,7 +10,7 @@ import {
 	TableBody,
 	TablePagination,
 } from "@mui/material";
-import type { HistoryPoint } from "./types";
+import type { HistoryPoint } from "../types/types";
 
 export interface HistoryLogProps {
 	history: HistoryPoint[];

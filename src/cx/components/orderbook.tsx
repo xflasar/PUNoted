@@ -1,6 +1,6 @@
 import React from "react";
-import { Box, Paper, Typography, Grid } from "@mui/material";
-import type { OrderBookEntry } from "./types";
+import { Box, Paper, Typography } from "@mui/material";
+import type { OrderBookEntry } from "../types/types";
 
 export interface OrderBookProps {
 	bids: OrderBookEntry[];

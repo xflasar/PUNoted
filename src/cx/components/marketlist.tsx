@@ -23,8 +23,8 @@ import {
 } from "@mui/material";
 import { Search, Eye } from "lucide-react";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import MaterialBadge from "../cosm/components/materialbadge";
-import { useGlobalData } from "../context/globaldatacontext";
+import MaterialBadge from "../../cosm/components/materialbadge";
+import { useGlobalData } from "../../context/globaldatacontext";
 
 interface MarketListProps {
 	marketData: Record<string, any>[];
@@ -33,7 +33,7 @@ interface MarketListProps {
 
 const EXCHANGES = ["IC1", "AI1", "CI1", "CI2", "NC1", "NC2"];
 
-type SortField = "ticker" | "price" | "mmBuy" | "mmSell" | "avg7d" | "avg30d";
+type SortField = "ticker" | "mmBuy" | "mmSell";
 type SortOrder = "asc" | "desc";
 
 const formatCurrency = (val: any) => {
@@ -58,10 +58,117 @@ const getExVal = (r: Record<string, any>, ex: string, field: string) => {
 	return 0;
 };
 
+interface ExchangeDetailData {
+	avg: number;
+	askPx: number;
+	askAmt: number;
+	bidPx: number;
+	bidAmt: number;
+}
+
+const ExchangeDetailBox: React.FC<{ data?: ExchangeDetailData }> = React.memo(
+	({ data }) => {
+		if (!data) {
+			return (
+				<Typography
+					variant="body2"
+					sx={{ color: "rgba(255,255,255,0.25)", fontSize: "0.8rem" }}
+				>
+					-
+				</Typography>
+			);
+		}
+		const hasAvg = data.avg > 0;
+		const hasAsk = data.askPx > 0;
+		const hasBid = data.bidPx > 0;
+
+		if (!hasAvg && !hasAsk && !hasBid) {
+			return (
+				<Typography
+					variant="body2"
+					sx={{ color: "rgba(255,255,255,0.25)", fontSize: "0.8rem" }}
+				>
+					-
+				</Typography>
+			);
+		}
+
+		return (
+			<Box
+				sx={{
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "flex-end",
+					gap: 0.2,
+					py: 0.5,
+					px: 0.75,
+					borderRadius: "8px",
+				}}
+			>
+				{/* Avg */}
+				<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+					<Typography
+						variant="caption"
+						sx={{
+							color: "rgba(255, 255, 255, 0.4)",
+							fontSize: "0.65rem",
+							fontWeight: 600,
+						}}
+					>
+						Avg:
+					</Typography>
+					<Typography
+						variant="body2"
+						sx={{
+							color: "white",
+							fontWeight: 700,
+							fontSize: "0.8rem",
+						}}
+					>
+						{formatCurrency(data.avg)}
+					</Typography>
+				</Box>
+
+				{/* Ask */}
+				{hasAsk && (
+					<Typography
+						variant="caption"
+						sx={{
+							color: "#FF5252",
+							fontSize: "0.68rem",
+							fontWeight: 600,
+							lineHeight: 1.1,
+						}}
+					>
+						Ask: {formatCurrency(data.askPx)}{" "}
+						{data.askAmt > 0 && `(Qty: ${data.askAmt.toLocaleString()})`}
+					</Typography>
+				)}
+
+				{/* Bid */}
+				{hasBid && (
+					<Typography
+						variant="caption"
+						sx={{
+							color: "#4CAF50",
+							fontSize: "0.68rem",
+							fontWeight: 600,
+							lineHeight: 1.1,
+						}}
+					>
+						Bid: {formatCurrency(data.bidPx)}{" "}
+						{data.bidAmt > 0 && `(Qty: ${data.bidAmt.toLocaleString()})`}
+					</Typography>
+				)}
+			</Box>
+		);
+	},
+);
+
 export const MarketList: React.FC<MarketListProps> = React.memo(
 	({ marketData, onSelectTicker }) => {
 		const theme = useTheme();
-		const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+		const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 		const globalData = useGlobalData();
 		const materialMap = globalData?.materialData ?? {};
 
@@ -98,6 +205,23 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 				const mmBuy = Number(row["MMBuy"] || row["mmBuy"] || 0);
 				const mmSell = Number(row["MMSell"] || row["mmSell"] || 0);
 
+				const exData: Record<
+					string,
+					{ avg: number; askPx: number; askAmt: number; bidPx: number; bidAmt: number }
+				> = {};
+
+				EXCHANGES.forEach((ex) => {
+					const avgVal = getExVal(row, ex, "Average");
+					const askPx = getExVal(row, ex, "AskPrice");
+					const askAmt =
+						getExVal(row, ex, "AskAmt") || getExVal(row, ex, "AskAvail");
+					const bidPx = getExVal(row, ex, "BidPrice");
+					const bidAmt =
+						getExVal(row, ex, "BidAmt") || getExVal(row, ex, "BidAvail");
+					const effPrice = avgVal || askPx || bidPx;
+					exData[ex] = { avg: effPrice, askPx, askAmt, bidPx, bidAmt };
+				});
+
 				return {
 					raw: row,
 					ticker,
@@ -108,6 +232,7 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 					avg30d,
 					mmBuy,
 					mmSell,
+					exData,
 				};
 			});
 		}, [marketData, materialMap, selectedExFilter]);
@@ -147,7 +272,7 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 					const cmp = (valA as string).localeCompare(valB as string);
 					return sortOrder === "asc" ? cmp : -cmp;
 				}
-				const diff = (valA as number) - (valB as number);
+				const diff = (Number(valA) || 0) - (Number(valB) || 0);
 				return sortOrder === "asc" ? diff : -diff;
 			});
 
@@ -260,7 +385,7 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 							variant="body2"
 							sx={{ color: "rgba(255, 255, 255, 0.6)", fontSize: "0.8rem" }}
 						>
-							Showing <strong>{filteredRows.length}</strong> commodities
+							Showing <strong>{filteredRows.length}</strong> tickers
 						</Typography>
 					</Box>
 
@@ -553,7 +678,8 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 							flex: 1,
 							maxHeight: "100%",
 							overflowY: "auto",
-							"&::-webkit-scrollbar": { width: "6px" },
+							overflowX: "auto",
+							"&::-webkit-scrollbar": { width: "6px", height: "6px" },
 							"&::-webkit-scrollbar-track": { background: "rgba(0,0,0,0.2)" },
 							"&::-webkit-scrollbar-thumb": {
 								backgroundColor: "rgba(123, 104, 238, 0.4)",
@@ -561,7 +687,7 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 							},
 						}}
 					>
-						<Table stickyHeader size="small">
+						<Table stickyHeader size="small" sx={{ minWidth: selectedExFilter === "ALL" ? 900 : 700 }}>
 							<TableHead>
 								<TableRow
 									sx={{
@@ -577,14 +703,14 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 										},
 									}}
 								>
-									<TableCell>
+									<TableCell sx={{ width: 80, pr: 1 }}>
 										<TableSortLabel
 											active={sortField === "ticker"}
 											direction={sortOrder}
 											onClick={() => handleSort("ticker")}
 											sx={{ color: "inherit !important" }}
 										>
-											Commodity
+											Ticker
 										</TableSortLabel>
 									</TableCell>
 									<TableCell align="right">
@@ -594,57 +720,26 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 											onClick={() => handleSort("mmBuy")}
 											sx={{ color: "inherit !important" }}
 										>
-											MM Buy
-										</TableSortLabel>
-									</TableCell>
-									<TableCell align="right">
-										<TableSortLabel
-											active={sortField === "mmSell"}
-											direction={sortOrder}
-											onClick={() => handleSort("mmSell")}
-											sx={{ color: "inherit !important" }}
-										>
-											MM Sell
+											MM
 										</TableSortLabel>
 									</TableCell>
 
 									{selectedExFilter === "ALL" ? (
 										EXCHANGES.map((ex) => (
 											<TableCell key={ex} align="right">
-												{ex} Avg
+												{ex}
 											</TableCell>
 										))
 									) : (
 										<>
 											<TableCell align="right">
-												<TableSortLabel
-													active={sortField === "price"}
-													direction={sortOrder}
-													onClick={() => handleSort("price")}
-													sx={{ color: "inherit !important" }}
-												>
-													{selectedExFilter} Live
-												</TableSortLabel>
+												{selectedExFilter} Live
 											</TableCell>
 											<TableCell align="right">
-												<TableSortLabel
-													active={sortField === "avg7d"}
-													direction={sortOrder}
-													onClick={() => handleSort("avg7d")}
-													sx={{ color: "inherit !important" }}
-												>
-													7D Avg
-												</TableSortLabel>
+												7D Avg
 											</TableCell>
 											<TableCell align="right">
-												<TableSortLabel
-													active={sortField === "avg30d"}
-													direction={sortOrder}
-													onClick={() => handleSort("avg30d")}
-													sx={{ color: "inherit !important" }}
-												>
-													30D Avg
-												</TableSortLabel>
+												30D Avg
 											</TableCell>
 											<TableCell align="right">
 												{selectedExFilter} Ask / Bid
@@ -692,7 +787,7 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 											}}
 										>
 											{/* Material Badge ONLY */}
-											<TableCell>
+											<TableCell sx={{ width: 80, pr: 1 }}>
 												<Box
 													sx={{ display: "inline-flex", alignItems: "center" }}
 												>
@@ -700,60 +795,61 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 												</Box>
 											</TableCell>
 
-											{/* MM Buy / MM Sell */}
+											{/* Combined MM Buy / Sell */}
 											<TableCell align="right">
-												<Typography
-													variant="body2"
-													sx={{
-														color:
-															row.mmBuy > 0
-																? "#4CAF50"
-																: "rgba(255,255,255,0.4)",
-														fontWeight: 600,
-													}}
-												>
-													{formatCurrency(row.mmBuy)}
-												</Typography>
-											</TableCell>
-											<TableCell align="right">
-												<Typography
-													variant="body2"
-													sx={{
-														color:
-															row.mmSell > 0
-																? "#FF5252"
-																: "rgba(255,255,255,0.4)",
-														fontWeight: 600,
-													}}
-												>
-													{formatCurrency(row.mmSell)}
-												</Typography>
+												{row.mmBuy > 0 || row.mmSell > 0 ? (
+													<Box
+														sx={{
+															display: "flex",
+															flexDirection: "column",
+															alignItems: "flex-end",
+															gap: 0.25,
+														}}
+													>
+														{row.mmBuy > 0 && (
+															<Typography
+																variant="caption"
+																sx={{
+																	color: "#4CAF50",
+																	fontWeight: 600,
+																	fontSize: "0.72rem",
+																	lineHeight: 1.1,
+																}}
+															>
+																Buy: {formatCurrency(row.mmBuy)}
+															</Typography>
+														)}
+														{row.mmSell > 0 && (
+															<Typography
+																variant="caption"
+																sx={{
+																	color: "#FF5252",
+																	fontWeight: 600,
+																	fontSize: "0.72rem",
+																	lineHeight: 1.1,
+																}}
+															>
+																Sell: {formatCurrency(row.mmSell)}
+															</Typography>
+														)}
+													</Box>
+												) : (
+													<Typography
+														variant="body2"
+														sx={{ color: "rgba(255,255,255,0.25)" }}
+													>
+														-
+													</Typography>
+												)}
 											</TableCell>
 
 											{/* Exchange Columns */}
 											{selectedExFilter === "ALL" ? (
-												EXCHANGES.map((ex) => {
-													const exPrice =
-														getExVal(r, ex, "Average") ||
-														getExVal(r, ex, "AskPrice") ||
-														getExVal(r, ex, "BidPrice");
-													return (
-														<TableCell key={ex} align="right">
-															<Typography
-																variant="body2"
-																sx={{
-																	color:
-																		exPrice > 0
-																			? "#E0E0E0"
-																			: "rgba(255,255,255,0.25)",
-																	fontWeight: exPrice > 0 ? 600 : 400,
-																}}
-															>
-																{formatCurrency(exPrice)}
-															</Typography>
-														</TableCell>
-													);
-												})
+												EXCHANGES.map((ex) => (
+													<TableCell key={ex} align="right" sx={{ py: 1 }}>
+														<ExchangeDetailBox data={row.exData[ex]} />
+													</TableCell>
+												))
 											) : (
 												<>
 													{/* Single Exchange Columns */}
@@ -787,38 +883,32 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 																display: "flex",
 																flexDirection: "column",
 																alignItems: "flex-end",
+																gap: 0.25,
 															}}
 														>
-															<Typography
-																variant="caption"
-																sx={{
-																	color:
-																		askPx > 0
-																			? "#FF5252"
-																			: "rgba(255,255,255,0.3)",
-																	fontWeight: 700,
-																}}
-															>
-																Ask:{" "}
-																{askPx > 0
-																	? `${formatCurrency(askPx)}${askAmt > 0 ? ` (${askAmt})` : ""}`
-																	: "-"}
-															</Typography>
-															<Typography
-																variant="caption"
-																sx={{
-																	color:
-																		bidPx > 0
-																			? "#4CAF50"
-																			: "rgba(255,255,255,0.3)",
-																	fontWeight: 700,
-																}}
-															>
-																Bid:{" "}
-																{bidPx > 0
-																	? `${formatCurrency(bidPx)}${bidAmt > 0 ? ` (${bidAmt})` : ""}`
-																	: "-"}
-															</Typography>
+															{askPx > 0 && (
+																<Typography
+																	variant="caption"
+																	sx={{ color: "#FF5252", fontWeight: 600, fontSize: "0.72rem" }}
+																>
+																	Ask: {formatCurrency(askPx)}{" "}
+																	{askAmt > 0 && `(Qty: ${askAmt.toLocaleString()})`}
+																</Typography>
+															)}
+															{bidPx > 0 && (
+																<Typography
+																	variant="caption"
+																	sx={{ color: "#4CAF50", fontWeight: 600, fontSize: "0.72rem" }}
+																>
+																	Bid: {formatCurrency(bidPx)}{" "}
+																	{bidAmt > 0 && `(Qty: ${bidAmt.toLocaleString()})`}
+																</Typography>
+															)}
+															{!askPx && !bidPx && (
+																<Typography variant="body2" sx={{ color: "rgba(255,255,255,0.3)" }}>
+																	-
+																</Typography>
+															)}
 														</Box>
 													</TableCell>
 												</>

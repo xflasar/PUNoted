@@ -44,6 +44,9 @@ import {
 	Flame,
 } from "lucide-react";
 import { Masonry } from "@mui/lab";
+import GlobalLoadingOverlay from "../components/common/globalloadingoverlay";
+
+import { ProductionCard } from "./production/productioncard";
 import ConsumptionFlowDetail from "./production/flowdetail";
 
 // My god this needs refactoring!!!!
@@ -1084,8 +1087,8 @@ const ProductionDashboard: React.FC = () => {
 
 	if (loading)
 		return (
-			<Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
-				<CircularProgress />
+			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
+				<GlobalLoadingOverlay loading={true} statusText="CALCULATING PRODUCTION & REFINING PIPELINES..." />
 			</Box>
 		);
 

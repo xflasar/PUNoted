@@ -25,6 +25,10 @@ import {
 	People,
 	Visibility,
 	ChevronRight,
+	AccountBalance,
+	Gavel,
+	HowToVote,
+	EmojiEvents,
 } from "@mui/icons-material";
 import type {
 	MapPoint,
@@ -100,8 +104,14 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 	const planets = allPlanetsData[systemId] || [];
 	const stations = allStationsData[systemId] || [];
 
-	// All our production sites in the current system
+	const isLoggedIn = useMemo(() => {
+		if (typeof window === "undefined") return false;
+		return !!localStorage.getItem("authToken");
+	}, []);
+
+	// All our production sites in the current system (only if logged in)
 	const systemSites = useMemo(() => {
+		if (!isLoggedIn) return [];
 		const planetIds = new Set(planets.map((p) => p.planetid));
 		const sites = Object.values(productionData || {}).filter((s) =>
 			planetIds.has(s.planetid),
@@ -114,15 +124,15 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 			if (!aIsLeased && bIsLeased) return -1;
 			return 0;
 		});
-	}, [productionData, planets]);
+	}, [isLoggedIn, productionData, planets]);
 
-	// All our production sites on the selected planet
+	// All our production sites on the selected planet (only if logged in)
 	const planetSites = useMemo(() => {
-		if (!selectedPlanetId) return [];
+		if (!isLoggedIn || !selectedPlanetId) return [];
 		return Object.values(productionData || {}).filter(
 			(s) => s.planetid === selectedPlanetId,
 		);
-	}, [productionData, selectedPlanetId]);
+	}, [isLoggedIn, productionData, selectedPlanetId]);
 
 	const toggleStation = (id: string) => {
 		setExpandedStations((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -134,8 +144,9 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 		return planets.reduce((acc, p) => acc + (p.planetPopulation || 0), 0);
 	}, [planets, system]);
 
-	// Combine all ships present in the system
+	// Combine all ships present in the system (only if logged in)
 	const systemShips = useMemo(() => {
+		if (!isLoggedIn) return { own: [], others: [] };
 		const own = ownerShips.filter(
 			(s) => s.address_system_id === systemId || s.addresssystemid === systemId,
 		);
@@ -143,7 +154,7 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 			(s) => s.address_system_id === systemId || s.addresssystemid === systemId,
 		);
 		return { own, others };
-	}, [ownerShips, otherShips, systemId]);
+	}, [isLoggedIn, ownerShips, otherShips, systemId]);
 
 	// Find active selected planet data
 	const activePlanetData = useMemo(() => {
@@ -1335,6 +1346,618 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 									</Box>
 								</Box>
 							)}
+
+						{/* Planetary Government & Parliament */}
+						{(() => {
+							const govTerms = activePlanetData.Government || [];
+							if (!govTerms || govTerms.length === 0) return null;
+
+							// Active in-office term (the term with elected winners holding office right now)
+							const activeInOfficeTerm =
+								govTerms.find((t: any) => {
+									const cands: any[] = t.Candidates || t.candidates || [];
+									return cands.some((c: any) =>
+										Boolean(c.IsWinner ?? c.is_winner ?? c.isWinner),
+									);
+								}) ||
+								govTerms.find((t: any) => t.TermStart || t.term_start) ||
+								govTerms[0];
+
+							const activeTermIndex = govTerms.indexOf(activeInOfficeTerm);
+							const activeTermNum = activeTermIndex !== -1 ? govTerms.length - activeTermIndex : (activeInOfficeTerm?.TermId || activeInOfficeTerm?.termid || 1);
+
+							// Ongoing election term (if an election is in progress for the upcoming term)
+							const electionTerm = govTerms.find((t: any) =>
+								Boolean(t.ElectionOngoing ?? t.election_ongoing),
+							);
+
+							// Past terms excluding the currently active term and any ongoing election term
+							const pastTerms = govTerms.filter(
+								(t: any) => t !== activeInOfficeTerm && t !== electionTerm,
+							);
+
+							const officeCands: any[] =
+								activeInOfficeTerm?.Candidates ||
+								activeInOfficeTerm?.candidates ||
+								[];
+							const officeWinners = officeCands.filter((c: any) =>
+								Boolean(c.IsWinner ?? c.is_winner ?? c.isWinner),
+							);
+
+							const electionCands: any[] =
+								electionTerm?.Candidates || electionTerm?.candidates || [];
+
+							return (
+								<Box
+									sx={{
+										p: 1,
+										borderRadius: "6px",
+										bgcolor: "rgba(123, 104, 238, 0.05)",
+										border: "1px solid rgba(123, 104, 238, 0.2)",
+										display: "flex",
+										flexDirection: "column",
+										gap: 0.75,
+									}}
+								>
+									{/* Top Header Row */}
+									<Box
+										sx={{
+											display: "flex",
+											justifyContent: "space-between",
+											alignItems: "center",
+										}}
+									>
+										<Typography
+											variant="caption"
+											sx={{
+												color: "#7B68EE",
+												fontWeight: 800,
+												fontSize: "0.7rem",
+												letterSpacing: "0.04em",
+												display: "flex",
+												alignItems: "center",
+												gap: 0.4,
+											}}
+										>
+											<AccountBalance sx={{ fontSize: 14 }} /> PLANETARY GOVERNMENT
+										</Typography>
+
+										<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+											{electionTerm && (
+												<Box
+													sx={{
+														px: 0.6,
+														py: 0.1,
+														borderRadius: "8px",
+														bgcolor: "rgba(123, 104, 238, 0.15)",
+														border: "1px solid #7B68EE",
+														color: "#7B68EE",
+														fontSize: "0.52rem",
+														fontWeight: 800,
+													}}
+												>
+													ELECTION ACTIVE
+												</Box>
+											)}
+											<Box
+												sx={{
+													px: 0.5,
+													py: 0.1,
+													borderRadius: "3px",
+													bgcolor: "rgba(123, 104, 238, 0.15)",
+													border: "1px solid #7B68EE",
+													color: "#7B68EE",
+													fontSize: "0.52rem",
+													fontWeight: 800,
+												}}
+											>
+												TERM #{activeTermNum}
+											</Box>
+										</Box>
+									</Box>
+
+									{/* Compact Term Stats Info */}
+									<Box
+										sx={{
+											p: 0.5,
+											px: 0.75,
+											borderRadius: "4px",
+											bgcolor: "rgba(0, 0, 0, 0.25)",
+											border: "1px solid rgba(255, 255, 255, 0.04)",
+											display: "flex",
+											justifyContent: "space-between",
+											alignItems: "center",
+											fontSize: "0.6rem",
+											color: "rgba(255,255,255,0.7)",
+										}}
+									>
+										<span>
+											Term:{" "}
+											<strong style={{ color: "#fff" }}>
+												{activeInOfficeTerm?.TermStart || activeInOfficeTerm?.term_start
+													? new Date(activeInOfficeTerm.TermStart || activeInOfficeTerm.term_start).toLocaleDateString()
+													: "Active"}
+												{" - "}
+												{activeInOfficeTerm?.TermEnd || activeInOfficeTerm?.term_end
+													? new Date(activeInOfficeTerm.TermEnd || activeInOfficeTerm.term_end).toLocaleDateString()
+													: "Ongoing"}
+											</strong>
+										</span>
+										<span>
+											Seats:{" "}
+											<strong style={{ color: "#7B68EE" }}>
+												{activeInOfficeTerm?.ParliamentSize || activeInOfficeTerm?.parliament_size || officeWinners.length}
+											</strong>
+										</span>
+										{electionTerm && (electionTerm.ElectionEnd || electionTerm.election_end) && (
+											<span>
+												Vote Ends:{" "}
+												<strong style={{ color: "#7B68EE" }}>
+													{new Date(electionTerm.ElectionEnd || electionTerm.election_end).toLocaleDateString()}
+												</strong>
+											</span>
+										)}
+									</Box>
+
+									{/* Members Currently in Office (Ultra Compact) */}
+									<Box sx={{ display: "flex", flexDirection: "column", gap: 0.35 }}>
+										<Typography variant="caption" sx={{ fontSize: "0.58rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase" }}>
+											Active Officers in Office
+										</Typography>
+										{(officeWinners.length > 0 ? officeWinners : officeCands).map((cand: any, idx: number) => {
+											const isWin = Boolean(cand.IsWinner ?? cand.is_winner ?? cand.isWinner);
+											const winIndex = officeWinners.indexOf(cand);
+											const isGovernor = isWin && winIndex === 0;
+											const isMP = isWin && winIndex > 0;
+											const pct = Math.round((cand.VotesPercentage ?? cand.votes_percentage ?? 0) * 100) / 100;
+											const username = cand.Username || cand.username || cand.UserId || cand.userid || "Anonymous";
+											const corpCode = cand.CorporationCode || cand.corporation_code || null;
+
+											return (
+												<Box
+													key={cand.CandidateId || cand.id || idx}
+													sx={{
+														p: 0.4,
+														px: 0.75,
+														borderRadius: "4px",
+														bgcolor: isGovernor
+															? "rgba(123, 104, 238, 0.1)"
+															: "rgba(0,0,0,0.2)",
+														border: isGovernor
+															? "1px solid rgba(123, 104, 238, 0.3)"
+															: "1px solid rgba(255,255,255,0.05)",
+														display: "flex",
+														justifyContent: "space-between",
+														alignItems: "center",
+													}}
+												>
+													<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+														{isGovernor ? (
+															<EmojiEvents sx={{ fontSize: 12, color: "#7B68EE" }} />
+														) : isMP ? (
+															<People sx={{ fontSize: 12, color: "#7B68EE" }} />
+														) : null}
+														<Typography
+															variant="caption"
+															sx={{
+																fontWeight: 700,
+																fontSize: "0.65rem",
+																color: isGovernor ? "#9988ff" : "#fff",
+															}}
+														>
+															{username}
+														</Typography>
+														{corpCode && (
+															<Typography variant="caption" sx={{ fontSize: "0.55rem", color: "rgba(255,255,255,0.45)" }}>
+																[{corpCode}]
+															</Typography>
+														)}
+													</Box>
+
+													<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+														{isGovernor ? (
+															<Box
+																sx={{
+																	px: 0.4,
+																	py: 0.05,
+																	borderRadius: "3px",
+																	bgcolor: "rgba(123, 104, 238, 0.2)",
+																	border: "1px solid #7B68EE",
+																	color: "#7B68EE",
+																	fontSize: "0.5rem",
+																	fontWeight: 800,
+																}}
+															>
+																GOVERNOR
+															</Box>
+														) : isMP ? (
+															<Box
+																sx={{
+																	px: 0.4,
+																	py: 0.05,
+																	borderRadius: "3px",
+																	bgcolor: "rgba(123, 104, 238, 0.15)",
+																	border: "1px solid rgba(123, 104, 238, 0.5)",
+																	color: "#7B68EE",
+																	fontSize: "0.5rem",
+																	fontWeight: 800,
+																}}
+															>
+																MP
+															</Box>
+														) : null}
+														<Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.6rem", color: "rgba(255,255,255,0.7)" }}>
+															{cand.Votes ?? cand.votes ?? 0} ({pct}%)
+														</Typography>
+													</Box>
+												</Box>
+											);
+										})}
+									</Box>
+
+									{/* Upcoming Election Candidates Section (Compact Scrollable) */}
+									{electionTerm && electionCands.length > 0 && (
+										<Box sx={{ borderTop: "1px dashed rgba(123, 104, 238, 0.2)", pt: 0.5 }}>
+											<Typography
+												variant="caption"
+												sx={{
+													fontSize: "0.58rem",
+													fontWeight: 800,
+													color: "#7B68EE",
+													textTransform: "uppercase",
+													letterSpacing: "0.04em",
+													display: "block",
+													mb: 0.35,
+												}}
+											>
+												Election Candidates Running for Next Term ({electionCands.length})
+											</Typography>
+
+											<Box
+												sx={{
+													maxHeight: 100,
+													overflowY: "auto",
+													display: "flex",
+													flexDirection: "column",
+													gap: 0.3,
+													pr: 0.5,
+													"&::-webkit-scrollbar": { width: 3 },
+													"&::-webkit-scrollbar-thumb": { bgcolor: "rgba(123, 104, 238, 0.3)", borderRadius: 2 },
+												}}
+											>
+												{electionCands.map((cand: any, cIdx: number) => {
+													const username = cand.Username || cand.username || cand.UserId || cand.userid || "Anonymous";
+													const corpCode = cand.CorporationCode || cand.corporation_code || null;
+
+													return (
+														<Box
+															key={cand.CandidateId || cand.id || cIdx}
+															sx={{
+																p: 0.35,
+																px: 0.65,
+																borderRadius: "4px",
+																bgcolor: "rgba(0,0,0,0.2)",
+																border: "1px solid rgba(255,255,255,0.04)",
+																display: "flex",
+																justifyContent: "space-between",
+																alignItems: "center",
+																fontSize: "0.6rem",
+															}}
+														>
+															<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+																<span style={{ color: "#fff", fontWeight: 600 }}>{username}</span>
+																{corpCode && <span style={{ color: "rgba(255,255,255,0.4)" }}>[{corpCode}]</span>}
+															</Box>
+															<span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 700, fontSize: "0.55rem", letterSpacing: "0.04em" }}>
+																REDACTED
+															</span>
+														</Box>
+													);
+												})}
+											</Box>
+										</Box>
+									)}
+
+									{/* Past Terms List (Ultra Compact Scrollable) */}
+									{pastTerms.length > 0 && (
+										<Box sx={{ borderTop: "1px dashed rgba(255,255,255,0.08)", pt: 0.5 }}>
+											<Typography
+												variant="caption"
+												sx={{
+													fontSize: "0.58rem",
+													fontWeight: 800,
+													color: "rgba(255,255,255,0.45)",
+													textTransform: "uppercase",
+													letterSpacing: "0.04em",
+													display: "block",
+													mb: 0.35,
+												}}
+											>
+												Past Terms ({pastTerms.length})
+											</Typography>
+
+											<Box
+												sx={{
+													maxHeight: 180,
+													overflowY: "auto",
+													overflowX: "hidden",
+													display: "flex",
+													flexDirection: "column",
+													gap: 0.5,
+													pr: 0.5,
+													"&::-webkit-scrollbar": { width: 3 },
+													"&::-webkit-scrollbar-thumb": { bgcolor: "rgba(123, 104, 238, 0.3)", borderRadius: 2 },
+												}}
+											>
+												{pastTerms.map((t: any, pIdx: number) => {
+													const termIndex = govTerms.indexOf(t);
+													const termNum = termIndex !== -1 ? govTerms.length - termIndex : (pastTerms.length - pIdx);
+
+													const termCands: any[] = t.Candidates || t.candidates || [];
+													const termWinners = termCands.filter((c: any) =>
+														Boolean(c.IsWinner ?? c.is_winner ?? c.isWinner),
+													);
+													const governor = termWinners[0];
+													const mps = termWinners.slice(1);
+
+													return (
+														<Box
+															key={t.TermId || t.termid || pIdx}
+															sx={{
+																p: 0.5,
+																px: 0.75,
+																borderRadius: "4px",
+																bgcolor: "rgba(0, 0, 0, 0.25)",
+																border: "1px solid rgba(255, 255, 255, 0.05)",
+																display: "flex",
+																flexDirection: "column",
+																gap: 0.35,
+																fontSize: "0.6rem",
+															}}
+														>
+															{/* Top Header of Term Card */}
+															<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+																<span style={{ color: "#7B68EE", fontWeight: 800 }}>
+																	Term #{termNum}
+																</span>
+																<span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.55rem" }}>
+																	{t.TermStart || t.term_start ? new Date(t.TermStart || t.term_start).toLocaleDateString() : ""}
+																	{t.TermEnd || t.term_end ? ` - ${new Date(t.TermEnd || t.term_end).toLocaleDateString()}` : ""}
+																</span>
+															</Box>
+
+															{/* Governor Row */}
+															{governor && (
+																<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pl: 0.5 }}>
+																	<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+																		<EmojiEvents sx={{ fontSize: 11, color: "#7B68EE" }} />
+																		<span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Gov:</span>
+																		<strong style={{ color: "#9988ff" }}>
+																			{governor.Username || governor.username || governor.UserId}
+																		</strong>
+																		{(governor.CorporationCode || governor.corporation_code) && (
+																			<span style={{ color: "rgba(255,255,255,0.4)" }}>
+																				[{governor.CorporationCode || governor.corporation_code}]
+																			</span>
+																		)}
+																	</Box>
+																	<span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: "0.58rem" }}>
+																		{governor.Votes ?? governor.votes ?? 0} Votes ({Math.round((governor.VotesPercentage ?? governor.votes_percentage ?? 0) * 100) / 100}%)
+																	</span>
+																</Box>
+															)}
+
+															{/* MPs Rows */}
+															{mps.length > 0 && (
+																<Box sx={{ display: "flex", flexDirection: "column", gap: 0.25, pl: 0.5 }}>
+																	{mps.map((mp: any, mIdx: number) => {
+																		const pct = Math.round((mp.VotesPercentage ?? mp.votes_percentage ?? 0) * 100) / 100;
+																		return (
+																			<Box key={mp.CandidateId || mIdx} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+																				<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+																					<People sx={{ fontSize: 11, color: "#7B68EE" }} />
+																					<span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>MP:</span>
+																					<strong style={{ color: "#fff" }}>
+																						{mp.Username || mp.username || mp.UserId}
+																					</strong>
+																					{(mp.CorporationCode || mp.corporation_code) && (
+																						<span style={{ color: "rgba(255,255,255,0.4)" }}>
+																							[{mp.CorporationCode || mp.corporation_code}]
+																						</span>
+																					)}
+																				</Box>
+																				<span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 500, fontSize: "0.58rem" }}>
+																					{mp.Votes ?? mp.votes ?? 0} Votes ({pct}%)
+																				</span>
+																			</Box>
+																		);
+																	})}
+																</Box>
+															)}
+														</Box>
+													);
+												})}
+											</Box>
+										</Box>
+									)}
+								</Box>
+							);
+						})()}
+
+						{/* Planetary Motions */}
+						{(() => {
+							const motions = activePlanetData.Motions || [];
+							if (!motions || motions.length === 0) return null;
+
+							return (
+								<Box
+									sx={{
+										p: 1,
+										borderRadius: "6px",
+										bgcolor: "rgba(123, 104, 238, 0.05)",
+										border: "1px solid rgba(123, 104, 238, 0.2)",
+										display: "flex",
+										flexDirection: "column",
+										gap: 0.75,
+									}}
+								>
+									<Box
+										sx={{
+											display: "flex",
+											justifyContent: "space-between",
+											alignItems: "center",
+										}}
+									>
+										<Typography
+											variant="caption"
+											sx={{
+												color: "#7B68EE",
+												fontWeight: 800,
+												fontSize: "0.7rem",
+												letterSpacing: "0.04em",
+												display: "flex",
+												alignItems: "center",
+												gap: 0.4,
+											}}
+										>
+											<Gavel sx={{ fontSize: 14 }} /> PLANETARY MOTIONS ({motions.length})
+										</Typography>
+									</Box>
+
+									{/* Scrollable Motions Container */}
+									<Box
+										sx={{
+											maxHeight: 180,
+											overflowY: "auto",
+											overflowX: "hidden",
+											display: "flex",
+											flexDirection: "column",
+											gap: 0.5,
+											pr: 0.5,
+											"&::-webkit-scrollbar": { width: 3 },
+											"&::-webkit-scrollbar-thumb": { bgcolor: "rgba(123, 104, 238, 0.3)", borderRadius: 2 },
+										}}
+									>
+										{motions.map((m: any, idx: number) => {
+											const status = (m.Status || "PENDING").toUpperCase();
+
+											const components = m.Components || [];
+											const votes = m.Votes || [];
+
+											return (
+												<Box
+													key={m.MotionId || idx}
+													sx={{
+														p: 0.5,
+														px: 0.75,
+														borderRadius: "4px",
+														bgcolor: "rgba(0,0,0,0.25)",
+														border: "1px solid rgba(255,255,255,0.05)",
+														display: "flex",
+														flexDirection: "column",
+														gap: 0.3,
+													}}
+												>
+													<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+														<Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.65rem", color: "#fff" }}>
+															{m.MotionName || `Motion #${m.MotionId}`}
+														</Typography>
+														<Box
+															sx={{
+																px: 0.4,
+																py: 0.05,
+																borderRadius: "3px",
+																bgcolor: "rgba(123, 104, 238, 0.15)",
+																border: "1px solid rgba(123, 104, 238, 0.4)",
+																color: "#7B68EE",
+																fontSize: "0.5rem",
+																fontWeight: 800,
+															}}
+														>
+															{status}
+														</Box>
+													</Box>
+
+													{m.CreatorUsername && (
+														<Typography variant="caption" sx={{ fontSize: "0.58rem", color: "rgba(255,255,255,0.45)" }}>
+															Proposed by <strong>{m.CreatorUsername}</strong>
+															{m.CreatedAt && ` • ${new Date(m.CreatedAt).toLocaleDateString()}`}
+														</Typography>
+													)}
+
+													{/* Motion Components (Compact Inline) */}
+													{components.length > 0 && (
+														<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.4, mt: 0.25 }}>
+															{components.map((comp: any, cIdx: number) => (
+																<Box
+																	key={comp.ComponentId || cIdx}
+																	sx={{
+																		px: 0.6,
+																		py: 0.2,
+																		borderRadius: "3px",
+																		bgcolor: "rgba(255,255,255,0.03)",
+																		border: "1px solid rgba(255,255,255,0.05)",
+																		fontSize: "0.58rem",
+																		display: "inline-flex",
+																		gap: 0.5,
+																	}}
+																>
+																	<span style={{ color: "#7B68EE", fontWeight: 600 }}>{comp.Type}</span>
+																	{comp.Amount !== undefined && (
+																		<span style={{ color: "#fff", fontWeight: 700 }}>
+																			{comp.Amount?.toLocaleString()} {comp.Currency || ""}
+																		</span>
+																	)}
+																</Box>
+															))}
+														</Box>
+													)}
+
+													{/* Motion Votes Detailed Breakdown */}
+													{votes.length > 0 && (
+														<Box sx={{ display: "flex", flexDirection: "column", gap: 0.25, mt: 0.25, pt: 0.25, borderTop: "1px dashed rgba(255,255,255,0.06)" }}>
+															<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+																<HowToVote sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }} />
+																<Typography variant="caption" sx={{ fontSize: "0.58rem", fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>
+																	VOTES RECORDED ({votes.length})
+																</Typography>
+															</Box>
+															<Box sx={{ display: "flex", flexDirection: "column", gap: 0.2, pl: 0.25 }}>
+																{votes.map((v: any, vIdx: number) => {
+																	const voterName = v.Username || v.username || v.VoterUsername || v.voter_username || v.UserId || v.userid || "Voter";
+																	const voteChoice = String(v.Vote || v.vote || v.Option || v.option || "FOR").toUpperCase();
+
+																	return (
+																		<Box
+																			key={v.VoteId || vIdx}
+																			sx={{
+																				display: "flex",
+																				justifyContent: "space-between",
+																				alignItems: "center",
+																				fontSize: "0.58rem",
+																				bgcolor: "rgba(0,0,0,0.15)",
+																				p: 0.25,
+																				px: 0.5,
+																				borderRadius: "3px",
+																			}}
+																		>
+																			<span style={{ color: "#fff", fontWeight: 600 }}>{voterName}</span>
+																			<span style={{ color: voteChoice === "FOR" ? "#7B68EE" : "rgba(255,255,255,0.5)", fontWeight: 700, fontSize: "0.55rem" }}>
+																				{voteChoice}
+																			</span>
+																		</Box>
+																	);
+																})}
+															</Box>
+														</Box>
+													)}
+												</Box>
+											);
+										})}
+									</Box>
+								</Box>
+							);
+						})()}
 
 						{/* Sites details */}
 						{(() => {

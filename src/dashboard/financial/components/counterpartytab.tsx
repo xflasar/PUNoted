@@ -276,7 +276,7 @@ export const CounterpartyTab: React.FC<CounterpartyTabProps> = ({
 				ItemVolume: 0,
 			};
 			const abs = Math.abs(tx.Amount);
-			existing.ItemVolume += tx.ItemQuantity || 1;
+			existing.ItemVolume += tx.ItemQuantity || 0;
 			if (tx.Amount > 0) existing.Earnings += tx.Amount;
 			else existing.Expenses += abs;
 			pointMap.set(label, existing);

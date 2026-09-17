@@ -88,7 +88,25 @@ interface GlobalDataContextState {
 		companyCode: string | null;
 		companyName: string | null;
 		corpName: string | null;
+		corpCode?: string | null;
+		activeDaysPerWeek?: number | null;
+		highestTier?: number | null;
+		subscriptionLevel?: string | null;
+		subscriptionExpiry?: string | null;
+		isPayingUser?: boolean | null;
+		ownCurrencyId?: string | null;
+		ownCurrencyCode?: string | null;
+		ownCurrencyName?: string | null;
+		created?: string | null;
+		corporationId?: string | null;
+		companyId?: string | null;
+		startingProfile?: string | null;
+		headquartersId?: string | null;
+		startingLocationPlanetId?: string | null;
+		startingLocationSystemId?: string | null;
+		countryId?: string | null;
 	};
+	refreshUserProfile: () => Promise<void>;
 	handleLoginSuccess: () => void;
 	handleLogout: () => void;
 }
@@ -308,13 +326,76 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	};
 
 	const [isLoggedIn, setIsLoggedIn] = useState<boolean>(checkAuth);
-	const [userMetadata, setUserMetadata] = useState({
+
+	const [userMetadata, setUserMetadata] = useState<{
+		username: string | null;
+		displayName: string | null;
+		companyCode: string | null;
+		companyName: string | null;
+		corpName: string | null;
+		corpCode?: string | null;
+		activeDaysPerWeek?: number | null;
+		highestTier?: number | null;
+		subscriptionLevel?: string | null;
+		subscriptionExpiry?: string | null;
+		isPayingUser?: boolean | null;
+		ownCurrencyId?: string | null;
+		ownCurrencyCode?: string | null;
+		ownCurrencyName?: string | null;
+		created?: string | null;
+		corporationId?: string | null;
+		companyId?: string | null;
+		startingProfile?: string | null;
+		headquartersId?: string | null;
+		startingLocationPlanetId?: string | null;
+		startingLocationSystemId?: string | null;
+		countryId?: string | null;
+	}>({
 		username: localStorage.getItem("username"),
 		displayName: localStorage.getItem("displayName"),
 		companyCode: localStorage.getItem("companyCode"),
 		companyName: localStorage.getItem("companyName"),
 		corpName: localStorage.getItem("corpName"),
 	});
+
+	const refreshUserProfile = useCallback(async () => {
+		try {
+			const res = await fetchClient("/internal/users/profile");
+			if (res?.ok) {
+				const json = await res.json();
+				if (json.success && json.profile) {
+					const p = json.profile;
+					setUserMetadata((prev) => ({
+						...prev,
+						username: p.displayname || prev.username,
+						displayName: p.displayname || prev.displayName,
+						companyCode: p.companycode || prev.companyCode,
+						companyName: p.companyname || prev.companyName,
+						corpName: p.corpname || prev.corpName,
+						corpCode: p.corpcode ?? null,
+						activeDaysPerWeek: p.activedaysperweek ?? null,
+						highestTier: p.highesttier ?? null,
+						subscriptionLevel: p.subscriptionlevel ?? null,
+						subscriptionExpiry: p.subscriptionexpiry ?? null,
+						isPayingUser: p.ispayinguser ?? null,
+						ownCurrencyId: p.owncurrencyid ?? null,
+						ownCurrencyCode: p.owncurrencycode ?? null,
+						ownCurrencyName: p.owncurrencyname ?? null,
+						created: p.created ?? null,
+						corporationId: p.corporationid ?? null,
+						companyId: p.companyid ?? null,
+						startingProfile: p.startingprofile ?? null,
+						headquartersId: p.headquartersid ?? null,
+						startingLocationPlanetId: p.startinglocationplanetid ?? null,
+						startingLocationSystemId: p.startinglocationsystemid ?? null,
+						countryId: p.countryid ?? null,
+					}));
+				}
+			}
+		} catch (e) {
+			console.warn("Failed to fetch user profile:", e);
+		}
+	}, []);
 
 	const handleLoginSuccess = useCallback(() => {
 		setIsLoggedIn(true);
@@ -325,7 +406,8 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 			companyName: localStorage.getItem("companyName"),
 			corpName: localStorage.getItem("corpName"),
 		});
-	}, []);
+		refreshUserProfile();
+	}, [refreshUserProfile]);
 
 	const handleLogout = useCallback(() => {
 		localStorage.clear();
@@ -543,6 +625,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 	const fetchFinances = useCallback(async () => {
 		try {
+			setIsFinancialLoading(true);
 			const res = await fetchClient("/internal/finances/overview");
 			if (res?.ok) {
 				const data = await res.json();
@@ -550,7 +633,8 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					setFinancialData(data);
 				}
 			}
-		} catch {
+		} catch (e) {
+			console.error("🌐 [GlobalDataContext] fetchFinances error:", e);
 		} finally {
 			setIsFinancialLoading(false);
 		}
@@ -680,6 +764,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	useEffect(() => {
 		if (!isLoggedIn) return;
 
+		refreshUserProfile();
 		fetchShipsData();
 		fetchStorageData();
 		fetchProductionData();
@@ -690,6 +775,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		fetchCorporationData();
 	}, [
 		isLoggedIn,
+		refreshUserProfile,
 		fetchShipsData,
 		fetchStorageData,
 		fetchProductionData,
@@ -1220,6 +1306,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 			apiStatus,
 			isLoggedIn,
 			userMetadata,
+			refreshUserProfile,
 			handleLoginSuccess,
 			handleLogout,
 		}),
@@ -1267,6 +1354,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 			apiStatus,
 			isLoggedIn,
 			userMetadata,
+			refreshUserProfile,
 			handleLoginSuccess,
 			handleLogout,
 		],
@@ -1332,6 +1420,7 @@ export const useGlobalData = (): GlobalDataContextState => {
 				companyName: null,
 				corpName: null,
 			},
+			refreshUserProfile: async () => {},
 			handleLoginSuccess: () => {},
 			handleLogout: () => {},
 			customPrices: {},

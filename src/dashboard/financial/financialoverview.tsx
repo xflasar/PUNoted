@@ -17,7 +17,13 @@ import {
 	Tooltip,
 	useMediaQuery,
 	useTheme,
+	LinearProgress,
+	CircularProgress,
 } from "@mui/material";
+
+
+import GlobalLoadingOverlay from "../../components/common/globalloadingoverlay";
+
 import RefreshIcon from "@mui/icons-material/Refresh";
 import TuneIcon from "@mui/icons-material/Tune";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -71,6 +77,12 @@ import { FinancialCategoryStats } from "./components/financialcategorystats";
 
 export default function FinancialOverview() {
 	const globalData = useGlobalData();
+	const userCorp = (
+		globalData?.userMetadata?.corpCode ||
+		globalData?.userMetadata?.corpName ||
+		"COSM"
+	).toUpperCase();
+	const isCorpAuthorized = userCorp.includes("COSM");
 	const {
 		data,
 		loading,
@@ -93,17 +105,13 @@ export default function FinancialOverview() {
 		incomeExpense30D,
 		pieChartData,
 		volumeBreakdown,
+		loadedSteps,
+		totalSteps,
+		statusText,
 	} = useFinancialData();
 
-	const [isHeaderCollapsed, setIsHeaderCollapsed] = useState<boolean>(false);
 
-	const userMetadata = globalData?.userMetadata;
-	const userCorp = (
-		userMetadata?.corpName ||
-		userMetadata?.companyCode ||
-		""
-	).toUpperCase();
-	const isCorpAuthorized = userCorp.includes("COSM");
+	const [isHeaderCollapsed, setIsHeaderCollapsed] = useState<boolean>(false);
 
 	const [priceMode, setPriceMode] = useState<PriceMode>(() => {
 		return (
@@ -111,14 +119,11 @@ export default function FinancialOverview() {
 		);
 	});
 	const [priceSource, setPriceSource] = useState<PriceSource>(() => {
-		const saved =
+		return (
 			(localStorage.getItem("balanceSheetPriceSource") as PriceSource) ||
-			"MARKET";
-		return isCorpAuthorized ? saved : "MARKET";
+			"MARKET"
+		);
 	});
-
-	// Guarantee non-COSM users always use MARKET pricing
-	const effectivePriceSource = isCorpAuthorized ? priceSource : "MARKET";
 
 	const handlePriceModeChange = (mode: PriceMode) => {
 		setPriceMode(mode);
@@ -126,7 +131,6 @@ export default function FinancialOverview() {
 	};
 
 	const handlePriceSourceChange = (source: PriceSource) => {
-		if (source === "CORP" && !isCorpAuthorized) return;
 		setPriceSource(source);
 		localStorage.setItem("balanceSheetPriceSource", source);
 	};
@@ -140,7 +144,7 @@ export default function FinancialOverview() {
 		buildingAssetBreakdown,
 		totalShipValue,
 		inventoryValuationBreakdown,
-	} = useFinancialCalculations(currentData, priceMode, effectivePriceSource);
+	} = useFinancialCalculations(currentData, priceMode, priceSource);
 
 	// Load and persist preferred view mode (Simple vs Advanced)
 	const [isAdvancedView, setIsAdvancedView] = useState<boolean>(() => {
@@ -245,6 +249,13 @@ export default function FinancialOverview() {
 				position: "relative",
 			}}
 		>
+			{/* Darkened Backdrop & Centered Overlay Box with Clockwise Perimeter Border Beam */}
+			<GlobalLoadingOverlay
+				loading={loading}
+				statusText={statusText}
+				subText={`[${loadedSteps} / ${totalSteps}] STAGES COMPLETED`}
+			/>
+
 			{/* Persistent Header */}
 			<Box
 				sx={{
@@ -260,6 +271,7 @@ export default function FinancialOverview() {
 					flexWrap: "nowrap",
 					overflowX: "auto",
 					gap: 1.5,
+					position: "relative",
 					"&::-webkit-scrollbar": { height: "3px" },
 					"&::-webkit-scrollbar-thumb": {
 						backgroundColor: "rgba(123, 104, 238, 0.3)",
@@ -267,6 +279,10 @@ export default function FinancialOverview() {
 					},
 				}}
 			>
+
+
+
+
 				{/* Compact Single-Box Currency Dropdown Selector */}
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
 					<Typography
@@ -424,7 +440,7 @@ export default function FinancialOverview() {
 					{/* Global Price Source Select */}
 					<Select
 						size="small"
-						value={effectivePriceSource}
+						value={priceSource}
 						onChange={(e) =>
 							handlePriceSourceChange(e.target.value as PriceSource)
 						}
@@ -461,7 +477,7 @@ export default function FinancialOverview() {
 								fontWeight: 800,
 							}}
 						>
-							Corp Pricing
+							Corp Pricing {!isCorpAuthorized && "(COSM Only)"}
 						</MenuItem>
 						<MenuItem
 							value="CUSTOM"
@@ -476,7 +492,7 @@ export default function FinancialOverview() {
 					</Select>
 
 					{/* Global Price Mode Select (Shown when MARKET is selected) */}
-					{effectivePriceSource === "MARKET" && (
+					{priceSource === "MARKET" && (
 						<Select
 							size="small"
 							value={priceMode}
@@ -669,7 +685,9 @@ export default function FinancialOverview() {
 								timeRange={timeRange}
 								customStartDate={customStartDate}
 								customEndDate={customEndDate}
+								loading={loading}
 							/>
+
 						</Box>
 					</Box>
 				</Collapse>
@@ -833,7 +851,9 @@ export default function FinancialOverview() {
 									onPriceModeChange={handlePriceModeChange}
 									priceSource={priceSource}
 									onPriceSourceChange={handlePriceSourceChange}
+									loading={loading}
 								/>
+
 							)}
 							{advancedSubTab === 1 && (
 								<CashFlowTab

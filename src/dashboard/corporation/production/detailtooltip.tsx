@@ -238,13 +238,6 @@ export const DetailTooltip = React.memo(
 				}
 			}
 
-			console.log(item);
-
-			console.log(userRecipes);
-			console.log(items);
-			console.log(recipeLookup);
-			console.log(userMap);
-
 			items.forEach((i) => {
 				let uGroup = userMap.get(i.player);
 				if (!uGroup) {

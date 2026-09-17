@@ -43,7 +43,8 @@ import type {
 	DashboardWidgets,
 	ContractListItem,
 } from "../types";
-import dayjs from "dayjs";
+import { useGlobalData } from "../../../context/globaldatacontext";
+import GlobalLoadingOverlay from "../../../components/common/globalloadingoverlay";
 import ContractRow from "./contractrow";
 
 // --- Helper Components ---
@@ -97,22 +98,28 @@ const StatCard = ({ title, value, lastValue, type = "neutral" }: any) => {
 	const theme = useTheme();
 	const color =
 		type === "revenue"
-			? theme.palette.success.main
+			? "#64FFDA"
 			: type === "expense"
-				? theme.palette.error.main
-				: theme.palette.primary.main;
+				? "#ff5252"
+				: "#7b68ee";
 
 	return (
 		<Box
 			sx={{
-				p: 1,
+				p: 1.5,
 				flex: 1,
-				minWidth: "100px",
+				minWidth: "110px",
 				height: "100%",
-				bgcolor: alpha(theme.palette.background.default, 0.4),
-				backdropFilter: "blur(12px)",
-				border: `1px solid ${theme.palette.divider}`,
-				borderRadius: 1,
+				bgcolor: "rgba(4, 4, 10, 0.75)",
+				border: "1px solid rgba(123, 104, 238, 0.2)",
+				borderRadius: "14px",
+				boxShadow: "0 0 30px rgba(123, 104, 238, 0.08)",
+				backdropFilter: "blur(20px)",
+				transition: "all 0.22s ease-in-out",
+				"&:hover": {
+					borderColor: "rgba(123, 104, 238, 0.45)",
+					boxShadow: "0 4px 20px rgba(123, 104, 238, 0.15)",
+				},
 				display: "flex",
 				flexDirection: "column",
 				justifyContent: "center",
@@ -122,17 +129,17 @@ const StatCard = ({ title, value, lastValue, type = "neutral" }: any) => {
 			<Typography
 				variant="caption"
 				color="text.secondary"
-				fontWeight={700}
+				fontWeight={800}
 				textTransform="uppercase"
-				fontSize="0.65rem"
-				sx={{ lineHeight: 1 }}
+				fontSize="0.68rem"
+				sx={{ lineHeight: 1, letterSpacing: "0.05em" }}
 			>
 				{title}
 			</Typography>
 			<Typography
 				variant="body1"
 				fontWeight={800}
-				sx={{ color, my: 0, fontSize: "0.9rem" }}
+				sx={{ color, my: 0.5, fontSize: "1.05rem", fontFamily: "monospace" }}
 			>
 				{typeof value === "number" ? formatCurrency(value, "ICA") : value}
 			</Typography>
@@ -157,32 +164,44 @@ const WidgetList = ({ title, items, icon, emptyMsg, onViewDetail }: any) => {
 				minHeight: 180,
 				display: "flex",
 				flexDirection: "column",
-				bgcolor: alpha(theme.palette.background.default, 0.4),
-				backdropFilter: "blur(12px)",
-				border: `1px solid ${theme.palette.divider}`,
-				borderRadius: 1,
+				bgcolor: "rgba(4, 4, 10, 0.75)",
+				border: "1px solid rgba(255, 255, 255, 0.08)",
+				borderRadius: "10px",
+				backdropFilter: "blur(20px)",
 				overflow: "hidden",
+				transition: "all 0.18s ease-in-out",
+				"&:hover": {
+					borderColor: "rgba(255, 255, 255, 0.18)",
+				},
 			}}
 		>
 			<Box
 				sx={{
 					p: 0.75,
-					px: 1,
-					borderBottom: `1px solid ${theme.palette.divider}`,
+					px: 1.5,
+					borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
 					display: "flex",
 					alignItems: "center",
 					gap: 1,
-					bgcolor: alpha(theme.palette.background.default, 0.5),
+					bgcolor: "rgba(255, 255, 255, 0.02)",
 				}}
 			>
 				{icon}
-				<Typography variant="subtitle2" fontWeight={800} fontSize="0.75rem">
+				<Typography variant="subtitle2" fontWeight={800} fontSize="0.75rem" letterSpacing="0.05em">
 					{title}
 				</Typography>
 				<Chip
 					label={items.length}
 					size="small"
-					sx={{ ml: "auto", height: 16, fontSize: "0.6rem" }}
+					sx={{
+						ml: "auto",
+						height: 18,
+						fontSize: "0.65rem",
+						fontWeight: 800,
+						bgcolor: "rgba(123, 104, 238, 0.2)",
+						color: "#7b68ee",
+						border: "1px solid rgba(123, 104, 238, 0.3)",
+					}}
 				/>
 			</Box>
 			<List dense sx={{ overflowY: "auto", flexGrow: 1, p: 0 }}>
@@ -399,341 +418,31 @@ const MobileContractCard = ({
 
 // --- Main Dashboard Component ---
 
+import { ContractsTab } from "../../financial/components/contractstab";
+
 export const ContractsDashboard: React.FC<{
 	onViewDetail: (id: string) => void;
 }> = ({ onViewDetail }) => {
-	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
-	const [stats, setStats] = useState<DashboardStats | null>(null);
-	const [widgets, setWidgets] = useState<DashboardWidgets | null>(null);
-	const [loading, setLoading] = useState(true);
-
-	const [allContracts, setAllContracts] = useState<ContractListItem[]>([]);
-	const [totalCount, setTotalCount] = useState(0);
-	const [listLoading, setListLoading] = useState(false);
-	const [page, setPage] = useState(0);
-	const [rowsPerPage, setRowsPerPage] = useState(25);
-
-	useEffect(() => {
-		const load = async () => {
-			try {
-				const [sRes, wRes] = await Promise.all([
-					fetchClient("/internal/contracts/dashboard-stats"),
-					fetchClient("/internal/contracts/dashboard-widgets"),
-				]);
-				if (sRes.ok) setStats(await sRes.json());
-				if (wRes.ok) setWidgets(await wRes.json());
-			} catch (e) {
-				console.error(e);
-			} finally {
-				setLoading(false);
-			}
-		};
-		load();
-	}, []);
-
-	useEffect(() => {
-		const fetchList = async () => {
-			setListLoading(true);
-			try {
-				const res = await fetchClient("/internal/contracts/list", {
-					method: "POST",
-					body: JSON.stringify({
-						category: "ALL",
-						status: "ALL",
-						page: page + 1,
-						limit: rowsPerPage,
-					}),
-				});
-				if (res.ok) {
-					const data = await res.json();
-					setAllContracts(data.items || []);
-					setTotalCount(data.total || 0);
-				}
-			} finally {
-				setListLoading(false);
-			}
-		};
-		fetchList();
-	}, [page, rowsPerPage]);
-
-	if (loading)
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100%",
-				}}
-			>
-				<CircularProgress />
-			</Box>
-		);
+	const { financialData } = useGlobalData();
 
 	return (
 		<Box
 			sx={{
-				p: 0.5,
+				p: 1.5,
 				height: "100%",
-				display: "flex",
-				flexDirection: "column",
-				overflowY: isMobile ? "auto" : "hidden",
-				overflowX: "hidden",
-				gap: 1,
+				width: "100%",
+				bgcolor: "#020205",
+				backgroundImage:
+					"radial-gradient(circle at 50% 10%, #080816 0%, #030308 60%, #000000 100%)",
+				overflow: "hidden",
 			}}
 		>
-			{/* ROW 1: Statistics */}
-			<Box
-				sx={{
-					display: "flex",
-					gap: 1,
-					flexDirection: { xs: "column", sm: "row" },
-					flex: isMobile ? "none" : "0 1 auto",
-				}}
-			>
-				<Box sx={{ display: "flex", flexDirection: "row", gap: 1, flex: 1 }}>
-					<StatCard
-						title="Revenue"
-						value={stats?.current_week.revenue || 0}
-						lastValue={stats?.last_week.revenue || 0}
-						type="revenue"
-					/>
-					<StatCard
-						title="Expenses"
-						value={stats?.current_week.expenses || 0}
-						lastValue={stats?.last_week.expenses || 0}
-						type="expense"
-					/>
-				</Box>
-				<Box sx={{ display: "flex", flexDirection: "row", gap: 1, flex: 1 }}>
-					<StatCard
-						title="Net Income"
-						value={stats?.current_week.net || 0}
-						lastValue={stats?.last_week.net || 0}
-						type="net"
-					/>
-					<Box
-						sx={{
-							flex: 1,
-							p: 0.5,
-							minWidth: "100px",
-							height: "100%",
-							minHeight: isMobile ? 80 : "auto",
-							bgcolor: alpha("#1e1e1e", 0.8),
-							border: "1px solid #333",
-							borderRadius: 1,
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
-							justifyContent: "center",
-						}}
-					>
-						<Typography variant="h5" fontWeight={800} color="primary.main">
-							{stats?.total_active}
-						</Typography>
-						<Typography
-							variant="caption"
-							color="text.secondary"
-							textTransform="uppercase"
-							fontSize="0.65rem"
-						>
-							Active
-						</Typography>
-					</Box>
-				</Box>
-			</Box>
-
-			{/* ROW 2: Widgets */}
-			<Box
-				sx={{
-					display: "flex",
-					gap: 1,
-					flexDirection: { xs: "column", sm: "row" },
-					flex: isMobile ? "none" : "0 1 auto",
-					maxHeight: isMobile ? "none" : "40%",
-					minHeight: 180,
-				}}
-			>
-				<WidgetList
-					title="Immediate"
-					items={widgets?.immediate || []}
-					icon={<AccessTime color="error" fontSize="small" />}
-					emptyMsg="No deadlines."
-					onViewDetail={onViewDetail}
-				/>
-				<WidgetList
-					title="Active"
-					items={widgets?.active || []}
-					icon={<CheckCircle color="success" fontSize="small" />}
-					emptyMsg="No active."
-					onViewDetail={onViewDetail}
-				/>
-				<WidgetList
-					title="Breached"
-					items={widgets?.breached || []}
-					icon={<Warning color="warning" fontSize="small" />}
-					emptyMsg="No breached."
-					onViewDetail={onViewDetail}
-				/>
-			</Box>
-
-			{/* ROW 3: Table / Mobile List */}
-			<Box
-				sx={{
-					flexGrow: 1,
-					minHeight: isMobile ? 500 : 0,
-					display: "flex",
-					flexDirection: "column",
-					bgcolor: alpha(theme.palette.background.default, 0.4),
-					backdropFilter: "blur(12px)",
-					border: `1px solid ${theme.palette.divider}`,
-					borderRadius: 1,
-					overflow: "hidden",
-				}}
-			>
-				<Box
-					sx={{
-						p: 0.5,
-						px: 1,
-						borderBottom: `1px solid ${theme.palette.divider}`,
-						bgcolor: alpha(theme.palette.background.default, 0.5),
-					}}
-				>
-					<Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
-						All Contracts
-					</Typography>
-				</Box>
-
-				{isMobile ? (
-					// MOBILE VIEW: CARDS
-					<Box sx={{ flexGrow: 1, overflowY: "auto", p: 1 }}>
-						{listLoading ? (
-							<Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
-								<CircularProgress />
-							</Box>
-						) : allContracts.length === 0 ? (
-							<Box sx={{ textAlign: "center", p: 5, color: "text.secondary" }}>
-								No contracts found.
-							</Box>
-						) : (
-							allContracts.map((c) => (
-								<MobileContractCard
-									key={c.id}
-									contract={c}
-									onClick={() => onViewDetail(c.id)}
-								/>
-							))
-						)}
-					</Box>
-				) : (
-					<TableContainer
-						sx={{ flexGrow: 1, overflowY: "auto", overflowX: "auto" }}
-					>
-						{/* minWidth ensures horizontal scroll on very small tablet screens before switching to mobile view */}
-						<Table
-							stickyHeader
-							size="small"
-							sx={{ height: "100%", tableLayout: "fixed", minWidth: 600 }}
-						>
-							<TableHead>
-								<TableRow sx={{ height: 35 }}>
-									<TableCell sx={{ fontWeight: "bold", width: "25%" }}>
-										Contract
-									</TableCell>
-									<TableCell sx={{ fontWeight: "bold", width: "15%" }}>
-										Type
-									</TableCell>
-									<TableCell sx={{ fontWeight: "bold", width: "25%" }}>
-										Partner
-									</TableCell>
-									<TableCell
-										align="right"
-										sx={{ fontWeight: "bold", width: "15%" }}
-									>
-										Value
-									</TableCell>
-									<TableCell
-										align="right"
-										sx={{ fontWeight: "bold", width: "20%" }}
-									>
-										Status / Date
-									</TableCell>
-								</TableRow>
-							</TableHead>
-							<TableBody>
-								{listLoading ? (
-									<TableRow>
-										<TableCell colSpan={5} align="center">
-											<CircularProgress size={20} />
-										</TableCell>
-									</TableRow>
-								) : (
-									allContracts.map((c) => (
-										<ContractRow
-											key={c.id}
-											contract={c}
-											onClick={() => onViewDetail(c.id)}
-											rowHeight={`max(45px, calc(100% / ${rowsPerPage}))`}
-										/>
-									))
-								)}
-							</TableBody>
-						</Table>
-					</TableContainer>
-				)}
-
-				{/* Pagination (Shared) */}
-				<Box
-					sx={{
-						p: 0.5,
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						borderTop: `1px solid ${theme.palette.divider}`,
-						bgcolor: alpha(theme.palette.background.default, 0.3),
-					}}
-				>
-					<TablePagination
-						component="div"
-						count={totalCount}
-						page={page}
-						onPageChange={(_, p) => setPage(p)}
-						rowsPerPage={rowsPerPage}
-						onRowsPerPageChange={(e) => {
-							setRowsPerPage(parseInt(e.target.value, 10));
-							setPage(0);
-						}}
-						labelDisplayedRows={({ from, to, count }) =>
-							`${from}-${to} of ${count}`
-						}
-						slotProps={{
-							select: {
-								MenuProps: {
-									slotProps: {
-										paper: {
-											sx: {
-												bgcolor: "background.default",
-												backgroundImage: "none",
-											},
-										},
-									},
-								},
-							},
-						}}
-						sx={{
-							".MuiToolbar-root": { justifyContent: "center" },
-							".MuiTablePagination-toolbar": { minHeight: 35, pl: 0, flex: 1 },
-							".MuiTablePagination-spacer": { display: "none" },
-							width: "100%",
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-						}}
-					/>
-				</Box>
-			</Box>
+			<ContractsTab
+				currentData={financialData}
+				netPending={financialData?.NetPending || 0}
+				timeRange="ALL"
+				onSelectTx={(tx) => onViewDetail(tx.ContractId || tx.Id || tx.id)}
+			/>
 		</Box>
 	);
 };

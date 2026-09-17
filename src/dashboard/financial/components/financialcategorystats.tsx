@@ -12,12 +12,15 @@ import { SEMANTIC_COLORS, formatCurrency } from "../utils/financeutils";
 import type { Transaction } from "../types/finances";
 import { useGlobalData } from "../../../context/globaldatacontext";
 
+import { Skeleton } from "@mui/material";
+
 interface FinancialCategoryStatsProps {
 	transactions?: Transaction[];
 	currency: string;
 	timeRange?: string;
 	customStartDate?: string;
 	customEndDate?: string;
+	loading?: boolean;
 }
 
 export const FinancialCategoryStats: React.FC<FinancialCategoryStatsProps> = ({
@@ -26,7 +29,9 @@ export const FinancialCategoryStats: React.FC<FinancialCategoryStatsProps> = ({
 	timeRange = "ALL",
 	customStartDate = "",
 	customEndDate = "",
+	loading = false,
 }) => {
+
 	const { loansData } = useGlobalData();
 
 	// Categorize and aggregate net velocity dynamically from transactions and loansData
@@ -318,34 +323,44 @@ export const FinancialCategoryStats: React.FC<FinancialCategoryStatsProps> = ({
 								</Tooltip>
 							</Box>
 
-							<Typography
-								sx={{
-									color:
-										item.net >= 0
-											? SEMANTIC_COLORS.neonGreen
-											: SEMANTIC_COLORS.neonRed,
-									fontSize: "0.90rem",
-									fontWeight: 800,
-									fontFamily: "monospace",
-									lineHeight: 1.1,
-									whiteSpace: "nowrap",
-								}}
-							>
-								{item.net > 0 ? "+" : ""}
-								{formatCurrency(item.net, Math.abs(item.net) >= 1000 ? 0 : 2)}
+							{loading ? (
+								<Skeleton
+									variant="text"
+									width="70%"
+									height={18}
+									sx={{ mx: "auto", bgcolor: "rgba(255, 255, 255, 0.12)" }}
+								/>
+							) : (
 								<Typography
-									component="span"
 									sx={{
-										fontSize: "0.72em",
-										color: "rgba(255,255,255,0.45)",
-										ml: 0.5,
-										fontWeight: 700,
+										color:
+											item.net >= 0
+												? SEMANTIC_COLORS.neonGreen
+												: SEMANTIC_COLORS.neonRed,
+										fontSize: "0.90rem",
+										fontWeight: 800,
+										fontFamily: "monospace",
+										lineHeight: 1.1,
+										whiteSpace: "nowrap",
 									}}
 								>
-									{currency}
+									{item.net > 0 ? "+" : ""}
+									{formatCurrency(item.net, Math.abs(item.net) >= 1000 ? 0 : 2)}
+									<Typography
+										component="span"
+										sx={{
+											fontSize: "0.72em",
+											color: "rgba(255,255,255,0.45)",
+											ml: 0.5,
+											fontWeight: 700,
+										}}
+									>
+										{currency}
+									</Typography>
 								</Typography>
-							</Typography>
+							)}
 						</Box>
+
 					);
 				})}
 			</Box>

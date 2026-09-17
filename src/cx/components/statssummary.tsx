@@ -1,15 +1,16 @@
 import React from "react";
-import { Box, Paper, Typography, Grid, useTheme } from "@mui/material";
-import type { TickerDetail } from "./types";
+import { Box, Grid, Paper, Typography, useTheme } from "@mui/material";
+import type { HistoryPoint, TickerDetail } from "../types/types";
 
 export interface StatsSummaryProps {
 	detail: TickerDetail | null;
 	currentItem?: Record<string, any>;
 	exchange?: string;
+	history?: HistoryPoint[];
 }
 
 export const StatsSummary: React.FC<StatsSummaryProps> = React.memo(
-	({ detail, currentItem, exchange = "IC1" }) => {
+	({ detail, currentItem, exchange = "IC1", history = [] }) => {
 		const theme = useTheme();
 
 		const ex = exchange || "IC1";
@@ -21,8 +22,29 @@ export const StatsSummary: React.FC<StatsSummaryProps> = React.memo(
 			detail?.high || currentItem?.[`${ex}-7dAvg`] || avgPx || askPx || 0;
 		const low =
 			detail?.low || currentItem?.[`${ex}-30dAvg`] || avgPx || bidPx || 0;
-		const volume = detail?.volume || 0;
-		const traded = detail?.traded || 0;
+
+		// Calculate total volume from history if detail.volume is absent/0
+		const historyVolume = React.useMemo(() => {
+			if (!history || history.length === 0) return 0;
+			return history.reduce((acc, pt: any) => {
+				const vol = pt.volume ?? pt.supply ?? pt.traded ?? pt.amount ?? 0;
+				return acc + Math.abs(Number(vol) || 0);
+			}, 0);
+		}, [history]);
+
+		const volume =
+			detail?.volume ||
+			historyVolume ||
+			currentItem?.[`${ex}-Volume`] ||
+			currentItem?.[`${ex}-Supply`] ||
+			0;
+
+		const traded =
+			detail?.traded ||
+			currentItem?.[`${ex}-Traded`] ||
+			currentItem?.[`${ex}-TradeCount`] ||
+			(history ? history.length : 0);
+
 		const alltimehigh = detail?.alltimehigh || high || 0;
 		const alltimelow = detail?.alltimelow || low || 0;
 
@@ -38,7 +60,7 @@ export const StatsSummary: React.FC<StatsSummaryProps> = React.memo(
 			{ label: "Bid Price", val: formatVal(bidPx) },
 			{ label: "High", val: formatVal(high) },
 			{ label: "Low", val: formatVal(low) },
-			{ label: "Volume", val: formatVal(volume) },
+			{ label: "Volume (Period)", val: formatVal(volume) },
 			{ label: "Traded", val: formatVal(traded) },
 			{ label: "All-Time High", val: formatVal(alltimehigh) },
 			{ label: "All-Time Low", val: formatVal(alltimelow) },
@@ -49,11 +71,10 @@ export const StatsSummary: React.FC<StatsSummaryProps> = React.memo(
 				elevation={3}
 				sx={{
 					p: 2,
-					background: "rgba(16, 16, 32, 0.5)",
+					background: "rgba(10, 10, 20, 0.4)",
 					border: "1px solid rgba(123, 104, 238, 0.35)",
-					boxShadow:
-						"0 0 35px rgba(123, 104, 238, 0.18), inset 0 0 20px rgba(123, 104, 238, 0.06)",
-					backdropFilter: "blur(25px)",
+					boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+					backdropFilter: "blur(12px)",
 					borderRadius: "16px",
 				}}
 			>
@@ -71,44 +92,33 @@ export const StatsSummary: React.FC<StatsSummaryProps> = React.memo(
 					Market Data
 				</Typography>
 
-				<Box
-					sx={{
-						display: "flex",
-						flexDirection: "row",
-						flexWrap: "wrap",
-						gap: 1.5,
-						justifyContent: "space-between",
-					}}
-				>
+				<Grid container spacing={1.5} sx={{ justifyContent: "space-evenly" }}>
 					{items.map((it) => (
-						<Box
-							sx={{
-								width: {
-									xs: "calc(50% - 6px)",
-									sm: "calc(25% - 9px)",
-									md: "calc(12.5% - 10px)",
-								},
-								flexGrow: 1,
-							}}
-							key={it.label}
-						>
+						<Grid item xs={6} sm={3} md={1.5} key={it.label}>
 							<Box
 								sx={{
-									bgcolor: theme.palette.primary.dark,
+									bgcolor: "transparent",
 									p: 1.25,
 									borderRadius: "8px",
-									border: "1px solid rgba(255, 255, 255, 0.08)",
+									border: "1px solid rgba(123, 104, 238, 0.3)",
 									display: "flex",
 									flexDirection: "column",
 									alignItems: "center",
 									justifyContent: "center",
 									textAlign: "center",
+									minHeight: 64,
+									height: "100%",
+									transition: "all 0.2s ease",
+									"&:hover": {
+										borderColor: "#7B68EE",
+										bgcolor: "rgba(123, 104, 238, 0.1)",
+									},
 								}}
 							>
 								<Typography
 									variant="caption"
 									sx={{
-										color: "rgba(255, 255, 255, 0.5)",
+										color: "rgba(255, 255, 255, 0.6)",
 										fontSize: "0.65rem",
 										display: "block",
 										mb: 0.25,
@@ -128,9 +138,9 @@ export const StatsSummary: React.FC<StatsSummaryProps> = React.memo(
 									{it.val}
 								</Typography>
 							</Box>
-						</Box>
+						</Grid>
 					))}
-				</Box>
+				</Grid>
 			</Paper>
 		);
 	},

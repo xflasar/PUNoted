@@ -25,8 +25,9 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 import { FlexCard } from "./sharedui";
 import { formatCurrency, SEMANTIC_COLORS } from "../utils/financeutils";
+import ContractDetailDialog from "../../contracts/components/contractdetaildialog";
+import MaterialBadge from "../../../cosm/components/materialbadge";
 import { fetchClient } from "../../../utils/apiclient";
-import { ContractDetailModal } from "./contractdetailmodal";
 
 interface ContractsTabProps {
 	currentData: any;
@@ -68,21 +69,34 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 
 	// Derive contracts list directly from real-time WebSocket currentData, fallback to live fetch
 	const rawContracts = useMemo(() => {
-		if (
-			currentData?.Contracts &&
-			Array.isArray(currentData.Contracts) &&
-			currentData.Contracts.length > 0
-		) {
-			return currentData.Contracts;
-		}
-		if (
-			currentData?.contracts &&
-			Array.isArray(currentData.contracts) &&
-			currentData.contracts.length > 0
-		) {
-			return currentData.contracts;
-		}
-		return contracts;
+		const list = (() => {
+			if (
+				currentData?.Contracts &&
+				Array.isArray(currentData.Contracts) &&
+				currentData.Contracts.length > 0
+			) {
+				return currentData.Contracts;
+			}
+			if (
+				currentData?.contracts &&
+				Array.isArray(currentData.contracts) &&
+				currentData.contracts.length > 0
+			) {
+				return currentData.contracts;
+			}
+			return contracts;
+		})();
+
+		if (!list || list.length === 0) return [];
+
+		const seen = new Set();
+		return list.filter((item: any) => {
+			const key = item.id || item.localid || item.LocalId || item.naturalid;
+			if (!key) return true;
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		});
 	}, [currentData, contracts]);
 
 	// Fetch live contract agreements fallback if not in currentData
@@ -211,10 +225,18 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 		const cutoff = maxTime - days * 86400000;
 
 		return rawContracts.filter((c) => {
+			if (statusFilter !== "ALL") {
+				const cStatus = (c.status || c.Status || "").toUpperCase();
+				if (statusFilter === "OPEN" && cStatus !== "OPEN") return false;
+				if (statusFilter === "FULFILLED" && cStatus !== "FULFILLED") return false;
+				if (statusFilter === "CLOSED" && cStatus !== "CLOSED" && cStatus !== "CANCELLED" && cStatus !== "REJECTED" && cStatus !== "TERMINATED") return false;
+				if (statusFilter === "BREACHED" && cStatus !== "BREACHED" && cStatus !== "DEADLINE_EXCEEDED") return false;
+				if (statusFilter !== "OPEN" && statusFilter !== "FULFILLED" && statusFilter !== "CLOSED" && statusFilter !== "BREACHED" && cStatus !== statusFilter) return false;
+			}
 			const t = getContractLatestTime(c);
 			return t === 0 || t >= cutoff;
 		});
-	}, [rawContracts, timeRange]);
+	}, [rawContracts, timeRange, statusFilter]);
 
 	// Active list based on View Mode
 	const currentList =
@@ -234,19 +256,22 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 					color: "#4ade80",
 					border: "1px solid rgba(74, 222, 128, 0.3)",
 				};
+			case "OPEN":
+			case "PENDING":
 			case "ACCEPTED":
 				return {
 					bgcolor: "rgba(168, 85, 247, 0.15)",
 					color: "#a855f7",
 					border: "1px solid rgba(168, 85, 247, 0.3)",
 				};
-			case "PENDING":
+			case "PARTIALLY_FULFILLED":
 				return {
 					bgcolor: "rgba(251, 191, 36, 0.15)",
 					color: "#fbbf24",
 					border: "1px solid rgba(251, 191, 36, 0.3)",
 				};
 			case "BREACHED":
+			case "DEADLINE_EXCEEDED":
 				return {
 					bgcolor: "rgba(248, 113, 113, 0.15)",
 					color: "#f87171",
@@ -254,6 +279,8 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 				};
 			case "CANCELLED":
 			case "REJECTED":
+			case "TERMINATED":
+			case "CLOSED":
 				return {
 					bgcolor: "rgba(148, 163, 184, 0.15)",
 					color: "#94a3b8",
@@ -538,7 +565,7 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 								<FilterListIcon
 									sx={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}
 								/>
-								{["ALL", "PENDING", "ACCEPTED", "FULFILLED", "BREACHED"].map(
+								{["ALL", "OPEN", "FULFILLED", "PARTIALLY_FULFILLED", "BREACHED", "CLOSED"].map(
 									(st) => (
 										<Chip
 											key={st}
@@ -575,14 +602,16 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 							placeholder="Search Natural ID..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							InputProps={{
-								startAdornment: (
-									<InputAdornment position="start">
-										<SearchIcon
-											sx={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}
-										/>
-									</InputAdornment>
-								),
+							slotProps={{
+								input: {
+									startAdornment: (
+										<InputAdornment position="start">
+											<SearchIcon
+												sx={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}
+											/>
+										</InputAdornment>
+									),
+								},
 							}}
 							sx={{
 								width: 150,
@@ -639,6 +668,17 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 									{paginatedList.map((item, idx) => {
 										const chipStyle = getStatusChipProps(item.status);
 										const natId = getNaturalContractId(item);
+										const isMotion =
+											item.contracttype === "MOTION" ||
+											(item.preamble && /^Motion\s+MOT-/i.test(item.preamble));
+										const isIncome = item.is_income ?? item.party === "CUSTOMER";
+										const sign = isMotion ? "" : isIncome ? "+" : "-";
+										const amountColor = isMotion
+											? "#7b68ee"
+											: isIncome
+												? SEMANTIC_COLORS.neonGreen
+												: SEMANTIC_COLORS.neonRed;
+
 										return (
 											<Box
 												key={`m_ctr_${item.id || idx}_${idx}`}
@@ -662,16 +702,36 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 														justifyContent: "space-between",
 													}}
 												>
-													<Typography
-														sx={{
-															fontSize: "0.74rem",
-															fontFamily: "monospace",
-															color: "#7b68ee",
-															fontWeight: 800,
-														}}
-													>
-														{natId}
-													</Typography>
+													<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+														<Typography
+															sx={{
+																fontSize: "0.74rem",
+																fontFamily: "monospace",
+																color: "#7b68ee",
+																fontWeight: 800,
+															}}
+														>
+															{natId}
+														</Typography>
+														{isMotion && (
+															<Chip
+																label={
+																	item.preamble && /^Motion\s+MOT-(\d+)-/i.test(item.preamble)
+																		? `Gov Motion (Planet ${item.preamble.match(/^Motion\s+MOT-(\d+)-/i)?.[1]})`
+																		: "Gov Motion"
+																}
+																size="small"
+																sx={{
+																	height: 16,
+																	fontSize: "0.52rem",
+																	fontWeight: 800,
+																	color: "#7b68ee",
+																	bgcolor: "rgba(123, 104, 238, 0.2)",
+																	border: "1px solid rgba(123, 104, 238, 0.4)",
+																}}
+															/>
+														)}
+													</Box>
 													<Chip
 														label={item.status || "ACTIVE"}
 														size="small"
@@ -697,22 +757,21 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 															fontWeight: 700,
 														}}
 													>
-														{item.partnername ||
-															item.partnercode ||
-															"Counterparty"}
+														{isMotion
+															? (!item.partnername || item.partnername === "Unknown"
+																? `Planet ${item.preamble?.match(/^Motion\s+MOT-(\d+)-/i)?.[1] || ""} Government`
+																: item.partnername)
+															: (item.partnername || item.partnercode || "Counterparty")}
 													</Typography>
 													<Typography
 														sx={{
 															fontSize: "0.76rem",
 															fontFamily: "monospace",
 															fontWeight: 800,
-															color:
-																item.party === "CUSTOMER"
-																	? SEMANTIC_COLORS.neonGreen
-																	: SEMANTIC_COLORS.neonRed,
+															color: amountColor,
 														}}
 													>
-														{item.party === "CUSTOMER" ? "+" : "-"}
+														{sign}
 														{formatCurrency(item.total_amount || 0)} {currency}
 													</Typography>
 												</Box>
@@ -771,6 +830,17 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 										{paginatedList.map((item, idx) => {
 											const chipStyle = getStatusChipProps(item.status);
 											const natId = getNaturalContractId(item);
+											const isMotion =
+												item.contracttype === "MOTION" ||
+												(item.preamble && /^Motion\s+MOT-/i.test(item.preamble));
+											const isIncome = item.is_income ?? item.party === "CUSTOMER";
+											const sign = isMotion ? "" : isIncome ? "+" : "-";
+											const amountColor = isMotion
+												? "#7b68ee"
+												: isIncome
+													? SEMANTIC_COLORS.neonGreen
+													: SEMANTIC_COLORS.neonRed;
+
 											return (
 												<tr
 													key={`contract_${item.id || idx}_${idx}`}
@@ -799,15 +869,45 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 															whiteSpace: "nowrap",
 														}}
 													>
-														<Typography
-															sx={{
-																fontSize: "0.72rem",
-																fontWeight: 600,
-																color: "white",
-															}}
-														>
-															{item.name || `Contract ${natId}`}
-														</Typography>
+														<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+															<Typography
+																sx={{
+																	fontSize: "0.72rem",
+																	fontWeight: 600,
+																	color: "white",
+																}}
+															>
+																{item.name || `Contract ${natId}`}
+															</Typography>
+															{Array.isArray(item.conditions) &&
+																item.conditions
+																	.filter((c: any) => c.material_ticker || c.materialid || c.ticker)
+																	.slice(0, 3)
+																	.map((c: any, cIdx: number) => {
+																		const t = c.material_ticker || c.materialid || c.ticker;
+																		return <MaterialBadge key={`m_b_${t}_${cIdx}`} ticker={t} />;
+																	})}
+															{isMotion && (
+																<Chip
+																	label={
+																		item.motionPlanetName || item.motion_planet_name
+																			? `Gov Motion (${item.motionPlanetName || item.motion_planet_name})`
+																			: item.preamble && /^Motion\s+MOT-(\d+)-/i.test(item.preamble)
+																				? `Gov Motion (Planet ${item.preamble.match(/^Motion\s+MOT-(\d+)-/i)?.[1]})`
+																				: "Gov Motion"
+																	}
+																	size="small"
+																	sx={{
+																		height: 16,
+																		fontSize: "0.52rem",
+																		fontWeight: 800,
+																		color: "#7b68ee",
+																		bgcolor: "rgba(123, 104, 238, 0.2)",
+																		border: "1px solid rgba(123, 104, 238, 0.4)",
+																	}}
+																/>
+															)}
+														</Box>
 													</td>
 													<td style={{ padding: "6px 8px" }}>
 														<Chip
@@ -828,7 +928,11 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 																color: "rgba(255,255,255,0.8)",
 															}}
 														>
-															{item.partnername || item.partnercode || "N/A"}
+															{isMotion
+																? (!item.partnername || item.partnername === "N/A" || item.partnername === "Unknown"
+																	? `${item.motionPlanetName || item.motion_planet_name || `Planet ${item.preamble?.match(/^Motion\s+MOT-(\d+)-/i)?.[1] || ""}`} Government`
+																	: item.partnername)
+																: (item.partnername || item.partnercode || "N/A")}
 														</Typography>
 													</td>
 													<td style={{ padding: "6px 8px" }}>
@@ -836,10 +940,7 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 															sx={{
 																fontSize: "0.65rem",
 																fontWeight: 700,
-																color:
-																	item.party === "CUSTOMER"
-																		? SEMANTIC_COLORS.neonGreen
-																		: SEMANTIC_COLORS.neonRed,
+																color: isMotion ? "#7b68ee" : isIncome ? SEMANTIC_COLORS.neonGreen : SEMANTIC_COLORS.neonRed,
 															}}
 														>
 															{item.party || "N/A"}
@@ -852,13 +953,10 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 															fontFamily: "monospace",
 															fontSize: "0.75rem",
 															fontWeight: 800,
-															color:
-																item.party === "CUSTOMER"
-																	? SEMANTIC_COLORS.neonGreen
-																	: SEMANTIC_COLORS.neonRed,
+															color: amountColor,
 														}}
 													>
-														{item.party === "CUSTOMER" ? "+" : "-"}
+														{sign}
 														{formatCurrency(item.total_amount || 0)}{" "}
 														{item.currency || currency}
 													</td>
@@ -1177,11 +1275,19 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 				)}
 			</FlexCard>
 
-			<ContractDetailModal
+			<ContractDetailDialog
 				open={Boolean(selectedContract)}
 				onClose={() => setSelectedContract(null)}
-				contract={selectedContract}
-				currency={currency}
+				contractId={
+					selectedContract?.id ||
+					selectedContract?.Id ||
+					selectedContract?.contract_id ||
+					selectedContract?.ContractId ||
+					selectedContract?.localid ||
+					selectedContract?.LocalId ||
+					null
+				}
+				showSettlementLogs={true}
 			/>
 		</Box>
 	);
