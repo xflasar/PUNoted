@@ -140,7 +140,7 @@ const LocationFilter = ({
 						color: theme.palette.text.primary,
 					},
 				},
-				sx,
+				...(Array.isArray(sx) ? sx : sx ? [sx] : []),
 			]}
 			renderInput={(params) => (
 				<TextField {...params} variant="outlined" placeholder="All Locations" />
