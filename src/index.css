@@ -48,3 +48,11 @@ body {
 	flex-direction: column;
 	overflow: hidden;
 }
+
+/* Makes Lucide icons display correctly beside text */
+.inline-icon {
+	width: 1em;
+	height: 1em;
+	vertical-align: -0.125em;
+	flex-shrink: 0;
+}
