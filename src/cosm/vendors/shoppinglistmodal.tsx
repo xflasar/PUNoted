@@ -200,16 +200,18 @@ const DebouncedInput: React.FC<{
 	onChange: (val: number) => void;
 	isInsufficient: boolean;
 }> = React.memo(({ value, onChange, isInsufficient }) => {
-	const [localValue, setLocalValue] = useState<string>(value.toString());
+	const normalizeQuantity = (value: string | number) =>
+		String(value).replace(/^0+/, "") || "1";
+
+	const [localValue, setLocalValue] = useState(normalizeQuantity(value));
 
 	useEffect(() => {
-		setLocalValue(value === 0 ? "0" : value.toString());
+		setLocalValue(normalizeQuantity(value));
 	}, [value]);
 
 	useEffect(() => {
 		const handler = setTimeout(() => {
-			const valStr = localValue === "" ? "0" : localValue;
-			const numVal = parseInt(valStr, 10);
+			const numVal = parseInt(localValue, 10);
 			if (!isNaN(numVal) && numVal !== value) {
 				onChange(numVal);
 			}
@@ -224,8 +226,8 @@ const DebouncedInput: React.FC<{
 			variant="outlined"
 			value={localValue}
 			onChange={(e) => {
-				if (e.target.value === "" || /^\d+$/.test(e.target.value)) {
-					setLocalValue(e.target.value);
+				if (/^\d+$/.test(e.target.value)) {
+					setLocalValue(normalizeQuantity(e.target.value));
 				}
 			}}
 			sx={{
