@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Typography, useTheme, alpha } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useGlobalData } from "../../../../../context/globaldatacontext";
+import { useMapData } from "../../hooks/usemapdata";
 import { getOriginDestinationLabel } from "../../utils/flightplanorigindestination";
 import type { AnimatedShipData } from "../../types/maptypes";
 
@@ -15,11 +16,12 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 	isMine,
 }) => {
 	const theme = useTheme();
-	const { systemsPoints, allPlanetsData, allStationsData } = useGlobalData();
+	const { mapData } = useGlobalData();
+	const { systemsPoints, allPlanetsData, allStationsData } = useMapData(mapData);
 	const activeFlight: any = ship.plan || (ship as any).flight;
 
-	const startStr = activeFlight?.arrivaltimestamp;
-	const endStr = activeFlight?.departuretimestamp;
+	const startStr = activeFlight?.departuretimestamp;
+	const endStr = activeFlight?.arrivaltimestamp;
 
 	if (!startStr || !endStr) return null;
 

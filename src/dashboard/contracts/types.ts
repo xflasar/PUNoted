@@ -134,3 +134,29 @@ export interface Contract extends ContractDetailData {
 	total_cond_count: number;
 	fulfilled_cond_count: number;
 }
+
+
+export interface Bank {
+	id: string;
+	owner_username: string;
+	name: string;
+	description: string;
+	corporation_id: string;
+	liquidity: number;
+	default_interest_rate: number;
+	created_at: string;
+	corporation_ticker: string;
+}
+
+export interface LoanRequest {
+	id: string;
+	bank_id: string;
+	bank_name: string;
+	contract_id: string;
+	requester_username: string;
+	status: string;
+	amount: number;
+	interest_rate: number;
+	term_days: number;
+	created_at: string;
+}

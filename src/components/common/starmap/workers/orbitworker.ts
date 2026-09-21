@@ -244,7 +244,7 @@ function getFlightStatus(ship: any, plan: any) {
 		return { isInterSystem: false, systemId: activeSegment.origin_system_id };
 	}
 	// ARRIVAL LIMBO LOGIC (Galaxy scale)
-	if (plan.departuretimestamp && now >= Date.parse(plan.departuretimestamp)) {
+	if (plan.arrivaltimestamp && now >= Date.parse(plan.arrivaltimestamp)) {
 		const lastSeg = plan.segments[plan.segments.length - 1];
 		return { isInterSystem: false, systemId: lastSeg.destination_system_id };
 	}
@@ -278,8 +278,8 @@ function calculateShipPositionGalaxy(
 		// ARRIVAL LIMBO LOGIC (Galaxy position)
 		if (
 			plan &&
-			plan.departuretimestamp &&
-			currentTime >= Date.parse(plan.departuretimestamp)
+			plan.arrivaltimestamp &&
+			currentTime >= Date.parse(plan.arrivaltimestamp)
 		) {
 			const lastSeg = plan.segments[plan.segments.length - 1];
 			const sys = sysMap.get(lastSeg.destination_system_id);

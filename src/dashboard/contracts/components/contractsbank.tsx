@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import GlobalLoadingOverlay from "../../../components/common/globalloadingoverlay";
 import {
 	Box,
@@ -9,7 +9,6 @@ import {
 	Grid,
 	Card,
 	CardContent,
-	CircularProgress,
 	Dialog,
 	DialogTitle,
 	DialogContent,
@@ -22,7 +21,6 @@ import {
 	TableRow,
 	Chip,
 	useTheme,
-	Stack,
 	Avatar,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
@@ -31,29 +29,9 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import { fetchClient } from "../../../utils/apiclient";
+import type { Bank, LoanRequest } from "../types";
 
-interface Bank {
-	id: number;
-	name: string;
-	owner_username: string;
-	liquidity: number;
-	default_interest_rate: number;
-	description?: string;
-	active_loans_count?: number;
-}
 
-interface LoanRequest {
-	id: number;
-	bank_id: number;
-	requester_username: string;
-	amount: number;
-	interest_rate: number;
-	term_days: number;
-	status: string;
-	contract_id?: string;
-	bank_name?: string;
-	created_at: string;
-}
 
 export default function ContractsBank() {
 	const theme = useTheme();
@@ -185,7 +163,7 @@ export default function ContractsBank() {
 		}
 	};
 
-	const handleRejectLoan = async (loanId: number) => {
+	const handleRejectLoan = async (loanId: string) => {
 		try {
 			const res = await fetchClient("/internal/contracts/banks/loans/action", {
 				method: "POST",
@@ -244,7 +222,7 @@ export default function ContractsBank() {
 			<Grid container spacing={3}>
 				{/* Owner's Bank View */}
 				{myBank ? (
-					<Grid item xs={12} md={6}>
+					<Grid size={{ xs: 12, md: 6 }}>
 						<Paper
 							elevation={0}
 							sx={{
@@ -298,7 +276,7 @@ export default function ContractsBank() {
 								{myBank.description || "No description provided."}
 							</Typography>
 							<Grid container spacing={2}>
-								<Grid item xs={6}>
+								<Grid size={{ xs: 6 }}>
 									<Box
 										sx={{
 											p: 2,
@@ -326,7 +304,7 @@ export default function ContractsBank() {
 										</Typography>
 									</Box>
 								</Grid>
-								<Grid item xs={6}>
+								<Grid size={{ xs: 6 }}>
 									<Box
 										sx={{
 											p: 2,
@@ -354,7 +332,7 @@ export default function ContractsBank() {
 						</Paper>
 					</Grid>
 				) : (
-					<Grid item xs={12} md={6}>
+					<Grid size={{ xs: 12, md: 6 }}>
 						<Paper
 							elevation={0}
 							sx={{
@@ -386,7 +364,7 @@ export default function ContractsBank() {
 							</Box>
 							<form onSubmit={handleCreateBank}>
 								<Grid container spacing={2}>
-									<Grid item xs={12}>
+									<Grid size={{ xs: 12 }}>
 										<TextField
 											label="Bank Name"
 											size="small"
@@ -396,7 +374,7 @@ export default function ContractsBank() {
 											onChange={(e) => setCreateName(e.target.value)}
 										/>
 									</Grid>
-									<Grid item xs={12}>
+									<Grid size={{ xs: 12 }}>
 										<TextField
 											label="Description"
 											size="small"
@@ -407,7 +385,7 @@ export default function ContractsBank() {
 											onChange={(e) => setCreateDesc(e.target.value)}
 										/>
 									</Grid>
-									<Grid item xs={6}>
+									<Grid size={{ xs: 6 }}>
 										<TextField
 											label="Initial Liquidity (ICA)"
 											size="small"
@@ -420,7 +398,7 @@ export default function ContractsBank() {
 											}
 										/>
 									</Grid>
-									<Grid item xs={6}>
+									<Grid size={{ xs: 6 }}>
 										<TextField
 											label="Default Interest Rate (%)"
 											size="small"
@@ -431,7 +409,7 @@ export default function ContractsBank() {
 											onChange={(e) => setCreateRate(Number(e.target.value))}
 										/>
 									</Grid>
-									<Grid item xs={12}>
+									<Grid size={{ xs: 12 }}>
 										<Button
 											type="submit"
 											variant="contained"
@@ -448,7 +426,7 @@ export default function ContractsBank() {
 				)}
 
 				{/* Available Player Banks */}
-				<Grid item xs={12} md={6}>
+				<Grid size={{ xs: 12, md: 6 }}>
 					<Paper
 						elevation={0}
 						sx={{

@@ -16,6 +16,7 @@ import {
 	ExpandMore,
 } from "@mui/icons-material";
 import { useGlobalData } from "../../../../../context/globaldatacontext";
+import { useMapData } from "../../hooks/usemapdata";
 import { getOriginDestinationLabel } from "../../utils/flightplanorigindestination";
 import MaterialBadge from "../../../../../cosm/components/materialbadge";
 import ShipFlightStatus from "./shipflightstatus";
@@ -65,8 +66,8 @@ const ShipRow: React.FC<ShipRowProps> = ({
 	indentation = 0,
 }) => {
 	const theme = useTheme();
-	const { storageState, systemsPoints, allPlanetsData, allStationsData } =
-		useGlobalData();
+	const { storageState, mapData } = useGlobalData();
+	const { systemsPoints, allPlanetsData, allStationsData } = useMapData(mapData);
 	const [isExpanded, setIsExpanded] = useState(false);
 	const hasPlan = !!(ship.plan || ship.flight);
 	const cargo = (ship as any).cargo;
@@ -112,8 +113,8 @@ const ShipRow: React.FC<ShipRowProps> = ({
 		: 0;
 
 	const activeFlight: any = ship.plan || (ship as any).flight;
-	const end = activeFlight?.departuretimestamp
-		? new Date(activeFlight.departuretimestamp).getTime()
+	const end = activeFlight?.arrivaltimestamp
+		? new Date(activeFlight.arrivaltimestamp).getTime()
 		: 0;
 	const now = Date.now();
 	const isArrived = end > 0 && now >= end;

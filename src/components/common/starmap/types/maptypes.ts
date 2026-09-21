@@ -214,27 +214,6 @@ export interface Edge {
 	systemiddestination: string;
 }
 
-export interface WorkerFlightPlan {
-	id: string;
-	segments: FlightSegment[];
-	origin: string;
-	destination: string;
-	shipid?: string;
-	originid?: string;
-	destinationid?: string;
-	start?: number;
-	end?: number;
-	currentsegmentindex?: number;
-	departuretimestamp?: string;
-	expired?: boolean;
-	originplanetid?: string;
-	destinationplanetid?: string;
-	originstationid?: string;
-	destinationstationid?: string;
-	originsystemid?: string;
-	destinationsystemid?: string;
-}
-
 export interface FlightPlan {
 	id: string;
 	segments: FlightSegment[];
@@ -246,7 +225,18 @@ export interface FlightPlan {
 	start?: number;
 	end?: number;
 	currentsegmentindex?: number;
+	departuretimestamp?: string;
+	arrivaltimestamp?: string;
+	expired?: boolean;
+	originplanetid?: string;
+	destinationplanetid?: string;
+	originstationid?: string;
+	destinationstationid?: string;
+	originsystemid?: string;
+	destinationsystemid?: string;
 }
+
+export interface WorkerFlightPlan extends FlightPlan {}
 
 export interface FlightSegment {
 	departure: number; // Unix timestamp (milliseconds)

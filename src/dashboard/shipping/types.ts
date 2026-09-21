@@ -44,12 +44,21 @@ export interface ShipmentShip {
 	id: string;
 	name: string;
 	registration: string | null;
+	docked_label?: string | null;
 	flight: FlightPlan | null; // Full flight plan with segments
 }
 
 // 2. The Item Object (Logical Cargo)
 export interface ShipmentItem {
 	item_id: string;
+	type?: string;
+	status?: string;
+	target_name?: string;
+	origin_label?: string;
+	destination_label?: string;
+	material_ticker?: string;
+	quantity?: number;
+	price?: number;
 	location_type: "SHIP" | "STATION" | "SITE" | "UNKNOWN";
 	location_name: string;
 	system_name: string | null;
@@ -65,6 +74,7 @@ export interface ShipmentContract {
 	partner_name: string;
 	role: "CLIENT" | "CARRIER";
 	created_at: string;
+	status?: string;
 	items: ShipmentItem[];
 }
 

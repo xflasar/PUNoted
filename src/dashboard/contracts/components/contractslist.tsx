@@ -17,7 +17,6 @@ import {
 	Typography,
 	useTheme,
 	useMediaQuery,
-	Stack,
 	Chip,
 	Divider,
 } from "@mui/material";
@@ -328,18 +327,20 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						},
 					}}
 					MenuProps={{
-						PaperProps: {
-							sx: {
-								bgcolor: "#080816",
-								backgroundImage: "none",
-								border: "1px solid rgba(123, 104, 238, 0.3)",
-								color: "#ffffff",
-								"& .MuiMenuItem-root": {
-									fontSize: "0.85rem",
-									"&:hover": { bgcolor: "rgba(123, 104, 238, 0.15)" },
-									"&.Mui-selected": { bgcolor: "rgba(123, 104, 238, 0.25)" },
+						slotProps: {
+							paper: {
+								sx: {
+									bgcolor: "#080816",
+									backgroundImage: "none",
+									border: "1px solid rgba(123, 104, 238, 0.3)",
+									color: "#ffffff",
+									"& .MuiMenuItem-root": {
+										fontSize: "0.85rem",
+										"&:hover": { bgcolor: "rgba(123, 104, 238, 0.15)" },
+										"&.Mui-selected": { bgcolor: "rgba(123, 104, 238, 0.25)" },
+									},
 								},
-							},
+							}
 						},
 					}}
 				>
