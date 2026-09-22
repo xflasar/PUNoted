@@ -21,7 +21,6 @@ import {
 	CircularProgress,
 } from "@mui/material";
 
-
 import GlobalLoadingOverlay from "../../components/common/globalloadingoverlay";
 
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -109,7 +108,6 @@ export default function FinancialOverview() {
 		totalSteps,
 		statusText,
 	} = useFinancialData();
-
 
 	const [isHeaderCollapsed, setIsHeaderCollapsed] = useState<boolean>(false);
 
@@ -279,10 +277,6 @@ export default function FinancialOverview() {
 					},
 				}}
 			>
-
-
-
-
 				{/* Compact Single-Box Currency Dropdown Selector */}
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
 					<Typography
@@ -687,7 +681,6 @@ export default function FinancialOverview() {
 								customEndDate={customEndDate}
 								loading={loading}
 							/>
-
 						</Box>
 					</Box>
 				</Collapse>
@@ -853,7 +846,6 @@ export default function FinancialOverview() {
 									onPriceSourceChange={handlePriceSourceChange}
 									loading={loading}
 								/>
-
 							)}
 							{advancedSubTab === 1 && (
 								<CashFlowTab

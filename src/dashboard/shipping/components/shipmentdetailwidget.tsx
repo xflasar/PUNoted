@@ -611,7 +611,10 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 
 	// 3. Financials
 	const { totalPayout, paymentStatus } = useMemo(() => {
-		const total = paymentItems.reduce((sum, item) => sum + item.price, 0);
+		const total = paymentItems.reduce(
+			(sum, item) => sum + (item.price || 0),
+			0,
+		);
 		const fulfilledCount = paymentItems.filter(
 			(i) => i.status === "FULFILLED",
 		).length;

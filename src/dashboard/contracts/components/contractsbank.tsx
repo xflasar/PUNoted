@@ -31,8 +31,6 @@ import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import { fetchClient } from "../../../utils/apiclient";
 import type { Bank, LoanRequest } from "../types";
 
-
-
 export default function ContractsBank() {
 	const theme = useTheme();
 	const [myBank, setMyBank] = useState<Bank | null>(null);
@@ -183,7 +181,10 @@ export default function ContractsBank() {
 	if (loading) {
 		return (
 			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
-				<GlobalLoadingOverlay loading={true} statusText="AUDITING BANK VAULTS & CORPORATE ASSETS..." />
+				<GlobalLoadingOverlay
+					loading={true}
+					statusText="AUDITING BANK VAULTS & CORPORATE ASSETS..."
+				/>
 			</Box>
 		);
 	}

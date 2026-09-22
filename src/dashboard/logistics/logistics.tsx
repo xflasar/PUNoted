@@ -149,7 +149,10 @@ const Logistics: React.FC = () => {
 	if (loading) {
 		return (
 			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
-				<GlobalLoadingOverlay loading={true} statusText="OPTIMIZING LOGISTICS & FLEET ROUTES..." />
+				<GlobalLoadingOverlay
+					loading={true}
+					statusText="OPTIMIZING LOGISTICS & FLEET ROUTES..."
+				/>
 			</Box>
 		);
 	}

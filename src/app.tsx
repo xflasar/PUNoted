@@ -256,7 +256,10 @@ function App() {
 						/>
 						<Route path="/privacy" element={<PrivacyPolicy />} />
 
-						<Route path="/cosm" element={<CosmPage isLoggedIn={isLoggedIn} />} />
+						<Route
+							path="/cosm"
+							element={<CosmPage isLoggedIn={isLoggedIn} />}
+						/>
 
 						<Route path="/galaxy-map" element={<GalaxyMap />} />
 
@@ -270,7 +273,10 @@ function App() {
 							}
 						>
 							<Route element={<ProtectedLayout />}>
-								<Route path="/dashboard/galaxy-map" element={<DashboardPage />} />
+								<Route
+									path="/dashboard/galaxy-map"
+									element={<DashboardPage />}
+								/>
 								<Route
 									path="/dashboard/public-data"
 									element={<div>PUBLIC DATA (WIP)</div>}
@@ -288,7 +294,10 @@ function App() {
 									element={<BasePlanner />}
 								/>
 								<Route path="/dashboard/logistics" element={<Logistics />} />
-								<Route path="/dashboard/contracts" element={<ContractsPage />} />
+								<Route
+									path="/dashboard/contracts"
+									element={<ContractsPage />}
+								/>
 								<Route path="/dashboard/shipments" element={<ShipmentPage />} />
 								<Route path="/dashboard/storage" element={<StoragePage />} />
 								<Route
@@ -297,7 +306,10 @@ function App() {
 										<Settings userId={localStorage.getItem("currentUserId")!} />
 									}
 								/>
-								<Route path="/dashboard/corp" element={<CorporationOverview />} />
+								<Route
+									path="/dashboard/corp"
+									element={<CorporationOverview />}
+								/>
 								<Route
 									path="/dashboard/leaderboard"
 									element={<ProductionLeaderboard />}

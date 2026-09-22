@@ -33,7 +33,6 @@ export const useNotificationBell = () => {
 		}
 	}, []);
 
-
 	// Listen to real-time WebSocket USER_NOTIFICATION messages with throttling
 	useEffect(() => {
 		if (!wsContext) return;

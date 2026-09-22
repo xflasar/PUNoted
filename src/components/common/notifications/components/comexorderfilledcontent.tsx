@@ -22,7 +22,8 @@ export const ComexOrderFilledContent: React.FC<
 
 	const ticker = data.ticker || "N/A";
 	const quantity = data.quantity ?? data.count ?? data.amount ?? 0;
-	const formattedQuantity = typeof quantity === "number" ? quantity.toLocaleString() : quantity;
+	const formattedQuantity =
+		typeof quantity === "number" ? quantity.toLocaleString() : quantity;
 	const price = data.price !== undefined ? data.price : 0;
 	const currency = data.currency || "NCC";
 	const orderType = (data.type || "BUY").toUpperCase();
@@ -65,27 +66,54 @@ export const ComexOrderFilledContent: React.FC<
 					>
 						{orderType} {data.exchange ? `(${data.exchange})` : ""}
 					</Typography>
-					<Typography variant="caption" sx={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.6)" }}>
+					<Typography
+						variant="caption"
+						sx={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.6)" }}
+					>
 						Ticker: {ticker}
 					</Typography>
 				</Box>
 			</Box>
 
 			<Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-				<Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-					<Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.6rem" }}>
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "flex-end",
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.6rem" }}
+					>
 						Amount
 					</Typography>
-					<Typography variant="caption" sx={{ fontWeight: 700, color: "#FFFFFF", fontSize: "0.7rem" }}>
+					<Typography
+						variant="caption"
+						sx={{ fontWeight: 700, color: "#FFFFFF", fontSize: "0.7rem" }}
+					>
 						{formattedQuantity}
 					</Typography>
 				</Box>
 
-				<Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-					<Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.6rem" }}>
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "flex-end",
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.6rem" }}
+					>
 						Price
 					</Typography>
-					<Typography variant="caption" sx={{ fontWeight: 700, color: "#64FFDA", fontSize: "0.7rem" }}>
+					<Typography
+						variant="caption"
+						sx={{ fontWeight: 700, color: "#64FFDA", fontSize: "0.7rem" }}
+					>
 						{price} {currency}
 					</Typography>
 				</Box>

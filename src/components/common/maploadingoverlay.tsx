@@ -13,7 +13,11 @@ const MapLoadingOverlay: React.FC<MapLoadingOverlayProps> = ({
 	return (
 		<GlobalLoadingOverlay
 			loading={isVisible}
-			statusText={isLoadingFromCache ? "FETCHING MAP DATA FROM CACHE..." : "COMPUTING GALAXY SECTORS & ORBITS..."}
+			statusText={
+				isLoadingFromCache
+					? "FETCHING MAP DATA FROM CACHE..."
+					: "COMPUTING GALAXY SECTORS & ORBITS..."
+			}
 			zIndex={1000}
 		/>
 	);

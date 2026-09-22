@@ -1364,7 +1364,12 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 								govTerms[0];
 
 							const activeTermIndex = govTerms.indexOf(activeInOfficeTerm);
-							const activeTermNum = activeTermIndex !== -1 ? govTerms.length - activeTermIndex : (activeInOfficeTerm?.TermId || activeInOfficeTerm?.termid || 1);
+							const activeTermNum =
+								activeTermIndex !== -1
+									? govTerms.length - activeTermIndex
+									: activeInOfficeTerm?.TermId ||
+										activeInOfficeTerm?.termid ||
+										1;
 
 							// Ongoing election term (if an election is in progress for the upcoming term)
 							const electionTerm = govTerms.find((t: any) =>
@@ -1419,10 +1424,13 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 												gap: 0.4,
 											}}
 										>
-											<AccountBalance sx={{ fontSize: 14 }} /> PLANETARY GOVERNMENT
+											<AccountBalance sx={{ fontSize: 14 }} /> PLANETARY
+											GOVERNMENT
 										</Typography>
 
-										<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+										<Box
+											sx={{ display: "flex", alignItems: "center", gap: 0.4 }}
+										>
 											{electionTerm && (
 												<Box
 													sx={{
@@ -1474,44 +1482,84 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 										<span>
 											Term:{" "}
 											<strong style={{ color: "#fff" }}>
-												{activeInOfficeTerm?.TermStart || activeInOfficeTerm?.term_start
-													? new Date(activeInOfficeTerm.TermStart || activeInOfficeTerm.term_start).toLocaleDateString()
+												{activeInOfficeTerm?.TermStart ||
+												activeInOfficeTerm?.term_start
+													? new Date(
+															activeInOfficeTerm.TermStart ||
+																activeInOfficeTerm.term_start,
+														).toLocaleDateString()
 													: "Active"}
 												{" - "}
-												{activeInOfficeTerm?.TermEnd || activeInOfficeTerm?.term_end
-													? new Date(activeInOfficeTerm.TermEnd || activeInOfficeTerm.term_end).toLocaleDateString()
+												{activeInOfficeTerm?.TermEnd ||
+												activeInOfficeTerm?.term_end
+													? new Date(
+															activeInOfficeTerm.TermEnd ||
+																activeInOfficeTerm.term_end,
+														).toLocaleDateString()
 													: "Ongoing"}
 											</strong>
 										</span>
 										<span>
 											Seats:{" "}
 											<strong style={{ color: "#7B68EE" }}>
-												{activeInOfficeTerm?.ParliamentSize || activeInOfficeTerm?.parliament_size || officeWinners.length}
+												{activeInOfficeTerm?.ParliamentSize ||
+													activeInOfficeTerm?.parliament_size ||
+													officeWinners.length}
 											</strong>
 										</span>
-										{electionTerm && (electionTerm.ElectionEnd || electionTerm.election_end) && (
-											<span>
-												Vote Ends:{" "}
-												<strong style={{ color: "#7B68EE" }}>
-													{new Date(electionTerm.ElectionEnd || electionTerm.election_end).toLocaleDateString()}
-												</strong>
-											</span>
-										)}
+										{electionTerm &&
+											(electionTerm.ElectionEnd ||
+												electionTerm.election_end) && (
+												<span>
+													Vote Ends:{" "}
+													<strong style={{ color: "#7B68EE" }}>
+														{new Date(
+															electionTerm.ElectionEnd ||
+																electionTerm.election_end,
+														).toLocaleDateString()}
+													</strong>
+												</span>
+											)}
 									</Box>
 
 									{/* Members Currently in Office (Ultra Compact) */}
-									<Box sx={{ display: "flex", flexDirection: "column", gap: 0.35 }}>
-										<Typography variant="caption" sx={{ fontSize: "0.58rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase" }}>
+									<Box
+										sx={{ display: "flex", flexDirection: "column", gap: 0.35 }}
+									>
+										<Typography
+											variant="caption"
+											sx={{
+												fontSize: "0.58rem",
+												fontWeight: 700,
+												color: "rgba(255,255,255,0.45)",
+												textTransform: "uppercase",
+											}}
+										>
 											Active Officers in Office
 										</Typography>
-										{(officeWinners.length > 0 ? officeWinners : officeCands).map((cand: any, idx: number) => {
-											const isWin = Boolean(cand.IsWinner ?? cand.is_winner ?? cand.isWinner);
+										{(officeWinners.length > 0
+											? officeWinners
+											: officeCands
+										).map((cand: any, idx: number) => {
+											const isWin = Boolean(
+												cand.IsWinner ?? cand.is_winner ?? cand.isWinner,
+											);
 											const winIndex = officeWinners.indexOf(cand);
 											const isGovernor = isWin && winIndex === 0;
 											const isMP = isWin && winIndex > 0;
-											const pct = Math.round((cand.VotesPercentage ?? cand.votes_percentage ?? 0) * 100) / 100;
-											const username = cand.Username || cand.username || cand.UserId || cand.userid || "Anonymous";
-											const corpCode = cand.CorporationCode || cand.corporation_code || null;
+											const pct =
+												Math.round(
+													(cand.VotesPercentage ?? cand.votes_percentage ?? 0) *
+														100,
+												) / 100;
+											const username =
+												cand.Username ||
+												cand.username ||
+												cand.UserId ||
+												cand.userid ||
+												"Anonymous";
+											const corpCode =
+												cand.CorporationCode || cand.corporation_code || null;
 
 											return (
 												<Box
@@ -1531,9 +1579,17 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 														alignItems: "center",
 													}}
 												>
-													<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+													<Box
+														sx={{
+															display: "flex",
+															alignItems: "center",
+															gap: 0.4,
+														}}
+													>
 														{isGovernor ? (
-															<EmojiEvents sx={{ fontSize: 12, color: "#7B68EE" }} />
+															<EmojiEvents
+																sx={{ fontSize: 12, color: "#7B68EE" }}
+															/>
 														) : isMP ? (
 															<People sx={{ fontSize: 12, color: "#7B68EE" }} />
 														) : null}
@@ -1548,13 +1604,25 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 															{username}
 														</Typography>
 														{corpCode && (
-															<Typography variant="caption" sx={{ fontSize: "0.55rem", color: "rgba(255,255,255,0.45)" }}>
+															<Typography
+																variant="caption"
+																sx={{
+																	fontSize: "0.55rem",
+																	color: "rgba(255,255,255,0.45)",
+																}}
+															>
 																[{corpCode}]
 															</Typography>
 														)}
 													</Box>
 
-													<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+													<Box
+														sx={{
+															display: "flex",
+															alignItems: "center",
+															gap: 0.4,
+														}}
+													>
 														{isGovernor ? (
 															<Box
 																sx={{
@@ -1586,7 +1654,14 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 																MP
 															</Box>
 														) : null}
-														<Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.6rem", color: "rgba(255,255,255,0.7)" }}>
+														<Typography
+															variant="caption"
+															sx={{
+																fontWeight: 700,
+																fontSize: "0.6rem",
+																color: "rgba(255,255,255,0.7)",
+															}}
+														>
 															{cand.Votes ?? cand.votes ?? 0} ({pct}%)
 														</Typography>
 													</Box>
@@ -1597,7 +1672,12 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 
 									{/* Upcoming Election Candidates Section (Compact Scrollable) */}
 									{electionTerm && electionCands.length > 0 && (
-										<Box sx={{ borderTop: "1px dashed rgba(123, 104, 238, 0.2)", pt: 0.5 }}>
+										<Box
+											sx={{
+												borderTop: "1px dashed rgba(123, 104, 238, 0.2)",
+												pt: 0.5,
+											}}
+										>
 											<Typography
 												variant="caption"
 												sx={{
@@ -1610,7 +1690,8 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 													mb: 0.35,
 												}}
 											>
-												Election Candidates Running for Next Term ({electionCands.length})
+												Election Candidates Running for Next Term (
+												{electionCands.length})
 											</Typography>
 
 											<Box
@@ -1622,12 +1703,23 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 													gap: 0.3,
 													pr: 0.5,
 													"&::-webkit-scrollbar": { width: 3 },
-													"&::-webkit-scrollbar-thumb": { bgcolor: "rgba(123, 104, 238, 0.3)", borderRadius: 2 },
+													"&::-webkit-scrollbar-thumb": {
+														bgcolor: "rgba(123, 104, 238, 0.3)",
+														borderRadius: 2,
+													},
 												}}
 											>
 												{electionCands.map((cand: any, cIdx: number) => {
-													const username = cand.Username || cand.username || cand.UserId || cand.userid || "Anonymous";
-													const corpCode = cand.CorporationCode || cand.corporation_code || null;
+													const username =
+														cand.Username ||
+														cand.username ||
+														cand.UserId ||
+														cand.userid ||
+														"Anonymous";
+													const corpCode =
+														cand.CorporationCode ||
+														cand.corporation_code ||
+														null;
 
 													return (
 														<Box
@@ -1644,11 +1736,34 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 																fontSize: "0.6rem",
 															}}
 														>
-															<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-																<span style={{ color: "#fff", fontWeight: 600 }}>{username}</span>
-																{corpCode && <span style={{ color: "rgba(255,255,255,0.4)" }}>[{corpCode}]</span>}
+															<Box
+																sx={{
+																	display: "flex",
+																	alignItems: "center",
+																	gap: 0.4,
+																}}
+															>
+																<span
+																	style={{ color: "#fff", fontWeight: 600 }}
+																>
+																	{username}
+																</span>
+																{corpCode && (
+																	<span
+																		style={{ color: "rgba(255,255,255,0.4)" }}
+																	>
+																		[{corpCode}]
+																	</span>
+																)}
 															</Box>
-															<span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 700, fontSize: "0.55rem", letterSpacing: "0.04em" }}>
+															<span
+																style={{
+																	color: "rgba(255,255,255,0.5)",
+																	fontWeight: 700,
+																	fontSize: "0.55rem",
+																	letterSpacing: "0.04em",
+																}}
+															>
 																REDACTED
 															</span>
 														</Box>
@@ -1660,7 +1775,12 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 
 									{/* Past Terms List (Ultra Compact Scrollable) */}
 									{pastTerms.length > 0 && (
-										<Box sx={{ borderTop: "1px dashed rgba(255,255,255,0.08)", pt: 0.5 }}>
+										<Box
+											sx={{
+												borderTop: "1px dashed rgba(255,255,255,0.08)",
+												pt: 0.5,
+											}}
+										>
 											<Typography
 												variant="caption"
 												sx={{
@@ -1686,14 +1806,21 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 													gap: 0.5,
 													pr: 0.5,
 													"&::-webkit-scrollbar": { width: 3 },
-													"&::-webkit-scrollbar-thumb": { bgcolor: "rgba(123, 104, 238, 0.3)", borderRadius: 2 },
+													"&::-webkit-scrollbar-thumb": {
+														bgcolor: "rgba(123, 104, 238, 0.3)",
+														borderRadius: 2,
+													},
 												}}
 											>
 												{pastTerms.map((t: any, pIdx: number) => {
 													const termIndex = govTerms.indexOf(t);
-													const termNum = termIndex !== -1 ? govTerms.length - termIndex : (pastTerms.length - pIdx);
+													const termNum =
+														termIndex !== -1
+															? govTerms.length - termIndex
+															: pastTerms.length - pIdx;
 
-													const termCands: any[] = t.Candidates || t.candidates || [];
+													const termCands: any[] =
+														t.Candidates || t.candidates || [];
 													const termWinners = termCands.filter((c: any) =>
 														Boolean(c.IsWinner ?? c.is_winner ?? c.isWinner),
 													);
@@ -1716,58 +1843,176 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 															}}
 														>
 															{/* Top Header of Term Card */}
-															<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-																<span style={{ color: "#7B68EE", fontWeight: 800 }}>
+															<Box
+																sx={{
+																	display: "flex",
+																	justifyContent: "space-between",
+																	alignItems: "center",
+																}}
+															>
+																<span
+																	style={{ color: "#7B68EE", fontWeight: 800 }}
+																>
 																	Term #{termNum}
 																</span>
-																<span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.55rem" }}>
-																	{t.TermStart || t.term_start ? new Date(t.TermStart || t.term_start).toLocaleDateString() : ""}
-																	{t.TermEnd || t.term_end ? ` - ${new Date(t.TermEnd || t.term_end).toLocaleDateString()}` : ""}
+																<span
+																	style={{
+																		color: "rgba(255,255,255,0.4)",
+																		fontSize: "0.55rem",
+																	}}
+																>
+																	{t.TermStart || t.term_start
+																		? new Date(
+																				t.TermStart || t.term_start,
+																			).toLocaleDateString()
+																		: ""}
+																	{t.TermEnd || t.term_end
+																		? ` - ${new Date(t.TermEnd || t.term_end).toLocaleDateString()}`
+																		: ""}
 																</span>
 															</Box>
 
 															{/* Governor Row */}
 															{governor && (
-																<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pl: 0.5 }}>
-																	<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-																		<EmojiEvents sx={{ fontSize: 11, color: "#7B68EE" }} />
-																		<span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Gov:</span>
+																<Box
+																	sx={{
+																		display: "flex",
+																		justifyContent: "space-between",
+																		alignItems: "center",
+																		pl: 0.5,
+																	}}
+																>
+																	<Box
+																		sx={{
+																			display: "flex",
+																			alignItems: "center",
+																			gap: 0.4,
+																		}}
+																	>
+																		<EmojiEvents
+																			sx={{ fontSize: 11, color: "#7B68EE" }}
+																		/>
+																		<span
+																			style={{
+																				color: "rgba(255,255,255,0.5)",
+																				fontWeight: 600,
+																			}}
+																		>
+																			Gov:
+																		</span>
 																		<strong style={{ color: "#9988ff" }}>
-																			{governor.Username || governor.username || governor.UserId}
+																			{governor.Username ||
+																				governor.username ||
+																				governor.UserId}
 																		</strong>
-																		{(governor.CorporationCode || governor.corporation_code) && (
-																			<span style={{ color: "rgba(255,255,255,0.4)" }}>
-																				[{governor.CorporationCode || governor.corporation_code}]
+																		{(governor.CorporationCode ||
+																			governor.corporation_code) && (
+																			<span
+																				style={{
+																					color: "rgba(255,255,255,0.4)",
+																				}}
+																			>
+																				[
+																				{governor.CorporationCode ||
+																					governor.corporation_code}
+																				]
 																			</span>
 																		)}
 																	</Box>
-																	<span style={{ color: "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: "0.58rem" }}>
-																		{governor.Votes ?? governor.votes ?? 0} Votes ({Math.round((governor.VotesPercentage ?? governor.votes_percentage ?? 0) * 100) / 100}%)
+																	<span
+																		style={{
+																			color: "rgba(255,255,255,0.7)",
+																			fontWeight: 600,
+																			fontSize: "0.58rem",
+																		}}
+																	>
+																		{governor.Votes ?? governor.votes ?? 0}{" "}
+																		Votes (
+																		{Math.round(
+																			(governor.VotesPercentage ??
+																				governor.votes_percentage ??
+																				0) * 100,
+																		) / 100}
+																		%)
 																	</span>
 																</Box>
 															)}
 
 															{/* MPs Rows */}
 															{mps.length > 0 && (
-																<Box sx={{ display: "flex", flexDirection: "column", gap: 0.25, pl: 0.5 }}>
+																<Box
+																	sx={{
+																		display: "flex",
+																		flexDirection: "column",
+																		gap: 0.25,
+																		pl: 0.5,
+																	}}
+																>
 																	{mps.map((mp: any, mIdx: number) => {
-																		const pct = Math.round((mp.VotesPercentage ?? mp.votes_percentage ?? 0) * 100) / 100;
+																		const pct =
+																			Math.round(
+																				(mp.VotesPercentage ??
+																					mp.votes_percentage ??
+																					0) * 100,
+																			) / 100;
 																		return (
-																			<Box key={mp.CandidateId || mIdx} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-																				<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-																					<People sx={{ fontSize: 11, color: "#7B68EE" }} />
-																					<span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>MP:</span>
+																			<Box
+																				key={mp.CandidateId || mIdx}
+																				sx={{
+																					display: "flex",
+																					justifyContent: "space-between",
+																					alignItems: "center",
+																				}}
+																			>
+																				<Box
+																					sx={{
+																						display: "flex",
+																						alignItems: "center",
+																						gap: 0.4,
+																					}}
+																				>
+																					<People
+																						sx={{
+																							fontSize: 11,
+																							color: "#7B68EE",
+																						}}
+																					/>
+																					<span
+																						style={{
+																							color: "rgba(255,255,255,0.5)",
+																							fontWeight: 600,
+																						}}
+																					>
+																						MP:
+																					</span>
 																					<strong style={{ color: "#fff" }}>
-																						{mp.Username || mp.username || mp.UserId}
+																						{mp.Username ||
+																							mp.username ||
+																							mp.UserId}
 																					</strong>
-																					{(mp.CorporationCode || mp.corporation_code) && (
-																						<span style={{ color: "rgba(255,255,255,0.4)" }}>
-																							[{mp.CorporationCode || mp.corporation_code}]
+																					{(mp.CorporationCode ||
+																						mp.corporation_code) && (
+																						<span
+																							style={{
+																								color: "rgba(255,255,255,0.4)",
+																							}}
+																						>
+																							[
+																							{mp.CorporationCode ||
+																								mp.corporation_code}
+																							]
 																						</span>
 																					)}
 																				</Box>
-																				<span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 500, fontSize: "0.58rem" }}>
-																					{mp.Votes ?? mp.votes ?? 0} Votes ({pct}%)
+																				<span
+																					style={{
+																						color: "rgba(255,255,255,0.6)",
+																						fontWeight: 500,
+																						fontSize: "0.58rem",
+																					}}
+																				>
+																					{mp.Votes ?? mp.votes ?? 0} Votes (
+																					{pct}%)
 																				</span>
 																			</Box>
 																		);
@@ -1820,7 +2065,8 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 												gap: 0.4,
 											}}
 										>
-											<Gavel sx={{ fontSize: 14 }} /> PLANETARY MOTIONS ({motions.length})
+											<Gavel sx={{ fontSize: 14 }} /> PLANETARY MOTIONS (
+											{motions.length})
 										</Typography>
 									</Box>
 
@@ -1835,7 +2081,10 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 											gap: 0.5,
 											pr: 0.5,
 											"&::-webkit-scrollbar": { width: 3 },
-											"&::-webkit-scrollbar-thumb": { bgcolor: "rgba(123, 104, 238, 0.3)", borderRadius: 2 },
+											"&::-webkit-scrollbar-thumb": {
+												bgcolor: "rgba(123, 104, 238, 0.3)",
+												borderRadius: 2,
+											},
 										}}
 									>
 										{motions.map((m: any, idx: number) => {
@@ -1858,8 +2107,21 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 														gap: 0.3,
 													}}
 												>
-													<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-														<Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.65rem", color: "#fff" }}>
+													<Box
+														sx={{
+															display: "flex",
+															justifyContent: "space-between",
+															alignItems: "center",
+														}}
+													>
+														<Typography
+															variant="subtitle2"
+															sx={{
+																fontWeight: 700,
+																fontSize: "0.65rem",
+																color: "#fff",
+															}}
+														>
 															{m.MotionName || `Motion #${m.MotionId}`}
 														</Typography>
 														<Box
@@ -1879,15 +2141,29 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 													</Box>
 
 													{m.CreatorUsername && (
-														<Typography variant="caption" sx={{ fontSize: "0.58rem", color: "rgba(255,255,255,0.45)" }}>
+														<Typography
+															variant="caption"
+															sx={{
+																fontSize: "0.58rem",
+																color: "rgba(255,255,255,0.45)",
+															}}
+														>
 															Proposed by <strong>{m.CreatorUsername}</strong>
-															{m.CreatedAt && ` • ${new Date(m.CreatedAt).toLocaleDateString()}`}
+															{m.CreatedAt &&
+																` • ${new Date(m.CreatedAt).toLocaleDateString()}`}
 														</Typography>
 													)}
 
 													{/* Motion Components (Compact Inline) */}
 													{components.length > 0 && (
-														<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.4, mt: 0.25 }}>
+														<Box
+															sx={{
+																display: "flex",
+																flexWrap: "wrap",
+																gap: 0.4,
+																mt: 0.25,
+															}}
+														>
 															{components.map((comp: any, cIdx: number) => (
 																<Box
 																	key={comp.ComponentId || cIdx}
@@ -1902,10 +2178,20 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 																		gap: 0.5,
 																	}}
 																>
-																	<span style={{ color: "#7B68EE", fontWeight: 600 }}>{comp.Type}</span>
+																	<span
+																		style={{
+																			color: "#7B68EE",
+																			fontWeight: 600,
+																		}}
+																	>
+																		{comp.Type}
+																	</span>
 																	{comp.Amount !== undefined && (
-																		<span style={{ color: "#fff", fontWeight: 700 }}>
-																			{comp.Amount?.toLocaleString()} {comp.Currency || ""}
+																		<span
+																			style={{ color: "#fff", fontWeight: 700 }}
+																		>
+																			{comp.Amount?.toLocaleString()}{" "}
+																			{comp.Currency || ""}
 																		</span>
 																	)}
 																</Box>
@@ -1915,17 +2201,64 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 
 													{/* Motion Votes Detailed Breakdown */}
 													{votes.length > 0 && (
-														<Box sx={{ display: "flex", flexDirection: "column", gap: 0.25, mt: 0.25, pt: 0.25, borderTop: "1px dashed rgba(255,255,255,0.06)" }}>
-															<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
-																<HowToVote sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }} />
-																<Typography variant="caption" sx={{ fontSize: "0.58rem", fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>
+														<Box
+															sx={{
+																display: "flex",
+																flexDirection: "column",
+																gap: 0.25,
+																mt: 0.25,
+																pt: 0.25,
+																borderTop: "1px dashed rgba(255,255,255,0.06)",
+															}}
+														>
+															<Box
+																sx={{
+																	display: "flex",
+																	alignItems: "center",
+																	gap: 0.4,
+																}}
+															>
+																<HowToVote
+																	sx={{
+																		fontSize: 11,
+																		color: "rgba(255,255,255,0.4)",
+																	}}
+																/>
+																<Typography
+																	variant="caption"
+																	sx={{
+																		fontSize: "0.58rem",
+																		fontWeight: 700,
+																		color: "rgba(255,255,255,0.5)",
+																	}}
+																>
 																	VOTES RECORDED ({votes.length})
 																</Typography>
 															</Box>
-															<Box sx={{ display: "flex", flexDirection: "column", gap: 0.2, pl: 0.25 }}>
+															<Box
+																sx={{
+																	display: "flex",
+																	flexDirection: "column",
+																	gap: 0.2,
+																	pl: 0.25,
+																}}
+															>
 																{votes.map((v: any, vIdx: number) => {
-																	const voterName = v.Username || v.username || v.VoterUsername || v.voter_username || v.UserId || v.userid || "Voter";
-																	const voteChoice = String(v.Vote || v.vote || v.Option || v.option || "FOR").toUpperCase();
+																	const voterName =
+																		v.Username ||
+																		v.username ||
+																		v.VoterUsername ||
+																		v.voter_username ||
+																		v.UserId ||
+																		v.userid ||
+																		"Voter";
+																	const voteChoice = String(
+																		v.Vote ||
+																			v.vote ||
+																			v.Option ||
+																			v.option ||
+																			"FOR",
+																	).toUpperCase();
 
 																	return (
 																		<Box
@@ -1941,8 +2274,24 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 																				borderRadius: "3px",
 																			}}
 																		>
-																			<span style={{ color: "#fff", fontWeight: 600 }}>{voterName}</span>
-																			<span style={{ color: voteChoice === "FOR" ? "#7B68EE" : "rgba(255,255,255,0.5)", fontWeight: 700, fontSize: "0.55rem" }}>
+																			<span
+																				style={{
+																					color: "#fff",
+																					fontWeight: 600,
+																				}}
+																			>
+																				{voterName}
+																			</span>
+																			<span
+																				style={{
+																					color:
+																						voteChoice === "FOR"
+																							? "#7B68EE"
+																							: "rgba(255,255,255,0.5)",
+																					fontWeight: 700,
+																					fontSize: "0.55rem",
+																				}}
+																			>
 																				{voteChoice}
 																			</span>
 																		</Box>

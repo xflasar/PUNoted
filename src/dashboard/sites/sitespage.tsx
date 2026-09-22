@@ -50,7 +50,10 @@ const SitesPage: React.FC = () => {
 	if (loading) {
 		return (
 			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
-				<GlobalLoadingOverlay loading={true} statusText="LOADING PLANETARY SITES..." />
+				<GlobalLoadingOverlay
+					loading={true}
+					statusText="LOADING PLANETARY SITES..."
+				/>
 			</Box>
 		);
 	}

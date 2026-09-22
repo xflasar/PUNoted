@@ -5,12 +5,12 @@ export interface ContractListItem {
 	preamble?: string;
 	date: string;
 	status:
-	| "PENDING"
-	| "ACCEPTED"
-	| "FULFILLED"
-	| "BREACHED"
-	| "CANCELLED"
-	| "REJECTED";
+		| "PENDING"
+		| "ACCEPTED"
+		| "FULFILLED"
+		| "BREACHED"
+		| "CANCELLED"
+		| "REJECTED";
 	contracttype?: string;
 	partnername?: string;
 	partnercode?: string;
@@ -134,7 +134,6 @@ export interface Contract extends ContractDetailData {
 	total_cond_count: number;
 	fulfilled_cond_count: number;
 }
-
 
 export interface Bank {
 	id: string;

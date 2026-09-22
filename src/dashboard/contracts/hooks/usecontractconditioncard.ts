@@ -17,13 +17,16 @@ export interface UseContractConditionCardProps {
 /** Helper: Parse material ticker and quantity from condition */
 export function parseMaterialInfo(cond: Condition) {
 	const matSummary = cond.material_summary || "";
-	const matMatch = matSummary.match(/(\d+)\s*x\s*([A-Z0-9_-]+)/i) || matSummary.match(/([A-Z0-9]{1,6})/i);
+	const matMatch =
+		matSummary.match(/(\d+)\s*x\s*([A-Z0-9_-]+)/i) ||
+		matSummary.match(/([A-Z0-9]{1,6})/i);
 	const matTicker =
 		cond.material_ticker ||
 		(cond as any).materialid ||
 		(cond as any).ticker ||
-		(matMatch ? (matMatch[2] || matMatch[1]) : null);
-	const matQty = cond.amount || (matMatch && matMatch[2] ? Number(matMatch[1]) : 1);
+		(matMatch ? matMatch[2] || matMatch[1] : null);
+	const matQty =
+		cond.amount || (matMatch && matMatch[2] ? Number(matMatch[1]) : 1);
 	return { matTicker, matQty };
 }
 
@@ -41,22 +44,32 @@ export function resolveLocationName(cond: Condition): string {
 }
 
 /** Helper: Calculate per-unit price against linked deliverable / payment condition */
-export function calculateUnitPrice(cond: Condition, allConditions: Condition[], matQty: number): number {
+export function calculateUnitPrice(
+	cond: Condition,
+	allConditions: Condition[],
+	matQty: number,
+): number {
 	const linkedPayCond = allConditions.find(
-		(other) => (other.type === "PAYMENT" || other.amountmoney) && other !== cond,
+		(other) =>
+			(other.type === "PAYMENT" || other.amountmoney) && other !== cond,
 	);
 	const totalPay = Number(cond.amountmoney || linkedPayCond?.amountmoney || 0);
 	return matQty > 0 && totalPay > 0 ? totalPay / matQty : 0;
 }
 
 /** Helper: Lookup market price for ticker */
-export function lookupMarketPrice(matTicker: string | null, marketData: any): number | null {
+export function lookupMarketPrice(
+	matTicker: string | null,
+	marketData: any,
+): number | null {
 	if (!matTicker || !marketData) return null;
 
 	let marketObj: any = null;
 	if (Array.isArray(marketData)) {
 		marketObj = marketData.find(
-			(m: any) => (m.ticker || m.Ticker || m.materialid)?.toUpperCase() === matTicker.toUpperCase(),
+			(m: any) =>
+				(m.ticker || m.Ticker || m.materialid)?.toUpperCase() ===
+				matTicker.toUpperCase(),
 		);
 	} else if (typeof marketData === "object") {
 		marketObj =
@@ -66,12 +79,23 @@ export function lookupMarketPrice(matTicker: string | null, marketData: any): nu
 	}
 
 	return marketObj
-		? Number(marketObj.price ?? marketObj.ask ?? marketObj.vwap ?? marketObj.Price ?? 0) || null
+		? Number(
+				marketObj.price ??
+					marketObj.ask ??
+					marketObj.vwap ??
+					marketObj.Price ??
+					0,
+			) || null
 		: null;
 }
 
 /** Helper: Lookup inventory stock for ticker and optional location match */
-export function lookupInventoryStock(matTicker: string | null, locName: string, storageState: any, matQty: number) {
+export function lookupInventoryStock(
+	matTicker: string | null,
+	locName: string,
+	storageState: any,
+	matQty: number,
+) {
 	if (!matTicker || !storageState?.units) {
 		return { availableStock: 0, hasEnoughStock: true };
 	}
@@ -104,13 +128,22 @@ export function lookupInventoryStock(matTicker: string | null, locName: string, 
 }
 
 /** Helper: Check if user can afford payment condition */
-export function checkCanUserAfford(cond: Condition, contractCurrency: string, financialData: any): boolean {
+export function checkCanUserAfford(
+	cond: Condition,
+	contractCurrency: string,
+	financialData: any,
+): boolean {
 	if (!financialData) return true;
-	const requiredMoney = Number(cond.amountmoney || (cond as any).repaymentamount || 0);
-	const userCurrencyObj = financialData?.Currencies?.find(
-		(c: any) => c.Currency?.toUpperCase() === (contractCurrency || "").toUpperCase()
+	const requiredMoney = Number(
+		cond.amountmoney || (cond as any).repaymentamount || 0,
 	);
-	const userLiquidBalance = userCurrencyObj ? Number(userCurrencyObj.Liquid || 0) : 0;
+	const userCurrencyObj = financialData?.Currencies?.find(
+		(c: any) =>
+			c.Currency?.toUpperCase() === (contractCurrency || "").toUpperCase(),
+	);
+	const userLiquidBalance = userCurrencyObj
+		? Number(userCurrencyObj.Liquid || 0)
+		: 0;
 	return userLiquidBalance >= requiredMoney;
 }
 
@@ -140,17 +173,40 @@ export function useContractConditionCard({
 		const unitPrice = calculateUnitPrice(cond, allConditions, matQty);
 		const marketPrice = lookupMarketPrice(matTicker, marketData);
 
-		const corpPrice = matTicker ? (corpPrices?.[matTicker.toUpperCase()] ?? corpPrices?.[matTicker] ?? null) : null;
-		const matchedVendorOrder = matTicker
-			? vendorOrders.find((o) => o.ticker?.toUpperCase() === matTicker.toUpperCase())
+		const corpPrice = matTicker
+			? (corpPrices?.[matTicker.toUpperCase()] ??
+				corpPrices?.[matTicker] ??
+				null)
 			: null;
-		const vendorPrice = matchedVendorOrder ? Number(matchedVendorOrder.price) : null;
+		const matchedVendorOrder = matTicker
+			? vendorOrders.find(
+					(o) => o.ticker?.toUpperCase() === matTicker.toUpperCase(),
+				)
+			: null;
+		const vendorPrice = matchedVendorOrder
+			? Number(matchedVendorOrder.price)
+			: null;
 
-		const isVendorMatch = vendorPrice !== null && unitPrice > 0 && Math.abs(vendorPrice - unitPrice) < 0.01;
-		const isCorpMatch = corpPrice !== null && unitPrice > 0 && Math.abs(corpPrice - unitPrice) < 0.01;
+		const isVendorMatch =
+			vendorPrice !== null &&
+			unitPrice > 0 &&
+			Math.abs(vendorPrice - unitPrice) < 0.01;
+		const isCorpMatch =
+			corpPrice !== null &&
+			unitPrice > 0 &&
+			Math.abs(corpPrice - unitPrice) < 0.01;
 
-		const { availableStock, hasEnoughStock } = lookupInventoryStock(matTicker, locName, storageState, matQty);
-		const canUserAfford = checkCanUserAfford(cond, contract?.contract_currency, financialData);
+		const { availableStock, hasEnoughStock } = lookupInventoryStock(
+			matTicker,
+			locName,
+			storageState,
+			matQty,
+		);
+		const canUserAfford = checkCanUserAfford(
+			cond,
+			contract?.contract_currency,
+			financialData,
+		);
 
 		return {
 			isFulfilled,
@@ -171,5 +227,14 @@ export function useContractConditionCard({
 			hasEnoughStock,
 			canUserAfford,
 		};
-	}, [cond, contract, allConditions, marketData, corpPrices, vendorOrders, storageState, financialData]);
+	}, [
+		cond,
+		contract,
+		allConditions,
+		marketData,
+		corpPrices,
+		vendorOrders,
+		storageState,
+		financialData,
+	]);
 }

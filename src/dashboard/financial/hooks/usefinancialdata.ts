@@ -22,24 +22,46 @@ export const useFinancialData = () => {
 	const { loadedSteps, totalSteps, statusText } = useMemo(() => {
 		const steps = [
 			{ name: "Financial Balances", ready: !rawLoading },
-			{ name: "Market Intelligence", ready: Boolean(marketData && (Array.isArray(marketData) ? marketData.length > 0 : Object.keys(marketData).length > 0)) },
-			{ name: "Inventory & Storages", ready: Boolean(storageState && (Array.isArray(storageState) ? storageState.length > 0 : (storageState.units && Object.keys(storageState.units).length > 0))) },
-			{ name: "Planetary Base Sites", ready: Boolean(Array.isArray(userSites) && userSites.length > 0) },
+			{
+				name: "Market Intelligence",
+				ready: Boolean(
+					marketData &&
+					(Array.isArray(marketData)
+						? marketData.length > 0
+						: Object.keys(marketData).length > 0),
+				),
+			},
+			{
+				name: "Inventory & Storages",
+				ready: Boolean(
+					storageState &&
+					(Array.isArray(storageState)
+						? storageState.length > 0
+						: storageState.units && Object.keys(storageState.units).length > 0),
+				),
+			},
+			{
+				name: "Planetary Base Sites",
+				ready: Boolean(Array.isArray(userSites) && userSites.length > 0),
+			},
 		];
 
 		const completed = steps.filter((s) => s.ready).length;
 		const total = steps.length;
 		const activeStep = steps.find((s) => !s.ready);
-		const text = activeStep ? `Loading ${activeStep.name}... (${completed}/${total})` : "Compiling Financial Valuations...";
+		const text = activeStep
+			? `Loading ${activeStep.name}... (${completed}/${total})`
+			: "Compiling Financial Valuations...";
 
 		return { loadedSteps: completed, totalSteps: total, statusText: text };
 	}, [rawLoading, marketData, storageState, userSites]);
 
-	const error = !rawLoading && !data ? "Failed to load financial overview data. Please try refreshing." : null;
+	const error =
+		!rawLoading && !data
+			? "Failed to load financial overview data. Please try refreshing."
+			: null;
 	const isDataReady = loadedSteps === totalSteps;
 	const loading = !isDataReady && !error;
-
-
 
 	useEffect(() => {
 		if (data?.Currencies && data.Currencies.length > 0) {
@@ -208,4 +230,3 @@ export const useFinancialData = () => {
 		statusText,
 	};
 };
-

@@ -72,9 +72,13 @@ const MobileContractCard = ({
 	};
 
 	const hasAmount =
-		contract.total_amount !== undefined && contract.total_amount !== null && contract.total_amount !== 0;
-	const isPositive = contract.contracttype === "SELL" || contract.contracttype === "LOAN_TAKEN";
-	const isNegative = contract.contracttype === "BUY" || contract.contracttype === "LOAN_GIVEN";
+		contract.total_amount !== undefined &&
+		contract.total_amount !== null &&
+		contract.total_amount !== 0;
+	const isPositive =
+		contract.contracttype === "SELL" || contract.contracttype === "LOAN_TAKEN";
+	const isNegative =
+		contract.contracttype === "BUY" || contract.contracttype === "LOAN_GIVEN";
 	const sign = isPositive ? "+" : isNegative ? "-" : "";
 	const amountColor = isPositive
 		? theme.palette.success.main
@@ -236,7 +240,9 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						return true;
 					});
 					setContracts(uniqueItems);
-					setTotalCount(data.total !== undefined ? data.total : uniqueItems.length);
+					setTotalCount(
+						data.total !== undefined ? data.total : uniqueItems.length,
+					);
 				}
 			} catch (err) {
 				console.error("Failed to fetch contracts:", err);
@@ -293,7 +299,10 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 						input: {
 							startAdornment: (
 								<InputAdornment position="start">
-									<Search fontSize="small" sx={{ color: "rgba(255,255,255,0.6)" }} />
+									<Search
+										fontSize="small"
+										sx={{ color: "rgba(255,255,255,0.6)" }}
+									/>
 								</InputAdornment>
 							),
 							style: { fontSize: "0.85rem", color: "#ffffff" },
@@ -340,7 +349,7 @@ const ContractsList: React.FC<Props> = ({ category, onViewDetail }) => {
 										"&.Mui-selected": { bgcolor: "rgba(123, 104, 238, 0.25)" },
 									},
 								},
-							}
+							},
 						},
 					}}
 				>

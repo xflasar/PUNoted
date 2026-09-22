@@ -66,7 +66,9 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
 				p: 1,
 				mb: 0.5,
 				borderRadius: 1.75,
-				bgcolor: n.is_read ? "rgba(0, 0, 0, 0.25)" : "rgba(123, 104, 238, 0.08)",
+				bgcolor: n.is_read
+					? "rgba(0, 0, 0, 0.25)"
+					: "rgba(123, 104, 238, 0.08)",
 				border: n.is_read
 					? "1px solid rgba(255, 255, 255, 0.06)"
 					: "1px solid rgba(123, 104, 238, 0.22)",
@@ -85,7 +87,14 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
 			}}
 			onClick={() => onCardClick(n)}
 		>
-			<Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, width: "100%" }}>
+			<Box
+				sx={{
+					display: "flex",
+					alignItems: "flex-start",
+					gap: 1,
+					width: "100%",
+				}}
+			>
 				<ListItemIcon sx={{ minWidth: "auto", mt: 0.2 }}>
 					{getCategoryIcon(n.category)}
 				</ListItemIcon>
@@ -95,7 +104,14 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
 						secondary: { component: "div" },
 					}}
 					primary={
-						<Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "space-between",
+								gap: 1,
+							}}
+						>
 							<Typography
 								variant="subtitle2"
 								sx={{
@@ -130,7 +146,9 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
 							<Typography
 								variant="caption"
 								sx={{
-									color: n.is_read ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.7)",
+									color: n.is_read
+										? "rgba(255,255,255,0.5)"
+										: "rgba(255,255,255,0.7)",
 									display: "block",
 									lineHeight: 1.25,
 									fontSize: "0.72rem",
@@ -138,8 +156,18 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
 							>
 								{n.message}
 							</Typography>
-							<Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 0.3 }}>
-								<Typography variant="caption" sx={{ color: "rgba(255,255,255,0.35)", fontSize: "0.65rem" }}>
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "space-between",
+									mt: 0.3,
+								}}
+							>
+								<Typography
+									variant="caption"
+									sx={{ color: "rgba(255,255,255,0.35)", fontSize: "0.65rem" }}
+								>
 									{new Date(n.created_at).toLocaleTimeString([], {
 										hour: "2-digit",
 										minute: "2-digit",
@@ -173,7 +201,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
 						pt: 0.75,
 						borderTop: "1px dashed rgba(255, 255, 255, 0.1)",
 						width: "100%",
-						transition: "height ease-in-out 1s"
+						transition: "height ease-in-out 1s",
 					}}
 				>
 					<NotificationContentFactory

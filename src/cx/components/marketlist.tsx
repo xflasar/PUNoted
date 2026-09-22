@@ -207,7 +207,13 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 
 				const exData: Record<
 					string,
-					{ avg: number; askPx: number; askAmt: number; bidPx: number; bidAmt: number }
+					{
+						avg: number;
+						askPx: number;
+						askAmt: number;
+						bidPx: number;
+						bidAmt: number;
+					}
 				> = {};
 
 				EXCHANGES.forEach((ex) => {
@@ -687,7 +693,11 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 							},
 						}}
 					>
-						<Table stickyHeader size="small" sx={{ minWidth: selectedExFilter === "ALL" ? 900 : 700 }}>
+						<Table
+							stickyHeader
+							size="small"
+							sx={{ minWidth: selectedExFilter === "ALL" ? 900 : 700 }}
+						>
 							<TableHead>
 								<TableRow
 									sx={{
@@ -735,12 +745,8 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 											<TableCell align="right">
 												{selectedExFilter} Live
 											</TableCell>
-											<TableCell align="right">
-												7D Avg
-											</TableCell>
-											<TableCell align="right">
-												30D Avg
-											</TableCell>
+											<TableCell align="right">7D Avg</TableCell>
+											<TableCell align="right">30D Avg</TableCell>
 											<TableCell align="right">
 												{selectedExFilter} Ask / Bid
 											</TableCell>
@@ -889,23 +895,36 @@ export const MarketList: React.FC<MarketListProps> = React.memo(
 															{askPx > 0 && (
 																<Typography
 																	variant="caption"
-																	sx={{ color: "#FF5252", fontWeight: 600, fontSize: "0.72rem" }}
+																	sx={{
+																		color: "#FF5252",
+																		fontWeight: 600,
+																		fontSize: "0.72rem",
+																	}}
 																>
 																	Ask: {formatCurrency(askPx)}{" "}
-																	{askAmt > 0 && `(Qty: ${askAmt.toLocaleString()})`}
+																	{askAmt > 0 &&
+																		`(Qty: ${askAmt.toLocaleString()})`}
 																</Typography>
 															)}
 															{bidPx > 0 && (
 																<Typography
 																	variant="caption"
-																	sx={{ color: "#4CAF50", fontWeight: 600, fontSize: "0.72rem" }}
+																	sx={{
+																		color: "#4CAF50",
+																		fontWeight: 600,
+																		fontSize: "0.72rem",
+																	}}
 																>
 																	Bid: {formatCurrency(bidPx)}{" "}
-																	{bidAmt > 0 && `(Qty: ${bidAmt.toLocaleString()})`}
+																	{bidAmt > 0 &&
+																		`(Qty: ${bidAmt.toLocaleString()})`}
 																</Typography>
 															)}
 															{!askPx && !bidPx && (
-																<Typography variant="body2" sx={{ color: "rgba(255,255,255,0.3)" }}>
+																<Typography
+																	variant="body2"
+																	sx={{ color: "rgba(255,255,255,0.3)" }}
+																>
 																	-
 																</Typography>
 															)}

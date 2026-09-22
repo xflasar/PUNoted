@@ -131,7 +131,7 @@ export function useTickerData() {
 
 	const currentPrice = currentItem
 		? currentItem[`${selectedExchange}-Average`] ||
-		currentItem[`${selectedExchange}-AskPrice`]
+			currentItem[`${selectedExchange}-AskPrice`]
 		: undefined;
 
 	const handleCustomDateChange = useCallback((start: string, end: string) => {

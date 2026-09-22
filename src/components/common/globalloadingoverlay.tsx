@@ -52,7 +52,8 @@ export const GlobalLoadingOverlay: React.FC<GlobalLoadingOverlayProps> = ({
 						inset: "-150%",
 						background: `conic-gradient(from 0deg, transparent 0%, transparent 40%, rgba(123, 104, 238, 0.3) 70%, #7b68ee 88%, #64FFDA 100%)`,
 						animation: "clockwiseBorder 2s linear infinite",
-						filter: "drop-shadow(0 0 10px #64FFDA) drop-shadow(0 0 20px #7b68ee)",
+						filter:
+							"drop-shadow(0 0 10px #64FFDA) drop-shadow(0 0 20px #7b68ee)",
 						zIndex: 0,
 					},
 					"&::after": {
@@ -83,7 +84,11 @@ export const GlobalLoadingOverlay: React.FC<GlobalLoadingOverlayProps> = ({
 					}}
 				>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-						<CircularProgress size={20} thickness={5} sx={{ color: "#7b68ee" }} />
+						<CircularProgress
+							size={20}
+							thickness={5}
+							sx={{ color: "#7b68ee" }}
+						/>
 						<Typography
 							sx={{
 								fontSize: "0.85rem",

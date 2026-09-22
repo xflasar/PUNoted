@@ -17,7 +17,8 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 }) => {
 	const theme = useTheme();
 	const { mapData } = useGlobalData();
-	const { systemsPoints, allPlanetsData, allStationsData } = useMapData(mapData);
+	const { systemsPoints, allPlanetsData, allStationsData } =
+		useMapData(mapData);
 	const activeFlight: any = ship.plan || (ship as any).flight;
 
 	const startStr = activeFlight?.departuretimestamp;

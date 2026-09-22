@@ -30,7 +30,7 @@ const CX = () => {
 		handleSelectCommodity,
 		handleSelectExchange,
 		handleMarketListSelectTicker,
-		navigate
+		navigate,
 	} = useTickerData();
 
 	const sidebarContent = useMemo(

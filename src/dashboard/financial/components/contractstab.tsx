@@ -228,10 +228,30 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 			if (statusFilter !== "ALL") {
 				const cStatus = (c.status || c.Status || "").toUpperCase();
 				if (statusFilter === "OPEN" && cStatus !== "OPEN") return false;
-				if (statusFilter === "FULFILLED" && cStatus !== "FULFILLED") return false;
-				if (statusFilter === "CLOSED" && cStatus !== "CLOSED" && cStatus !== "CANCELLED" && cStatus !== "REJECTED" && cStatus !== "TERMINATED") return false;
-				if (statusFilter === "BREACHED" && cStatus !== "BREACHED" && cStatus !== "DEADLINE_EXCEEDED") return false;
-				if (statusFilter !== "OPEN" && statusFilter !== "FULFILLED" && statusFilter !== "CLOSED" && statusFilter !== "BREACHED" && cStatus !== statusFilter) return false;
+				if (statusFilter === "FULFILLED" && cStatus !== "FULFILLED")
+					return false;
+				if (
+					statusFilter === "CLOSED" &&
+					cStatus !== "CLOSED" &&
+					cStatus !== "CANCELLED" &&
+					cStatus !== "REJECTED" &&
+					cStatus !== "TERMINATED"
+				)
+					return false;
+				if (
+					statusFilter === "BREACHED" &&
+					cStatus !== "BREACHED" &&
+					cStatus !== "DEADLINE_EXCEEDED"
+				)
+					return false;
+				if (
+					statusFilter !== "OPEN" &&
+					statusFilter !== "FULFILLED" &&
+					statusFilter !== "CLOSED" &&
+					statusFilter !== "BREACHED" &&
+					cStatus !== statusFilter
+				)
+					return false;
 			}
 			const t = getContractLatestTime(c);
 			return t === 0 || t >= cutoff;
@@ -565,34 +585,39 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 								<FilterListIcon
 									sx={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}
 								/>
-								{["ALL", "OPEN", "FULFILLED", "PARTIALLY_FULFILLED", "BREACHED", "CLOSED"].map(
-									(st) => (
-										<Chip
-											key={st}
-											label={st}
-											size="small"
-											onClick={() => setStatusFilter(st)}
-											sx={{
-												height: 18,
-												fontSize: "0.56rem",
-												fontWeight: 800,
-												cursor: "pointer",
-												bgcolor:
-													statusFilter === st
-														? "rgba(123, 104, 238, 0.3)"
-														: "rgba(255,255,255,0.04)",
-												color:
-													statusFilter === st
-														? "#7b68ee"
-														: "rgba(255,255,255,0.6)",
-												border:
-													statusFilter === st
-														? "1px solid rgba(123, 104, 238, 0.5)"
-														: "1px solid rgba(255,255,255,0.08)",
-											}}
-										/>
-									),
-								)}
+								{[
+									"ALL",
+									"OPEN",
+									"FULFILLED",
+									"PARTIALLY_FULFILLED",
+									"BREACHED",
+									"CLOSED",
+								].map((st) => (
+									<Chip
+										key={st}
+										label={st}
+										size="small"
+										onClick={() => setStatusFilter(st)}
+										sx={{
+											height: 18,
+											fontSize: "0.56rem",
+											fontWeight: 800,
+											cursor: "pointer",
+											bgcolor:
+												statusFilter === st
+													? "rgba(123, 104, 238, 0.3)"
+													: "rgba(255,255,255,0.04)",
+											color:
+												statusFilter === st
+													? "#7b68ee"
+													: "rgba(255,255,255,0.6)",
+											border:
+												statusFilter === st
+													? "1px solid rgba(123, 104, 238, 0.5)"
+													: "1px solid rgba(255,255,255,0.08)",
+										}}
+									/>
+								))}
 							</>
 						)}
 
@@ -671,7 +696,8 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 										const isMotion =
 											item.contracttype === "MOTION" ||
 											(item.preamble && /^Motion\s+MOT-/i.test(item.preamble));
-										const isIncome = item.is_income ?? item.party === "CUSTOMER";
+										const isIncome =
+											item.is_income ?? item.party === "CUSTOMER";
 										const sign = isMotion ? "" : isIncome ? "+" : "-";
 										const amountColor = isMotion
 											? "#7b68ee"
@@ -702,7 +728,13 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 														justifyContent: "space-between",
 													}}
 												>
-													<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+													<Box
+														sx={{
+															display: "flex",
+															alignItems: "center",
+															gap: 0.75,
+														}}
+													>
 														<Typography
 															sx={{
 																fontSize: "0.74rem",
@@ -716,7 +748,8 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 														{isMotion && (
 															<Chip
 																label={
-																	item.preamble && /^Motion\s+MOT-(\d+)-/i.test(item.preamble)
+																	item.preamble &&
+																	/^Motion\s+MOT-(\d+)-/i.test(item.preamble)
 																		? `Gov Motion (Planet ${item.preamble.match(/^Motion\s+MOT-(\d+)-/i)?.[1]})`
 																		: "Gov Motion"
 																}
@@ -758,10 +791,13 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 														}}
 													>
 														{isMotion
-															? (!item.partnername || item.partnername === "Unknown"
+															? !item.partnername ||
+																item.partnername === "Unknown"
 																? `Planet ${item.preamble?.match(/^Motion\s+MOT-(\d+)-/i)?.[1] || ""} Government`
-																: item.partnername)
-															: (item.partnername || item.partnercode || "Counterparty")}
+																: item.partnername
+															: item.partnername ||
+																item.partnercode ||
+																"Counterparty"}
 													</Typography>
 													<Typography
 														sx={{
@@ -832,8 +868,10 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 											const natId = getNaturalContractId(item);
 											const isMotion =
 												item.contracttype === "MOTION" ||
-												(item.preamble && /^Motion\s+MOT-/i.test(item.preamble));
-											const isIncome = item.is_income ?? item.party === "CUSTOMER";
+												(item.preamble &&
+													/^Motion\s+MOT-/i.test(item.preamble));
+											const isIncome =
+												item.is_income ?? item.party === "CUSTOMER";
 											const sign = isMotion ? "" : isIncome ? "+" : "-";
 											const amountColor = isMotion
 												? "#7b68ee"
@@ -869,7 +907,13 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 															whiteSpace: "nowrap",
 														}}
 													>
-														<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+														<Box
+															sx={{
+																display: "flex",
+																alignItems: "center",
+																gap: 0.75,
+															}}
+														>
 															<Typography
 																sx={{
 																	fontSize: "0.72rem",
@@ -881,18 +925,35 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 															</Typography>
 															{Array.isArray(item.conditions) &&
 																item.conditions
-																	.filter((c: any) => c.material_ticker || c.materialid || c.ticker)
+																	.filter(
+																		(c: any) =>
+																			c.material_ticker ||
+																			c.materialid ||
+																			c.ticker,
+																	)
 																	.slice(0, 3)
 																	.map((c: any, cIdx: number) => {
-																		const t = c.material_ticker || c.materialid || c.ticker;
-																		return <MaterialBadge key={`m_b_${t}_${cIdx}`} ticker={t} />;
+																		const t =
+																			c.material_ticker ||
+																			c.materialid ||
+																			c.ticker;
+																		return (
+																			<MaterialBadge
+																				key={`m_b_${t}_${cIdx}`}
+																				ticker={t}
+																			/>
+																		);
 																	})}
 															{isMotion && (
 																<Chip
 																	label={
-																		item.motionPlanetName || item.motion_planet_name
+																		item.motionPlanetName ||
+																		item.motion_planet_name
 																			? `Gov Motion (${item.motionPlanetName || item.motion_planet_name})`
-																			: item.preamble && /^Motion\s+MOT-(\d+)-/i.test(item.preamble)
+																			: item.preamble &&
+																				  /^Motion\s+MOT-(\d+)-/i.test(
+																						item.preamble,
+																				  )
 																				? `Gov Motion (Planet ${item.preamble.match(/^Motion\s+MOT-(\d+)-/i)?.[1]})`
 																				: "Gov Motion"
 																	}
@@ -903,7 +964,8 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 																		fontWeight: 800,
 																		color: "#7b68ee",
 																		bgcolor: "rgba(123, 104, 238, 0.2)",
-																		border: "1px solid rgba(123, 104, 238, 0.4)",
+																		border:
+																			"1px solid rgba(123, 104, 238, 0.4)",
 																	}}
 																/>
 															)}
@@ -929,10 +991,12 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 															}}
 														>
 															{isMotion
-																? (!item.partnername || item.partnername === "N/A" || item.partnername === "Unknown"
+																? !item.partnername ||
+																	item.partnername === "N/A" ||
+																	item.partnername === "Unknown"
 																	? `${item.motionPlanetName || item.motion_planet_name || `Planet ${item.preamble?.match(/^Motion\s+MOT-(\d+)-/i)?.[1] || ""}`} Government`
-																	: item.partnername)
-																: (item.partnername || item.partnercode || "N/A")}
+																	: item.partnername
+																: item.partnername || item.partnercode || "N/A"}
 														</Typography>
 													</td>
 													<td style={{ padding: "6px 8px" }}>
@@ -940,7 +1004,11 @@ export const ContractsTab: React.FC<ContractsTabProps> = ({
 															sx={{
 																fontSize: "0.65rem",
 																fontWeight: 700,
-																color: isMotion ? "#7b68ee" : isIncome ? SEMANTIC_COLORS.neonGreen : SEMANTIC_COLORS.neonRed,
+																color: isMotion
+																	? "#7b68ee"
+																	: isIncome
+																		? SEMANTIC_COLORS.neonGreen
+																		: SEMANTIC_COLORS.neonRed,
 															}}
 														>
 															{item.party || "N/A"}

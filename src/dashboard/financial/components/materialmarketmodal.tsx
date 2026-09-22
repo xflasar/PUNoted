@@ -88,7 +88,9 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 				}
 				const [histRes, detailRes] = await Promise.all([
 					fetchClient(endpoint),
-					fetchClient(`internal/cx/detail/${ticker}?exchange=${selectedExchange}`),
+					fetchClient(
+						`internal/cx/detail/${ticker}?exchange=${selectedExchange}`,
+					),
 				]);
 
 				if (histRes.ok && isMounted) {
@@ -143,55 +145,68 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 		return null;
 	}, [ticker, selectedExchange, marketData]);
 
-
 	if (!ticker) return null;
 
 	// Market metrics for active exchange
-	const bidPrice = tickerDetail?.bidprice || (materialMarketRow
-		? materialMarketRow[`${selectedExchange}-BidPrice`] ||
-		materialMarketRow.BidPrice ||
-		materialMarketRow.bid ||
-		0
-		: 0);
-	const bidAvail = tickerDetail?.bidamount || (materialMarketRow
-		? materialMarketRow[`${selectedExchange}-BidAvail`] ||
-		materialMarketRow[`${selectedExchange}-BidAmt`] ||
-		0
-		: 0);
-	const askPrice = tickerDetail?.askprice || (materialMarketRow
-		? materialMarketRow[`${selectedExchange}-AskPrice`] ||
-		materialMarketRow.AskPrice ||
-		materialMarketRow.ask ||
-		0
-		: 0);
-	const askAvail = tickerDetail?.supply || tickerDetail?.askamount || (materialMarketRow
-		? materialMarketRow[`${selectedExchange}-AskAvail`] ||
-		materialMarketRow[`${selectedExchange}-AskAmt`] ||
-		0
-		: 0);
+	const bidPrice =
+		tickerDetail?.bidprice ||
+		(materialMarketRow
+			? materialMarketRow[`${selectedExchange}-BidPrice`] ||
+				materialMarketRow.BidPrice ||
+				materialMarketRow.bid ||
+				0
+			: 0);
+	const bidAvail =
+		tickerDetail?.bidamount ||
+		(materialMarketRow
+			? materialMarketRow[`${selectedExchange}-BidAvail`] ||
+				materialMarketRow[`${selectedExchange}-BidAmt`] ||
+				0
+			: 0);
+	const askPrice =
+		tickerDetail?.askprice ||
+		(materialMarketRow
+			? materialMarketRow[`${selectedExchange}-AskPrice`] ||
+				materialMarketRow.AskPrice ||
+				materialMarketRow.ask ||
+				0
+			: 0);
+	const askAvail =
+		tickerDetail?.supply ||
+		tickerDetail?.askamount ||
+		(materialMarketRow
+			? materialMarketRow[`${selectedExchange}-AskAvail`] ||
+				materialMarketRow[`${selectedExchange}-AskAmt`] ||
+				0
+			: 0);
 
-	const avgPrice = tickerDetail?.priceaverage || (materialMarketRow
-		? materialMarketRow[`${selectedExchange}-Average`] ||
-		materialMarketRow.PriceAverage ||
-		materialMarketRow.price ||
-		0
-		: 0);
+	const avgPrice =
+		tickerDetail?.priceaverage ||
+		(materialMarketRow
+			? materialMarketRow[`${selectedExchange}-Average`] ||
+				materialMarketRow.PriceAverage ||
+				materialMarketRow.price ||
+				0
+			: 0);
 	const avg7d = materialMarketRow
 		? materialMarketRow[`${selectedExchange}-7dAvg`] ||
-		materialMarketRow[`${selectedExchange}-7DAverage`] ||
-		materialMarketRow[`${selectedExchange}-7DBidPrice`] ||
-		0
+			materialMarketRow[`${selectedExchange}-7DAverage`] ||
+			materialMarketRow[`${selectedExchange}-7DBidPrice`] ||
+			0
 		: 0;
 	const avg30d = materialMarketRow
 		? materialMarketRow[`${selectedExchange}-30dAvg`] ||
-		materialMarketRow[`${selectedExchange}-30DAverage`] ||
-		materialMarketRow[`${selectedExchange}-30DBidPrice`] ||
-		0
+			materialMarketRow[`${selectedExchange}-30DAverage`] ||
+			materialMarketRow[`${selectedExchange}-30DBidPrice`] ||
+			0
 		: 0;
-	const tradedVal = tickerDetail?.traded || (materialMarketRow
-		? materialMarketRow[`${selectedExchange}-Traded`] || materialMarketRow.traded || 0
-		: 0);
-
+	const tradedVal =
+		tickerDetail?.traded ||
+		(materialMarketRow
+			? materialMarketRow[`${selectedExchange}-Traded`] ||
+				materialMarketRow.traded ||
+				0
+			: 0);
 
 	return (
 		<Dialog
@@ -247,7 +262,6 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 				>
 					<MaterialBadge ticker={ticker} />
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-
 						<Box>
 							<Typography
 								sx={{
@@ -384,7 +398,11 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 							BID {loadingHistory ? "" : `(${bidAvail.toLocaleString()} U)`}
 						</Typography>
 						{loadingHistory ? (
-							<Skeleton variant="text" width="60%" sx={{ bgcolor: "rgba(74, 222, 128, 0.2)" }} />
+							<Skeleton
+								variant="text"
+								width="60%"
+								sx={{ bgcolor: "rgba(74, 222, 128, 0.2)" }}
+							/>
 						) : (
 							<Typography
 								sx={{
@@ -424,7 +442,11 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 							ASK {loadingHistory ? "" : `(${askAvail.toLocaleString()} U)`}
 						</Typography>
 						{loadingHistory ? (
-							<Skeleton variant="text" width="60%" sx={{ bgcolor: "rgba(248, 113, 113, 0.2)" }} />
+							<Skeleton
+								variant="text"
+								width="60%"
+								sx={{ bgcolor: "rgba(248, 113, 113, 0.2)" }}
+							/>
 						) : (
 							<Typography
 								sx={{
@@ -464,7 +486,11 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 							AVG PRICE
 						</Typography>
 						{loadingHistory ? (
-							<Skeleton variant="text" width="60%" sx={{ bgcolor: "rgba(123, 104, 238, 0.2)" }} />
+							<Skeleton
+								variant="text"
+								width="60%"
+								sx={{ bgcolor: "rgba(123, 104, 238, 0.2)" }}
+							/>
 						) : (
 							<Typography
 								sx={{
@@ -504,7 +530,11 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 							7D AVERAGE
 						</Typography>
 						{loadingHistory ? (
-							<Skeleton variant="text" width="60%" sx={{ bgcolor: "rgba(255, 255, 255, 0.15)" }} />
+							<Skeleton
+								variant="text"
+								width="60%"
+								sx={{ bgcolor: "rgba(255, 255, 255, 0.15)" }}
+							/>
 						) : (
 							<Typography
 								sx={{
@@ -544,7 +574,11 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 							30D AVERAGE
 						</Typography>
 						{loadingHistory ? (
-							<Skeleton variant="text" width="60%" sx={{ bgcolor: "rgba(255, 255, 255, 0.15)" }} />
+							<Skeleton
+								variant="text"
+								width="60%"
+								sx={{ bgcolor: "rgba(255, 255, 255, 0.15)" }}
+							/>
 						) : (
 							<Typography
 								sx={{
@@ -584,7 +618,11 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 							24H TRADED
 						</Typography>
 						{loadingHistory ? (
-							<Skeleton variant="text" width="60%" sx={{ bgcolor: "rgba(255, 255, 255, 0.15)" }} />
+							<Skeleton
+								variant="text"
+								width="60%"
+								sx={{ bgcolor: "rgba(255, 255, 255, 0.15)" }}
+							/>
 						) : (
 							<Typography
 								sx={{
@@ -600,7 +638,6 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 						)}
 					</Box>
 				</Box>
-
 
 				<Box
 					sx={{
@@ -626,7 +663,6 @@ export const MaterialMarketModal: React.FC<MaterialMarketModalProps> = ({
 						currentPrice={avgPrice}
 					/>
 				</Box>
-
 			</Box>
 		</Dialog>
 	);

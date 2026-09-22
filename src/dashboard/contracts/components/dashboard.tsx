@@ -97,11 +97,7 @@ const Comparison = ({
 const StatCard = ({ title, value, lastValue, type = "neutral" }: any) => {
 	const theme = useTheme();
 	const color =
-		type === "revenue"
-			? "#64FFDA"
-			: type === "expense"
-				? "#ff5252"
-				: "#7b68ee";
+		type === "revenue" ? "#64FFDA" : type === "expense" ? "#ff5252" : "#7b68ee";
 
 	return (
 		<Box
@@ -187,7 +183,12 @@ const WidgetList = ({ title, items, icon, emptyMsg, onViewDetail }: any) => {
 				}}
 			>
 				{icon}
-				<Typography variant="subtitle2" fontWeight={800} fontSize="0.75rem" letterSpacing="0.05em">
+				<Typography
+					variant="subtitle2"
+					fontWeight={800}
+					fontSize="0.75rem"
+					letterSpacing="0.05em"
+				>
 					{title}
 				</Typography>
 				<Chip

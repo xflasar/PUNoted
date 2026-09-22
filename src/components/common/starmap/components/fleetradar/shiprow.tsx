@@ -67,7 +67,8 @@ const ShipRow: React.FC<ShipRowProps> = ({
 }) => {
 	const theme = useTheme();
 	const { storageState, mapData } = useGlobalData();
-	const { systemsPoints, allPlanetsData, allStationsData } = useMapData(mapData);
+	const { systemsPoints, allPlanetsData, allStationsData } =
+		useMapData(mapData);
 	const [isExpanded, setIsExpanded] = useState(false);
 	const hasPlan = !!(ship.plan || ship.flight);
 	const cargo = (ship as any).cargo;

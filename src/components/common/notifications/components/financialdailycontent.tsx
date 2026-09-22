@@ -134,32 +134,60 @@ export const FinancialDailyContent: React.FC<FinancialDailyContentProps> = ({
 							}}
 						>
 							{/* Income Column */}
-							<Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+							<Box
+								sx={{
+									display: "flex",
+									flexDirection: "column",
+									alignItems: "flex-start",
+								}}
+							>
 								<Typography
 									variant="caption"
-									sx={{ fontSize: "0.55rem", color: "rgba(255, 255, 255, 0.55)", lineHeight: 1 }}
+									sx={{
+										fontSize: "0.55rem",
+										color: "rgba(255, 255, 255, 0.55)",
+										lineHeight: 1,
+									}}
 								>
 									Income
 								</Typography>
 								<Typography
 									variant="caption"
-									sx={{ fontSize: "0.65rem", fontWeight: 700, color: "#64FFDA" }}
+									sx={{
+										fontSize: "0.65rem",
+										fontWeight: 700,
+										color: "#64FFDA",
+									}}
 								>
 									+{income.toLocaleString()}
 								</Typography>
 							</Box>
 
 							{/* Expense Column */}
-							<Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+							<Box
+								sx={{
+									display: "flex",
+									flexDirection: "column",
+									alignItems: "flex-end",
+								}}
+							>
 								<Typography
 									variant="caption"
-									sx={{ fontSize: "0.55rem", color: "rgba(255, 255, 255, 0.55)", lineHeight: 1 }}
+									sx={{
+										fontSize: "0.55rem",
+										color: "rgba(255, 255, 255, 0.55)",
+										lineHeight: 1,
+									}}
 								>
 									Expense
 								</Typography>
 								<Typography
 									variant="caption"
-									sx={{ fontSize: "0.65rem", fontWeight: 700, color: "#FF5252" }}
+									sx={{
+										fontSize: "0.65rem",
+										fontWeight: 700,
+										color: "#FF5252",
+									}}
 								>
 									-{expense.toLocaleString()}
 								</Typography>
@@ -184,7 +212,8 @@ export const FinancialDailyContent: React.FC<FinancialDailyContentProps> = ({
 									color: net >= 0 ? "#64FFDA" : "#FF5252",
 								}}
 							>
-								Net: {net >= 0 ? `+${net.toLocaleString()}` : net.toLocaleString()}
+								Net:{" "}
+								{net >= 0 ? `+${net.toLocaleString()}` : net.toLocaleString()}
 							</Typography>
 						</Box>
 					</Paper>

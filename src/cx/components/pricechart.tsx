@@ -45,11 +45,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 		const formattedDate = label
 			? new Date(label).toLocaleDateString(undefined, {
-				weekday: "short",
-				month: "short",
-				day: "numeric",
-				year: "numeric",
-			})
+					weekday: "short",
+					month: "short",
+					day: "numeric",
+					year: "numeric",
+				})
 			: "Unknown Date";
 
 		const isUp = (data.close ?? 0) >= (data.open ?? 0);
@@ -72,23 +72,59 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 					{formattedDate}
 				</Typography>
 				{data.open != null && (
-					<Typography variant="body2" sx={{ color: "white", fontSize: "0.75rem" }}>
-						Open: {data.open.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+					<Typography
+						variant="body2"
+						sx={{ color: "white", fontSize: "0.75rem" }}
+					>
+						Open:{" "}
+						{data.open.toLocaleString(undefined, {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2,
+						})}
 					</Typography>
 				)}
-				<Typography variant="body2" sx={{ color: "#ef5350", fontWeight: 600, fontSize: "0.75rem" }}>
-					High: {data.high.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+				<Typography
+					variant="body2"
+					sx={{ color: "#ef5350", fontWeight: 600, fontSize: "0.75rem" }}
+				>
+					High:{" "}
+					{data.high.toLocaleString(undefined, {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					})}
 				</Typography>
-				<Typography variant="body2" sx={{ color: "#26a69a", fontWeight: 600, fontSize: "0.75rem" }}>
-					Low: {data.low.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+				<Typography
+					variant="body2"
+					sx={{ color: "#26a69a", fontWeight: 600, fontSize: "0.75rem" }}
+				>
+					Low:{" "}
+					{data.low.toLocaleString(undefined, {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					})}
 				</Typography>
 				{data.close != null && (
-					<Typography variant="body2" sx={{ color, fontWeight: 700, fontSize: "0.75rem" }}>
-						Close: {data.close.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+					<Typography
+						variant="body2"
+						sx={{ color, fontWeight: 700, fontSize: "0.75rem" }}
+					>
+						Close:{" "}
+						{data.close.toLocaleString(undefined, {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2,
+						})}
 					</Typography>
 				)}
 				{data.volume != null && data.volume > 0 && (
-					<Typography variant="body2" sx={{ color: "#29b6f6", fontWeight: 600, fontSize: "0.75rem", mt: 0.5 }}>
+					<Typography
+						variant="body2"
+						sx={{
+							color: "#29b6f6",
+							fontWeight: 600,
+							fontSize: "0.75rem",
+							mt: 0.5,
+						}}
+					>
 						Volume: {data.volume.toLocaleString()}
 					</Typography>
 				)}
@@ -101,7 +137,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // TradingView Style Standard Candlestick Component
 const CandlestickBar = (props: any) => {
 	const { x, y, width, height, payload } = props;
-	if (!payload || payload.high == null || payload.low == null || payload.high <= 0 || payload.low <= 0) {
+	if (
+		!payload ||
+		payload.high == null ||
+		payload.low == null ||
+		payload.high <= 0 ||
+		payload.low <= 0
+	) {
 		return null;
 	}
 
@@ -189,7 +231,10 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 		const liveSupply =
 			currentItem?.[`${ex}-AskAmt`] || currentItem?.[`${ex}-AskAvail`] || 0;
 
-		const dateMap = new Map<string, { ask: number; bid: number; avg: number; vol: number }>();
+		const dateMap = new Map<
+			string,
+			{ ask: number; bid: number; avg: number; vol: number }
+		>();
 
 		// Parse API history points
 		console.log(history);
@@ -209,7 +254,8 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 			} else {
 				const existing = dateMap.get(dateKey)!;
 				if (ask > 0) existing.ask = Math.max(existing.ask, ask);
-				if (bid > 0) existing.bid = Math.min(existing.bid > 0 ? existing.bid : bid, bid);
+				if (bid > 0)
+					existing.bid = Math.min(existing.bid > 0 ? existing.bid : bid, bid);
 				existing.avg = avg || existing.avg;
 				existing.vol += vol;
 			}
@@ -219,14 +265,29 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 		const todayKey = new Date().toISOString().split("T")[0];
 		if (!dateMap.has(todayKey) && (liveAsk > 0 || liveBid > 0)) {
 			const avg = (liveAsk + liveBid) / 2 || liveAsk || liveBid;
-			dateMap.set(todayKey, { ask: liveAsk, bid: liveBid, avg, vol: liveSupply });
+			dateMap.set(todayKey, {
+				ask: liveAsk,
+				bid: liveBid,
+				avg,
+				vol: liveSupply,
+			});
 		}
 
 		// Sort dates chronologically
 		const sortedDates = Array.from(dateMap.keys()).sort();
 
 		// Calculate OHLC for days with data
-		const candleDataMap = new Map<string, { time: string; open: number; high: number; low: number; close: number; volume: number }>();
+		const candleDataMap = new Map<
+			string,
+			{
+				time: string;
+				open: number;
+				high: number;
+				low: number;
+				close: number;
+				volume: number;
+			}
+		>();
 		let prevClose: number | null = null;
 
 		for (const dKey of sortedDates) {
@@ -238,7 +299,7 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 				item.bid > 0 ? item.bid : close,
 				item.ask > 0 ? item.ask : close,
 				open,
-				close
+				close,
 			);
 
 			prevClose = close;
@@ -355,10 +416,22 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 				</Box>
 
 				{/* Timeframe Controls */}
-				<Stack sx={{ direction: "row", spacing: 1, alignItems: "center", flexWrap: "wrap" }}>
+				<Stack
+					sx={{
+						direction: "row",
+						spacing: 1,
+						alignItems: "center",
+						flexWrap: "wrap",
+					}}
+				>
 					{showCustomPicker && (
 						<Stack
-							sx={{ direction: "row", spacing: 1, alignItems: "center", justifyContent: "space-between" }}
+							sx={{
+								direction: "row",
+								spacing: 1,
+								alignItems: "center",
+								justifyContent: "space-between",
+							}}
 						>
 							<TextField
 								type="date"
@@ -416,7 +489,8 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 										days === item.value
 											? "#7B68EE"
 											: "rgba(255, 255, 255, 0.04)",
-									color: days === item.value ? "white" : "rgba(255,255,255,0.7)",
+									color:
+										days === item.value ? "white" : "rgba(255,255,255,0.7)",
 									borderColor: "rgba(123, 104, 238, 0.3)",
 									fontWeight: 700,
 									fontSize: "0.7rem",
@@ -437,7 +511,15 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 			</Box>
 
 			{/* Chart Area Split: Top Panel (Candlesticks) + Bottom Panel (Volume) */}
-			<Box sx={{ flex: 1, minHeight: 250, display: "flex", flexDirection: "column", gap: 1 }}>
+			<Box
+				sx={{
+					flex: 1,
+					minHeight: 250,
+					display: "flex",
+					flexDirection: "column",
+					gap: 1,
+				}}
+			>
 				{loading ? (
 					<Box
 						sx={{
@@ -460,7 +542,8 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 						}}
 					>
 						<Typography variant="body2">
-							No historical snapshots recorded for {ticker} in the selected timeframe ({days === -1 ? "Custom Range" : `${days}d`})
+							No historical snapshots recorded for {ticker} in the selected
+							timeframe ({days === -1 ? "Custom Range" : `${days}d`})
 						</Typography>
 					</Box>
 				) : (
@@ -483,16 +566,27 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 										yAxisId="price"
 										orientation="right"
 										domain={[
-											(dataMin: number) => (isFinite(dataMin) && dataMin > 0 ? Math.floor(dataMin * 0.95) : "auto"),
-											(dataMax: number) => (isFinite(dataMax) && dataMax > 0 ? Math.ceil(dataMax * 1.05) : "auto"),
+											(dataMin: number) =>
+												isFinite(dataMin) && dataMin > 0
+													? Math.floor(dataMin * 0.95)
+													: "auto",
+											(dataMax: number) =>
+												isFinite(dataMax) && dataMax > 0
+													? Math.ceil(dataMax * 1.05)
+													: "auto",
 										]}
 										stroke="rgba(255,255,255,0.4)"
 										style={{ fontSize: "0.7rem" }}
-										tickFormatter={(val) => (typeof val === "number" ? val.toLocaleString() : val)}
+										tickFormatter={(val) =>
+											typeof val === "number" ? val.toLocaleString() : val
+										}
 									/>
 									<Tooltip
 										content={<CustomTooltip />}
-										cursor={{ stroke: "rgba(255, 255, 255, 0.2)", strokeDasharray: "3 3" }}
+										cursor={{
+											stroke: "rgba(255, 255, 255, 0.2)",
+											strokeDasharray: "3 3",
+										}}
 									/>
 									{/* Candlestick Layer */}
 									<Bar
@@ -544,9 +638,9 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 										tickFormatter={(tick) =>
 											tick
 												? new Date(tick).toLocaleDateString(undefined, {
-													month: "short",
-													day: "numeric",
-												})
+														month: "short",
+														day: "numeric",
+													})
 												: ""
 										}
 										stroke="rgba(255,255,255,0.4)"
@@ -568,7 +662,12 @@ const PriceChartBase: React.FC<PriceChartProps> = ({
 									/>
 									<Tooltip
 										content={() => null}
-										cursor={{ stroke: "rgba(123, 104, 238, 0.6)", strokeWidth: 1, strokeDasharray: "3 3", fill: "transparent" }}
+										cursor={{
+											stroke: "rgba(123, 104, 238, 0.6)",
+											strokeWidth: 1,
+											strokeDasharray: "3 3",
+											fill: "transparent",
+										}}
 									/>
 									<Bar
 										dataKey="volume"

@@ -50,11 +50,17 @@ export const FlightCompletedContent: React.FC<FlightCompletedContentProps> = ({
 					<DirectionsBoat sx={{ fontSize: "1.2rem", color: "#64FFDA" }} />
 				</Box>
 				<Box sx={{ display: "flex", flexDirection: "column" }}>
-					<Typography variant="caption" sx={{ fontWeight: 700, color: "#FFFFFF", fontSize: "0.72rem" }}>
+					<Typography
+						variant="caption"
+						sx={{ fontWeight: 700, color: "#FFFFFF", fontSize: "0.72rem" }}
+					>
 						{shipName}
 					</Typography>
 					{origin ? (
-						<Typography variant="caption" sx={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.6)" }}>
+						<Typography
+							variant="caption"
+							sx={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.6)" }}
+						>
 							From: {origin}
 						</Typography>
 					) : (
@@ -76,11 +82,23 @@ export const FlightCompletedContent: React.FC<FlightCompletedContentProps> = ({
 
 			<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
 				<NearMe sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }} />
-				<Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-					<Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.6rem" }}>
+				<Box
+					sx={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "flex-end",
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.6rem" }}
+					>
 						Arrived At
 					</Typography>
-					<Typography variant="caption" sx={{ fontWeight: 700, color: "#64FFDA", fontSize: "0.7rem" }}>
+					<Typography
+						variant="caption"
+						sx={{ fontWeight: 700, color: "#64FFDA", fontSize: "0.7rem" }}
+					>
 						{destination}
 					</Typography>
 				</Box>

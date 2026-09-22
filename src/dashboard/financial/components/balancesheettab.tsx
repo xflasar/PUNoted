@@ -48,7 +48,6 @@ interface BalanceSheetTabProps {
 	loading?: boolean;
 }
 
-
 interface SiteAuditCardProps {
 	site: SiteGroup;
 	loc: LocationValuation;
@@ -173,13 +172,9 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 						<Chip
 							icon={
 								isExcluded ? (
-									<RealEstateAgentIcon
-										sx={{ fontSize: "12px !important" }}
-									/>
+									<RealEstateAgentIcon sx={{ fontSize: "12px !important" }} />
 								) : (
-									<HomeWorkIcon
-										sx={{ fontSize: "12px !important" }}
-									/>
+									<HomeWorkIcon sx={{ fontSize: "12px !important" }} />
 								)
 							}
 							label={badgeLabel}
@@ -204,11 +199,7 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 					)}
 					{isStationHub && (
 						<Chip
-							icon={
-								<HomeWorkIcon
-									sx={{ fontSize: "12px !important" }}
-								/>
-							}
+							icon={<HomeWorkIcon sx={{ fontSize: "12px !important" }} />}
 							label="STATION WAREHOUSE"
 							size="small"
 							sx={{
@@ -283,9 +274,7 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 						>
 							<Chip
 								label={
-									isShip
-										? "Ship Chassis BOM"
-										: "Site Bill of Materials (BOM)"
+									isShip ? "Ship Chassis BOM" : "Site Bill of Materials (BOM)"
 								}
 								size="small"
 								sx={{
@@ -329,10 +318,7 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 										borderBottom: "1px solid rgba(255,255,255,0.08)",
 									}}
 								>
-									<Box
-										component="th"
-										sx={{ padding: "4px 6px", width: "15%" }}
-									>
+									<Box component="th" sx={{ padding: "4px 6px", width: "15%" }}>
 										Material
 									</Box>
 									<Box
@@ -405,10 +391,7 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 												},
 											}}
 										>
-											<Box
-												component="td"
-												sx={{ padding: "3px 6px" }}
-											>
+											<Box component="td" sx={{ padding: "3px 6px" }}>
 												<MaterialBadge ticker={item.ticker} />
 											</Box>
 											<Box
@@ -519,10 +502,8 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 									type.includes("SHIP")
 								)
 									return 1;
-								if (name.includes("STL") || type.includes("STL"))
-									return 2;
-								if (name.includes("FTL") || type.includes("FTL"))
-									return 3;
+								if (name.includes("STL") || type.includes("STL")) return 2;
+								if (name.includes("FTL") || type.includes("FTL")) return 3;
 								return 4;
 							};
 							return getOrder(a) - getOrder(b);
@@ -669,10 +650,7 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 													},
 												}}
 											>
-												<Box
-													component="td"
-													sx={{ padding: "3px 6px" }}
-												>
+												<Box component="td" sx={{ padding: "3px 6px" }}>
 													<MaterialBadge ticker={item.ticker} />
 												</Box>
 												<Box
@@ -1207,7 +1185,6 @@ const BalanceSheetTabComponent: React.FC<BalanceSheetTabProps> = ({
 	priceSource = "MARKET",
 	loading = false,
 }) => {
-
 	const [searchTerm, setSearchTerm] = useState("");
 	const [selectedMaterialTicker, setSelectedMaterialTicker] = useState<
 		string | null
@@ -1461,30 +1438,39 @@ const BalanceSheetTabComponent: React.FC<BalanceSheetTabProps> = ({
 							</Box>
 						</Box>
 						<Box component="tbody">
-							{loading ? (
-								[1, 2, 3, 4, 5].map((idx) => (
-									<Box component="tr" key={idx} sx={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-										<Box component="td" colSpan={6} sx={{ p: 1.5 }}>
-											<Skeleton variant="rectangular" height={24} sx={{ bgcolor: "rgba(255,255,255,0.06)", borderRadius: 1 }} />
+							{loading
+								? [1, 2, 3, 4, 5].map((idx) => (
+										<Box
+											component="tr"
+											key={idx}
+											sx={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+										>
+											<Box component="td" colSpan={6} sx={{ p: 1.5 }}>
+												<Skeleton
+													variant="rectangular"
+													height={24}
+													sx={{
+														bgcolor: "rgba(255,255,255,0.06)",
+														borderRadius: 1,
+													}}
+												/>
+											</Box>
 										</Box>
-									</Box>
-								))
-							) : (
-								filteredLocations.map((loc) => (
-									<LocationAuditRow
-										key={loc.id}
-										loc={loc}
-										currency={currency}
-										totalAssets={totalAssets}
-										priceSource={priceSource}
-										onMaterialClick={(ticker) =>
-											setSelectedMaterialTicker(ticker)
-										}
-										leasedSiteIds={leasedSiteIds}
-										onToggleLeased={toggleLeasedSite}
-									/>
-								))
-							)}
+									))
+								: filteredLocations.map((loc) => (
+										<LocationAuditRow
+											key={loc.id}
+											loc={loc}
+											currency={currency}
+											totalAssets={totalAssets}
+											priceSource={priceSource}
+											onMaterialClick={(ticker) =>
+												setSelectedMaterialTicker(ticker)
+											}
+											leasedSiteIds={leasedSiteIds}
+											onToggleLeased={toggleLeasedSite}
+										/>
+									))}
 						</Box>
 					</Box>
 				)}

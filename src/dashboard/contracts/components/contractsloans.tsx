@@ -243,7 +243,10 @@ const ContractsLoans: React.FC<{ onViewDetail: (id: string) => void }> = ({
 	if (loading)
 		return (
 			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
-				<GlobalLoadingOverlay loading={true} statusText="CALCULATING LOAN SCHEDULES & COLLATERAL..." />
+				<GlobalLoadingOverlay
+					loading={true}
+					statusText="CALCULATING LOAN SCHEDULES & COLLATERAL..."
+				/>
 			</Box>
 		);
 

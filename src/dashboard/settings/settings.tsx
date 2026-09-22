@@ -191,7 +191,10 @@ const SettingsPage: React.FC<{ userId: string }> = ({ userId }) => {
 	if (loading || !data.settings) {
 		return (
 			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
-				<GlobalLoadingOverlay loading={true} statusText="LOADING USER PREFERENCES & ACCOUNT SETTINGS..." />
+				<GlobalLoadingOverlay
+					loading={true}
+					statusText="LOADING USER PREFERENCES & ACCOUNT SETTINGS..."
+				/>
 			</Box>
 		);
 	}

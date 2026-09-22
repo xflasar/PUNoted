@@ -179,8 +179,7 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 
 				const orbitData: PlanetData = {
 					planetid: pid,
-					planetname:
-						p.planetname ?? p.PlanetName ?? p.name ?? pid,
+					planetname: p.planetname ?? p.PlanetName ?? p.name ?? pid,
 					nextPopulation: p.nextPopulation ?? p.NextPopulation,
 					planetPopulation:
 						p.population ?? p.PlanetPopulation ?? p.Population ?? 0,

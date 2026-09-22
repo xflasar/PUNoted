@@ -1,6 +1,11 @@
 import React, { useMemo } from "react";
 import { Box, Paper, Typography, useTheme, alpha } from "@mui/material";
-import { Sailing, LocationCity, AccountBalance, Gavel } from "@mui/icons-material";
+import {
+	Sailing,
+	LocationCity,
+	AccountBalance,
+	Gavel,
+} from "@mui/icons-material";
 import type {
 	PlanetPosition,
 	PlanetData,
@@ -228,7 +233,8 @@ const PlanetHoverTooltip: React.FC<PlanetHoverTooltipProps> = ({
 
 				{/* Planetary Government & Motions Summary */}
 				{(() => {
-					const govTerms = fullPlanetData?.Government || object.Government || [];
+					const govTerms =
+						fullPlanetData?.Government || object.Government || [];
 					const motions = fullPlanetData?.Motions || object.Motions || [];
 					if (!govTerms.length && !motions.length) return null;
 
@@ -241,7 +247,9 @@ const PlanetHoverTooltip: React.FC<PlanetHoverTooltipProps> = ({
 						}) || govTerms[0];
 
 					const cands: any[] =
-						activeInOfficeTerm?.Candidates || activeInOfficeTerm?.candidates || [];
+						activeInOfficeTerm?.Candidates ||
+						activeInOfficeTerm?.candidates ||
+						[];
 					const winner = cands.find((c: any) =>
 						Boolean(c.IsWinner ?? c.is_winner ?? c.isWinner),
 					);
@@ -261,7 +269,13 @@ const PlanetHoverTooltip: React.FC<PlanetHoverTooltipProps> = ({
 								gap: 0.5,
 							}}
 						>
-							<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+							<Box
+								sx={{
+									display: "flex",
+									justifyContent: "space-between",
+									alignItems: "center",
+								}}
+							>
 								<Typography
 									variant="caption"
 									sx={{
@@ -276,24 +290,56 @@ const PlanetHoverTooltip: React.FC<PlanetHoverTooltipProps> = ({
 									<AccountBalance sx={{ fontSize: 12 }} /> GOVERNMENT
 								</Typography>
 								{electionOngoing && (
-									<Typography variant="caption" sx={{ fontSize: "0.6rem", color: "#38bdf8", fontWeight: 700 }}>
+									<Typography
+										variant="caption"
+										sx={{
+											fontSize: "0.6rem",
+											color: "#38bdf8",
+											fontWeight: 700,
+										}}
+									>
 										ELECTION ACTIVE
 									</Typography>
 								)}
 							</Box>
 
 							{winner && (
-								<Typography variant="caption" sx={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.85)" }}>
-									Governor: <strong style={{ color: "#ffd700" }}>{winner.Username || winner.username || winner.CandidateId || winner.userid}</strong>
-									{(winner.CorporationCode || winner.corporation_code) && ` [${winner.CorporationCode || winner.corporation_code}]`}
+								<Typography
+									variant="caption"
+									sx={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.85)" }}
+								>
+									Governor:{" "}
+									<strong style={{ color: "#ffd700" }}>
+										{winner.Username ||
+											winner.username ||
+											winner.CandidateId ||
+											winner.userid}
+									</strong>
+									{(winner.CorporationCode || winner.corporation_code) &&
+										` [${winner.CorporationCode || winner.corporation_code}]`}
 								</Typography>
 							)}
 
 							{motions.length > 0 && (
-								<Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25 }}>
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										gap: 0.5,
+										mt: 0.25,
+									}}
+								>
 									<Gavel sx={{ fontSize: 11, color: "#ffb74d" }} />
-									<Typography variant="caption" sx={{ fontSize: "0.65rem", color: "#ffb74d", fontWeight: 700 }}>
-										{motions.length} {motions.length === 1 ? "Motion" : "Motions"} Registered
+									<Typography
+										variant="caption"
+										sx={{
+											fontSize: "0.65rem",
+											color: "#ffb74d",
+											fontWeight: 700,
+										}}
+									>
+										{motions.length}{" "}
+										{motions.length === 1 ? "Motion" : "Motions"} Registered
 									</Typography>
 								</Box>
 							)}

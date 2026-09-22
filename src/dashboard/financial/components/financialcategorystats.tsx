@@ -31,7 +31,6 @@ export const FinancialCategoryStats: React.FC<FinancialCategoryStatsProps> = ({
 	customEndDate = "",
 	loading = false,
 }) => {
-
 	const { loansData } = useGlobalData();
 
 	// Categorize and aggregate net velocity dynamically from transactions and loansData
@@ -360,7 +359,6 @@ export const FinancialCategoryStats: React.FC<FinancialCategoryStatsProps> = ({
 								</Typography>
 							)}
 						</Box>
-
 					);
 				})}
 			</Box>
