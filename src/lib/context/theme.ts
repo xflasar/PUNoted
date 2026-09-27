@@ -27,7 +27,7 @@ export const getAppTheme = (mode: PaletteMode) =>
 		},
 		palette: {
 			primary: {
-				main: "#7B68EE",
+				main: "#7b68eeff",
 				light: "#9988ff",
 				dark: "#5a48cc",
 				contrastText: "#ffffff",
@@ -186,10 +186,10 @@ export const getAppTheme = (mode: PaletteMode) =>
 					},
 					// Hide Chrome/Safari/Firefox number spinner arrows globally
 					"& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button":
-						{
-							WebkitAppearance: "none",
-							margin: 0,
-						},
+					{
+						WebkitAppearance: "none",
+						margin: 0,
+					},
 					"& input[type=number]": {
 						MozAppearance: "textfield",
 					},

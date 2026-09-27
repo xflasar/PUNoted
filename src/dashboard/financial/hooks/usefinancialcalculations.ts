@@ -252,7 +252,7 @@ export const useFinancialCalculations = (
 		userSites,
 		productionData,
 		allShips,
-		ownShips,
+		ownerShips: ownShips,
 		otherShips,
 	} = useGlobalData();
 
@@ -409,13 +409,41 @@ export const useFinancialCalculations = (
 							: [],
 					buildingMaterials:
 						site.site_building_materials &&
-						typeof site.site_building_materials === "object"
+							typeof site.site_building_materials === "object"
 							? site.site_building_materials
 							: {},
 					subUnitsMap: new Map(),
 				});
 			});
 		}
+
+		// Pre-initialize shipObjectsMap strictly from ownShips list (only user-owned fleet vessels)
+		const registeredShips = ownShips || [];
+
+		registeredShips.forEach((s: any) => {
+			const sId = s.ship_id || s.id || s.registration || s.name;
+			if (!sId || shipObjectsMap.has(sId)) return;
+
+			const sName = s.name || s.registration || "Fleet Vessel";
+			const ownerName = (s.company_code || s.owner || "ME").toUpperCase();
+			const extractedBpId =
+				s.blueprint_natural_id ||
+				s.blueprint_id ||
+				s.blueprintId ||
+				s.blueprint ||
+				s.natural_id ||
+				s.ship_type ||
+				s.type;
+
+			shipObjectsMap.set(sId, {
+				shipId: sId,
+				name: sName,
+				ownerName,
+				blueprintId: extractedBpId,
+				shipData: s,
+				subUnitsMap: new Map(),
+			});
+		});
 
 		// Link Storage Units (Planetary Vaults, Warehouses, Ships) to Sites or Ships
 		rawStorages.forEach((unit: any) => {
@@ -424,38 +452,33 @@ export const useFinancialCalculations = (
 
 			if (isShipStore) {
 				const shipName = unit.name || unit.storagelocation || "Ship";
-				const shipId = unit.addressableid || unit.ship_id || shipName;
+				const unitStoreId = unit.addressableid;
+				console.log("unitStoreId", unitStoreId);
+				console.log("ownShips", ownShips);
+
+				const matchedShipFromAll =
+					(ownShips || []).find(
+						(s: any) =>
+							s.id_ship_store === unitStoreId ||
+							s.id_stl_fuel_store === unitStoreId ||
+							s.id_ftl_fuel_store === unitStoreId ||
+							(s.ship_id || s.id || s.registration) === unitStoreId ||
+							(s.name && s.name.toUpperCase() === shipName.toUpperCase()),
+					);
+
+				const shipId =
+					matchedShipFromAll?.ship_id ||
+					matchedShipFromAll?.id ||
+					matchedShipFromAll?.registration ||
+					unit.ship_id ||
+					unitStoreId ||
+					shipName;
 				const ownerName = (unit.owner_code || unit.owner || "ME").toUpperCase();
 
 				if (!shipObjectsMap.has(shipId)) {
-					const matchedShipFromAll =
-						(allShips && typeof allShips.get === "function"
-							? allShips.get(shipId)
-							: null) ||
-						Array.from(allShips?.values?.() || []).find(
-							(s: any) =>
-								(s.ship_id || s.id || s.registration) === shipId ||
-								s.id_ship_store === shipId ||
-								s.id_stl_fuel_store === shipId ||
-								s.id_ftl_fuel_store === shipId ||
-								s.name === shipName,
-						) ||
-						(ownShips || []).find(
-							(s: any) =>
-								(s.ship_id || s.id || s.registration) === shipId ||
-								s.id_ship_store === shipId ||
-								s.id_stl_fuel_store === shipId ||
-								s.id_ftl_fuel_store === shipId ||
-								s.name === shipName,
-						) ||
-						(otherShips || []).find(
-							(s: any) =>
-								(s.ship_id || s.id || s.registration) === shipId ||
-								s.id_ship_store === shipId ||
-								s.id_stl_fuel_store === shipId ||
-								s.id_ftl_fuel_store === shipId ||
-								s.name === shipName,
-						);
+					console.log("Ship not found:", shipId);
+					console.log("Unit:", unit);
+					console.log("Matched Ship From All:", matchedShipFromAll);
 
 					const extractedBpId =
 						unit.blueprint_id ||
@@ -463,6 +486,7 @@ export const useFinancialCalculations = (
 						matchedShipFromAll?.blueprint_natural_id ||
 						matchedShipFromAll?.blueprint_id ||
 						matchedShipFromAll?.blueprintId ||
+						matchedShipFromAll?.blueprint_natural_id ||
 						matchedShipFromAll?.blueprint ||
 						matchedShipFromAll?.natural_id;
 
@@ -475,8 +499,8 @@ export const useFinancialCalculations = (
 						matchedShipFromAll?.is_owner !== undefined
 							? !!matchedShipFromAll.is_owner
 							: unit.am_owner !== false &&
-								(!matchedShipFromAll?.company_code ||
-									matchedShipFromAll?.company_code.toUpperCase() === userCode);
+							(!matchedShipFromAll?.company_code ||
+								matchedShipFromAll?.company_code.toUpperCase() === userCode);
 
 					shipObjectsMap.set(shipId, {
 						shipId,
@@ -496,7 +520,7 @@ export const useFinancialCalculations = (
 						? "FTL Fuel Tank"
 						: "Ship Cargo Hold";
 				const subKey =
-					unit.storageid || unit.unitid || `${subName}_${Math.random()}`;
+					unit.storageid || unit.unitid || unitStoreId || `${subName}_${unit.id || "default"}`;
 
 				if (!ship.subUnitsMap.has(subKey)) {
 					ship.subUnitsMap.set(subKey, {
@@ -569,11 +593,10 @@ export const useFinancialCalculations = (
 									normPlanet.includes(sPlanet) ||
 									sPlanet.includes(normPlanet));
 							const matchOwner =
-								!normOwner ||
-								!sOwner ||
-								sOwner === normOwner ||
-								sCode === normOwner ||
-								(s.amOwner && unit.am_owner !== false);
+								normOwner &&
+								(sOwner === normOwner ||
+									sCode === normOwner ||
+									(s.companyCode && s.companyCode === normOwner));
 							return matchPlanet && matchOwner;
 						},
 					);
@@ -725,11 +748,11 @@ export const useFinancialCalculations = (
 					const upperTicker = bTicker.toUpperCase();
 					const matchedBp = Array.isArray(shipBlueprints)
 						? shipBlueprints.find(
-								(bp: any) =>
-									(bp.natural_id || bp.id || "").toUpperCase() ===
-										upperTicker ||
-									(bp.name || "").toUpperCase() === upperTicker,
-							)
+							(bp: any) =>
+								(bp.natural_id || bp.id || "").toUpperCase() ===
+								upperTicker ||
+								(bp.name || "").toUpperCase() === upperTicker,
+						)
 						: null;
 
 					let bom: Record<string, number> = {};
@@ -937,45 +960,95 @@ export const useFinancialCalculations = (
 			// Match blueprint for ship chassis
 			const shipNameUpper = ship.name.toUpperCase();
 			const targetBpId = (ship.blueprintId || "").toUpperCase();
-			const matchedShipBp = Array.isArray(shipBlueprints)
-				? shipBlueprints.find((bp: any) => {
+			const shipDataObj = ship.shipData || {};
+			const rawShipType = (shipDataObj.ship_type || shipDataObj.type || "").toUpperCase();
+
+			// Direct blueprint object if attached on ship object or inside shipData
+			const directBp =
+				shipDataObj.blueprint ||
+				shipDataObj.ship_blueprint ||
+				shipDataObj.blueprint_data;
+
+			const matchedShipBp =
+				directBp ||
+				(Array.isArray(shipBlueprints)
+					? shipBlueprints.find((bp: any) => {
 						const bpId = (bp.id || "").toUpperCase();
-						const bpNatId = (bp.natural_id || bp.naturalId || "").toUpperCase();
+						const bpNatId = (
+							bp.natural_id ||
+							bp.naturalId ||
+							bp.natural_id_blueprint ||
+							""
+						).toUpperCase();
 						const bpName = (bp.name || "").toUpperCase();
-						return (
+						const bpTicker = (
+							bp.ticker ||
+							bp.ship_type ||
+							bp.type ||
+							""
+						).toUpperCase();
+
+						if (
 							targetBpId &&
 							(bpId === targetBpId ||
 								bpNatId === targetBpId ||
-								bpName === targetBpId)
-						);
+								bpName === targetBpId ||
+								bpTicker === targetBpId)
+						) {
+							return true;
+						}
+
+						if (
+							rawShipType &&
+							(bpId === rawShipType ||
+								bpNatId === rawShipType ||
+								bpName === rawShipType ||
+								bpTicker === rawShipType)
+						) {
+							return true;
+						}
+
+						if (bpName && shipNameUpper.includes(bpName)) return true;
+						if (bpTicker && shipNameUpper.includes(bpTicker)) return true;
+						return false;
 					})
-				: null;
+					: null);
 
 			let bom: Record<string, number> = {};
-			if (matchedShipBp?.bill_of_material) {
-				let rawBom = matchedShipBp.bill_of_material;
+			const rawBomSource =
+				matchedShipBp?.bill_of_material ||
+				matchedShipBp?.bom ||
+				matchedShipBp?.materials ||
+				shipDataObj?.bill_of_material ||
+				shipDataObj?.bom;
+
+			if (rawBomSource) {
+				let rawBom = rawBomSource;
 				if (typeof rawBom === "string") {
 					try {
 						rawBom = JSON.parse(rawBom);
-					} catch {}
+					} catch { }
 				}
 				const quantities = Array.isArray(rawBom)
 					? rawBom
-					: rawBom?.quantities || rawBom?.building_materials || [];
+					: rawBom?.quantities || rawBom?.building_materials || rawBom?.materials || [];
 				if (Array.isArray(quantities)) {
 					quantities.forEach((bItem: any) => {
 						const t =
 							bItem.material?.ticker ||
 							bItem.ticker ||
 							bItem.material_ticker ||
-							bItem.materialid;
-						const q = Number(bItem.amount || bItem.quantity || 0);
+							bItem.materialid ||
+							bItem.name;
+						const q = Number(bItem.amount || bItem.quantity || bItem.units || 0);
 						if (t && q > 0) bom[t.toUpperCase()] = q;
 					});
 				} else if (typeof rawBom === "object" && rawBom !== null) {
 					Object.entries(rawBom).forEach(([k, v]: [string, any]) => {
 						const q =
-							typeof v === "number" ? v : Number(v?.amount || v?.quantity || 0);
+							typeof v === "number"
+								? v
+								: Number(v?.amount || v?.quantity || v?.units || 0);
 						if (q > 0) bom[k.toUpperCase()] = q;
 					});
 				}

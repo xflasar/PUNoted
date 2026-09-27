@@ -19,7 +19,7 @@ import { useGlobalData } from "../../../../../context/globaldatacontext";
 import { useMapData } from "../../hooks/usemapdata";
 import { getOriginDestinationLabel } from "../../utils/flightplanorigindestination";
 import MaterialBadge from "../../../../../cosm/components/materialbadge";
-import ShipFlightStatus from "./shipflightstatus";
+import ShipFlightStatus, { getFlightArrivalMs } from "./shipflightstatus";
 import type { AnimatedShipData } from "../../types/maptypes";
 
 // --- ASSETS ---
@@ -38,6 +38,8 @@ interface ShipRowProps {
 	indentation?: number;
 }
 
+import { resolveShipType } from "../../hooks/usemaplayers/constants";
+
 const iconStyle: React.CSSProperties = {
 	width: "100%",
 	height: "100%",
@@ -47,13 +49,11 @@ const iconStyle: React.CSSProperties = {
 
 const getShipIcon = (ship: any) => {
 	if (!ship) return <LocalShipping sx={{ fontSize: 20 }} />;
-	const type = ship.type || ship.ship_type || ship.shipType || "";
-	const t = type.toUpperCase();
-	if (t.includes("LCB")) return <img src={lcb} alt="LCB" style={iconStyle} />;
-	if (t.includes("WCB")) return <img src={wcb} alt="WCB" style={iconStyle} />;
-	if (t.includes("VCB")) return <img src={vcb} alt="VCB" style={iconStyle} />;
-	if (t.includes("HCB")) return <img src={hcb} alt="HCB" style={iconStyle} />;
-	return <LocalShipping sx={{ fontSize: 20 }} />;
+	const resolved = resolveShipType(ship);
+	if (resolved === "WCB") return <img src={wcb} alt="WCB" style={iconStyle} />;
+	if (resolved === "VCB") return <img src={vcb} alt="VCB" style={iconStyle} />;
+	if (resolved === "HCB") return <img src={hcb} alt="HCB" style={iconStyle} />;
+	return <img src={lcb} alt="LCB" style={iconStyle} />;
 };
 
 const ShipRow: React.FC<ShipRowProps> = ({
@@ -104,19 +104,17 @@ const ShipRow: React.FC<ShipRowProps> = ({
 
 	const stlFuelPct = hasStlFuelSupport
 		? Math.round(
-				(stlFuelStore.volumeload / (stlFuelStore.volumecapacity || 1)) * 100,
-			)
+			(stlFuelStore.volumeload / (stlFuelStore.volumecapacity || 1)) * 100,
+		)
 		: 0;
 	const ftlFuelPct = hasFtlFuelSupport
 		? Math.round(
-				(ftlFuelStore.volumeload / (ftlFuelStore.volumecapacity || 1)) * 100,
-			)
+			(ftlFuelStore.volumeload / (ftlFuelStore.volumecapacity || 1)) * 100,
+		)
 		: 0;
 
 	const activeFlight: any = ship.plan || (ship as any).flight;
-	const end = activeFlight?.arrivaltimestamp
-		? new Date(activeFlight.arrivaltimestamp).getTime()
-		: 0;
+	const end = getFlightArrivalMs(activeFlight);
 	const now = Date.now();
 	const isArrived = end > 0 && now >= end;
 
@@ -867,7 +865,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 													{Math.round(
 														(shipStore.volumeload /
 															(shipStore.volumecapacity || 1)) *
-															100,
+														100,
 													)}
 													%)
 												</Typography>
@@ -930,7 +928,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 													{Math.round(
 														(shipStore.weightload /
 															(shipStore.weightcapacity || 1)) *
-															100,
+														100,
 													)}
 													%)
 												</Typography>
@@ -1046,7 +1044,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 export default React.memo(ShipRow, (prev, next) => {
 	return (
 		(prev.ship.id || prev.ship.ship_id) ===
-			(next.ship.id || next.ship.ship_id) &&
+		(next.ship.id || next.ship.ship_id) &&
 		prev.isSelected === next.isSelected &&
 		prev.isPathVisible === next.isPathVisible &&
 		prev.ship.plan === next.ship.plan

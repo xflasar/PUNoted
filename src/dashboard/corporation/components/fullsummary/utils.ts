@@ -22,56 +22,58 @@ export const resolveEffectivePrice = (
 ): number => {
 	const effMode = activePricingMode === "CORP" ? "CORP" : selectedExchange;
 
+	// 1. CORP pricing mode check
 	if (effMode === "CORP") {
-		const cPrice =
-			corpPrices[ticker] ||
-			(marketData[ticker] && marketData[ticker].corp_price);
+		const cPrice = corpPrices[ticker] ?? marketData?.[ticker]?.corp_price;
 		if (cPrice && cPrice > 0) return cPrice;
 		if (fallbackPrice > 0) return fallbackPrice;
 	}
 
-	let mObj: any = marketData[ticker] || marketData[`${ticker}.${effMode}`];
+	// 2. Lookup market data object for ticker
+	const target = ticker.toUpperCase();
+	let mObj: any = marketData?.[target] || marketData?.[ticker];
 	if (!mObj && Array.isArray(marketData)) {
-		mObj = marketData.find((i: any) => {
-			const t = (i.Ticker || i.ticker || i.MaterialTicker || "").toUpperCase();
-			return (
-				t === ticker.toUpperCase() || t === `${ticker.toUpperCase()}.${effMode}`
-			);
-		});
+		mObj = marketData.find(
+			(i: any) => (i.Ticker || i.ticker || "").toUpperCase() === target,
+		);
 	}
 
 	if (mObj && typeof mObj === "object") {
-		const askKey = `${effMode}-AskPrice`;
-		const avgKey = `${effMode}-Average`;
-		const bidKey = `${effMode}-BidPrice`;
-		const priceKey = `${effMode}-Price`;
-		const p =
-			mObj[askKey] ||
-			mObj[avgKey] ||
-			mObj[bidKey] ||
-			mObj[priceKey] ||
-			mObj.AskPrice ||
-			mObj.askPrice ||
-			mObj.Average ||
-			mObj.average ||
-			mObj.BidPrice ||
-			mObj.bidPrice ||
-			mObj.price ||
-			mObj.ask ||
-			mObj.bid ||
-			0;
-		if (p > 0) return p;
-	}
+		// 3a. Selected exchange: AskPrice -> Average -> BidPrice
+		const ask = Number(mObj[`${effMode}-AskPrice`]);
+		if (!isNaN(ask) && ask > 0) return ask;
 
-	if (fallbackPrice > 0) return fallbackPrice;
+		const avg = Number(mObj[`${effMode}-Average`]);
+		if (!isNaN(avg) && avg > 0) return avg;
 
-	if (mObj && typeof mObj === "object") {
-		for (const k of Object.keys(mObj)) {
-			if (typeof mObj[k] === "number" && mObj[k] > 0) return mObj[k];
+		const bid = Number(mObj[`${effMode}-BidPrice`]);
+		if (!isNaN(bid) && bid > 0) return bid;
+
+		// 3b. Direct/generic price properties fallback
+		const generic = Number(
+			mObj.AskPrice ??
+				mObj.askPrice ??
+				mObj.Average ??
+				mObj.average ??
+				mObj.Price ??
+				mObj.price,
+		);
+		if (!isNaN(generic) && generic > 0) return generic;
+
+		// 3c. Fallback across all other exchanges if selected exchange has 0 liquidity
+		for (const key of Object.keys(mObj)) {
+			if (
+				key.endsWith("-AskPrice") ||
+				key.endsWith("-Average") ||
+				key.endsWith("-BidPrice")
+			) {
+				const val = Number(mObj[key]);
+				if (!isNaN(val) && val > 0) return val;
+			}
 		}
 	}
 
-	return 0;
+	return fallbackPrice > 0 ? fallbackPrice : 0;
 };
 
 /**
@@ -220,26 +222,28 @@ export const aggregateProductionRows = ({
 				// Default to actual weighted cost from userRecipesUsed if available
 				const userRecipes = corpItem?.userRecipesUsed || [];
 				if (userRecipes.length > 0) {
-					let totalDailyCost = 0;
+					let totalWeightedRecipeCost = 0;
 					let totalDailyOutput = 0;
 					userRecipes.forEach((ur) => {
 						if (ur.dailyOutput > 0 && ur.inputs) {
-							const dailyInputCost = Object.entries(ur.inputs).reduce(
-								(s, [inpTicker, inpDailyAmt]) =>
+							// Calculate full recipe execution cost: sum(input_amount * unit_price)
+							const fullRecipeCost = Object.entries(ur.inputs).reduce(
+								(s, [inpTicker, inpAmt]) =>
 									s +
-									Number(inpDailyAmt) *
+									Number(inpAmt) *
 										getEffectivePrice(
 											inpTicker,
 											corpMap.get(inpTicker)?.price || 0,
 										),
 								0,
 							);
-							totalDailyCost += dailyInputCost;
+
+							totalWeightedRecipeCost += fullRecipeCost * ur.dailyOutput;
 							totalDailyOutput += ur.dailyOutput;
 						}
 					});
 					if (totalDailyOutput > 0) {
-						recipeUnitCost = totalDailyCost / totalDailyOutput;
+						recipeUnitCost = totalWeightedRecipeCost / totalDailyOutput;
 					}
 				}
 

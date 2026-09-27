@@ -50,7 +50,7 @@ import type {
 	CorpMember,
 	CustomCategory,
 } from "./types";
-import { ALL_CATEGORIES, getCategory } from "./production/constants";
+import { ALL_CATEGORIES, getCategory, categoryLists } from "./production/constants";
 import { CategoryCard } from "./production/categorycard";
 import { CategoryHeaderRow } from "./production/categoryheaderrow";
 import { CompactProductionRow } from "./production/compactproductionrow";
@@ -209,10 +209,9 @@ const MemberFilterSelect = React.memo(
 									secondary={member.companyCode}
 									slotProps={{
 										primary: {
-											fontSize: "0.85rem",
-											fontWeight: 600,
+											sx: { fontSize: "0.85rem", fontWeight: 600 },
 										},
-										secondary: { fontSize: "0.7rem" },
+										secondary: { sx: { fontSize: "0.7rem" } },
 									}}
 								/>
 							</MenuItem>
@@ -269,13 +268,13 @@ export const CorpProductionView = React.memo(
 			Array<{
 				type: "header" | "row";
 				data:
-					| ProductionSummaryItem
-					| {
-							category: string;
-							count: number;
-							id?: string;
-							isDrilldown?: boolean;
-					  };
+				| ProductionSummaryItem
+				| {
+					category: string;
+					count: number;
+					id?: string;
+					isDrilldown?: boolean;
+				};
 				drillType?: "prod" | "cons";
 				isDrilldown?: boolean;
 			}>
@@ -340,10 +339,40 @@ export const CorpProductionView = React.memo(
 				setCustomCategories((prev) => {
 					const categoryId = `drill-${item.ticker}-${type}`;
 					const existingIndex = prev.findIndex((c) => c.id === categoryId);
+
+					const list: ProducerConsumerItem[] =
+						type === "prod" ? item.producers || [] : item.consumers || [];
+
+					const drillItems: ProductionSummaryItem[] = list.map((entry) => {
+						const label = entry.loc ? `${entry.player} (${entry.loc})` : entry.player;
+
+						return {
+							ticker: entry.player,
+							name: label,
+							productionTotal: type === "prod" ? entry.amount : 0,
+							productionAccurate:
+								type === "prod" && entry.isAccurate ? entry.amount : 0,
+							productionEstimated:
+								type === "prod" && !entry.isAccurate ? entry.amount : 0,
+							consumptionTotal: type === "cons" ? entry.amount : 0,
+							consumptionAccurate:
+								type === "cons" && entry.isAccurate ? entry.amount : 0,
+							consumptionEstimated:
+								type === "cons" && !entry.isAccurate ? entry.amount : 0,
+							net: type === "prod" ? entry.amount : -entry.amount,
+							producers: type === "prod" ? [entry] : [],
+							consumers: type === "cons" ? [entry] : [],
+							batchProdActive: entry.batchProdActive,
+							batchProdQueued: entry.batchProdQueued,
+							batchConsActive: entry.batchConsActive,
+							batchConsQueued: entry.batchConsQueued,
+						};
+					});
+
 					const updatedCat: CustomCategory = {
 						id: categoryId,
 						title: `${item.ticker} (${type === "prod" ? "Producers" : "Consumers"})`,
-						items: [item],
+						items: drillItems.length > 0 ? drillItems : [item],
 						isDrilldown: true,
 						drillType: type,
 					};
@@ -358,7 +387,7 @@ export const CorpProductionView = React.memo(
 					return [updatedCat, ...prev];
 				});
 			},
-			[],
+			[members],
 		);
 
 		useEffect(() => {
@@ -369,12 +398,43 @@ export const CorpProductionView = React.memo(
 			const timer = setTimeout(() => {
 				let filtered = productionSummary;
 
-				// 0. Filter by hideZeroFlow
+				// 0. Build full materials list if hideZeroFlow is false
 				if (hideZeroFlow) {
 					filtered = filtered.filter(
 						(row) =>
 							(row.productionTotal || 0) > 0 || (row.consumptionTotal || 0) > 0,
 					);
+				} else {
+					// Ensure all tickers from categoryLists exist in filtered
+					const existingTickers = new Set(filtered.map((row) => row.ticker));
+					const missingRows: ProductionSummaryItem[] = [];
+
+					Object.values(categoryLists).forEach((tickerList) => {
+						tickerList.forEach((ticker) => {
+							if (!existingTickers.has(ticker)) {
+								existingTickers.add(ticker);
+								missingRows.push({
+									ticker,
+									production: 0,
+									productionTotal: 0,
+									productionAccurate: 0,
+									productionEstimated: 0,
+									consumption: 0,
+									consumptionTotal: 0,
+									consumptionAccurate: 0,
+									consumptionEstimated: 0,
+									net: 0,
+									storageQty: 0,
+									producers: [],
+									consumers: [],
+								});
+							}
+						});
+					});
+
+					if (missingRows.length > 0) {
+						filtered = [...filtered, ...missingRows];
+					}
 				}
 
 				// 1. Filter by selected members and recalculate totals/nets
@@ -468,13 +528,13 @@ export const CorpProductionView = React.memo(
 				const list: Array<{
 					type: "header" | "row";
 					data:
-						| ProductionSummaryItem
-						| {
-								category: string;
-								count: number;
-								id?: string;
-								isDrilldown?: boolean;
-						  };
+					| ProductionSummaryItem
+					| {
+						category: string;
+						count: number;
+						id?: string;
+						isDrilldown?: boolean;
+					};
 					drillType?: "prod" | "cons";
 					isDrilldown?: boolean;
 				}> = [];
@@ -639,8 +699,8 @@ export const CorpProductionView = React.memo(
 															p: 0.5,
 															color:
 																filterOpen ||
-																!selectedCategories.includes("ALL") ||
-																selectedMembers.length > 0
+																	!selectedCategories.includes("ALL") ||
+																	selectedMembers.length > 0
 																	? "primary.main"
 																	: "text.secondary",
 															bgcolor: filterOpen
@@ -742,7 +802,7 @@ export const CorpProductionView = React.memo(
 									theme={theme}
 								/>
 
-								<Stack direction="row" spacing={1} alignItems="center">
+								<Stack sx={{ direction: "row", spacing: 1, alignItems: "center" }}>
 									{onHideZeroFlowChange && (
 										<ToggleButton
 											size="small"

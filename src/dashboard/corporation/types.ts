@@ -43,6 +43,9 @@ export interface ProductionSummaryItem {
 		dailyCycles: number;
 		outputAmount: number;
 		inputs: Record<string, number>;
+		outputTicker?: string;
+		outputs?: Record<string, number>;
+		inputMaterials?: Record<string, number>;
 		users?: Array<{
 			player: string;
 			loc: string;

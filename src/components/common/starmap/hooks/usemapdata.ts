@@ -162,15 +162,15 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 				const rawRes = p.resources ?? p.Resources ?? [];
 				const normalizedRes = Array.isArray(rawRes)
 					? rawRes.map((r: any) => ({
-							material: r.material || r.MaterialId || r.name || "",
-							factor:
-								r.factor !== undefined
-									? r.factor
-									: r.Factor !== undefined
-										? r.Factor
-										: r.value,
-							type: r.type || r.ResourceType || "",
-						}))
+						material: r.material || r.MaterialId || r.name || "",
+						factor:
+							r.factor !== undefined
+								? r.factor
+								: r.Factor !== undefined
+									? r.Factor
+									: r.value,
+						type: r.type || r.ResourceType || "",
+					}))
 					: [];
 
 				const pid = String(
@@ -482,45 +482,32 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 	return processingPromise;
 };
 
-export const useMapData = (mapDataFromContext: any = null) => {
-	const [isLoading, setIsLoading] = useState(true);
+export const useMapDataInternal = (mapDataFromContext: any = null) => {
+	const [systemsPoints, setSystemsPoints] = useState<MapPoint[]>(() => processedDataCache?.systemsPoints ?? []);
+	const [sectors, setSectors] = useState<Sector[]>(() => processedDataCache?.sectors ?? []);
+	const [empireLegend, setEmpireLegend] = useState<Record<string, string>>(() => processedDataCache?.empireLegend ?? {});
+
+	const [systemConnections, setSystemConnections] = useState<{ sourcePosition: number[]; targetPosition: number[] }[]>(() => processedDataCache?.systemConnections ?? []);
+	const [gatewayConnections, setGatewayConnections] = useState<{ sourcePosition: number[]; targetPosition: number[]; type: string }[]>(() => processedDataCache?.gatewayConnections ?? []);
+
+	const [allPlanetsData, setAllPlanetsData] = useState<Record<string, PlanetData[]>>(() => processedDataCache?.allPlanetsData ?? {});
+	const [allStationsData, setAllStationsData] = useState<Record<string, StationData[]>>(() => processedDataCache?.allStationsData ?? {});
+	const [allGatewaysData, setAllGatewaysData] = useState<Record<string, GatewayData[]>>(() => processedDataCache?.allGatewaysData ?? {});
+
+	const [maxSystemPopulation, setMaxSystemPopulation] = useState<number>(() => processedDataCache?.maxSystemPopulation ?? 0);
+	const [contentBounds, setContentBounds] = useState<{ minX: number; minY: number; maxX: number; maxY: number } | null>(() => processedDataCache?.contentBounds ?? null);
+	const [rawConnections, setRawConnections] = useState<any[]>(() => processedDataCache?.rawConnections ?? []);
+
+	const [isLoading, setIsLoading] = useState<boolean>(!processedDataCache);
 	const [fetchError, setFetchError] = useState<string | null>(null);
-	const [systemsPoints, setSystemsPoints] = useState<MapPoint[]>([]);
-	const [sectors, setSectors] = useState<Sector[]>([]);
-	const [empireLegend, setEmpireLegend] = useState<Record<string, string>>({});
-
-	// Connections
-	const [systemConnections, setSystemConnections] = useState<
-		{ sourcePosition: number[]; targetPosition: number[] }[]
-	>([]);
-	const [gatewayConnections, setGatewayConnections] = useState<
-		{ sourcePosition: number[]; targetPosition: number[]; type: string }[]
-	>([]);
-
-	// Object Data
-	const [allPlanetsData, setAllPlanetsData] = useState<
-		Record<string, PlanetData[]>
-	>({});
-	const [allStationsData, setAllStationsData] = useState<
-		Record<string, StationData[]>
-	>({});
-	const [allGatewaysData, setAllGatewaysData] = useState<
-		Record<string, GatewayData[]>
-	>({});
-
-	const [maxSystemPopulation, setMaxSystemPopulation] = useState<number>(0);
-	const [contentBounds, setContentBounds] = useState<{
-		minX: number;
-		minY: number;
-		maxX: number;
-		maxY: number;
-	} | null>(null);
-
-	const [rawConnections, setRawConnections] = useState<any[]>([]);
 
 	useEffect(() => {
 		let mounted = true;
 		const fetchData = async () => {
+			if (processedDataCache) {
+				if (isLoading) setIsLoading(false);
+				return;
+			}
 			setIsLoading(true);
 			setFetchError(null);
 			try {
@@ -542,6 +529,7 @@ export const useMapData = (mapDataFromContext: any = null) => {
 				setContentBounds(processed.contentBounds);
 				setRawConnections(processed.rawConnections || []);
 
+				console.log("UseMapdata: map data loaded successfully");
 				setIsLoading(false);
 			} catch (err: any) {
 				console.error("map fetch error", err);
@@ -555,7 +543,7 @@ export const useMapData = (mapDataFromContext: any = null) => {
 		return () => {
 			mounted = false;
 		};
-	}, [mapDataFromContext]);
+	}, []);
 
 	return {
 		isLoading,
@@ -573,3 +561,5 @@ export const useMapData = (mapDataFromContext: any = null) => {
 		rawConnections,
 	};
 };
+
+export { useMapData } from "../context/mapdatacontext";

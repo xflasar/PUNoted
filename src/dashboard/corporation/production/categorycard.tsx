@@ -816,54 +816,58 @@ export const CategoryCard = React.memo(
 				</Box>
 				<Table size="small" sx={{ tableLayout: "fixed", width: "100%" }}>
 					<colgroup>
-						<col style={{ width: "54px" }} />
+						<col style={{ width: "56px" }} />
 						<col style={{ width: "23%" }} />
 						<col style={{ width: "23%" }} />
-						<col style={{ width: "auto" }} />
-						<col style={{ width: "36px" }} />
+						<col style={{ width: "30%" }} />
+						<col style={{ width: "14%" }} />
 					</colgroup>
 					<TableHead>
 						<TableRow>
 							<TableCell
 								align="center"
 								sx={{
-									fontSize: "0.7rem",
+									fontSize: "0.68rem",
 									fontWeight: "bold",
 									color: "text.secondary",
-									px: 0.5,
+									px: 0.25,
+									py: 0.5,
 								}}
 							>
 								TCK
 							</TableCell>
 							<TableCell
-								align="center"
+								align="right"
 								sx={{
-									fontSize: "0.7rem",
+									fontSize: "0.68rem",
 									fontWeight: "bold",
 									color: "text.secondary",
-									px: 0.5,
+									px: 0.25,
+									py: 0.5,
 								}}
 							>
 								PROD
 							</TableCell>
 							<TableCell
-								align="center"
+								align="right"
 								sx={{
-									fontSize: "0.7rem",
+									fontSize: "0.68rem",
 									fontWeight: "bold",
 									color: "text.secondary",
-									px: 0.5,
+									px: 0.25,
+									py: 0.5,
 								}}
 							>
 								CONS
 							</TableCell>
 							<TableCell
-								align="center"
+								align="right"
 								sx={{
-									fontSize: "0.7rem",
+									fontSize: "0.68rem",
 									fontWeight: "bold",
 									color: "text.secondary",
-									px: 0.5,
+									px: 0.25,
+									py: 0.5,
 								}}
 							>
 								NET
@@ -871,10 +875,11 @@ export const CategoryCard = React.memo(
 							<TableCell
 								align="center"
 								sx={{
-									fontSize: "0.7rem",
+									fontSize: "0.68rem",
 									fontWeight: "bold",
 									color: "text.secondary",
-									px: 0.5,
+									px: 0.25,
+									py: 0.5,
 								}}
 							>
 								%

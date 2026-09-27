@@ -25,6 +25,8 @@ import type {
 	GroupedWorkforceData,
 } from "../dashboard/production/types";
 import type { FinancialPayload } from "../dashboard/financial/types/finances";
+import { ConsoleWrapper } from "../landingpage/styles";
+import { useShipArrivalNotifier } from "../components/common/starmap/hooks/useshiparrivalnotifier";
 
 const DB_NAME = "PUNotedDB";
 const STORE_NAME = "app-cache";
@@ -193,7 +195,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					localStorage.setItem("user_custom_prices", JSON.stringify(cleanMap));
 				}
 			}
-		} catch {}
+		} catch { }
 	}, []);
 
 	const saveCustomPricesBatch = useCallback(
@@ -212,7 +214,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(payload),
 				});
-			} catch {}
+			} catch { }
 		},
 		[],
 	);
@@ -256,7 +258,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 			try {
 				const db = await dbPromise;
 				await db.put(STORE_NAME, data, key);
-			} catch {}
+			} catch { }
 		},
 		[],
 	);
@@ -265,7 +267,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		try {
 			const db = await dbPromise;
 			await db.delete(STORE_NAME, key);
-		} catch {}
+		} catch { }
 	}, []);
 
 	// Buffer for rapid WS market updates to prevent main thread lockup & disk I/O thrashing
@@ -444,7 +446,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				const data = await res.json();
 				setLoansData(Array.isArray(data) ? data : data?.items || []);
 			}
-		} catch {}
+		} catch { }
 	}, []);
 
 	const fetchCorpPrices = useCallback(async () => {
@@ -475,7 +477,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				});
 			}
 			setCorpPrices(priceMap);
-		} catch {}
+		} catch { }
 	}, []);
 
 	const fetchStorageData = useCallback(async () => {
@@ -496,7 +498,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 				setStorageState({ units: unitsMap, lastUpdated: Date.now() });
 			}
-		} catch {}
+		} catch { }
 	}, []);
 
 	const fetchProductionData = useCallback(async () => {
@@ -530,7 +532,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 			if (json && Array.isArray(json.blueprints)) {
 				setShipBlueprints(json.blueprints);
 			}
-		} catch {}
+		} catch { }
 	}, []);
 
 	const fetchUserSites = useCallback(async () => {
@@ -563,13 +565,23 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	const fetchShipsData = useCallback(async () => {
 		try {
 			const res = await fetchClient("/internal/ships/");
-			if (!res?.ok) return;
+			if (!res?.ok) {
+				console.warn("🚢 [GlobalDataContext] fetchShipsData response not OK:", res?.status);
+				return;
+			}
 			const json = await res.json();
+			console.log("🚢 [GlobalDataContext] fetchShipsData received JSON:", json);
 
 			if (json && Array.isArray(json.ships)) {
+				if (json.ships.length > 0) {
+					console.log("🚢 [GlobalDataContext] Sample ship from API:", json.ships[0]);
+				}
 				const shipMap = new Map<string, ShipData>(
-					json.ships.map((s: ShipData) => [s.ship_id || s.id, s]),
+					json.ships.map((s: ShipData) => [s.shipid, s]),
 				);
+				console.log(shipMap);
+				console.log(json.ships)
+				console.log("🚢 [GlobalDataContext] Parsed allShips map size:", shipMap.size);
 				setAllShips(shipMap);
 
 				const corpGrouped: Record<string, ShipData[]> = {};
@@ -585,7 +597,9 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 				setCorpShipsGrouped(corpGrouped);
 			}
-		} catch {}
+		} catch (e) {
+			console.error("🚢 [GlobalDataContext] fetchShipsData error:", e);
+		}
 	}, []);
 
 	const fetchMarketData = useCallback(async () => {
@@ -601,7 +615,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				if (typeof data === "string") {
 					try {
 						data = JSON.parse(data);
-					} catch (e) {}
+					} catch (e) { }
 				}
 
 				if (data) {
@@ -620,7 +634,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					await setCachedData("global_market_prices", mappedData);
 				}
 			}
-		} catch {}
+		} catch { }
 	}, [getCachedData, setCachedData]);
 
 	const fetchFinances = useCallback(async () => {
@@ -665,7 +679,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					await setCachedData("global_materials", matDict);
 				}
 			}
-		} catch {}
+		} catch { }
 	}, [getCachedData, setCachedData]);
 
 	const fetchRecipes = useCallback(async () => {
@@ -788,7 +802,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	]);
 
 	// --- STABLE WEBSOCKET LISTENER WITH THROTTLED MARKET BATCHING ---
-	const handleMessageRef = useRef<(msg: WsMessage) => void>(() => {});
+	const handleMessageRef = useRef<(msg: WsMessage) => void>(() => { });
 
 	handleMessageRef.current = (msg: WsMessage) => {
 		switch (msg.type) {
@@ -1010,8 +1024,8 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 							item.marketSharePct =
 								totalCorpProdSum > 0
 									? Math.round(
-											(item.productionTotal / totalCorpProdSum) * 1000,
-										) / 10
+										(item.productionTotal / totalCorpProdSum) * 1000,
+									) / 10
 									: 0;
 						});
 
@@ -1182,7 +1196,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					if (typeof pData === "string") {
 						try {
 							pData = JSON.parse(pData);
-						} catch (e) {}
+						} catch (e) { }
 					}
 
 					if (pData) {
@@ -1247,15 +1261,52 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	}, [isConnected, isLoggedIn]);
 
 	// --- MEMOIZATION ---
-	const ownerShips = useMemo(
-		() => Array.from(allShips.values()).filter((s) => s.is_owner),
-		[allShips],
-	);
+	const isShipOwner = useCallback((s: ShipData) => {
+		const sAny = s as any;
+		//console.log(s)
+		if (
+			s.is_owner === true
+		) {
+			return true;
+		}
+		const currentUserId =
+			typeof window !== "undefined"
+				? localStorage.getItem("currentUserId")
+				: null;
+		if (currentUserId) {
+			const uId = String(
+				s.user_id ||
+				sAny.userid ||
+				sAny.ownerId ||
+				sAny.ship_owner_userid ||
+				sAny.user_uuid ||
+				"",
+			);
+			if (
+				uId &&
+				(uId === String(currentUserId) ||
+					uId.toLowerCase() === String(currentUserId).toLowerCase())
+			) {
+				return true;
+			}
+		}
+		return false;
+	}, []);
 
-	const otherShips = useMemo(
-		() => Array.from(allShips.values()).filter((s) => !s.is_owner),
-		[allShips],
-	);
+	const ownerShips = useMemo(() => {
+		const result = Array.from(allShips.values()).filter((s) => isShipOwner(s));
+		//console.log("🚢 [GlobalDataContext] ownerShips count:", result.length, result);
+		return result;
+	}, [allShips, isShipOwner]);
+
+	const otherShips = useMemo(() => {
+		const result = Array.from(allShips.values()).filter((s) => !isShipOwner(s));
+		//console.log("🚢 [GlobalDataContext] otherShips count:", result.length);
+		return result;
+	}, [allShips, isShipOwner]);
+
+	// Automatic Real-Time & Background Ship Arrival Push Notifier
+	useShipArrivalNotifier(ownerShips, activeFlightPlans);
 
 	const providerValue = useMemo(
 		() => ({
@@ -1379,38 +1430,38 @@ export const useGlobalData = (): GlobalDataContextState => {
 			getMatProps: () => ({ weight: 1, volume: 1 }),
 			dashboardData: null,
 			isLoading: false,
-			fetchDashboard: () => {},
+			fetchDashboard: () => { },
 			currentCXDashboardFilters: { range: "7D" },
 			ownerShips: [],
 			corpShipsGrouped: {},
 			otherShips: [],
 			allShips: new Map(),
-			setAllShips: () => {},
+			setAllShips: () => { },
 			activeFlightPlans: [],
-			setActiveFlightPlans: () => {},
+			setActiveFlightPlans: () => { },
 			shipmentState: { contracts: [], ships: {} },
-			setShipmentState: () => {},
+			setShipmentState: () => { },
 			storageState: null,
-			refreshStorage: async () => {},
+			refreshStorage: async () => { },
 			financialData: null,
 			isFinancialLoading: false,
-			fetchFinances: async () => {},
+			fetchFinances: async () => { },
 			productionData: {},
 			workforceData: null,
 			isProductionLoading: false,
-			refreshProduction: async () => {},
+			refreshProduction: async () => { },
 			mapData: null,
 			isMapLoading: false,
 			mapDataFetchError: null,
-			fetchMapData: async () => {},
-			refreshMapData: async () => {},
+			fetchMapData: async () => { },
+			refreshMapData: async () => { },
 			marketData: {},
 			corpPrices: {},
 			corpData: [],
-			fetchCorporationData: async () => {},
-			refreshCorpPrices: async () => {},
+			fetchCorporationData: async () => { },
+			refreshCorpPrices: async () => { },
 			loansData: [],
-			refreshLoans: async () => {},
+			refreshLoans: async () => { },
 			apiStatus: "online",
 			isLoggedIn: false,
 			userMetadata: {
@@ -1420,16 +1471,16 @@ export const useGlobalData = (): GlobalDataContextState => {
 				companyName: null,
 				corpName: null,
 			},
-			refreshUserProfile: async () => {},
-			handleLoginSuccess: () => {},
-			handleLogout: () => {},
+			refreshUserProfile: async () => { },
+			handleLoginSuccess: () => { },
+			handleLogout: () => { },
 			customPrices: {},
-			refreshCustomPrices: async () => {},
-			saveCustomPricesBatch: async () => {},
+			refreshCustomPrices: async () => { },
+			saveCustomPricesBatch: async () => { },
 			shipBlueprints: [],
-			refreshShipBlueprints: async () => {},
+			refreshShipBlueprints: async () => { },
 			userSites: [],
-			refreshUserSites: async () => {},
+			refreshUserSites: async () => { },
 		};
 	}
 

@@ -143,6 +143,7 @@ export const DetailTooltip = React.memo(
 							dailyOutput: number;
 							dailyCycles: number;
 							inputs?: Record<string, number>;
+							outputs?: Record<string, number>;
 						}>;
 					}>;
 				}
@@ -158,6 +159,7 @@ export const DetailTooltip = React.memo(
 					dailyOutput: number;
 					dailyCycles: number;
 					inputs?: Record<string, number>;
+					outputs?: Record<string, number>;
 				}>
 			>();
 
@@ -336,7 +338,7 @@ export const DetailTooltip = React.memo(
 								({userGroups.length} user{userGroups.length !== 1 ? "s" : ""})
 							</Typography>
 						</Box>
-						<Stack direction="row" spacing={0.5} alignItems="center">
+						<Stack sx={{ direction: "row", spacing: 0.5, alignItems: "center" }}>
 							<Chip
 								size="small"
 								label={sortDir === "desc" ? "High ➔ Low" : "Low ➔ High"}
@@ -455,10 +457,7 @@ export const DetailTooltip = React.memo(
 											}}
 										>
 											<Stack
-												direction="row"
-												spacing={0.75}
-												alignItems="center"
-												sx={{ minWidth: 0 }}
+												sx={{ direction: "row", spacing: 0.75, alignItems: "center" }}
 											>
 												{uGroup.isAccurate ? (
 													<CheckCircleIcon
@@ -491,7 +490,7 @@ export const DetailTooltip = React.memo(
 												/>
 											</Stack>
 
-											<Stack direction="row" spacing={0.5} alignItems="center">
+											<Stack sx={{ direction: "row", spacing: 0.5, alignItems: "center" }}>
 												{(uGroup.batchActive > 0 || uGroup.batchQueued > 0) && (
 													<Chip
 														size="small"
@@ -578,9 +577,7 @@ export const DetailTooltip = React.memo(
 																		📍 {pItem.loc}
 																	</Typography>
 																	<Stack
-																		direction="row"
-																		spacing={0.5}
-																		alignItems="center"
+																		sx={{ direction: "row", spacing: 0.5, alignItems: "center" }}
 																	>
 																		{(bActive > 0 || bQueued > 0) && (
 																			<Chip
@@ -765,11 +762,11 @@ export const DetailTooltip = React.memo(
 																											>
 																												{out.factor < 1
 																													? out.factor.toFixed(
-																															1,
-																														)
+																														1,
+																													)
 																													: Math.round(
-																															out.factor,
-																														)}
+																														out.factor,
+																													)}
 																												/d
 																											</Typography>
 																										</Box>

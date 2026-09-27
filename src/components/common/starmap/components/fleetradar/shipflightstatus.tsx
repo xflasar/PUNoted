@@ -4,7 +4,14 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { useGlobalData } from "../../../../../context/globaldatacontext";
 import { useMapData } from "../../hooks/usemapdata";
 import { getOriginDestinationLabel } from "../../utils/flightplanorigindestination";
+import {
+	parseFlightTimestamp,
+	getFlightArrivalMs,
+	getFlightDepartureMs,
+} from "../../utils/timestamputils";
 import type { AnimatedShipData } from "../../types/maptypes";
+
+export { parseFlightTimestamp, getFlightArrivalMs, getFlightDepartureMs };
 
 interface ShipFlightStatusProps {
 	ship: AnimatedShipData;
@@ -21,13 +28,10 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 		useMapData(mapData);
 	const activeFlight: any = ship.plan || (ship as any).flight;
 
-	const startStr = activeFlight?.departuretimestamp;
-	const endStr = activeFlight?.arrivaltimestamp;
+	const start = getFlightDepartureMs(activeFlight);
+	const end = getFlightArrivalMs(activeFlight);
 
-	if (!startStr || !endStr) return null;
-
-	const start = new Date(startStr).getTime();
-	const end = new Date(endStr).getTime();
+	if (!start || !end) return null;
 
 	const now = Date.now();
 	const totalDuration = end - start;
@@ -50,21 +54,21 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 	// CSS GPU Animation Config
 	const barStyle = isArrived
 		? {
-				transform: "scaleX(1)",
-				backgroundColor: isMine
-					? theme.palette.primary.main
-					: theme.palette.secondary.main,
-			}
+			transform: "scaleX(1)",
+			backgroundColor: isMine
+				? theme.palette.primary.main
+				: theme.palette.secondary.main,
+		}
 		: {
-				animationName: "growProgress",
-				animationDuration: `${totalDuration}ms`,
-				animationTimingFunction: "linear",
-				animationFillMode: "forwards",
-				animationDelay: `-${elapsed}ms`,
-				backgroundColor: isMine
-					? theme.palette.primary.main
-					: theme.palette.secondary.main,
-			};
+			animationName: "growProgress",
+			animationDuration: `${totalDuration}ms`,
+			animationTimingFunction: "linear",
+			animationFillMode: "forwards",
+			animationDelay: `-${elapsed}ms`,
+			backgroundColor: isMine
+				? theme.palette.primary.main
+				: theme.palette.secondary.main,
+		};
 
 	return (
 		<Box

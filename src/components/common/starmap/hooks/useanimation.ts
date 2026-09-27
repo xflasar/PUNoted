@@ -198,8 +198,8 @@ export const useAnimation = (
 		const newPool = new Map<string, UpdateShipData>();
 		const now = Date.now();
 		animatedShipData.forEach((s) => {
-			// Safely fallback to generic id if ship_id is not yet present
-			const shipId = s.ship_id || (s as any).id;
+			// Safely fallback to generic id or shipid if ship_id is not yet present
+			const shipId = s.ship_id || (s as any).shipid || (s as any).id;
 			if (!shipId) return;
 
 			const prev = shipPoolMapRef.current.get(shipId);
@@ -253,10 +253,13 @@ export const useAnimation = (
 
 		// Build signature using the correct identifier
 		const signature = animatedShipData
-			.map((s) => s.ship_id || (s as any).id)
+			.map((s) => s.ship_id || (s as any).shipid || (s as any).id)
 			.join("|");
 
-		if (lastShipSignatureRef.current !== signature) {
+		const isInitialOrChanged =
+			lastShipSignatureRef.current !== signature || updatedShips.length === 0;
+
+		if (isInitialOrChanged) {
 			lastShipSignatureRef.current = signature;
 			setUpdatedShips(Array.from(newPool.values()));
 		}
@@ -280,6 +283,15 @@ export const useAnimation = (
 			lastWorkerPostTime.current = Date.now();
 			scheduledPostRef.current = null;
 		};
+
+		if (isInitialOrChanged) {
+			if (scheduledPostRef.current !== null) {
+				window.clearTimeout(scheduledPostRef.current);
+				scheduledPostRef.current = null;
+			}
+			postToWorker();
+			return;
+		}
 
 		const timeNow = Date.now();
 		if (timeNow - lastWorkerPostTime.current < UPDATE_INTERVAL) {

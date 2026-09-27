@@ -30,6 +30,7 @@ import {
 	HowToVote,
 	EmojiEvents,
 } from "@mui/icons-material";
+import { getSemimajorAxisAU } from "../../hooks/usemaplayers/constants";
 import type {
 	MapPoint,
 	PlanetData,
@@ -147,10 +148,12 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 	// Combine all ships present in the system (only if logged in)
 	const systemShips = useMemo(() => {
 		if (!isLoggedIn) return { own: [], others: [] };
-		const own = ownerShips.filter(
+		const ownList = Array.isArray(ownerShips) ? ownerShips : [];
+		const othersList = Array.isArray(otherShips) ? otherShips : [];
+		const own = ownList.filter(
 			(s) => s.address_system_id === systemId || s.addresssystemid === systemId,
 		);
-		const others = otherShips.filter(
+		const others = othersList.filter(
 			(s) => s.address_system_id === systemId || s.addresssystemid === systemId,
 		);
 		return { own, others };
@@ -1288,7 +1291,7 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 									Semi-major Axis
 								</Typography>
 								<Typography variant="caption" sx={{ fontWeight: 600 }}>
-									{activePlanetData.semimajoraxis?.toFixed(3) || "N/A"} AU
+									{getSemimajorAxisAU(activePlanetData.semimajoraxis)?.toFixed(3) || "N/A"} AU
 								</Typography>
 							</Box>
 						</Box>
@@ -3374,6 +3377,9 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 														}}
 													>
 														Type: {planet.type || "Unknown"}{" "}
+														{planet.semimajoraxis
+															? `• ${getSemimajorAxisAU(planet.semimajoraxis).toFixed(2)} AU `
+															: ""}
 														{planet.planetPopulation
 															? `• Pop: ${planet.planetPopulation.toLocaleString()}`
 															: ""}

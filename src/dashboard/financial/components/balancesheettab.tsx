@@ -252,9 +252,7 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 						fontWeight: 800,
 					}}
 				>
-					{isExcluded
-						? "0.00 " + currency
-						: `${formatCurrency(site.totalValue)} ${currency}`}
+					{`${formatCurrency(site.totalValue)} ${currency}`}
 				</Typography>
 			</Box>
 
@@ -550,9 +548,7 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 									}}
 								>
 									{subUnit.itemCount} items | Sub-Total:{" "}
-									{isUserToggledLeased || isOutboundLeased
-										? "0.00 " + currency
-										: `${formatCurrency(subUnit.totalValue)} ${currency}`}
+									{`${formatCurrency(subUnit.totalValue)} ${currency}`}
 								</Typography>
 							</Box>
 							<Box
@@ -631,6 +627,8 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 														100
 													).toFixed(1)
 												: "0";
+
+										const effectiveItemValue = item.totalValue;
 
 										return (
 											<Box
@@ -721,7 +719,7 @@ const SiteAuditCard: React.FC<SiteAuditCardProps> = ({
 														color: isSiteLeased ? "#f59e0b" : "#4ade80",
 													}}
 												>
-													{`${formatCurrency(item.totalValue)} ${currency}`}
+													{`${formatCurrency(effectiveItemValue)} ${currency}`}
 												</Box>
 												<Box
 													component="td"
@@ -800,7 +798,19 @@ const LocationAuditRow: React.FC<LocationAuditRowProps> = ({
 	const { userMetadata } = useGlobalData();
 	const [expanded, setExpanded] = useState<boolean>(false);
 	const isPlanetLeased = !!leasedSiteIds[loc.id];
-	const activeValue = isPlanetLeased ? 0 : loc.totalValue;
+
+	const activeValue = useMemo(() => {
+		if (isPlanetLeased) return 0;
+		if (!loc.sites || loc.sites.length === 0) return loc.totalValue;
+
+		return loc.sites.reduce((sum, site) => {
+			const isUserToggledLeased = !!leasedSiteIds[site.id];
+			const isOutboundLeased = site.leaseType === "Outbound";
+			const isExcluded = isUserToggledLeased || isOutboundLeased;
+			return sum + (isExcluded ? 0 : site.totalValue);
+		}, 0);
+	}, [isPlanetLeased, loc.sites, loc.totalValue, leasedSiteIds]);
+
 	const locPercentOfTotal =
 		totalAssets > 0 ? ((activeValue / totalAssets) * 100).toFixed(1) : "0";
 
@@ -893,7 +903,7 @@ const LocationAuditRow: React.FC<LocationAuditRowProps> = ({
 				>
 					{isPlanetLeased
 						? "0.00 " + currency
-						: `${formatCurrency(loc.totalValue)} ${currency}`}
+						: `${formatCurrency(activeValue)} ${currency}`}
 				</Box>
 				<Box
 					component="td"

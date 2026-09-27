@@ -74,8 +74,8 @@ export const SmartNumberCell = React.memo(
 				onClick={onClick}
 				colSpan={colSpan}
 				sx={{
-					py: 0.75,
-					px: 1,
+					py: 0.5,
+					px: isGridMode ? 0.25 : 0.75,
 					position: "relative",
 					overflow: "hidden",
 					cursor: onClick ? "pointer" : "default",
@@ -83,7 +83,7 @@ export const SmartNumberCell = React.memo(
 						? { backgroundColor: "rgba(255, 255, 255, 0.05)" }
 						: {},
 					color: stale ? "warning.main" : undefined,
-					verticalAlign: "top",
+					verticalAlign: "middle",
 					...sx,
 				}}
 			>

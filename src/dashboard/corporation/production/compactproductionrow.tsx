@@ -11,7 +11,6 @@ import {
 } from "@mui/material";
 import type { ProductionSummaryItem, CorpMember } from "../types";
 import { SmartNumberCell } from "./smartnumbercell";
-import { ValueStack } from "./valuestack";
 import { DetailTooltip } from "./detailtooltip";
 import { getNetColor, formatSmartNumber, isUserStale } from "../utils";
 import MaterialBadge from "../../../cosm/components/materialbadge";
@@ -58,17 +57,17 @@ export const CompactProductionRow = React.memo(
 			if (c === 0)
 				return p > 0
 					? {
-							text: "MAX",
-							color: theme.palette.success.main,
-							hasTooltip: true,
-							tooltipText: "Infinite",
-						}
+						text: "MAX",
+						color: theme.palette.success.main,
+						hasTooltip: true,
+						tooltipText: "Infinite",
+					}
 					: {
-							text: "-",
-							color: theme.palette.text.disabled,
-							hasTooltip: false,
-							tooltipText: "",
-						};
+						text: "-",
+						color: theme.palette.text.disabled,
+						hasTooltip: false,
+						tooltipText: "",
+					};
 
 			// 2. Calculate ratio and format for display based on magnitude
 			const ratio = (p - c) / c;
@@ -130,25 +129,25 @@ export const CompactProductionRow = React.memo(
 					</DetailTooltip>
 					{((row.batchProdActive || 0) > 0 ||
 						(row.batchProdQueued || 0) > 0) && (
-						<Tooltip
-							title={`One-Time Orders: ${row.batchProdActive || 0} crafting now, ${row.batchProdQueued || 0} queued`}
-							arrow
-						>
-							<Chip
-								size="small"
-								label={`+${(row.batchProdActive || 0) > 0 ? Math.round(row.batchProdActive || 0) : 0}${(row.batchProdQueued || 0) > 0 ? ` (${Math.round(row.batchProdQueued || 0)})` : ""}`}
-								sx={{
-									height: 15,
-									fontSize: "0.55rem",
-									fontWeight: 700,
-									bgcolor: "rgba(129, 199, 132, 0.15)",
-									color: "#81C784",
-									border: "1px solid rgba(129, 199, 132, 0.3)",
-									cursor: "default",
-								}}
-							/>
-						</Tooltip>
-					)}
+							<Tooltip
+								title={`One-Time Orders: ${row.batchProdActive || 0} crafting now, ${row.batchProdQueued || 0} queued`}
+								arrow
+							>
+								<Chip
+									size="small"
+									label={`+${(row.batchProdActive || 0) > 0 ? Math.round(row.batchProdActive || 0) : 0}${(row.batchProdQueued || 0) > 0 ? ` (${Math.round(row.batchProdQueued || 0)})` : ""}`}
+									sx={{
+										height: 15,
+										fontSize: "0.55rem",
+										fontWeight: 700,
+										bgcolor: "rgba(129, 199, 132, 0.15)",
+										color: "#81C784",
+										border: "1px solid rgba(129, 199, 132, 0.3)",
+										cursor: "default",
+									}}
+								/>
+							</Tooltip>
+						)}
 				</Box>
 			),
 			[row, isMobile, isGridMode, members, isRowStale],
@@ -187,25 +186,25 @@ export const CompactProductionRow = React.memo(
 					</DetailTooltip>
 					{((row.batchConsActive || 0) > 0 ||
 						(row.batchConsQueued || 0) > 0) && (
-						<Tooltip
-							title={`One-Time Batch Inputs: ${row.batchConsActive || 0} being consumed, ${row.batchConsQueued || 0} queued`}
-							arrow
-						>
-							<Chip
-								size="small"
-								label={`-${(row.batchConsActive || 0) > 0 ? Math.round(row.batchConsActive || 0) : 0}${(row.batchConsQueued || 0) > 0 ? ` (${Math.round(row.batchConsQueued || 0)})` : ""}`}
-								sx={{
-									height: 15,
-									fontSize: "0.55rem",
-									fontWeight: 700,
-									bgcolor: "rgba(255, 138, 128, 0.15)",
-									color: "#FF8A80",
-									border: "1px solid rgba(255, 138, 128, 0.3)",
-									cursor: "default",
-								}}
-							/>
-						</Tooltip>
-					)}
+							<Tooltip
+								title={`One-Time Batch Inputs: ${row.batchConsActive || 0} being consumed, ${row.batchConsQueued || 0} queued`}
+								arrow
+							>
+								<Chip
+									size="small"
+									label={`-${(row.batchConsActive || 0) > 0 ? Math.round(row.batchConsActive || 0) : 0}${(row.batchConsQueued || 0) > 0 ? ` (${Math.round(row.batchConsQueued || 0)})` : ""}`}
+									sx={{
+										height: 15,
+										fontSize: "0.55rem",
+										fontWeight: 700,
+										bgcolor: "rgba(255, 138, 128, 0.15)",
+										color: "#FF8A80",
+										border: "1px solid rgba(255, 138, 128, 0.3)",
+										cursor: "default",
+									}}
+								/>
+							</Tooltip>
+						)}
 				</Box>
 			),
 			[row, isMobile, isGridMode, members, isRowStale],
@@ -226,6 +225,8 @@ export const CompactProductionRow = React.memo(
 								color: color,
 								cursor: "help",
 								textShadow: `0px 0px 8px ${alpha(color, 0.3)}`,
+								textAlign: "right",
+								width: "100%",
 							}}
 						>
 							{net > 0 ? "+" : ""}
@@ -244,7 +245,7 @@ export const CompactProductionRow = React.memo(
 			<>
 				<TableCell
 					sx={{
-						py: 0.75,
+						py: 0.5,
 						width: tickerWidth,
 						maxWidth: tickerWidth,
 						px: isGridMode ? 0.25 : 1,
@@ -266,7 +267,7 @@ export const CompactProductionRow = React.memo(
 						stale={isRowStale}
 						isGridMode={isGridMode}
 						isMobile={isMobile}
-						colSpan={isDrilldown && !isGridMode ? 4 : undefined}
+						colSpan={isDrilldown && !isGridMode ? 8 : undefined}
 						sx={
 							isDrilldown && !isGridMode ? { borderBottom: "none" } : undefined
 						}
@@ -287,7 +288,7 @@ export const CompactProductionRow = React.memo(
 						stale={isRowStale}
 						isGridMode={isGridMode}
 						isMobile={isMobile}
-						colSpan={isDrilldown && !isGridMode ? 4 : undefined}
+						colSpan={isDrilldown && !isGridMode ? 8 : undefined}
 						sx={
 							isDrilldown && !isGridMode ? { borderBottom: "none" } : undefined
 						}

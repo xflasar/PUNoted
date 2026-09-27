@@ -355,33 +355,38 @@ export const useSystemViewSetup = (
 				colorB,
 				150,
 			];
-			// Generate micro-asteroids -> look into this more to make it more asteorid generation
+			// Generate micro-asteroids as a system border asteroid belt scaled by microasteroidCount level
 			if (asteroidCount > 0 && initialPositions.length > 0) {
-				const maxAsteroids = Math.min(250, asteroidCount);
-				const outerOrbitRadius = totalRadius - BOUNDING_BOX_OFFSET;
-				const innerOrbitRadius = initialPositions[0].orbitalRadius ?? 10;
+				// Base asteroids per count level = 150 with +/-15% random variation per system load
+				const BASE_PER_LEVEL = 150;
+				const randomVariation = 0.85 + Math.random() * 0.3;
+				const beltAsteroidCount = Math.max(
+					40,
+					Math.floor(asteroidCount * BASE_PER_LEVEL * randomVariation),
+				);
+
+				const beltRadius = totalRadius;
+				const beltThickness = Math.max(0.4, totalRadius * 0.12);
 				const generated: any[] = [];
-				for (let aIdx = 0; aIdx < maxAsteroids; aIdx++) {
-					const r =
-						innerOrbitRadius +
-						Math.random() * (outerOrbitRadius - innerOrbitRadius);
-					const theta = Math.random() * Math.PI * 2;
-					const px =
-						centeredSystem.x +
-						r * Math.cos(theta) +
-						(Math.random() - 0.5) * 0.1;
-					const py =
-						centeredSystem.y +
-						r * Math.sin(theta) +
-						(Math.random() - 0.5) * 0.1;
+
+				for (let aIdx = 0; aIdx < beltAsteroidCount; aIdx++) {
+					const angle = Math.random() * Math.PI * 2;
+					// Radial distribution with slight density falloff towards edges
+					const radialDist = (Math.random() - 0.5) + (Math.random() - 0.5);
+					const r = beltRadius + radialDist * (beltThickness / 2);
+					const px = centeredSystem.x + r * Math.cos(angle);
+					const py = centeredSystem.y + r * Math.sin(angle);
+
+					const size = 1.8 + Math.random() * 2.8;
+					const shade = Math.floor(130 + Math.random() * 80);
 					generated.push({
 						position: [px, py],
-						size: 1 + Math.random() * 2,
+						size,
 						color: [
-							140 + Math.random() * 60,
-							130 + Math.random() * 40,
-							110 + Math.random() * 30,
-							180,
+							Math.min(255, shade + Math.floor(colorR * 0.3)),
+							Math.min(255, shade + Math.floor(colorG * 0.3)),
+							Math.min(255, shade + Math.floor(colorB * 0.3)),
+							180 + Math.floor(Math.random() * 60),
 						],
 					});
 				}

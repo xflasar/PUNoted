@@ -236,7 +236,7 @@ export interface FlightPlan {
 	destinationsystemid?: string;
 }
 
-export interface WorkerFlightPlan extends FlightPlan {}
+export interface WorkerFlightPlan extends FlightPlan { }
 
 export interface FlightSegment {
 	departure: number; // Unix timestamp (milliseconds)
@@ -250,10 +250,13 @@ export interface AnimatedShipData {
 	id: string;
 	registration: string;
 	name: string;
-	display_name: string;
-	company_code: string;
-	user_id: string;
-	is_owner: boolean;
+	display_name?: string;
+	ownerName?: string;
+	company_code?: string;
+	user_id?: string;
+	ownerId?: string;
+	is_owner?: boolean;
+	is_owner_ship?: boolean;
 	addressplanetid: string;
 	addresssystemid: string;
 	addressstationid: string;
@@ -270,7 +273,7 @@ export interface AnimatedShipData {
 }
 
 export interface ShipData extends AnimatedShipData {
-	ship_id: string;
+	shipid: string;
 	user_id: string;
 	name: string;
 	registration: string;
