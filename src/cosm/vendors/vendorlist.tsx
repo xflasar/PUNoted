@@ -32,6 +32,8 @@ import {
 	Warehouse,
 	Globe,
 	Minus,
+	Square,
+	SquareCheck,
 	Target,
 	X,
 } from "lucide-react";
@@ -58,6 +60,7 @@ type MarketOptions = {
 	view: "grid" | "table";
 	location: string;
 	side: "ask" | "bid" | "both";
+	hideUnavailable: boolean;
 };
 const MARKET_OPTIONS_STORAGE_KEY = "marketOptions";
 
@@ -75,18 +78,21 @@ const compareLocations = (
 	);
 };
 
-const hasAvailableStock = (location: Location) =>
-	typeof location.available === "number" && location.available > 0;
-
-const filterAvailableLocations = (
+const filterLocations = (
 	locations: Location[] | undefined,
 	selectedLocation: string | null,
 ) =>
-	(locations || []).filter(
-		(location) =>
-			hasAvailableStock(location) &&
-			matchesLocationFilter(location, selectedLocation),
+	(locations || []).filter((location) =>
+		matchesLocationFilter(location, selectedLocation),
 	);
+
+const isUnavailableOrder = (
+	quantity: number,
+	locations: Location[] | undefined,
+) =>
+	locations?.length
+		? locations.every((location) => location.available === 0)
+		: quantity === 0;
 
 const isVendorViewMode = (value: string | null): value is "grid" | "table" =>
 	value === "grid" || value === "table";
@@ -95,6 +101,7 @@ const DEFAULT_MARKET_OPTIONS: MarketOptions = {
 	view: "table",
 	location: HORTUS_LOCATION_CODE,
 	side: "ask",
+	hideUnavailable: false,
 };
 
 const getStoredMarketOptions = (): MarketOptions => {
@@ -109,7 +116,13 @@ const getStoredMarketOptions = (): MarketOptions => {
 			typeof (options as MarketOptions).location === "string" &&
 			["ask", "bid", "both"].includes((options as MarketOptions).side)
 		) {
-			return options as MarketOptions;
+			return {
+				...(options as MarketOptions),
+				hideUnavailable:
+					typeof (options as MarketOptions).hideUnavailable === "boolean"
+						? (options as MarketOptions).hideUnavailable
+						: false,
+			};
 		}
 	} catch {
 		// Use the defaults when storage is unavailable or contains invalid JSON.
@@ -346,35 +359,15 @@ const VendorCard = React.memo(
 		const vendor = vendorStore.vendor;
 
 		const sortedList = useMemo(() => {
-			return [...buyOrders, ...sellOrders]
-				.map((order) => {
-					const activeLocations = filterAvailableLocations(
-						order.item.location,
-						null,
-					);
-
-					return {
-						...order,
-						item: {
-							...order.item,
-							location: activeLocations || [],
-						},
-					};
-				})
-				.filter(
-					(order) =>
-						(order.displayQuantity && order.displayQuantity > 0) ||
-						(order.item.location && order.item.location.length > 0),
-				)
-				.sort((a, b) => {
-					const tickerCmp = a.item.materialticker.localeCompare(
-						b.item.materialticker,
-						undefined,
-						{ sensitivity: "base" },
-					);
-					if (tickerCmp !== 0) return tickerCmp;
-					return (a.orderType || "sell").localeCompare(b.orderType || "sell");
-				});
+			return [...buyOrders, ...sellOrders].sort((a, b) => {
+				const tickerCmp = a.item.materialticker.localeCompare(
+					b.item.materialticker,
+					undefined,
+					{ sensitivity: "base" },
+				);
+				if (tickerCmp !== 0) return tickerCmp;
+				return (a.orderType || "sell").localeCompare(b.orderType || "sell");
+			});
 		}, [buyOrders, sellOrders]);
 
 		return (
@@ -544,10 +537,15 @@ const VendorCard = React.memo(
 								} = preparedOrder;
 								const isBuying = orderType === "buy";
 								const quantityLabel = isBuying ? "Wants" : "Has";
+								const isUnavailable = isUnavailableOrder(
+									displayQuantity,
+									item.location,
+								);
 
 								return (
 									<Box
 										key={item.frontendId || index}
+										className={isUnavailable ? "unavailable-order" : undefined}
 										sx={{
 											p: 0,
 											borderBottom:
@@ -631,65 +629,73 @@ const VendorCard = React.memo(
 											>
 												{[...item.location]
 													.sort(compareLocations)
-													.map((l, i) => (
-														<Box
-															key={i}
-															sx={{
-																display: "flex",
-																justifyContent: "space-between",
-																alignItems: "center",
-															}}
-														>
+													.map((l, i) => {
+														const isUnavailableLocation =
+															(l.available ?? displayQuantity) === 0;
+														return (
 															<Box
+																key={i}
+																className={
+																	isUnavailableLocation
+																		? "unavailable-order"
+																		: undefined
+																}
 																sx={{
 																	display: "flex",
+																	justifyContent: "space-between",
 																	alignItems: "center",
-																	gap: 0.5,
 																}}
 															>
-																{l.location_code === "HRT" ? (
-																	<Warehouse
-																		className="inline-icon"
-																		color={theme.palette.success.light}
-																	/>
-																) : (
-																	<Globe
-																		className="inline-icon"
-																		color={theme.palette.warning.main}
-																	/>
-																)}
-																<Typography
-																	variant="caption"
+																<Box
 																	sx={{
-																		fontSize: "0.80rem",
+																		display: "flex",
+																		alignItems: "center",
+																		gap: 0.5,
 																	}}
 																>
-																	{formatLocation(
-																		l.location_name,
-																		l.location_code,
+																	{l.location_code === "HRT" ? (
+																		<Warehouse
+																			className="inline-icon"
+																			color={theme.palette.success.light}
+																		/>
+																	) : (
+																		<Globe
+																			className="inline-icon"
+																			color={theme.palette.warning.main}
+																		/>
 																	)}
+																	<Typography
+																		variant="caption"
+																		sx={{
+																			fontSize: "0.80rem",
+																		}}
+																	>
+																		{formatLocation(
+																			l.location_name,
+																			l.location_code,
+																		)}
+																	</Typography>
+																</Box>
+																<Typography variant="caption">
+																	{quantityLabel}{" "}
+																	<Typography
+																		variant="caption"
+																		sx={{
+																			color:
+																				(l.available ?? displayQuantity) === 0
+																					? theme.palette.error.main
+																					: theme.palette.primary.light,
+																			fontWeight: "bold",
+																		}}
+																	>
+																		{formatAmount(
+																			l.available ?? displayQuantity,
+																		)}
+																	</Typography>
 																</Typography>
 															</Box>
-															<Typography variant="caption">
-																{quantityLabel}{" "}
-																<Typography
-																	variant="caption"
-																	sx={{
-																		color: theme.palette.primary.light,
-																		fontWeight: "bold",
-																	}}
-																>
-																	{formatAmount(
-																		(
-																			l as typeof l & {
-																				available?: number;
-																			}
-																		).available ?? displayQuantity,
-																	)}
-																</Typography>
-															</Typography>
-														</Box>
-													))}
+														);
+													})}
 											</Box>
 										) : (
 											<Box
@@ -724,7 +730,9 @@ const VendorCard = React.memo(
 												<Typography
 													variant="caption"
 													sx={{
-														color: theme.palette.primary.light,
+														color: isUnavailable
+															? theme.palette.error.main
+															: theme.palette.primary.light,
 														fontSize: "0.75rem",
 														fontWeight: "medium",
 													}}
@@ -799,6 +807,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	const [marketOptions] = useState(getStoredMarketOptions);
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [exactMatch, setExactMatch] = useState<boolean>(false);
+	const [hideUnavailable, setHideUnavailable] = useState(
+		marketOptions.hideUnavailable,
+	);
 	const [selectedLocation, setSelectedLocation] = useState<string | null>(
 		marketOptions.location === ALL_LOCATIONS_ID ? null : marketOptions.location,
 	);
@@ -842,9 +853,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				view: vendorViewMode,
 				location: selectedLocation || ALL_LOCATIONS_ID,
 				side: orderTypeFilter.toLowerCase(),
+				hideUnavailable,
 			}),
 		);
-	}, [vendorViewMode, selectedLocation, orderTypeFilter]);
+	}, [vendorViewMode, selectedLocation, orderTypeFilter, hideUnavailable]);
 
 	useEffect(() => {
 		const frameId = requestAnimationFrame(() => {
@@ -1055,24 +1067,50 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		[sortedVendors],
 	);
 
+	const visibleVendorsWithOrders = useMemo(
+		() =>
+			vendorsWithOrders
+				.map((vendor) => ({
+					...vendor,
+					orders: hideUnavailable
+						? vendor.orders.flatMap((order) => {
+								if (!order.location?.length) {
+									return isUnavailableOrder(
+										order.available ?? order.quantity,
+										undefined,
+									)
+										? []
+										: [order];
+								}
+								const locations = order.location.filter(
+									(location) => location.available !== 0,
+								);
+								return locations.length
+									? [{ ...order, location: locations }]
+									: [];
+							})
+						: vendor.orders,
+				}))
+				.filter((vendor) => vendor.orders.length > 0),
+		[vendorsWithOrders, hideUnavailable],
+	);
+
 	// Extract unique locations dynamically based on search and order type filters
 	const allLocations = useMemo(() => {
 		const locs = new Map<string, LocationOption>();
 
-		vendorsWithOrders.forEach((v) => {
+		visibleVendorsWithOrders.forEach((v) => {
 			v.orders?.forEach((o) => {
 				if (matchesOrderFilters(v.vendor, o)) {
 					o.location?.forEach((l: Location) => {
-						if (hasAvailableStock(l)) {
-							const locationId = l.location_code?.trim();
-							const locationName = l.location_name?.trim();
-							const optionId = locationId || locationName;
-							if (optionId) {
-								locs.set(optionId, {
-									id: optionId,
-									name: locationName || optionId,
-								});
-							}
+						const locationId = l.location_code?.trim();
+						const locationName = l.location_name?.trim();
+						const optionId = locationId || locationName;
+						if (optionId) {
+							locs.set(optionId, {
+								id: optionId,
+								name: locationName || optionId,
+							});
 						}
 					});
 				}
@@ -1080,13 +1118,13 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		});
 
 		return Array.from(locs.values());
-	}, [vendorsWithOrders, matchesOrderFilters]);
+	}, [visibleVendorsWithOrders, matchesOrderFilters]);
 
 	// Filter Logic for Grid View
 	const preparedFilteredVendors = useMemo(() => {
 		const result: ReturnType<typeof prepareVendorStore>[] = [];
 
-		for (const vendorStore of vendorsWithOrders) {
+		for (const vendorStore of visibleVendorsWithOrders) {
 			const preparedVendor = prepareVendorStore(vendorStore, cxPriceLookup);
 
 			const filterOrders = (orders: typeof preparedVendor.buyOrders) => {
@@ -1097,8 +1135,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 					.filter(
 						(order) =>
 							selectedLocation === null ||
-							filterAvailableLocations(order.item.location, selectedLocation)
-								.length > 0,
+							filterLocations(order.item.location, selectedLocation).length > 0,
 					)
 					.map((order) =>
 						selectedLocation === null
@@ -1107,7 +1144,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 									...order,
 									item: {
 										...order.item,
-										location: filterAvailableLocations(
+										location: filterLocations(
 											order.item.location,
 											selectedLocation,
 										),
@@ -1129,7 +1166,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		}
 
 		return result;
-	}, [vendorsWithOrders, selectedLocation, cxPriceLookup, matchesOrderFilters]);
+	}, [
+		visibleVendorsWithOrders,
+		selectedLocation,
+		cxPriceLookup,
+		matchesOrderFilters,
+	]);
 
 	const tableRows = useMemo(() => {
 		return preparedFilteredVendors
@@ -1183,9 +1225,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				const askRows = sellOrders.flatMap((order) => buildRows(order, "Ask"));
 				const bidRows = buyOrders.flatMap((order) => buildRows(order, "Bid"));
 
-				return [...askRows, ...bidRows].filter(
-					(row) => typeof row.quantity !== "number" || row.quantity > 0,
-				);
+				return [...askRows, ...bidRows];
 			})
 			.sort((a, b) => {
 				const materialComparison = a.material.localeCompare(
@@ -1247,9 +1287,11 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						sx={{
 							fontWeight: "bold",
 							color:
-								row.orderType === "sell"
-									? theme.palette.warning.main
-									: theme.palette.info.main,
+								row.quantity === 0
+									? theme.palette.error.main
+									: row.orderType === "sell"
+										? theme.palette.warning.main
+										: theme.palette.info.main,
 						}}
 					>
 						{formatAmount(Number(value))}
@@ -1290,9 +1332,7 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				renderCell: ({ row }) => (
 					<Box sx={{ display: "flex", alignItems: "right", gap: 0.5 }}>
 						{row.corpStats && (
-							<Box sx={{ display: { xs: "none", lg: "contents" } }}>
-								<PriceComparisonBadge label="COSM" stats={row.corpStats} />
-							</Box>
+							<PriceComparisonBadge label="COSM" stats={row.corpStats} />
 						)}
 						{row.cxStats && (
 							<PriceComparisonBadge label="CX" stats={row.cxStats} />
@@ -1321,7 +1361,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 						)}
 						<Typography variant="body2">
 							<Box component="span" sx={{ display: { lg: "none" } }}>
-								{row.locCode || formatLocation(row.locName, row.locCode)}
+								{row.locCode === HORTUS_LOCATION_CODE
+									? "Hortus"
+									: row.locName || row.locCode}
 							</Box>
 							<Box
 								component="span"
@@ -1405,6 +1447,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				),
 		[tableColumns],
 	);
+	const narrowTableColumns = useMemo(
+		() => compactTableColumns.filter(({ field }) => field !== "price"),
+		[compactTableColumns],
+	);
 	const renderTable = (columns: GridColDef[]) => (
 		<DataGrid
 			rows={tableRows}
@@ -1420,6 +1466,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			disableColumnSorting
 			disableRowSelectionOnClick
 			localeText={{ noRowsLabel: "No results" }}
+			getRowClassName={({ row }) =>
+				row.quantity === 0 ? "unavailable-order" : ""
+			}
 			sx={{
 				border: "none",
 				"& .MuiDataGrid-row": {
@@ -1469,6 +1518,10 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				width: "100%",
 				display: "flex",
 				flexDirection: "column",
+				"& .unavailable-order": {
+					opacity: 0.5,
+					filter: "grayscale(100%)",
+				},
 			}}
 		>
 			{/* Search and Action Bar */}
@@ -1476,262 +1529,278 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				<Box
 					sx={{
 						width: "100%",
-						display: "flex",
-						flexDirection: { xs: "column", md: "row" },
-						alignItems: { xs: "stretch", md: "center" },
+						display: "grid",
+						gridTemplateColumns: {
+							xs: "minmax(0, 1fr)",
+							lg: "auto auto minmax(0, 1fr) minmax(0, 1fr) auto auto",
+						},
+						alignItems: "center",
 						gap: 1.5,
 					}}
 				>
 					<Box
 						sx={{
-							display: "flex",
+							display: { xs: "flex", lg: "contents" },
+							alignItems: "center",
 							gap: 1.5,
-							flexDirection: { xs: "column", sm: "row" },
-							order: 1,
 						}}
 					>
-						<ToggleButtonGroup
-							value={vendorViewMode}
-							exclusive
-							fullWidth
-							onChange={(_event, newValue: "grid" | "table" | null) => {
-								if (newValue) {
-									handleViewModeChange(newValue);
-								}
-							}}
-							size="small"
-							aria-label="Vendor view mode"
+						<Box
 							sx={{
-								height: 40,
-								borderRadius: "12px",
-								"& .MuiToggleButtonGroup-grouped": {
-									"&:hover": {
-										background: alpha(theme.palette.primary.main, 0.5),
-									},
-									"&.Mui-selected": {
-										background: alpha(theme.palette.background.default, 0.8),
-										color: theme.palette.primary.light,
-										pointerEvents: "none",
-										"&:hover": {
-											background: alpha(theme.palette.background.default, 0.9),
-										},
-									},
-								},
+								display: "flex",
 							}}
 						>
-							<ToggleButton
-								value="grid"
+							<ToggleButtonGroup
+								value={vendorViewMode}
+								exclusive
+								onChange={(_event, newValue: "grid" | "table" | null) => {
+									if (newValue) {
+										handleViewModeChange(newValue);
+									}
+								}}
 								size="small"
-								aria-label="Grid view"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Grid
-							</ToggleButton>
-							<ToggleButton
-								value="table"
-								size="small"
-								aria-label="Table view"
-								sx={{ px: 1.5, textTransform: "none" }}
-							>
-								Table
-							</ToggleButton>
-						</ToggleButtonGroup>
-					</Box>
-
-					<TextField
-						fullWidth
-						variant="outlined"
-						size="small"
-						inputRef={searchInputRef}
-						placeholder="Search…"
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						sx={{
-							flexGrow: 1,
-							order: 3,
-							"& .MuiOutlinedInput-root": {
-								height: 40,
-								bgcolor: alpha(theme.palette.background.default, 0.5),
-								backdropFilter: "blur(5px)",
-								borderRadius: "12px",
-								"& fieldset": {
-									borderColor: alpha(theme.palette.common.white, 0.1),
-								},
-								"&:hover fieldset": { borderColor: theme.palette.primary.main },
-								"&.Mui-focused fieldset": {
-									borderColor: theme.palette.primary.main,
-								},
-								color: theme.palette.text.primary,
-							},
-						}}
-						slotProps={{
-							input: {
-								startAdornment: (
-									<InputAdornment position="start">
-										<Search
-											className="inline-icon"
-											color={theme.palette.primary.main}
-										/>
-									</InputAdornment>
-								),
-								endAdornment: (
-									<InputAdornment position="end">
-										<Box
-											sx={{
-												display: "flex",
-												alignItems: "center",
-												gap: 0.5,
-											}}
-										>
-											{searchQuery ? (
-												<>
-													<Tooltip title="Clear Search">
-														<IconButton
-															size="small"
-															aria-label="Clear material search"
-															onClick={() => setSearchQuery("")}
-														>
-															<X className="inline-icon" />
-														</IconButton>
-													</Tooltip>
-												</>
-											) : null}
-											<Tooltip
-												title={
-													exactMatch ? "Exact Match: ON" : "Exact Match: OFF"
-												}
-											>
-												<IconButton
-													size="small"
-													onClick={() => setExactMatch((prev) => !prev)}
-													sx={{
-														color: exactMatch
-															? "primary.main"
-															: "text.secondary",
-														bgcolor: exactMatch
-															? alpha(theme.palette.primary.main, 0.15)
-															: "transparent",
-													}}
-												>
-													<CenterFocusStrongIcon className="inline-icon" />
-												</IconButton>
-											</Tooltip>
-										</Box>
-									</InputAdornment>
-								),
-							},
-						}}
-					/>
-
-					<Box
-						sx={{
-							display: "flex",
-							gap: 1.5,
-							flexDirection: { xs: "column", sm: "row" },
-							order: 2,
-						}}
-					>
-						<ToggleButtonGroup
-							value={orderTypeFilter}
-							exclusive
-							fullWidth
-							onChange={(_event, newValue: "ASK" | "BID" | "BOTH" | null) => {
-								if (newValue) {
-									setOrderTypeFilter(newValue);
-								}
-							}}
-							size="small"
-							aria-label="Order type filter"
-							sx={{
-								height: 40,
-								borderRadius: "12px",
-								"& .MuiToggleButtonGroup-grouped": {
-									"&:hover": {
-										background: alpha(theme.palette.primary.main, 0.5),
-									},
-									"&.Mui-selected": {
-										background: alpha(theme.palette.background.default, 0.8),
-										color: theme.palette.primary.light,
-										"&:hover": {
-											background: alpha(theme.palette.background.default, 1),
-										},
-									},
-								},
-							}}
-						>
-							<Tooltip title="Asks and Bids together">
-								<ToggleButton
-									value="BOTH"
-									size="small"
-									aria-label="Show both ask and bid"
-									sx={{ px: 1.5, textTransform: "none" }}
-								>
-									All
-								</ToggleButton>
-							</Tooltip>
-							<Tooltip title="You buy from the vendor">
-								<ToggleButton
-									value="ASK"
-									size="small"
-									aria-label="Show only ask"
-									sx={{ px: 1.5, textTransform: "none" }}
-								>
-									Ask
-								</ToggleButton>
-							</Tooltip>
-							<Tooltip title="You sell to the vendor">
-								<ToggleButton
-									value="BID"
-									size="small"
-									aria-label="Show only bid"
-									sx={{ px: 1.5, textTransform: "none" }}
-								>
-									Bid
-								</ToggleButton>
-							</Tooltip>
-						</ToggleButtonGroup>
-						<LocationFilter
-							locations={allLocations}
-							value={selectedLocation}
-							onChange={setSelectedLocation}
-							sx={{
-								flexGrow: { xs: 1, sm: 0 },
-								minWidth: { sm: 260 },
-								order: -1,
-							}}
-						/>
-					</Box>
-					<Box
-						sx={{
-							display: "flex",
-							gap: 1,
-							justifyContent: { xs: "center", sm: "flex-end" },
-							order: 4,
-						}}
-					>
-						<Tooltip title="Shopping List">
-							<IconButton
-								onClick={handleOpenShoppingListModal}
+								aria-label="Vendor view mode"
 								sx={{
 									height: 40,
-									width: 40,
-									borderRadius: "50%",
-									color: "white",
-									bgcolor: "primary.main",
-									boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-									"&:hover": { bgcolor: "primary.dark" },
+									borderRadius: "12px",
+									"& .MuiToggleButtonGroup-grouped": {
+										"&:hover": {
+											background: alpha(theme.palette.primary.main, 0.5),
+										},
+										"&.Mui-selected": {
+											background: alpha(theme.palette.background.default, 0.8),
+											color: theme.palette.primary.light,
+											pointerEvents: "none",
+											"&:hover": {
+												background: alpha(
+													theme.palette.background.default,
+													0.9,
+												),
+											},
+										},
+									},
 								}}
 							>
-								<ShoppingBasket className="inline-icon" />
-							</IconButton>
-						</Tooltip>
-						{loggedIn && (
-							<Tooltip title="Your Store">
+								<ToggleButton
+									value="grid"
+									size="small"
+									aria-label="Grid view"
+									sx={{ px: 1.5, textTransform: "none" }}
+								>
+									Grid
+								</ToggleButton>
+								<ToggleButton
+									value="table"
+									size="small"
+									aria-label="Table view"
+									sx={{ px: 1.5, textTransform: "none" }}
+								>
+									Table
+								</ToggleButton>
+							</ToggleButtonGroup>
+						</Box>
+						<Box sx={{ display: "flex" }}>
+							<ToggleButtonGroup
+								value={orderTypeFilter}
+								exclusive
+								onChange={(_event, newValue: "ASK" | "BID" | "BOTH" | null) => {
+									if (newValue) setOrderTypeFilter(newValue);
+								}}
+								size="small"
+								aria-label="Order type filter"
+								sx={{
+									height: 40,
+									borderRadius: "12px",
+									"& .MuiToggleButtonGroup-grouped": {
+										"&:hover": {
+											background: alpha(theme.palette.primary.main, 0.5),
+										},
+										"&.Mui-selected": {
+											background: alpha(theme.palette.background.default, 0.8),
+											color: theme.palette.primary.light,
+											"&:hover": {
+												background: alpha(theme.palette.background.default, 1),
+											},
+										},
+									},
+								}}
+							>
+								<Tooltip title="Asks and Bids together">
+									<ToggleButton
+										value="BOTH"
+										size="small"
+										aria-label="Show both ask and bid"
+										sx={{ px: 1.5, textTransform: "none" }}
+									>
+										All
+									</ToggleButton>
+								</Tooltip>
+								<Tooltip title="You buy from the vendor">
+									<ToggleButton
+										value="ASK"
+										size="small"
+										aria-label="Show only ask"
+										sx={{ px: 1.5, textTransform: "none" }}
+									>
+										Ask
+									</ToggleButton>
+								</Tooltip>
+								<Tooltip title="You sell to the vendor">
+									<ToggleButton
+										value="BID"
+										size="small"
+										aria-label="Show only bid"
+										sx={{ px: 1.5, textTransform: "none" }}
+									>
+										Bid
+									</ToggleButton>
+								</Tooltip>
+							</ToggleButtonGroup>
+						</Box>
+						<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
+							<LocationFilter
+								locations={allLocations}
+								value={selectedLocation}
+								onChange={setSelectedLocation}
+								sx={{ width: "100%" }}
+							/>
+						</Box>
+					</Box>
+					<Box
+						sx={{
+							display: { xs: "flex", lg: "contents" },
+							alignItems: "center",
+							gap: 1.5,
+						}}
+					>
+						<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
+							<TextField
+								fullWidth
+								variant="outlined"
+								size="small"
+								inputRef={searchInputRef}
+								placeholder="Search…"
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								sx={{
+									"& .MuiOutlinedInput-root": {
+										height: 40,
+										bgcolor: alpha(theme.palette.background.default, 0.5),
+										backdropFilter: "blur(5px)",
+										borderRadius: "12px",
+										"& fieldset": {
+											borderColor: alpha(theme.palette.common.white, 0.1),
+										},
+										"&:hover fieldset": {
+											borderColor: theme.palette.primary.main,
+										},
+										"&.Mui-focused fieldset": {
+											borderColor: theme.palette.primary.main,
+										},
+										color: theme.palette.text.primary,
+									},
+								}}
+								slotProps={{
+									input: {
+										startAdornment: (
+											<InputAdornment position="start">
+												<Search
+													className="inline-icon"
+													color={theme.palette.primary.main}
+												/>
+											</InputAdornment>
+										),
+										endAdornment: (
+											<InputAdornment position="end">
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 0.5,
+													}}
+												>
+													{searchQuery ? (
+														<>
+															<Tooltip title="Clear Search">
+																<IconButton
+																	size="small"
+																	aria-label="Clear material search"
+																	onClick={() => setSearchQuery("")}
+																>
+																	<X className="inline-icon" />
+																</IconButton>
+															</Tooltip>
+														</>
+													) : null}
+													<Tooltip
+														title={
+															exactMatch
+																? "Exact Match: ON"
+																: "Exact Match: OFF"
+														}
+													>
+														<IconButton
+															size="small"
+															onClick={() => setExactMatch((prev) => !prev)}
+															sx={{
+																color: exactMatch
+																	? "primary.main"
+																	: "text.secondary",
+																bgcolor: exactMatch
+																	? alpha(theme.palette.primary.main, 0.15)
+																	: "transparent",
+															}}
+														>
+															<CenterFocusStrongIcon className="inline-icon" />
+														</IconButton>
+													</Tooltip>
+												</Box>
+											</InputAdornment>
+										),
+									},
+								}}
+							/>
+						</Box>
+						<Box>
+							<Tooltip title="Hide materials if vendor has/wants 0">
+								<ToggleButton
+									value="hide-unavailable"
+									selected={hideUnavailable}
+									onChange={() => setHideUnavailable((prev) => !prev)}
+									aria-label="Hide Unavailable"
+									sx={{
+										height: 40,
+										px: 1.5,
+										textTransform: "none",
+										gap: 0.5,
+										whiteSpace: "nowrap",
+										"&.Mui-selected": {
+											color: theme.palette.primary.light,
+											backgroundColor: "transparent",
+											"&:hover": { backgroundColor: "transparent" },
+										},
+									}}
+								>
+									{hideUnavailable ? (
+										<SquareCheck className="inline-icon" />
+									) : (
+										<Square className="inline-icon" />
+									)}
+									Hide Unavailable
+								</ToggleButton>
+							</Tooltip>
+						</Box>
+
+						<Box
+							sx={{
+								display: "flex",
+								gap: 1,
+								justifyContent: "flex-end",
+							}}
+						>
+							<Tooltip title="Shopping List">
 								<IconButton
-									onClick={
-										hasVendorStore ? handleOpenEditModal : handleOpenCreateModal
-									}
-									disabled={isCheckingStore}
+									onClick={handleOpenShoppingListModal}
 									sx={{
 										height: 40,
 										width: 40,
@@ -1740,15 +1809,38 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 										bgcolor: "primary.main",
 										boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
 										"&:hover": { bgcolor: "primary.dark" },
-										"&.Mui-disabled": {
-											bgcolor: alpha(theme.palette.primary.main, 0.5),
-										},
 									}}
 								>
-									<Store className="inline-icon" />
+									<ShoppingBasket className="inline-icon" />
 								</IconButton>
 							</Tooltip>
-						)}
+							{loggedIn && (
+								<Tooltip title="Your Store">
+									<IconButton
+										onClick={
+											hasVendorStore
+												? handleOpenEditModal
+												: handleOpenCreateModal
+										}
+										disabled={isCheckingStore}
+										sx={{
+											height: 40,
+											width: 40,
+											borderRadius: "50%",
+											color: "white",
+											bgcolor: "primary.main",
+											boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
+											"&:hover": { bgcolor: "primary.dark" },
+											"&.Mui-disabled": {
+												bgcolor: alpha(theme.palette.primary.main, 0.5),
+											},
+										}}
+									>
+										<Store className="inline-icon" />
+									</IconButton>
+								</Tooltip>
+							)}
+						</Box>
 					</Box>
 				</Box>
 			</Box>
@@ -1760,7 +1852,15 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			>
 				{vendorViewMode === "table" ? (
 					<Box sx={{ height: "100%", width: "100%" }}>
-						<Box sx={{ display: { xs: "block", lg: "none" }, height: "100%" }}>
+						<Box sx={{ display: { xs: "block", md: "none" }, height: "100%" }}>
+							{renderTable(narrowTableColumns)}
+						</Box>
+						<Box
+							sx={{
+								display: { xs: "none", md: "block", lg: "none" },
+								height: "100%",
+							}}
+						>
 							{renderTable(compactTableColumns)}
 						</Box>
 						<Box sx={{ display: { xs: "none", lg: "block" }, height: "100%" }}>
