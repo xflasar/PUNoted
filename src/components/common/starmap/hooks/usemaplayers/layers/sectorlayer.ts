@@ -7,7 +7,10 @@ import type { Sector } from "../../../types/maptypes";
 export function buildSectorLayers(
 	isGalaxyView: boolean,
 	sectors: Sector[] | undefined,
-	safeGetColor: (code?: string, alpha?: number) => [number, number, number, number],
+	safeGetColor: (
+		code?: string,
+		alpha?: number,
+	) => [number, number, number, number],
 ) {
 	if (!isGalaxyView || !sectors || sectors.length === 0) return [];
 	const sectorLayers: any[] = [];

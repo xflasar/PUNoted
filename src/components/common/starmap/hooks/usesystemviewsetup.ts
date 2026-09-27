@@ -372,7 +372,7 @@ export const useSystemViewSetup = (
 				for (let aIdx = 0; aIdx < beltAsteroidCount; aIdx++) {
 					const angle = Math.random() * Math.PI * 2;
 					// Radial distribution with slight density falloff towards edges
-					const radialDist = (Math.random() - 0.5) + (Math.random() - 0.5);
+					const radialDist = Math.random() - 0.5 + (Math.random() - 0.5);
 					const r = beltRadius + radialDist * (beltThickness / 2);
 					const px = centeredSystem.x + r * Math.cos(angle);
 					const py = centeredSystem.y + r * Math.sin(angle);

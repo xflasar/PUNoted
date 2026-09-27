@@ -50,7 +50,11 @@ import type {
 	CorpMember,
 	CustomCategory,
 } from "./types";
-import { ALL_CATEGORIES, getCategory, categoryLists } from "./production/constants";
+import {
+	ALL_CATEGORIES,
+	getCategory,
+	categoryLists,
+} from "./production/constants";
 import { CategoryCard } from "./production/categorycard";
 import { CategoryHeaderRow } from "./production/categoryheaderrow";
 import { CompactProductionRow } from "./production/compactproductionrow";
@@ -268,13 +272,13 @@ export const CorpProductionView = React.memo(
 			Array<{
 				type: "header" | "row";
 				data:
-				| ProductionSummaryItem
-				| {
-					category: string;
-					count: number;
-					id?: string;
-					isDrilldown?: boolean;
-				};
+					| ProductionSummaryItem
+					| {
+							category: string;
+							count: number;
+							id?: string;
+							isDrilldown?: boolean;
+					  };
 				drillType?: "prod" | "cons";
 				isDrilldown?: boolean;
 			}>
@@ -344,7 +348,9 @@ export const CorpProductionView = React.memo(
 						type === "prod" ? item.producers || [] : item.consumers || [];
 
 					const drillItems: ProductionSummaryItem[] = list.map((entry) => {
-						const label = entry.loc ? `${entry.player} (${entry.loc})` : entry.player;
+						const label = entry.loc
+							? `${entry.player} (${entry.loc})`
+							: entry.player;
 
 						return {
 							ticker: entry.player,
@@ -528,13 +534,13 @@ export const CorpProductionView = React.memo(
 				const list: Array<{
 					type: "header" | "row";
 					data:
-					| ProductionSummaryItem
-					| {
-						category: string;
-						count: number;
-						id?: string;
-						isDrilldown?: boolean;
-					};
+						| ProductionSummaryItem
+						| {
+								category: string;
+								count: number;
+								id?: string;
+								isDrilldown?: boolean;
+						  };
 					drillType?: "prod" | "cons";
 					isDrilldown?: boolean;
 				}> = [];
@@ -699,8 +705,8 @@ export const CorpProductionView = React.memo(
 															p: 0.5,
 															color:
 																filterOpen ||
-																	!selectedCategories.includes("ALL") ||
-																	selectedMembers.length > 0
+																!selectedCategories.includes("ALL") ||
+																selectedMembers.length > 0
 																	? "primary.main"
 																	: "text.secondary",
 															bgcolor: filterOpen
@@ -802,7 +808,9 @@ export const CorpProductionView = React.memo(
 									theme={theme}
 								/>
 
-								<Stack sx={{ direction: "row", spacing: 1, alignItems: "center" }}>
+								<Stack
+									sx={{ direction: "row", spacing: 1, alignItems: "center" }}
+								>
 									{onHideZeroFlowChange && (
 										<ToggleButton
 											size="small"

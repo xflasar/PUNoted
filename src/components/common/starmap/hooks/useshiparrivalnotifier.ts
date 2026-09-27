@@ -1,5 +1,8 @@
 import { useEffect, useRef } from "react";
-import { parseFlightTimestamp, getFlightArrivalMs } from "../utils/timestamputils";
+import {
+	parseFlightTimestamp,
+	getFlightArrivalMs,
+} from "../utils/timestamputils";
 import { audioAlerts } from "../../../../utils/audioalerts";
 import { useGlobalWsContext } from "../../../../dashboard/websocket/globalwscontext";
 import type { ShipData, FlightPlan } from "../types/maptypes";
@@ -23,7 +26,11 @@ function saveNotifiedArrival(key: string) {
 	} catch {}
 }
 
-export function triggerShipArrivalNotification(title: string, message: string, tagKey: string) {
+export function triggerShipArrivalNotification(
+	title: string,
+	message: string,
+	tagKey: string,
+) {
 	// 1. Audio Alert Chime
 	try {
 		audioAlerts.playChime("info");
@@ -89,9 +96,15 @@ export const useShipArrivalNotifier = (
 			if (isFlightEnd) {
 				const payload = msg.data || msg.payload || msg;
 				const shipName =
-					payload.ship_name || payload.name || payload.registration || "Your ship";
+					payload.ship_name ||
+					payload.name ||
+					payload.registration ||
+					"Your ship";
 				const dest =
-					payload.destination || payload.destination_name || payload.location || "destination";
+					payload.destination ||
+					payload.destination_name ||
+					payload.location ||
+					"destination";
 				const shipId = payload.ship_id || payload.id || "ship";
 				const key = `ws_${shipId}_${Date.now()}`;
 
@@ -125,7 +138,8 @@ export const useShipArrivalNotifier = (
 				const arrivalMs = getFlightArrivalMs(plan);
 				if (arrivalMs <= 0) return;
 
-				const shipId = ship.ship_id || ship.id || (ship as any).shipid || "unknown";
+				const shipId =
+					ship.ship_id || ship.id || (ship as any).shipid || "unknown";
 				const shipName = ship.name || ship.registration || shipId;
 				const arrivalKey = `arrival_${shipId}_${arrivalMs}`;
 

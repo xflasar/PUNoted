@@ -1,11 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MapPoint, Sector, PlanetPosition, AnimatedShipData } from "../../types/maptypes";
+import type {
+	MapPoint,
+	Sector,
+	PlanetPosition,
+	AnimatedShipData,
+} from "../../types/maptypes";
 import { hexToRgba } from "../../utils/colors";
 import { buildStarAtlas } from "../../utils/buildstaratlas";
 import { useAnimation } from "../useanimation";
 import type { UseMapLayersProps } from "./types";
-import { STAR_ICONS, STATION_ICONS, SHIP_ICONS, PLANET_ICONS, getSemimajorAxisAU } from "./constants";
-import { checkSystemMatch, useDebouncedZoom, clusterShipsByRadius } from "./utils";
+import {
+	STAR_ICONS,
+	STATION_ICONS,
+	SHIP_ICONS,
+	PLANET_ICONS,
+	getSemimajorAxisAU,
+} from "./constants";
+import {
+	checkSystemMatch,
+	useDebouncedZoom,
+	clusterShipsByRadius,
+} from "./utils";
 import { buildSectorLayers } from "./layers/sectorlayer";
 import { buildStaticGalaxyLayers } from "./layers/staticgalaxylayers";
 import { buildDynamicLayers } from "./layers/dynamiclayers";
@@ -377,7 +392,11 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		const map = new Map<string, string>();
 		if (systemsPoints) {
 			systemsPoints.forEach((s) => {
-				if (s.originalSystemId && typeof s.x === "number" && typeof s.y === "number") {
+				if (
+					s.originalSystemId &&
+					typeof s.x === "number" &&
+					typeof s.y === "number"
+				) {
 					map.set(`${s.x.toFixed(1)},${s.y.toFixed(1)}`, s.originalSystemId);
 				}
 			});
@@ -432,9 +451,13 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					s.plan?.destination_system_id;
 
 				if (sysId && sysId === props.currentSystemId) return true;
-				if (origSysId === props.currentSystemId || destSysId === props.currentSystemId)
+				if (
+					origSysId === props.currentSystemId ||
+					destSysId === props.currentSystemId
+				)
 					return true;
-				if (!sysId && !origSysId && !destSysId && s.visible !== false) return true;
+				if (!sysId && !origSysId && !destSysId && s.visible !== false)
+					return true;
 				return false;
 			});
 		}
@@ -448,7 +471,12 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			isGalaxyView,
 			props.currentSystemId,
 		);
-	}, [visibleShipsForClustering, debouncedZoom, isGalaxyView, props.currentSystemId]);
+	}, [
+		visibleShipsForClustering,
+		debouncedZoom,
+		isGalaxyView,
+		props.currentSystemId,
+	]);
 
 	const allFlightPlans = useMemo(() => {
 		return [...(ownFlightPlans || []), ...(corpFlightPlans || [])];
@@ -496,7 +524,13 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				pickable: false,
 			}),
 		];
-	}, [allFlightPlans, visiblePathShipIds, isGalaxyView, currentSystem, findLocationPosition]);
+	}, [
+		allFlightPlans,
+		visiblePathShipIds,
+		isGalaxyView,
+		currentSystem,
+		findLocationPosition,
+	]);
 
 	const sectorLayer = useMemo(() => {
 		return buildSectorLayers(isGalaxyView, sectors, safeGetColor);
@@ -622,12 +656,21 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		if (!layers || layers.length === 0) return false;
 		if (!starAtlas) return false;
 		if (!shipAtlas) return false;
-		const hasShipsToRender = Array.isArray(props.animatedShipData) && props.animatedShipData.length > 0;
+		const hasShipsToRender =
+			Array.isArray(props.animatedShipData) &&
+			props.animatedShipData.length > 0;
 		if (hasShipsToRender) {
 			if (updatedShips.length === 0) return false;
 		}
 		return true;
-	}, [props.viewportInstance, layers, starAtlas, shipAtlas, props.animatedShipData, updatedShips.length]);
+	}, [
+		props.viewportInstance,
+		layers,
+		starAtlas,
+		shipAtlas,
+		props.animatedShipData,
+		updatedShips.length,
+	]);
 
 	return {
 		layers,

@@ -48,7 +48,8 @@ export function getFlightArrivalMs(plan: any): number {
 	}
 	if (plan._arrivalMs) return parseFlightTimestamp(plan._arrivalMs);
 	if (plan.arrivaltimestamp) return parseFlightTimestamp(plan.arrivaltimestamp);
-	if (plan.arrival_timestamp) return parseFlightTimestamp(plan.arrival_timestamp);
+	if (plan.arrival_timestamp)
+		return parseFlightTimestamp(plan.arrival_timestamp);
 	if (plan.arrival) return parseFlightTimestamp(plan.arrival);
 	return 0;
 }
@@ -62,8 +63,10 @@ export function getFlightDepartureMs(plan: any): number {
 		}
 	}
 	if (plan._departureMs) return parseFlightTimestamp(plan._departureMs);
-	if (plan.departuretimestamp) return parseFlightTimestamp(plan.departuretimestamp);
-	if (plan.departure_timestamp) return parseFlightTimestamp(plan.departure_timestamp);
+	if (plan.departuretimestamp)
+		return parseFlightTimestamp(plan.departuretimestamp);
+	if (plan.departure_timestamp)
+		return parseFlightTimestamp(plan.departure_timestamp);
 	if (plan.departure) return parseFlightTimestamp(plan.departure);
 	return 0;
 }

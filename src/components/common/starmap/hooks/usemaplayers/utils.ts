@@ -246,7 +246,8 @@ export function clusterShipsByRadius(
 				const cellShips = grid.get(`${gx + dx},${gy + dy}`);
 				if (cellShips) {
 					for (const neighbor of cellShips) {
-						const neighborId = neighbor.ship_id || neighbor.shipid || neighbor.id;
+						const neighborId =
+							neighbor.ship_id || neighbor.shipid || neighbor.id;
 						if (processedShips.has(neighborId)) continue;
 
 						const d2 =
@@ -287,7 +288,10 @@ export function clusterShipsByRadius(
  * Resolves empire hex codes to RGBA color tuples with fallback alpha.
  */
 export function createSafeGetColor(empireLegend: Record<string, string>) {
-	return (code?: string, alpha: number = 255): [number, number, number, number] => {
+	return (
+		code?: string,
+		alpha: number = 255,
+	): [number, number, number, number] => {
 		if (!code) return [100, 100, 100, alpha];
 		const hex = empireLegend[code];
 		return hex ? hexToRgba(hex, alpha) : [100, 100, 100, alpha];

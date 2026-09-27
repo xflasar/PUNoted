@@ -104,13 +104,13 @@ const ShipRow: React.FC<ShipRowProps> = ({
 
 	const stlFuelPct = hasStlFuelSupport
 		? Math.round(
-			(stlFuelStore.volumeload / (stlFuelStore.volumecapacity || 1)) * 100,
-		)
+				(stlFuelStore.volumeload / (stlFuelStore.volumecapacity || 1)) * 100,
+			)
 		: 0;
 	const ftlFuelPct = hasFtlFuelSupport
 		? Math.round(
-			(ftlFuelStore.volumeload / (ftlFuelStore.volumecapacity || 1)) * 100,
-		)
+				(ftlFuelStore.volumeload / (ftlFuelStore.volumecapacity || 1)) * 100,
+			)
 		: 0;
 
 	const activeFlight: any = ship.plan || (ship as any).flight;
@@ -865,7 +865,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 													{Math.round(
 														(shipStore.volumeload /
 															(shipStore.volumecapacity || 1)) *
-														100,
+															100,
 													)}
 													%)
 												</Typography>
@@ -928,7 +928,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 													{Math.round(
 														(shipStore.weightload /
 															(shipStore.weightcapacity || 1)) *
-														100,
+															100,
 													)}
 													%)
 												</Typography>
@@ -1044,7 +1044,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 export default React.memo(ShipRow, (prev, next) => {
 	return (
 		(prev.ship.id || prev.ship.ship_id) ===
-		(next.ship.id || next.ship.ship_id) &&
+			(next.ship.id || next.ship.ship_id) &&
 		prev.isSelected === next.isSelected &&
 		prev.isPathVisible === next.isPathVisible &&
 		prev.ship.plan === next.ship.plan

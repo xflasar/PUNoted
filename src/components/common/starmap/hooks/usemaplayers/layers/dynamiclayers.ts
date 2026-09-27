@@ -1,4 +1,9 @@
-import { ScatterplotLayer, PathLayer, IconLayer, TextLayer } from "@deck.gl/layers";
+import {
+	ScatterplotLayer,
+	PathLayer,
+	IconLayer,
+	TextLayer,
+} from "@deck.gl/layers";
 import type { MapPoint, PlanetPosition } from "../../../types/maptypes";
 import type { FilterState } from "../../../components/filter/filtercontext";
 import { SYSTEM_BASE_RADIUS } from "../../../constants/map";
@@ -265,16 +270,10 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 						if (filter.gravity === "high" && grav <= 1.0) matches = false;
 					}
 
-					if (
-						matches &&
-						filter?.temperature &&
-						filter.temperature !== "all"
-					) {
+					if (matches && filter?.temperature && filter.temperature !== "all") {
 						const temp = d.temperature || 0;
-						if (filter.temperature === "low" && temp >= 273.15)
-							matches = false;
-						if (filter.temperature === "high" && temp < 273.15)
-							matches = false;
+						if (filter.temperature === "low" && temp >= 273.15) matches = false;
+						if (filter.temperature === "high" && temp < 273.15) matches = false;
 					}
 
 					if (matches && filter?.pressure && filter.pressure !== "all") {
@@ -342,7 +341,9 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 			if (activePlanets && activePlanets.length > 0) {
 				activePlanets.forEach((p) => {
 					const auVal = getSemimajorAxisAU((p as any).semimajoraxis);
-					const r = Math.sqrt((p.x - currentSystem.x) ** 2 + (p.y - currentSystem.y) ** 2);
+					const r = Math.sqrt(
+						(p.x - currentSystem.x) ** 2 + (p.y - currentSystem.y) ** 2,
+					);
 					if (r > 0 && auVal > 0) {
 						const ringPoints: [number, number][] = [];
 						for (let i = 0; i <= numSegments; i++) {
@@ -499,7 +500,8 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 					getPosition: getShipLabelPos,
 					getText: getShipLabelText,
 					getPixelOffset: [0, -30],
-					getColor: (d: any) => (d.isOwn ? [123, 104, 238, 255] : [0, 150, 255, 255]),
+					getColor: (d: any) =>
+						d.isOwn ? [123, 104, 238, 255] : [0, 150, 255, 255],
 					getSize: 13,
 					sizeUnits: "pixels",
 					background: true,

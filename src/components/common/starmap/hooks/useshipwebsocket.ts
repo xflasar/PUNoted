@@ -54,7 +54,7 @@ export const useShipWebSocket = ({
 
 	// 3. Enrichment Logic
 	useEffect(() => {
-		console.log("Run")
+		console.log("Run");
 		// 1. Bail if in public mode
 		if (mode === "public") return;
 
@@ -104,12 +104,32 @@ export const useShipWebSocket = ({
 				id: ship.shipid,
 				registration: ship.registration,
 				name: ship.name,
-				display_name: ship.ship_owner_display_name || ship.ownerName || ship.display_name,
-				ownerName: ship.ship_owner_display_name || ship.ownerName || ship.display_name,
+				display_name:
+					ship.ship_owner_display_name || ship.ownerName || ship.display_name,
+				ownerName:
+					ship.ship_owner_display_name || ship.ownerName || ship.display_name,
 				user_id: ship.ship_owner_userid || ship.ownerId || ship.user_id,
 				ownerId: ship.ship_owner_userid || ship.ownerId || ship.user_id,
-				is_owner: ship.is_owner_ship === true || ship.is_owner === true || (ship.is_owner_ship !== false && ship.is_owner !== false && !!(userId && (String(ship.ship_owner_userid) === String(userId) || String(ship.user_id) === String(userId)))),
-				is_owner_ship: ship.is_owner_ship === true || ship.is_owner === true || (ship.is_owner_ship !== false && ship.is_owner !== false && !!(userId && (String(ship.ship_owner_userid) === String(userId) || String(ship.user_id) === String(userId)))),
+				is_owner:
+					ship.is_owner_ship === true ||
+					ship.is_owner === true ||
+					(ship.is_owner_ship !== false &&
+						ship.is_owner !== false &&
+						!!(
+							userId &&
+							(String(ship.ship_owner_userid) === String(userId) ||
+								String(ship.user_id) === String(userId))
+						)),
+				is_owner_ship:
+					ship.is_owner_ship === true ||
+					ship.is_owner === true ||
+					(ship.is_owner_ship !== false &&
+						ship.is_owner !== false &&
+						!!(
+							userId &&
+							(String(ship.ship_owner_userid) === String(userId) ||
+								String(ship.user_id) === String(userId))
+						)),
 				is_corp: ship.is_corp ?? ship.iscorp ?? true,
 				iscorp: ship.is_corp ?? ship.iscorp ?? true,
 				type: ship.ship_type,
@@ -130,7 +150,7 @@ export const useShipWebSocket = ({
 			});
 		});
 
-		console.log(initialShipData)
+		console.log(initialShipData);
 
 		// 4. Update states
 		setAnimatedShipData(initialShipData);

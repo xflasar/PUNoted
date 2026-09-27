@@ -83,11 +83,26 @@ export function resolveShipType(ship: any): "LCB" | "WCB" | "VCB" | "HCB" {
 
 	if (str.includes("HCB") || str.includes("HEAVY")) return "HCB";
 	if (str.includes("VCB") || str.includes("VERY LARGE")) return "VCB";
-	if (str.includes("WCB") || str.includes("WIDE") || str.includes("BFF") || str.includes("BFI")) return "WCB";
-	if (str.includes("LCB") || str.includes("LST") || str.includes("FFI") || str.includes("FSE") || str.includes("LIGHT")) return "LCB";
+	if (
+		str.includes("WCB") ||
+		str.includes("WIDE") ||
+		str.includes("BFF") ||
+		str.includes("BFI")
+	)
+		return "WCB";
+	if (
+		str.includes("LCB") ||
+		str.includes("LST") ||
+		str.includes("FFI") ||
+		str.includes("FSE") ||
+		str.includes("LIGHT")
+	)
+		return "LCB";
 
 	// Mass / Volume Fallback Heuristic
-	const m = Number(ship.mass || ship.operatingemptymass || ship.operating_empty_mass || 0);
+	const m = Number(
+		ship.mass || ship.operatingemptymass || ship.operating_empty_mass || 0,
+	);
 	if (m > 3000) return "HCB";
 	if (m > 2000) return "VCB";
 	if (m > 1400) return "WCB";
@@ -115,9 +130,13 @@ export const getClusterBadgeText = (d: any) => `${d.count}`;
 /** Returns cluster badge anchor position. */
 export const getClusterBadgePos = (d: any) => d.position;
 /** Cluster badge text color. */
-export const getClusterBadgeColor: [number, number, number, number] = [250, 250, 0, 255];
+export const getClusterBadgeColor: [number, number, number, number] = [
+	250, 250, 0, 255,
+];
 /** Cluster badge background color. */
-export const getClusterBadgeBg: [number, number, number, number] = [15, 15, 15, 200];
+export const getClusterBadgeBg: [number, number, number, number] = [
+	15, 15, 15, 200,
+];
 /** Resolves ship display label. */
 export const getShipLabelText = (d: any) => {
 	if (d.isCluster) return `${d.name} (${d.count})`;
@@ -126,7 +145,9 @@ export const getShipLabelText = (d: any) => {
 /** Returns ship label anchor position. */
 export const getShipLabelPos = (d: any) => d.position;
 /** Ship label text color. */
-export const getShipLabelColor: [number, number, number, number] = [255, 100, 255, 255];
+export const getShipLabelColor: [number, number, number, number] = [
+	255, 100, 255, 255,
+];
 /** Ship label background color. */
 export const getShipLabelBg: [number, number, number, number] = [0, 0, 0, 180];
 /** Resolves system type icon key. */

@@ -32,7 +32,12 @@ export function calculateShipPositionInSystem(
 		if (target && typeof target.x === "number" && typeof target.y === "number")
 			return [target.x, target.y, ship.bearing || 0];
 
-		if (currentSystem && shipSysId && currentSysId && shipSysId === currentSysId) {
+		if (
+			currentSystem &&
+			shipSysId &&
+			currentSysId &&
+			shipSysId === currentSysId
+		) {
 			return [currentSystem.x, currentSystem.y, ship.bearing || 0];
 		}
 		return null;
@@ -45,8 +50,10 @@ export function calculateShipPositionInSystem(
 	});
 
 	if (activeSegment) {
-		const segOrigSys = activeSegment.origin_system_id || activeSegment.origin_system;
-		const segDestSys = activeSegment.destination_system_id || activeSegment.destination_system;
+		const segOrigSys =
+			activeSegment.origin_system_id || activeSegment.origin_system;
+		const segDestSys =
+			activeSegment.destination_system_id || activeSegment.destination_system;
 		if (
 			currentSysId &&
 			segOrigSys &&
@@ -70,7 +77,12 @@ export function calculateShipPositionInSystem(
 		if (dest && typeof dest.x === "number" && typeof dest.y === "number")
 			return [dest.x, dest.y, ship.bearing || 0];
 
-		if (currentSystem && shipSysId && currentSysId && shipSysId === currentSysId) {
+		if (
+			currentSystem &&
+			shipSysId &&
+			currentSysId &&
+			shipSysId === currentSysId
+		) {
 			return [currentSystem.x, currentSystem.y, ship.bearing || 0];
 		}
 		return null;
@@ -79,7 +91,10 @@ export function calculateShipPositionInSystem(
 	const dep = parseTimestamp(activeSegment.departure);
 	const arr = parseTimestamp(activeSegment.arrival);
 	const duration = arr - dep;
-	const t = duration > 0 ? Math.min(1.0, Math.max(0, (currentTime - dep) / duration)) : 1;
+	const t =
+		duration > 0
+			? Math.min(1.0, Math.max(0, (currentTime - dep) / duration))
+			: 1;
 
 	if (
 		activeSegment.segment_type === "APPROACH" ||
@@ -123,18 +138,31 @@ export function calculateShipPositionInSystem(
 
 	if (activeSegment.segment_type === "TAKE_OFF") {
 		const planet = activePlanets.find(
-			(p) => p.planetid === (activeSegment.origin_location_id || activeSegment.origin_planet_id),
+			(p) =>
+				p.planetid ===
+				(activeSegment.origin_location_id || activeSegment.origin_planet_id),
 		);
 		if (planet && typeof planet.x === "number" && typeof planet.y === "number")
 			return [planet.x, planet.y, ship.bearing || 0];
 	}
 
-	const origId = activeSegment.origin_location_id || activeSegment.origin_planet_id || activeSegment.origin_station_id;
-	const destId = activeSegment.destination_location_id || activeSegment.destination_planet_id || activeSegment.destination_station_id;
+	const origId =
+		activeSegment.origin_location_id ||
+		activeSegment.origin_planet_id ||
+		activeSegment.origin_station_id;
+	const destId =
+		activeSegment.destination_location_id ||
+		activeSegment.destination_planet_id ||
+		activeSegment.destination_station_id;
 	const origTgt = activePlanets.find((p) => p.planetid === origId);
 	const destTgt = activePlanets.find((p) => p.planetid === destId);
 
-	if (origTgt && destTgt && typeof origTgt.x === "number" && typeof destTgt.x === "number") {
+	if (
+		origTgt &&
+		destTgt &&
+		typeof origTgt.x === "number" &&
+		typeof destTgt.x === "number"
+	) {
 		const x = origTgt.x + (destTgt.x - origTgt.x) * t;
 		const y = origTgt.y + (destTgt.y - origTgt.y) * t;
 		const bearing = calculateBearing([x, y], [destTgt.x, destTgt.y]);
@@ -147,7 +175,9 @@ export function calculateShipPositionInSystem(
 	if (origTgt && typeof origTgt.x === "number" && typeof origTgt.y === "number")
 		return [origTgt.x, origTgt.y, ship.bearing || 0];
 
-	return currentSystem ? [currentSystem.x, currentSystem.y, ship.bearing || 0] : null;
+	return currentSystem
+		? [currentSystem.x, currentSystem.y, ship.bearing || 0]
+		: null;
 }
 
 export function calculateShipPositionGalaxy(
@@ -176,7 +206,8 @@ export function calculateShipPositionGalaxy(
 		const lastSeg = plan.segments[plan.segments.length - 1];
 		const lastArr = parseTimestamp(lastSeg.arrival);
 		if (lastArr > 0 && currentTime >= lastArr) {
-			const destSysId = lastSeg.destination_system_id || lastSeg.origin_system_id;
+			const destSysId =
+				lastSeg.destination_system_id || lastSeg.origin_system_id;
 			const sys = systemsPoints.find((p) => p.originalSystemId === destSysId);
 			if (sys) return [sys.x, sys.y, ship.bearing || 0];
 		}
@@ -185,15 +216,22 @@ export function calculateShipPositionGalaxy(
 		return sys ? [sys.x, sys.y, ship.bearing || 0] : null;
 	}
 
-	const origSysId = activeSegment.origin_system_id || (activeSegment as any).origin_system;
-	const destSysId = activeSegment.destination_system_id || (activeSegment as any).destination_system;
+	const origSysId =
+		activeSegment.origin_system_id || (activeSegment as any).origin_system;
+	const destSysId =
+		activeSegment.destination_system_id ||
+		(activeSegment as any).destination_system;
 
-	const startSystem = systemsPoints.find((p) => p.originalSystemId === origSysId);
+	const startSystem = systemsPoints.find(
+		(p) => p.originalSystemId === origSysId,
+	);
 	const endSystem = systemsPoints.find((p) => p.originalSystemId === destSysId);
 
 	if (!startSystem || !endSystem) {
 		const fallbackSys = startSystem || endSystem;
-		return fallbackSys ? [fallbackSys.x, fallbackSys.y, ship.bearing || 0] : null;
+		return fallbackSys
+			? [fallbackSys.x, fallbackSys.y, ship.bearing || 0]
+			: null;
 	}
 
 	const dep = parseTimestamp(activeSegment.departure);

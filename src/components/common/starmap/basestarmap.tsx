@@ -74,14 +74,19 @@ interface BaseStarMapProps {
 	focusTarget?: LocationFocusTarget | null;
 }
 
-const BaseStarMapInner: React.FC<BaseStarMapProps> = ({ mode, focusTarget }) => {
+const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
+	mode,
+	focusTarget,
+}) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
 	const mapState = useBaseStarMapData({ mode, focusTarget });
 
 	return (
-		<Paper sx={{ flexGrow: 1, position: "relative", width: "100%", height: "100%" }}>
+		<Paper
+			sx={{ flexGrow: 1, position: "relative", width: "100%", height: "100%" }}
+		>
 			<SearchBar
 				options={mapState.searchOptions}
 				onSelect={mapState.handleSearchSelect}
@@ -118,7 +123,11 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({ mode, focusTarget }) => 
 
 				<MapLoadingOverlay
 					isVisible={mapState.isLoading || !mapState.isLayersReady}
-					isLoadingFromCache={!mapState.isLoading && !!mapState.mapData && mapState.isGlobalMapLoading}
+					isLoadingFromCache={
+						!mapState.isLoading &&
+						!!mapState.mapData &&
+						mapState.isGlobalMapLoading
+					}
 				/>
 
 				{mode !== "shipping" && mode === "dashboard" && (
@@ -160,7 +169,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({ mode, focusTarget }) => 
 					}}
 				/>
 
-				{mapState.hoveredInfo && mapState.hoveredInfo.object.type === "planet" ? (
+				{mapState.hoveredInfo &&
+				mapState.hoveredInfo.object.type === "planet" ? (
 					<PlanetHoverTooltip
 						object={mapState.hoveredInfo.object}
 						x={mapState.hoveredInfo.x}

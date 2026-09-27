@@ -164,10 +164,7 @@ export const useShipDataProcessor = (
 
 		const allCorpShips = otherShips;
 		const myPlans = own
-			.filter(
-				(s) =>
-					visiblePathShipIds.has(s.id) && isPlanActive(s),
-			)
+			.filter((s) => visiblePathShipIds.has(s.id) && isPlanActive(s))
 			.map((s) => ({
 				...s.plan!,
 				isOwn: true,
@@ -175,10 +172,7 @@ export const useShipDataProcessor = (
 			}));
 
 		const corpPlans = allCorpShips
-			.filter(
-				(s) =>
-					visiblePathShipIds.has(s.id) && isPlanActive(s),
-			)
+			.filter((s) => visiblePathShipIds.has(s.id) && isPlanActive(s))
 			.map((s) => ({
 				...s.plan!,
 				isOwn: false,

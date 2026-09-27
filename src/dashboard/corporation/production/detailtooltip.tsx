@@ -338,7 +338,9 @@ export const DetailTooltip = React.memo(
 								({userGroups.length} user{userGroups.length !== 1 ? "s" : ""})
 							</Typography>
 						</Box>
-						<Stack sx={{ direction: "row", spacing: 0.5, alignItems: "center" }}>
+						<Stack
+							sx={{ direction: "row", spacing: 0.5, alignItems: "center" }}
+						>
 							<Chip
 								size="small"
 								label={sortDir === "desc" ? "High ➔ Low" : "Low ➔ High"}
@@ -457,7 +459,11 @@ export const DetailTooltip = React.memo(
 											}}
 										>
 											<Stack
-												sx={{ direction: "row", spacing: 0.75, alignItems: "center" }}
+												sx={{
+													direction: "row",
+													spacing: 0.75,
+													alignItems: "center",
+												}}
 											>
 												{uGroup.isAccurate ? (
 													<CheckCircleIcon
@@ -490,7 +496,13 @@ export const DetailTooltip = React.memo(
 												/>
 											</Stack>
 
-											<Stack sx={{ direction: "row", spacing: 0.5, alignItems: "center" }}>
+											<Stack
+												sx={{
+													direction: "row",
+													spacing: 0.5,
+													alignItems: "center",
+												}}
+											>
 												{(uGroup.batchActive > 0 || uGroup.batchQueued > 0) && (
 													<Chip
 														size="small"
@@ -577,7 +589,11 @@ export const DetailTooltip = React.memo(
 																		📍 {pItem.loc}
 																	</Typography>
 																	<Stack
-																		sx={{ direction: "row", spacing: 0.5, alignItems: "center" }}
+																		sx={{
+																			direction: "row",
+																			spacing: 0.5,
+																			alignItems: "center",
+																		}}
 																	>
 																		{(bActive > 0 || bQueued > 0) && (
 																			<Chip
@@ -762,11 +778,11 @@ export const DetailTooltip = React.memo(
 																											>
 																												{out.factor < 1
 																													? out.factor.toFixed(
-																														1,
-																													)
+																															1,
+																														)
 																													: Math.round(
-																														out.factor,
-																													)}
+																															out.factor,
+																														)}
 																												/d
 																											</Typography>
 																										</Box>

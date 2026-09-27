@@ -54,21 +54,21 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 	// CSS GPU Animation Config
 	const barStyle = isArrived
 		? {
-			transform: "scaleX(1)",
-			backgroundColor: isMine
-				? theme.palette.primary.main
-				: theme.palette.secondary.main,
-		}
+				transform: "scaleX(1)",
+				backgroundColor: isMine
+					? theme.palette.primary.main
+					: theme.palette.secondary.main,
+			}
 		: {
-			animationName: "growProgress",
-			animationDuration: `${totalDuration}ms`,
-			animationTimingFunction: "linear",
-			animationFillMode: "forwards",
-			animationDelay: `-${elapsed}ms`,
-			backgroundColor: isMine
-				? theme.palette.primary.main
-				: theme.palette.secondary.main,
-		};
+				animationName: "growProgress",
+				animationDuration: `${totalDuration}ms`,
+				animationTimingFunction: "linear",
+				animationFillMode: "forwards",
+				animationDelay: `-${elapsed}ms`,
+				backgroundColor: isMine
+					? theme.palette.primary.main
+					: theme.palette.secondary.main,
+			};
 
 	return (
 		<Box

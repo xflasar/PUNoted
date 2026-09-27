@@ -7,7 +7,11 @@ import {
 	useState,
 } from "react";
 import type { DeckGLRef } from "@deck.gl/react";
-import { OrthographicView, OrthographicViewport, LinearInterpolator } from "@deck.gl/core";
+import {
+	OrthographicView,
+	OrthographicViewport,
+	LinearInterpolator,
+} from "@deck.gl/core";
 import type { MapPoint, PlanetPosition } from "../types/maptypes";
 import type { LocationFocusTarget } from "../../../../dashboard/shipping/components/shipmentdetailwidget";
 import { INITIAL_VIEW_STATE, SYSTEMS_VISIBLE_ZOOM } from "../constants/map";
@@ -35,7 +39,10 @@ interface UseBaseStarMapDataProps {
 	focusTarget?: LocationFocusTarget | null;
 }
 
-export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProps) {
+export function useBaseStarMapData({
+	mode,
+	focusTarget,
+}: UseBaseStarMapDataProps) {
 	const { filter } = useFilter();
 	const [searchQuery, setSearchQuery] = useState("");
 	const mapRef = useRef<HTMLDivElement | null>(null);
@@ -144,14 +151,20 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 
 	const [centeredSystem, setCenteredSystem] = useState<MapPoint | null>(null);
 	const [selectedPlanetId, setSelectedPlanetId] = useState<string | null>(null);
-	const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+	const [selectedStationId, setSelectedStationId] = useState<string | null>(
+		null,
+	);
 
-	const [selectedPlanet, setSelectedPlanetState] = useState<PlanetPosition | null>(null);
+	const [selectedPlanet, setSelectedPlanetState] =
+		useState<PlanetPosition | null>(null);
 	const setSelectedPlanet = useCallback((planet: PlanetPosition | null) => {
 		setSelectedPlanetState(planet);
 		setSelectedPlanetId(
 			planet
-				? planet.planetid || (planet as any).id || (planet as any).planetId || null
+				? planet.planetid ||
+						(planet as any).id ||
+						(planet as any).planetId ||
+						null
 				: null,
 		);
 	}, []);
@@ -167,14 +180,24 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 		}
 	}, [centeredSystem]);
 
-	const [visiblePathShipIds, setVisiblePathShipIds] = useState<Set<string>>(new Set());
+	const [visiblePathShipIds, setVisiblePathShipIds] = useState<Set<string>>(
+		new Set(),
+	);
 	const hasInitializedPaths = useRef(false);
-	const [visibleCorpGroups, setVisibleCorpGroups] = useState<Record<string, boolean>>({});
+	const [visibleCorpGroups, setVisibleCorpGroups] = useState<
+		Record<string, boolean>
+	>({});
 	const [ownShipsVisible, setOwnShipsVisible] = useState(true);
 
-	const [galaxyViewState, setGalaxyViewState] = useState(INITIAL_VIEW_STATE as any);
-	const [systemViewState, setSystemViewState] = useState(INITIAL_VIEW_STATE as any);
-	const [currentViewMode, setCurrentViewMode] = useState<"galaxy" | "system">("galaxy");
+	const [galaxyViewState, setGalaxyViewState] = useState(
+		INITIAL_VIEW_STATE as any,
+	);
+	const [systemViewState, setSystemViewState] = useState(
+		INITIAL_VIEW_STATE as any,
+	);
+	const [currentViewMode, setCurrentViewMode] = useState<"galaxy" | "system">(
+		"galaxy",
+	);
 	const [selectedShipId, setSelectedShipId] = useState<string | null>(null);
 	const [activeShipTooltip, setActiveShipTooltip] = useState<{
 		object: any;
@@ -187,7 +210,8 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 		activeShipTooltipRef.current = activeShipTooltip;
 	}, [activeShipTooltip]);
 
-	const activeViewState = currentViewMode === "system" ? systemViewState : galaxyViewState;
+	const activeViewState =
+		currentViewMode === "system" ? systemViewState : galaxyViewState;
 	const isPlanetModeActive = currentViewMode === "system";
 	const isGalaxyView = currentViewMode === "galaxy";
 	const [isSearchResultsOpen, setIsSearchResultsOpen] = useState(true);
@@ -229,7 +253,13 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 				shortestPathDistances,
 			),
 		);
-	}, [systemsPoints, filter, searchQuery, allPlanetsData, shortestPathDistances]);
+	}, [
+		systemsPoints,
+		filter,
+		searchQuery,
+		allPlanetsData,
+		shortestPathDistances,
+	]);
 
 	useEffect(() => {
 		if (searchQuery || isFilterActive) {
@@ -262,8 +292,10 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 			setSelectedStationId(null);
 			const planets = allPlanetsData[sys.originalSystemId || sys.id] || [];
 			const planet = planets.find((p) => p.planetid === planetId);
-			const targetX = planet && (planet as any).x !== undefined ? (planet as any).x : sys.x;
-			const targetY = planet && (planet as any).y !== undefined ? (planet as any).y : sys.y;
+			const targetX =
+				planet && (planet as any).x !== undefined ? (planet as any).x : sys.x;
+			const targetY =
+				planet && (planet as any).y !== undefined ? (planet as any).y : sys.y;
 
 			setSystemViewState((prev: any) => ({
 				...prev,
@@ -275,7 +307,14 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 				}),
 			}));
 		},
-		[allPlanetsData, setCenteredSystem, setCurrentViewMode, setSelectedPlanetId, setSelectedStationId, setSystemViewState],
+		[
+			allPlanetsData,
+			setCenteredSystem,
+			setCurrentViewMode,
+			setSelectedPlanetId,
+			setSelectedStationId,
+			setSystemViewState,
+		],
 	);
 
 	const handleSelectStation = useCallback(
@@ -287,8 +326,14 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 			setSelectedPlanet(null);
 			const stations = allStationsData[sys.originalSystemId || sys.id] || [];
 			const station = stations.find((s) => s.stationid === stationId);
-			const targetX = station && (station as any).x !== undefined ? (station as any).x : sys.x;
-			const targetY = station && (station as any).y !== undefined ? (station as any).y : sys.y;
+			const targetX =
+				station && (station as any).x !== undefined
+					? (station as any).x
+					: sys.x;
+			const targetY =
+				station && (station as any).y !== undefined
+					? (station as any).y
+					: sys.y;
 
 			setSystemViewState((prev: any) => ({
 				...prev,
@@ -300,7 +345,15 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 				}),
 			}));
 		},
-		[allStationsData, setCenteredSystem, setCurrentViewMode, setSelectedStationId, setSelectedPlanetId, setSelectedPlanet, setSystemViewState],
+		[
+			allStationsData,
+			setCenteredSystem,
+			setCurrentViewMode,
+			setSelectedStationId,
+			setSelectedPlanetId,
+			setSelectedPlanet,
+			setSystemViewState,
+		],
 	);
 
 	const handleMapStationSelect = useCallback(
@@ -362,7 +415,8 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 		const el = mapRef.current;
 		if (!el || typeof window === "undefined") return;
 
-		const observerAvailable = typeof (window as any).ResizeObserver !== "undefined";
+		const observerAvailable =
+			typeof (window as any).ResizeObserver !== "undefined";
 		if (!observerAvailable) {
 			const rect = el.getBoundingClientRect();
 			setMapSize({
@@ -493,7 +547,9 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 		[currentViewMode, navigationHandleViewStateChange, isInteracting],
 	);
 
-	const [expandedCorpGroups, setExpandedCorpGroups] = useState<Record<string, boolean>>({});
+	const [expandedCorpGroups, setExpandedCorpGroups] = useState<
+		Record<string, boolean>
+	>({});
 
 	const {
 		ownShips,
@@ -518,16 +574,19 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 		});
 	}, []);
 
-	const handleToggleAllPaths = useCallback((ids: string[], visible: boolean) => {
-		setVisiblePathShipIds((prev) => {
-			const next = new Set(prev);
-			ids.forEach((id) => {
-				if (visible) next.add(id);
-				else next.delete(id);
+	const handleToggleAllPaths = useCallback(
+		(ids: string[], visible: boolean) => {
+			setVisiblePathShipIds((prev) => {
+				const next = new Set(prev);
+				ids.forEach((id) => {
+					if (visible) next.add(id);
+					else next.delete(id);
+				});
+				return next;
 			});
-			return next;
-		});
-	}, []);
+		},
+		[],
+	);
 
 	const handleGroupVisibilityChange = useCallback((group: string) => {
 		setVisibleCorpGroups((prev) => ({
@@ -543,15 +602,18 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 		}));
 	}, []);
 
-	const handleToggleAllCorpVisibility = useCallback((groups: string[], visible: boolean) => {
-		setVisibleCorpGroups((prev) => {
-			const next = { ...prev };
-			groups.forEach((g) => {
-				next[g] = visible;
+	const handleToggleAllCorpVisibility = useCallback(
+		(groups: string[], visible: boolean) => {
+			setVisibleCorpGroups((prev) => {
+				const next = { ...prev };
+				groups.forEach((g) => {
+					next[g] = visible;
+				});
+				return next;
 			});
-			return next;
-		});
-	}, []);
+		},
+		[],
+	);
 
 	const handleToogleOwnShipsVisibility = useCallback(() => {
 		setOwnShipsVisible((prev) => !prev);
@@ -564,7 +626,8 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 		}
 	}, [ownShips]);
 
-	const effectiveSetFlightPlans = mode === "shipping" ? () => {} : activeFlightPlans;
+	const effectiveSetFlightPlans =
+		mode === "shipping" ? () => {} : activeFlightPlans;
 
 	const animatedShipDataRef = useRef(allShips);
 	useLayoutEffect(() => {
@@ -628,7 +691,11 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 					const nextId = info.object.originalSystemId || info.object.id;
 					const roundedX = Math.round(info.x);
 					const roundedY = Math.round(info.y);
-					if (prevId === nextId && prev?.x === roundedX && prev?.y === roundedY) {
+					if (
+						prevId === nextId &&
+						prev?.x === roundedX &&
+						prev?.y === roundedY
+					) {
 						return prev;
 					}
 					return { object: info.object, x: roundedX, y: roundedY };
@@ -683,15 +750,28 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 			}
 
 			const isShipObj =
-				info.object.ships || info.object.registration || info.object.ship_id || info.object.shipid;
+				info.object.ships ||
+				info.object.registration ||
+				info.object.ship_id ||
+				info.object.shipid;
 			if (isShipObj) {
 				setHoveredInfo(null);
 				setActiveShipTooltip((prev: any) => {
-					const prevId = prev?.object?.ship_id || prev?.object?.shipid || prev?.object?.registration;
-					const nextId = info.object.ship_id || info.object.shipid || info.object.registration;
+					const prevId =
+						prev?.object?.ship_id ||
+						prev?.object?.shipid ||
+						prev?.object?.registration;
+					const nextId =
+						info.object.ship_id ||
+						info.object.shipid ||
+						info.object.registration;
 					const roundedX = Math.round(info.x);
 					const roundedY = Math.round(info.y);
-					if (prevId === nextId && prev?.x === roundedX && prev?.y === roundedY) {
+					if (
+						prevId === nextId &&
+						prev?.x === roundedX &&
+						prev?.y === roundedY
+					) {
 						return prev;
 					}
 					return {
@@ -708,7 +788,8 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 			setHoveredInfo(null);
 			setActiveShipTooltip(null);
 			if (!t) return;
-			const content = info.object.name || info.object.id || info.object.label || "";
+			const content =
+				info.object.name || info.object.id || info.object.label || "";
 			t.style.display = "block";
 			t.style.left = `${Math.round(info.x)}px`;
 			t.style.top = `${Math.round(info.y)}px`;
@@ -952,7 +1033,10 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 					onSystemClick(sys);
 			} else if (focusTarget.type === "SHIP") {
 				const ship: any = allShips.find(
-					(s: any) => s.id === focusTarget.id || s.ship_id === focusTarget.id || s.shipid === focusTarget.id,
+					(s: any) =>
+						s.id === focusTarget.id ||
+						s.ship_id === focusTarget.id ||
+						s.shipid === focusTarget.id,
 				);
 				if (ship) {
 					const sysId = ship.addresssystemid || ship.address_system_id;
@@ -960,13 +1044,19 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 						const sys = systemsPoints?.find(
 							(s: any) => s.originalSystemId === sysId,
 						);
-						if (sys && centeredSystem?.originalSystemId !== sys.originalSystemId)
+						if (
+							sys &&
+							centeredSystem?.originalSystemId !== sys.originalSystemId
+						)
 							onSystemClick(sys);
 					} else {
 						handleShipSelect(ship.id || ship.ship_id || ship.shipid);
 					}
 				}
-			} else if (focusTarget.type === "PLANET" || focusTarget.type === "STATION") {
+			} else if (
+				focusTarget.type === "PLANET" ||
+				focusTarget.type === "STATION"
+			) {
 				if (focusTarget.systemId) {
 					const sys = systemsPoints?.find(
 						(s: any) => s.originalSystemId === focusTarget.systemId,
@@ -978,7 +1068,14 @@ export function useBaseStarMapData({ mode, focusTarget }: UseBaseStarMapDataProp
 		} catch {
 			/* swallow focus errors */
 		}
-	}, [focusTarget, systemsPoints, allShips, centeredSystem, onSystemClick, handleShipSelect]);
+	}, [
+		focusTarget,
+		systemsPoints,
+		allShips,
+		centeredSystem,
+		onSystemClick,
+		handleShipSelect,
+	]);
 
 	const handleSearchSelect = useCallback(
 		(option: any) => {

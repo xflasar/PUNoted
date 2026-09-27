@@ -409,7 +409,7 @@ export const useFinancialCalculations = (
 							: [],
 					buildingMaterials:
 						site.site_building_materials &&
-							typeof site.site_building_materials === "object"
+						typeof site.site_building_materials === "object"
 							? site.site_building_materials
 							: {},
 					subUnitsMap: new Map(),
@@ -456,15 +456,14 @@ export const useFinancialCalculations = (
 				console.log("unitStoreId", unitStoreId);
 				console.log("ownShips", ownShips);
 
-				const matchedShipFromAll =
-					(ownShips || []).find(
-						(s: any) =>
-							s.id_ship_store === unitStoreId ||
-							s.id_stl_fuel_store === unitStoreId ||
-							s.id_ftl_fuel_store === unitStoreId ||
-							(s.ship_id || s.id || s.registration) === unitStoreId ||
-							(s.name && s.name.toUpperCase() === shipName.toUpperCase()),
-					);
+				const matchedShipFromAll = (ownShips || []).find(
+					(s: any) =>
+						s.id_ship_store === unitStoreId ||
+						s.id_stl_fuel_store === unitStoreId ||
+						s.id_ftl_fuel_store === unitStoreId ||
+						(s.ship_id || s.id || s.registration) === unitStoreId ||
+						(s.name && s.name.toUpperCase() === shipName.toUpperCase()),
+				);
 
 				const shipId =
 					matchedShipFromAll?.ship_id ||
@@ -499,8 +498,8 @@ export const useFinancialCalculations = (
 						matchedShipFromAll?.is_owner !== undefined
 							? !!matchedShipFromAll.is_owner
 							: unit.am_owner !== false &&
-							(!matchedShipFromAll?.company_code ||
-								matchedShipFromAll?.company_code.toUpperCase() === userCode);
+								(!matchedShipFromAll?.company_code ||
+									matchedShipFromAll?.company_code.toUpperCase() === userCode);
 
 					shipObjectsMap.set(shipId, {
 						shipId,
@@ -520,7 +519,10 @@ export const useFinancialCalculations = (
 						? "FTL Fuel Tank"
 						: "Ship Cargo Hold";
 				const subKey =
-					unit.storageid || unit.unitid || unitStoreId || `${subName}_${unit.id || "default"}`;
+					unit.storageid ||
+					unit.unitid ||
+					unitStoreId ||
+					`${subName}_${unit.id || "default"}`;
 
 				if (!ship.subUnitsMap.has(subKey)) {
 					ship.subUnitsMap.set(subKey, {
@@ -748,11 +750,11 @@ export const useFinancialCalculations = (
 					const upperTicker = bTicker.toUpperCase();
 					const matchedBp = Array.isArray(shipBlueprints)
 						? shipBlueprints.find(
-							(bp: any) =>
-								(bp.natural_id || bp.id || "").toUpperCase() ===
-								upperTicker ||
-								(bp.name || "").toUpperCase() === upperTicker,
-						)
+								(bp: any) =>
+									(bp.natural_id || bp.id || "").toUpperCase() ===
+										upperTicker ||
+									(bp.name || "").toUpperCase() === upperTicker,
+							)
 						: null;
 
 					let bom: Record<string, number> = {};
@@ -961,7 +963,11 @@ export const useFinancialCalculations = (
 			const shipNameUpper = ship.name.toUpperCase();
 			const targetBpId = (ship.blueprintId || "").toUpperCase();
 			const shipDataObj = ship.shipData || {};
-			const rawShipType = (shipDataObj.ship_type || shipDataObj.type || "").toUpperCase();
+			const rawShipType = (
+				shipDataObj.ship_type ||
+				shipDataObj.type ||
+				""
+			).toUpperCase();
 
 			// Direct blueprint object if attached on ship object or inside shipData
 			const directBp =
@@ -973,45 +979,45 @@ export const useFinancialCalculations = (
 				directBp ||
 				(Array.isArray(shipBlueprints)
 					? shipBlueprints.find((bp: any) => {
-						const bpId = (bp.id || "").toUpperCase();
-						const bpNatId = (
-							bp.natural_id ||
-							bp.naturalId ||
-							bp.natural_id_blueprint ||
-							""
-						).toUpperCase();
-						const bpName = (bp.name || "").toUpperCase();
-						const bpTicker = (
-							bp.ticker ||
-							bp.ship_type ||
-							bp.type ||
-							""
-						).toUpperCase();
+							const bpId = (bp.id || "").toUpperCase();
+							const bpNatId = (
+								bp.natural_id ||
+								bp.naturalId ||
+								bp.natural_id_blueprint ||
+								""
+							).toUpperCase();
+							const bpName = (bp.name || "").toUpperCase();
+							const bpTicker = (
+								bp.ticker ||
+								bp.ship_type ||
+								bp.type ||
+								""
+							).toUpperCase();
 
-						if (
-							targetBpId &&
-							(bpId === targetBpId ||
-								bpNatId === targetBpId ||
-								bpName === targetBpId ||
-								bpTicker === targetBpId)
-						) {
-							return true;
-						}
+							if (
+								targetBpId &&
+								(bpId === targetBpId ||
+									bpNatId === targetBpId ||
+									bpName === targetBpId ||
+									bpTicker === targetBpId)
+							) {
+								return true;
+							}
 
-						if (
-							rawShipType &&
-							(bpId === rawShipType ||
-								bpNatId === rawShipType ||
-								bpName === rawShipType ||
-								bpTicker === rawShipType)
-						) {
-							return true;
-						}
+							if (
+								rawShipType &&
+								(bpId === rawShipType ||
+									bpNatId === rawShipType ||
+									bpName === rawShipType ||
+									bpTicker === rawShipType)
+							) {
+								return true;
+							}
 
-						if (bpName && shipNameUpper.includes(bpName)) return true;
-						if (bpTicker && shipNameUpper.includes(bpTicker)) return true;
-						return false;
-					})
+							if (bpName && shipNameUpper.includes(bpName)) return true;
+							if (bpTicker && shipNameUpper.includes(bpTicker)) return true;
+							return false;
+						})
 					: null);
 
 			let bom: Record<string, number> = {};
@@ -1027,11 +1033,14 @@ export const useFinancialCalculations = (
 				if (typeof rawBom === "string") {
 					try {
 						rawBom = JSON.parse(rawBom);
-					} catch { }
+					} catch {}
 				}
 				const quantities = Array.isArray(rawBom)
 					? rawBom
-					: rawBom?.quantities || rawBom?.building_materials || rawBom?.materials || [];
+					: rawBom?.quantities ||
+						rawBom?.building_materials ||
+						rawBom?.materials ||
+						[];
 				if (Array.isArray(quantities)) {
 					quantities.forEach((bItem: any) => {
 						const t =
@@ -1040,7 +1049,9 @@ export const useFinancialCalculations = (
 							bItem.material_ticker ||
 							bItem.materialid ||
 							bItem.name;
-						const q = Number(bItem.amount || bItem.quantity || bItem.units || 0);
+						const q = Number(
+							bItem.amount || bItem.quantity || bItem.units || 0,
+						);
 						if (t && q > 0) bom[t.toUpperCase()] = q;
 					});
 				} else if (typeof rawBom === "object" && rawBom !== null) {

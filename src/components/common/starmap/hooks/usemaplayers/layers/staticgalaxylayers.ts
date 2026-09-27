@@ -1,15 +1,33 @@
-import { ScatterplotLayer, PathLayer, IconLayer, TextLayer } from "@deck.gl/layers";
+import {
+	ScatterplotLayer,
+	PathLayer,
+	IconLayer,
+	TextLayer,
+} from "@deck.gl/layers";
 import type { MapPoint } from "../../../types/maptypes";
 import type { FilterState } from "../../../components/filter/filtercontext";
 import { checkSystemMatch } from "../utils";
-import { getSystemIcon, getSystemPos, getLabelPos, getPathData, getConnectionColor } from "../constants";
+import {
+	getSystemIcon,
+	getSystemPos,
+	getLabelPos,
+	getPathData,
+	getConnectionColor,
+} from "../constants";
 
 interface BuildStaticGalaxyLayersProps {
 	isGalaxyView: boolean;
 	systemConnections: { sourcePosition: number[]; targetPosition: number[] }[];
-	gatewayConnections: { sourcePosition: number[]; targetPosition: number[]; type: string }[];
+	gatewayConnections: {
+		sourcePosition: number[];
+		targetPosition: number[];
+		type: string;
+	}[];
 	coordToSystemId: Map<string, string>;
-	shortestPathData: { distances: Record<string, number>; pathEdges: Set<string> };
+	shortestPathData: {
+		distances: Record<string, number>;
+		pathEdges: Set<string>;
+	};
 	filter?: FilterState;
 	searchQuery?: string;
 	systemsPoints: MapPoint[];
@@ -172,7 +190,7 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 						const popRatio =
 							maxSystemPopulation > 1
 								? Math.log1p(d.population ?? 0) /
-								Math.log1p(maxSystemPopulation)
+									Math.log1p(maxSystemPopulation)
 								: 0;
 						return 23 * (1 + popRatio * 2);
 					},
@@ -197,8 +215,7 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 				getRadius: (d: any) => {
 					const popRatio =
 						maxSystemPopulation > 1
-							? Math.log1p(d.population ?? 0) /
-							Math.log1p(maxSystemPopulation)
+							? Math.log1p(d.population ?? 0) / Math.log1p(maxSystemPopulation)
 							: 0;
 					return 22 * (1 + popRatio * 2) * 0.75;
 				},
@@ -230,8 +247,7 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 				getSize: (d: any) => {
 					const popRatio =
 						maxSystemPopulation > 1
-							? Math.log1p(d.population ?? 0) /
-							Math.log1p(maxSystemPopulation)
+							? Math.log1p(d.population ?? 0) / Math.log1p(maxSystemPopulation)
 							: 0;
 					return 22 * (1 + popRatio * 2);
 				},
@@ -262,8 +278,8 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 	if (systemsPoints && systemsPoints.length > 0) {
 		const labelData = showLabels
 			? [...systemsPoints].sort(
-				(a: any, b: any) => (a.population || 0) - (b.population || 0),
-			)
+					(a: any, b: any) => (a.population || 0) - (b.population || 0),
+				)
 			: [];
 		layers.push(
 			new TextLayer({

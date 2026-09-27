@@ -236,7 +236,7 @@ export interface FlightPlan {
 	destinationsystemid?: string;
 }
 
-export interface WorkerFlightPlan extends FlightPlan { }
+export interface WorkerFlightPlan extends FlightPlan {}
 
 export interface FlightSegment {
 	departure: number; // Unix timestamp (milliseconds)

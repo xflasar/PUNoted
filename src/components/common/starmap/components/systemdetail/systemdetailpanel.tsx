@@ -1291,7 +1291,10 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 									Semi-major Axis
 								</Typography>
 								<Typography variant="caption" sx={{ fontWeight: 600 }}>
-									{getSemimajorAxisAU(activePlanetData.semimajoraxis)?.toFixed(3) || "N/A"} AU
+									{getSemimajorAxisAU(activePlanetData.semimajoraxis)?.toFixed(
+										3,
+									) || "N/A"}{" "}
+									AU
 								</Typography>
 							</Box>
 						</Box>

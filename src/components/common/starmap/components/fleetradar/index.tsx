@@ -110,7 +110,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 	const [activeTabId, setActiveTabId] = useState<string>("my_ships");
 
 	// --- DATA PREP ---
-	console.log("📡 [FleetRadar] Received props -> ownShips:", ownShips?.length, ownShips, "corpShips keys:", Object.keys(corpShips || {}));
+	console.log(
+		"📡 [FleetRadar] Received props -> ownShips:",
+		ownShips?.length,
+		ownShips,
+		"corpShips keys:",
+		Object.keys(corpShips || {}),
+	);
 	const lowerSearch = searchTerm.toLowerCase();
 
 	const filteredOwn = useMemo(() => {
@@ -202,7 +208,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 				count: filteredOwn.length,
 				icon: <Sailing sx={{ fontSize: 16 }} />,
 				color: theme.palette.primary.main,
-			}
+			},
 		];
 		if (corpTotalShips > 0) {
 			tabs.push({
@@ -223,12 +229,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 			});
 		}
 		return tabs;
-	}, [
-		filteredOwn.length,
-		corpTotalShips,
-		otherTotalShips,
-		theme,
-	]);
+	}, [filteredOwn.length, corpTotalShips, otherTotalShips, theme]);
 
 	// Fallback to first tab if active tab becomes unavailable
 	const currentTabId = useMemo(() => {
@@ -386,9 +387,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 								sx={{ p: 0.2 }}
 							>
 								{item.expanded ? (
-									<ExpandLess sx={{ color: theme.palette.action.disabled, fontSize: 18 }} />
+									<ExpandLess
+										sx={{ color: theme.palette.action.disabled, fontSize: 18 }}
+									/>
 								) : (
-									<ExpandMore sx={{ color: theme.palette.action.disabled, fontSize: 18 }} />
+									<ExpandMore
+										sx={{ color: theme.palette.action.disabled, fontSize: 18 }}
+									/>
 								)}
 							</IconButton>
 						</Box>
