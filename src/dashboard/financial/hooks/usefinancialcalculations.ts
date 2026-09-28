@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useGlobalData } from "../../../context/globaldatacontext";
 import { CurrencyData } from "../types/finances";
+import type { ShipData } from "../../../components/common/starmap/types/maptypes";
 
 export interface SubStorageUnit {
 	id: string;
@@ -214,29 +215,6 @@ const getMaterialUnitPrice = (
 	};
 };
 
-// Base construction materials per building ticker
-const BUILDING_BASE_BOM: Record<string, Record<string, number>> = {
-	HB1: { BCA: 4, BSE: 4 },
-	STO: { BCA: 8, MCG: 4 },
-	PP1: { BCA: 12, MCG: 8, BSE: 6 },
-	EXT: { BCA: 16, MCG: 12 },
-	RIG: { BCA: 12, MCG: 8 },
-	COL: { BCA: 14, MCG: 10 },
-	REF: { BCA: 24, MCG: 16, BSE: 12 },
-	SM: { BCA: 20, MCG: 12, BSE: 10 },
-	FAB: { BCA: 18, MCG: 14 },
-	SFP: { BCA: 40, MCG: 30, BSE: 20 },
-};
-
-// ponytail: Ship blueprint BOM replacement values for hull chassis
-const SHIP_BLUEPRINT_BOM: Record<string, Record<string, number>> = {
-	LST: { TRU: 250, FC: 15, STR: 40 },
-	WMP: { TRU: 180, FC: 10, STR: 30 },
-	GAL: { TRU: 400, FC: 25, STR: 60 },
-	C2: { TRU: 120, FC: 8, STR: 20 },
-	BF: { TRU: 300, FC: 20, STR: 50 },
-};
-
 export const useFinancialCalculations = (
 	currentData: CurrencyData | null,
 	priceMode: PriceMode = "ACTUAL",
@@ -255,6 +233,7 @@ export const useFinancialCalculations = (
 		ownerShips: ownShips,
 		otherShips,
 	} = useGlobalData();
+	console.log(shipBlueprints);
 
 	// Process storage units grouped by Planet/Location -> Site Owner -> Sub Storage
 	const locationValuations = useMemo(() => {
@@ -274,41 +253,6 @@ export const useFinancialCalculations = (
 		}
 
 		const cxCode = currentData?.Currency || "ICA";
-
-		const planetGroupMap = new Map<
-			string,
-			{
-				id: string;
-				name: string;
-				type: "BASE" | "WAREHOUSE" | "SHIP";
-				sitesMap: Map<
-					string,
-					{
-						id: string;
-						siteId: string;
-						ownerName: string;
-						isLeased: boolean;
-						buildingTickers: string[];
-						subUnitsMap: Map<
-							string,
-							{
-								id: string;
-								name: string;
-								type: string;
-								items: Array<{
-									ticker: string;
-									amount: number;
-									unitPrice: number;
-									corpPrice: number;
-									totalValue: number;
-								}>;
-								totalValue: number;
-							}
-						>;
-					}
-				>;
-			}
-		>();
 
 		// --- 1. BUILD SITES DICTIONARY & SHIPS LIST ---
 		const siteObjectsMap = new Map<
@@ -350,6 +294,7 @@ export const useFinancialCalculations = (
 				name: string;
 				ownerName: string;
 				blueprintId?: string;
+				shipData: ShipData;
 				subUnitsMap: Map<
 					string,
 					{
@@ -420,20 +365,13 @@ export const useFinancialCalculations = (
 		// Pre-initialize shipObjectsMap strictly from ownShips list (only user-owned fleet vessels)
 		const registeredShips = ownShips || [];
 
-		registeredShips.forEach((s: any) => {
-			const sId = s.ship_id || s.id || s.registration || s.name;
+		registeredShips.forEach((s: ShipData) => {
+			const sId = s.id;
 			if (!sId || shipObjectsMap.has(sId)) return;
 
-			const sName = s.name || s.registration || "Fleet Vessel";
-			const ownerName = (s.company_code || s.owner || "ME").toUpperCase();
-			const extractedBpId =
-				s.blueprint_natural_id ||
-				s.blueprint_id ||
-				s.blueprintId ||
-				s.blueprint ||
-				s.natural_id ||
-				s.ship_type ||
-				s.type;
+			const sName = s.name || s.registration;
+			const ownerName = s.company_code || s.ownerName || "UNKNOWN";
+			const extractedBpId = s.blueprint_natural_id;
 
 			shipObjectsMap.set(sId, {
 				shipId: sId,
@@ -451,43 +389,26 @@ export const useFinancialCalculations = (
 			const isShipStore = uType.includes("SHIP") || uType.includes("FUEL");
 
 			if (isShipStore) {
-				const shipName = unit.name || unit.storagelocation || "Ship";
-				const unitStoreId = unit.addressableid;
-				console.log("unitStoreId", unitStoreId);
-				console.log("ownShips", ownShips);
-
-				const matchedShipFromAll = (ownShips || []).find(
-					(s: any) =>
-						s.id_ship_store === unitStoreId ||
-						s.id_stl_fuel_store === unitStoreId ||
-						s.id_ftl_fuel_store === unitStoreId ||
-						(s.ship_id || s.id || s.registration) === unitStoreId ||
-						(s.name && s.name.toUpperCase() === shipName.toUpperCase()),
+				console.log("Unit: ", unit);
+				const shipName = unit.name || "UNKNOWN";
+				console.log(registeredShips);
+				const matchedShipFromAll = (registeredShips || []).find(
+					(s: ShipData) => s.shipid === unit.addressableid,
 				);
 
-				const shipId =
-					matchedShipFromAll?.ship_id ||
-					matchedShipFromAll?.id ||
-					matchedShipFromAll?.registration ||
-					unit.ship_id ||
-					unitStoreId ||
-					shipName;
-				const ownerName = (unit.owner_code || unit.owner || "ME").toUpperCase();
+				console.log("matchedShipFromAll", matchedShipFromAll);
 
-				if (!shipObjectsMap.has(shipId)) {
-					console.log("Ship not found:", shipId);
-					console.log("Unit:", unit);
-					console.log("Matched Ship From All:", matchedShipFromAll);
+				const shipId = matchedShipFromAll?.shipid;
+				if (!shipId) {
+					console.warn("Ship not found for unit: ", unit);
+					return;
+				}
+				const ownerName = (
+					matchedShipFromAll?.display_name || "UNKNOWN"
+				).toUpperCase();
 
-					const extractedBpId =
-						unit.blueprint_id ||
-						unit.blueprintId ||
-						matchedShipFromAll?.blueprint_natural_id ||
-						matchedShipFromAll?.blueprint_id ||
-						matchedShipFromAll?.blueprintId ||
-						matchedShipFromAll?.blueprint_natural_id ||
-						matchedShipFromAll?.blueprint ||
-						matchedShipFromAll?.natural_id;
+				if (!shipObjectsMap.has(shipId!)) {
+					const extractedBpId = matchedShipFromAll?.blueprintnaturalid;
 
 					const userCode = (
 						localStorage.getItem("companyCode") ||
@@ -638,8 +559,30 @@ export const useFinancialCalculations = (
 					unit.name && unit.name !== "null" && unit.name !== "undefined"
 						? String(unit.name).trim()
 						: null;
-				const subName =
-					rawName || (isWarehouse ? "Warehouse Storage" : "Site Storage");
+
+				const isLocationName =
+					rawName &&
+					(rawName.toUpperCase() === (planetName || "").toUpperCase() ||
+						rawName.toUpperCase() ===
+							(unit.storagelocation || "").toUpperCase() ||
+						rawName.toUpperCase() === (site.planetName || "").toUpperCase());
+
+				let subName = rawName && !isLocationName ? rawName : "";
+				if (!subName) {
+					if (
+						uType.includes("WAREHOUSE") ||
+						site.categoryType === "WAREHOUSE"
+					) {
+						subName = "Warehouse Storage";
+					} else if (uType.includes("STORE") || uType.includes("BASE")) {
+						subName = "Base Storage";
+					} else if (uType.includes("SHIP")) {
+						subName = "Ship Cargo Hold";
+					} else {
+						subName = "Site Storage";
+					}
+				}
+
 				const subKey =
 					unit.storageid || unit.unitid || `${subName}_${Math.random()}`;
 
@@ -751,8 +694,7 @@ export const useFinancialCalculations = (
 					const matchedBp = Array.isArray(shipBlueprints)
 						? shipBlueprints.find(
 								(bp: any) =>
-									(bp.natural_id || bp.id || "").toUpperCase() ===
-										upperTicker ||
+									bp.natural_id.toUpperCase() === upperTicker ||
 									(bp.name || "").toUpperCase() === upperTicker,
 							)
 						: null;
@@ -782,10 +724,6 @@ export const useFinancialCalculations = (
 								},
 							);
 						}
-					}
-
-					if (Object.keys(bom).length === 0) {
-						bom = BUILDING_BASE_BOM[upperTicker] || { BCA: 10, MCG: 6 };
 					}
 
 					let bCost = 0;
@@ -819,10 +757,23 @@ export const useFinancialCalculations = (
 
 			const siteDailyRepairCost = siteBuildingAssetValue * 0.00166;
 
+			const subNameCounts = new Map<string, number>();
 			site.subUnitsMap.forEach((sub) => {
+				subNameCounts.set(sub.name, (subNameCounts.get(sub.name) || 0) + 1);
+			});
+			const subNameIndex = new Map<string, number>();
+
+			site.subUnitsMap.forEach((sub) => {
+				let displayName = sub.name;
+				if ((subNameCounts.get(sub.name) || 0) > 1) {
+					const idx = (subNameIndex.get(sub.name) || 0) + 1;
+					subNameIndex.set(sub.name, idx);
+					displayName = `${sub.name} #${idx}`;
+				}
+
 				siteSubUnits.push({
 					id: sub.id,
-					name: sub.name,
+					name: displayName,
 					type: sub.type,
 					totalValue: sub.totalValue,
 					itemCount: sub.items.length,
@@ -961,15 +912,16 @@ export const useFinancialCalculations = (
 
 			// Match blueprint for ship chassis
 			const shipNameUpper = ship.name.toUpperCase();
-			const targetBpId = (ship.blueprintId || "").toUpperCase();
 			const shipDataObj = ship.shipData || {};
-			const rawShipType = (
-				shipDataObj.ship_type ||
-				shipDataObj.type ||
-				""
-			).toUpperCase();
 
-			// Direct blueprint object if attached on ship object or inside shipData
+			// Match blueprint strictly by blueprintnaturalid
+			console.log("shipDataObj: ", shipDataObj);
+			console.log("ship: ", ship);
+			let targetBpId = null;
+			if (shipDataObj.blueprintnaturalid) {
+				targetBpId = shipDataObj.blueprintnaturalid.toUpperCase();
+			}
+
 			const directBp =
 				shipDataObj.blueprint ||
 				shipDataObj.ship_blueprint ||
@@ -977,46 +929,16 @@ export const useFinancialCalculations = (
 
 			const matchedShipBp =
 				directBp ||
-				(Array.isArray(shipBlueprints)
+				(targetBpId && Array.isArray(shipBlueprints)
 					? shipBlueprints.find((bp: any) => {
-							const bpId = (bp.id || "").toUpperCase();
 							const bpNatId = (
 								bp.natural_id ||
 								bp.naturalId ||
 								bp.natural_id_blueprint ||
+								bp.id ||
 								""
 							).toUpperCase();
-							const bpName = (bp.name || "").toUpperCase();
-							const bpTicker = (
-								bp.ticker ||
-								bp.ship_type ||
-								bp.type ||
-								""
-							).toUpperCase();
-
-							if (
-								targetBpId &&
-								(bpId === targetBpId ||
-									bpNatId === targetBpId ||
-									bpName === targetBpId ||
-									bpTicker === targetBpId)
-							) {
-								return true;
-							}
-
-							if (
-								rawShipType &&
-								(bpId === rawShipType ||
-									bpNatId === rawShipType ||
-									bpName === rawShipType ||
-									bpTicker === rawShipType)
-							) {
-								return true;
-							}
-
-							if (bpName && shipNameUpper.includes(bpName)) return true;
-							if (bpTicker && shipNameUpper.includes(bpTicker)) return true;
-							return false;
+							return bpNatId === targetBpId;
 						})
 					: null);
 
@@ -1065,12 +987,55 @@ export const useFinancialCalculations = (
 				}
 			}
 
-			if (Object.keys(bom).length === 0) {
-				Object.entries(SHIP_BLUEPRINT_BOM).forEach(([shipKey, staticBom]) => {
-					if (shipNameUpper.includes(shipKey)) {
-						bom = staticBom;
-					}
+			if (
+				Object.keys(bom).length === 0 &&
+				targetBpId &&
+				Array.isArray(shipBlueprints)
+			) {
+				const matchedBp = shipBlueprints.find((bp: any) => {
+					const bpNatId = bp.natural_id.toUpperCase();
+					return bpNatId === targetBpId;
 				});
+
+				const rawBomSource =
+					matchedBp?.bill_of_material || matchedBp?.bom || matchedBp?.materials;
+
+				if (rawBomSource) {
+					let rawBom = rawBomSource;
+					if (typeof rawBom === "string") {
+						try {
+							rawBom = JSON.parse(rawBom);
+						} catch {}
+					}
+					const quantities = Array.isArray(rawBom)
+						? rawBom
+						: rawBom?.quantities ||
+							rawBom?.building_materials ||
+							rawBom?.materials ||
+							[];
+					if (Array.isArray(quantities)) {
+						quantities.forEach((bItem: any) => {
+							const t =
+								bItem.material?.ticker ||
+								bItem.ticker ||
+								bItem.material_ticker ||
+								bItem.materialid ||
+								bItem.name;
+							const q = Number(
+								bItem.amount || bItem.quantity || bItem.units || 0,
+							);
+							if (t && q > 0) bom[t.toUpperCase()] = q;
+						});
+					} else if (typeof rawBom === "object" && rawBom !== null) {
+						Object.entries(rawBom).forEach(([k, v]: [string, any]) => {
+							const q =
+								typeof v === "number"
+									? v
+									: Number(v?.amount || v?.quantity || v?.units || 0);
+							if (q > 0) bom[k.toUpperCase()] = q;
+						});
+					}
+				}
 			}
 
 			Object.entries(bom).forEach(([matTicker, qty]) => {

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useGlobalData } from "../../../../context/globaldatacontext";
 import { useGlobalWs } from "../../../../dashboard/websocket/useglobaluserws";
 import { getOriginDestinationLabel } from "../utils/flightplanorigindestination";
-import {
+import type {
 	AnimatedShipData,
 	FlightPlan,
 	WorkerFlightPlan,

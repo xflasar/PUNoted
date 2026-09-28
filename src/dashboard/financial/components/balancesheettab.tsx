@@ -798,17 +798,22 @@ const LocationAuditRow: React.FC<LocationAuditRowProps> = ({
 	const { userMetadata } = useGlobalData();
 	const [expanded, setExpanded] = useState<boolean>(false);
 	const isPlanetLeased = !!leasedSiteIds[loc.id];
+	const { activeValue, isExcludedLocation } = useMemo(() => {
+		if (isPlanetLeased) return { activeValue: 0, isExcludedLocation: true };
+		if (!loc.sites || loc.sites.length === 0)
+			return { activeValue: loc.totalValue, isExcludedLocation: false };
 
-	const activeValue = useMemo(() => {
-		if (isPlanetLeased) return 0;
-		if (!loc.sites || loc.sites.length === 0) return loc.totalValue;
-
-		return loc.sites.reduce((sum, site) => {
+		let userExcluded = false;
+		const total = loc.sites.reduce((sum, site) => {
 			const isUserToggledLeased = !!leasedSiteIds[site.id];
-			const isOutboundLeased = site.leaseType === "Outbound";
-			const isExcluded = isUserToggledLeased || isOutboundLeased;
-			return sum + (isExcluded ? 0 : site.totalValue);
+			if (isUserToggledLeased) {
+				userExcluded = true;
+				return sum;
+			}
+			return sum + site.totalValue;
 		}, 0);
+
+		return { activeValue: total, isExcludedLocation: userExcluded };
 	}, [isPlanetLeased, loc.sites, loc.totalValue, leasedSiteIds]);
 
 	const locPercentOfTotal =
@@ -897,7 +902,7 @@ const LocationAuditRow: React.FC<LocationAuditRowProps> = ({
 						fontFamily: "monospace",
 						fontSize: "0.84rem",
 						fontWeight: 800,
-						color: isPlanetLeased ? "#f59e0b" : "#4ade80",
+						color: isPlanetLeased || isExcludedLocation ? "#f59e0b" : "#4ade80",
 						width: "28%",
 					}}
 				>
