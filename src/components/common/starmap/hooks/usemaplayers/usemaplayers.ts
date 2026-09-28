@@ -1,3 +1,4 @@
+import { PathLayer } from "@deck.gl/layers";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
 	MapPoint,
