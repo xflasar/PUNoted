@@ -11,7 +11,8 @@
 		"lint": "eslint src --ext .ts,.tsx",
 		"lint:fix": "eslint src --ext .ts,.tsx --fix",
 		"preview": "vite preview",
-		"test": "vitest run"
+		"test": "vitest run --exclude='**/importcasing.test.ts'",
+		"test:casing": "vitest run tests/importcasing.test.ts"
 	},
 	"dependencies": {
 		"@deck.gl/aggregation-layers": "^9.2.6",

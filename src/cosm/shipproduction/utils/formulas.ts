@@ -1,5 +1,5 @@
 import { MATERIAL_SPECS, SHIP_SYSTEMS_MOCK } from "./constants";
-import optionsProfileData from "../data/optionsProfile.json";
+import optionsProfileData from "../data/optionsprofile.json";
 
 export interface CalculateStatsInput {
 	selections: Record<string, string>;
