@@ -5,6 +5,8 @@ import {
 	Business,
 	LocationCity,
 	TravelExplore,
+	AccountBalance,
+	Gavel,
 } from "@mui/icons-material";
 import type {
 	MapPoint,
@@ -339,6 +341,52 @@ const SystemHoverTooltip: React.FC<SystemHoverTooltipProps> = ({
 						</Typography>
 					</Box>
 				)}
+
+				{/* System Government / Motions Indicator */}
+				{(() => {
+					let totalTerms = 0;
+					let totalMotions = 0;
+					planets.forEach((p) => {
+						if (p.Government?.length) totalTerms += p.Government.length;
+						if (p.Motions?.length) totalMotions += p.Motions.length;
+					});
+					if (!totalTerms && !totalMotions) return null;
+
+					return (
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								borderTop: "1px dashed rgba(255,255,255,0.06)",
+								pt: 0.5,
+								mt: 0.25,
+							}}
+						>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "#7b68ee",
+									fontSize: "0.7rem",
+									fontWeight: 700,
+									display: "flex",
+									alignItems: "center",
+									gap: 0.5,
+								}}
+							>
+								<AccountBalance sx={{ fontSize: 12 }} /> Governance
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{ fontWeight: 700, fontSize: "0.65rem", color: "#38bdf8" }}
+							>
+								{totalTerms > 0 && `${totalTerms} Govt`}
+								{totalTerms > 0 && totalMotions > 0 && " • "}
+								{totalMotions > 0 && `${totalMotions} Motions`}
+							</Typography>
+						</Box>
+					);
+				})()}
 
 				{systemResources.length > 0 && (
 					<Box

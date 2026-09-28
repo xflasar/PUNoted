@@ -28,10 +28,7 @@ export interface ShipProductionTabsProps {
 	onCancelEdit: () => void;
 	onOrderCreated: (pin?: string) => void;
 	onDeleteOrder: (orderId: number) => void;
-	onUpdateStatus: (
-		orderId: number,
-		status: "QUEUED" | "APPROVED" | "IN_PRODUCTION" | "COMPLETED",
-	) => void;
+	onUpdateStatus: (orderId: number, status: "QUEUED" | "COMPLETED") => void;
 	materialBalance: BalanceItem[];
 	disableActions?: boolean;
 }

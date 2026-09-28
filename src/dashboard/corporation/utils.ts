@@ -1,4 +1,5 @@
 import type { Theme } from "@mui/material";
+import type { RecipeMaterial } from "./types";
 
 /**
  * Formats a number with compact notation if it exceeds the threshold, otherwise standard formatting.
@@ -44,3 +45,35 @@ export const getNetColor = (net: number, theme: Theme) =>
 		: net < 0
 			? theme.palette.error.main
 			: theme.palette.text.secondary;
+
+/**
+ * Extracts recipe materials (inputs and outputs) supporting single or multiple outputs.
+ */
+export const extractRecipeMaterials = (
+	inputs?: Record<string, number>,
+	outputs?: Record<string, number> | string,
+	outputAmount?: number,
+) => {
+	const inputMaterials: RecipeMaterial[] = Object.entries(inputs || {}).map(
+		([ticker, factor]) => ({
+			ticker,
+			factor,
+		}),
+	);
+
+	let outputMaterials: RecipeMaterial[] = [];
+	if (typeof outputs === "object" && outputs !== null) {
+		outputMaterials = Object.entries(outputs).map(([ticker, factor]) => ({
+			ticker,
+			factor,
+		}));
+	} else if (typeof outputs === "string" && outputAmount !== undefined) {
+		outputMaterials = [{ ticker: outputs, factor: outputAmount }];
+	}
+
+	return {
+		inputMaterials,
+		outputMaterials,
+		outputMaterial: outputMaterials[0] || null,
+	};
+};

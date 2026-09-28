@@ -16,9 +16,10 @@ import {
 	ExpandMore,
 } from "@mui/icons-material";
 import { useGlobalData } from "../../../../../context/globaldatacontext";
+import { useMapData } from "../../hooks/usemapdata";
 import { getOriginDestinationLabel } from "../../utils/flightplanorigindestination";
 import MaterialBadge from "../../../../../cosm/components/materialbadge";
-import ShipFlightStatus from "./shipflightstatus";
+import ShipFlightStatus, { getFlightArrivalMs } from "./shipflightstatus";
 import type { AnimatedShipData } from "../../types/maptypes";
 
 // --- ASSETS ---
@@ -37,6 +38,8 @@ interface ShipRowProps {
 	indentation?: number;
 }
 
+import { resolveShipType } from "../../hooks/usemaplayers/constants";
+
 const iconStyle: React.CSSProperties = {
 	width: "100%",
 	height: "100%",
@@ -46,13 +49,11 @@ const iconStyle: React.CSSProperties = {
 
 const getShipIcon = (ship: any) => {
 	if (!ship) return <LocalShipping sx={{ fontSize: 20 }} />;
-	const type = ship.type || ship.ship_type || ship.shipType || "";
-	const t = type.toUpperCase();
-	if (t.includes("LCB")) return <img src={lcb} alt="LCB" style={iconStyle} />;
-	if (t.includes("WCB")) return <img src={wcb} alt="WCB" style={iconStyle} />;
-	if (t.includes("VCB")) return <img src={vcb} alt="VCB" style={iconStyle} />;
-	if (t.includes("HCB")) return <img src={hcb} alt="HCB" style={iconStyle} />;
-	return <LocalShipping sx={{ fontSize: 20 }} />;
+	const resolved = resolveShipType(ship);
+	if (resolved === "WCB") return <img src={wcb} alt="WCB" style={iconStyle} />;
+	if (resolved === "VCB") return <img src={vcb} alt="VCB" style={iconStyle} />;
+	if (resolved === "HCB") return <img src={hcb} alt="HCB" style={iconStyle} />;
+	return <img src={lcb} alt="LCB" style={iconStyle} />;
 };
 
 const ShipRow: React.FC<ShipRowProps> = ({
@@ -65,8 +66,9 @@ const ShipRow: React.FC<ShipRowProps> = ({
 	indentation = 0,
 }) => {
 	const theme = useTheme();
-	const { storageState, systemsPoints, allPlanetsData, allStationsData } =
-		useGlobalData();
+	const { storageState, mapData } = useGlobalData();
+	const { systemsPoints, allPlanetsData, allStationsData } =
+		useMapData(mapData);
 	const [isExpanded, setIsExpanded] = useState(false);
 	const hasPlan = !!(ship.plan || ship.flight);
 	const cargo = (ship as any).cargo;
@@ -112,9 +114,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 		: 0;
 
 	const activeFlight: any = ship.plan || (ship as any).flight;
-	const end = activeFlight?.departuretimestamp
-		? new Date(activeFlight.departuretimestamp).getTime()
-		: 0;
+	const end = getFlightArrivalMs(activeFlight);
 	const now = Date.now();
 	const isArrived = end > 0 && now >= end;
 

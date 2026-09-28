@@ -2,6 +2,7 @@
 
 import { API_BASE_URL } from "../config/api";
 
+// Dedup in-flight GET requests: maps url → Promise<Response> that clones on each read
 const activeGetRequests = new Map<string, Promise<Response>>();
 
 export const fetchClient = async (
@@ -16,20 +17,7 @@ export const fetchClient = async (
 	const method = options.method?.toUpperCase() || "GET";
 	const isGet = method === "GET";
 
-	if (isGet && !_isRetry) {
-		const existingPromise = activeGetRequests.get(url);
-		if (existingPromise) {
-			try {
-				const res = await existingPromise;
-				return res.clone();
-			} catch (err) {
-				// Fall through if the cached promise rejected
-			}
-		}
-	}
-
 	const executeRequest = async (): Promise<Response> => {
-		// 1. Setup headers and inject current Access Token
 		const headers = new Headers(options.headers || {});
 		const token = localStorage.getItem("authToken");
 
@@ -47,13 +35,10 @@ export const fetchClient = async (
 			credentials: options.credentials || "include",
 		};
 
-		// 2. Execute the initial request
 		const response = await fetch(url, fetchOptions);
 
-		// 3. Catch 401 Unauthorized for silent refresh
 		if (response.status === 401 && !_isRetry) {
 			console.log("Access token expired. Attempting silent refresh...");
-
 			try {
 				const refreshResponse = await fetch(`${API_BASE_URL}auth/refresh`, {
 					method: "POST",
@@ -66,9 +51,7 @@ export const fetchClient = async (
 				}
 
 				const refreshData = await refreshResponse.json();
-				const newAccessToken = refreshData.token;
-
-				localStorage.setItem("authToken", newAccessToken);
+				localStorage.setItem("authToken", refreshData.token);
 				localStorage.setItem("hasSession", "true");
 				if (refreshData.expires_at)
 					localStorage.setItem("expiresAt", refreshData.expires_at.toString());
@@ -93,28 +76,28 @@ export const fetchClient = async (
 						refreshData.isSynchronized.toString(),
 					);
 
-				// 4. Retry the original request with the new token
 				return await fetchClient(endpoint, options, true);
 			} catch (refreshError) {
-				console.warn("Refresh failed. Forcing logout.");
-				localStorage.removeItem("authToken");
-				window.location.href = "/";
-				return Promise.reject(refreshError);
+				console.warn("Refresh failed, returning 401 to caller.");
+				// ponytail: let callers handle 401; hard redirects cause loops
+				return response;
 			}
 		}
 
 		return response;
 	};
 
+	// Dedup: share one in-flight GET promise while pending
 	if (isGet && !_isRetry) {
-		const promise = executeRequest();
-		activeGetRequests.set(url, promise);
-		try {
-			const res = await promise;
-			return res.clone();
-		} finally {
-			activeGetRequests.delete(url);
+		const existing = activeGetRequests.get(url);
+		if (existing) {
+			return existing.then((r) => r.clone());
 		}
+		const promise = executeRequest().finally(() => {
+			activeGetRequests.delete(url);
+		});
+		activeGetRequests.set(url, promise);
+		return promise;
 	}
 
 	return executeRequest();

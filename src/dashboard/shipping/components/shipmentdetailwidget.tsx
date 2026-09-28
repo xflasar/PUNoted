@@ -68,8 +68,8 @@ const OptimizedFlightProgressBar = React.memo(
 		endTime,
 		color,
 	}: {
-		startTime: number;
-		endTime: number;
+		startTime?: number | string;
+		endTime?: number | string;
 		color: string;
 	}) => {
 		const barRef = useRef<HTMLDivElement>(null);
@@ -77,8 +77,10 @@ const OptimizedFlightProgressBar = React.memo(
 		const reqRef = useRef<number>(0);
 
 		useEffect(() => {
+			if (!startTime || !endTime) return;
 			const start = new Date(startTime).getTime();
 			const end = new Date(endTime).getTime();
+			if (isNaN(start) || isNaN(end)) return;
 			const animate = () => {
 				const now = Date.now();
 				const total = end - start;
@@ -508,17 +510,16 @@ const PackageCard = ({
 												</Box>
 
 												<OptimizedFlightProgressBar
-													startTime={assignedShip.flight.arrivaltimestamp}
-													endTime={assignedShip.flight.departuretimestamp}
+													startTime={assignedShip.flight.departuretimestamp}
+													endTime={assignedShip.flight.arrivaltimestamp}
 													color={theme.palette.primary.main}
 												/>
 
 												{destinationStatus === "MISMATCH" && (
 													<Stack
 														direction="row"
-														alignItems="center"
 														spacing={0.5}
-														sx={{ mt: 0.5 }}
+														sx={{ alignItems: "center", mt: 0.5 }}
 													>
 														<WarningAmber
 															sx={{
@@ -610,7 +611,10 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 
 	// 3. Financials
 	const { totalPayout, paymentStatus } = useMemo(() => {
-		const total = paymentItems.reduce((sum, item) => sum + item.price, 0);
+		const total = paymentItems.reduce(
+			(sum, item) => sum + (item.price || 0),
+			0,
+		);
 		const fulfilledCount = paymentItems.filter(
 			(i) => i.status === "FULFILLED",
 		).length;

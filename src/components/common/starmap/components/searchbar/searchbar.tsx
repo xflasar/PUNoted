@@ -161,10 +161,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
 						}
 					}}
 					onKeyDown={handleKeyDown}
-					// Custom styling for dropdown menu container - needs fix
-					PaperComponent={({ children, ...other }) => (
+					// Custom styling for dropdown menu container
+					PaperComponent={(props) => (
 						<Paper
-							{...other}
+							{...props}
 							elevation={12}
 							sx={{
 								background:
@@ -194,9 +194,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 									},
 								},
 							}}
-						>
-							{children}
-						</Paper>
+						/>
 					)}
 					renderOption={(props, option) => {
 						const { key, ...otherProps } = props as any;
@@ -219,20 +217,26 @@ const SearchBar: React.FC<SearchBarProps> = ({
 						);
 					}}
 					renderInput={(params) => {
-						const { InputProps, ...rest } = params;
+						const { InputProps, ...restParams } = params;
 						return (
 							<TextField
-								{...rest}
+								{...restParams}
 								variant="standard"
 								placeholder="Search for a system or planet..."
+								sx={{
+									"& .MuiInputBase-input::placeholder": {
+										color: "rgba(255, 255, 255, 0.4)",
+										opacity: 1,
+									},
+									"& .MuiInput-root": {
+										paddingLeft: "10px",
+										color: "#ffffff",
+										fontSize: "0.85rem",
+									},
+								}}
 								InputProps={{
 									...InputProps,
 									disableUnderline: true,
-									style: {
-										paddingLeft: "10px",
-										color: theme.palette.text.primary,
-										fontSize: "0.85rem",
-									},
 								}}
 							/>
 						);

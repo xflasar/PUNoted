@@ -14,6 +14,7 @@ type WsStatus = "connecting" | "connected" | "disconnected";
 
 interface GlobalWsContextState {
 	status: WsStatus;
+	isConnected: boolean;
 	sendJson: (data: any) => void;
 	subscribe: (channel: string) => void;
 	unsubscribe: (channel: string) => void;
@@ -27,6 +28,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 	children,
 }) => {
 	const [status, setStatus] = useState<WsStatus>("disconnected");
+	const [isConnected, setIsConnected] = useState(false);
 
 	const wsRef = useRef<WebSocket | null>(null);
 	const listenersRef = useRef<Set<(msg: any) => void>>(new Set());
@@ -51,8 +53,8 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 
 		const token = localStorage.getItem("authToken");
 		if (!token) {
-			// No token at all -> send to landing page
-			window.location.href = "/";
+			// No token — user is not logged in. Skip WS connection silently.
+			// Routing/auth guards in App.tsx handle redirection.
 			return;
 		}
 
@@ -137,6 +139,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 			}
 			console.log("WS: Connected");
 			setStatus("connected");
+			setIsConnected(true);
 
 			activeChannels.current.forEach((channel) => {
 				ws.send(JSON.stringify({ action: "SUBSCRIBE", channel }));
@@ -170,6 +173,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 					`WS: Socket Closed (Code: ${event.code}, Reason: ${event.reason})`,
 				);
 				setStatus("disconnected");
+				setIsConnected(false);
 				wsRef.current = null;
 
 				// --- DEFENSE LAYER 3: Backend closes connection with specific auth-failure code ---
@@ -222,6 +226,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 			clearTimeout(mountDelay);
 			intentionalClose.current = true;
 			setStatus("disconnected");
+			setIsConnected(false);
 
 			if (reconnectTimeoutRef.current)
 				clearTimeout(reconnectTimeoutRef.current);
@@ -277,6 +282,7 @@ export const GlobalWsProvider: React.FC<{ children: ReactNode }> = ({
 		<GlobalWsContext.Provider
 			value={{
 				status,
+				isConnected,
 				sendJson,
 				subscribe,
 				unsubscribe,
@@ -296,6 +302,7 @@ export const useGlobalWsContext = () => {
 	if (!ctx) {
 		return {
 			status: "disconnected",
+			isConnected: false,
 			lastMessage: null,
 			sendJson: () => {}, // No-op
 			addMessageListener: () => {},

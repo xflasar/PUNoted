@@ -132,6 +132,8 @@ export interface PlanetData {
 	temperature?: number;
 	fertility?: number;
 	cogc?: string | null;
+	Government?: any[];
+	Motions?: any[];
 }
 
 export interface Color {
@@ -142,7 +144,7 @@ export interface Color {
 }
 
 export interface PlanetPosition {
-	color: Color;
+	color?: Color;
 	orbitindex: number;
 	eccentricity: number;
 	inclination: number;
@@ -150,6 +152,7 @@ export interface PlanetPosition {
 	y: number;
 	planetid: string;
 	name: string;
+	planetname?: string;
 	parentSystemId: string;
 	orbitalRadius: number;
 	planetPopulation: number;
@@ -163,6 +166,8 @@ export interface PlanetPosition {
 	temperature?: number;
 	fertility?: number;
 	cogc?: string | null;
+	Government?: any[];
+	Motions?: any[];
 }
 
 export interface StationPosition {
@@ -209,27 +214,6 @@ export interface Edge {
 	systemiddestination: string;
 }
 
-export interface WorkerFlightPlan {
-	id: string;
-	segments: FlightSegment[];
-	origin: string;
-	destination: string;
-	shipid?: string;
-	originid?: string;
-	destinationid?: string;
-	start?: number;
-	end?: number;
-	currentsegmentindex?: number;
-	departuretimestamp?: string;
-	expired?: boolean;
-	originplanetid?: string;
-	destinationplanetid?: string;
-	originstationid?: string;
-	destinationstationid?: string;
-	originsystemid?: string;
-	destinationsystemid?: string;
-}
-
 export interface FlightPlan {
 	id: string;
 	segments: FlightSegment[];
@@ -241,7 +225,18 @@ export interface FlightPlan {
 	start?: number;
 	end?: number;
 	currentsegmentindex?: number;
+	departuretimestamp?: string;
+	arrivaltimestamp?: string;
+	expired?: boolean;
+	originplanetid?: string;
+	destinationplanetid?: string;
+	originstationid?: string;
+	destinationstationid?: string;
+	originsystemid?: string;
+	destinationsystemid?: string;
 }
+
+export interface WorkerFlightPlan extends FlightPlan {}
 
 export interface FlightSegment {
 	departure: number; // Unix timestamp (milliseconds)
@@ -255,10 +250,13 @@ export interface AnimatedShipData {
 	id: string;
 	registration: string;
 	name: string;
-	display_name: string;
-	company_code: string;
-	user_id: string;
-	is_owner: boolean;
+	display_name?: string;
+	ownerName?: string;
+	company_code?: string;
+	user_id?: string;
+	ownerId?: string;
+	is_owner?: boolean;
+	is_owner_ship?: boolean;
 	addressplanetid: string;
 	addresssystemid: string;
 	addressstationid: string;
@@ -275,37 +273,56 @@ export interface AnimatedShipData {
 }
 
 export interface ShipData extends AnimatedShipData {
-	ship_id: string;
-	user_id: string;
-	name: string;
+	shipid: string;
+	userid?: string;
+	user_id?: string;
+	name: string | null;
 	registration: string;
 	ship_type: string;
-	address_planet_id: string;
-	address_station_id: string;
-	address_system_id: string;
+	addressplanetid?: string | null;
+	addressstationid?: string | null;
+	addresssystemid?: string | null;
+	address_planet_id?: string;
+	address_station_id?: string;
+	address_system_id?: string;
 	acceleration: number;
 	thrust: number;
 	volume: number;
 	mass: number;
-	operating_empty_mass: number;
-	reactor_power: number;
-	emitter_power: number;
-	stl_fuel_flow_rate: number;
+	operatingemptymass?: number;
+	operating_empty_mass?: number;
+	reactorpower?: number;
+	reactor_power?: number;
+	emitterpower?: number;
+	emitter_power?: number;
+	stlfuelflowrate?: number;
+	stl_fuel_flow_rate?: number;
 	status: string;
 	condition: number;
-	commissioning_time: string;
-	last_repair: string;
-	flight_id: string;
-	id_ftl_fuel_store: string;
-	id_stl_fuel_store: string;
-	id_ship_store: string;
-	operating_time_ftl: number;
-	operating_time_stl: number;
-	blueprint_natural_id: string;
+	commissioningtime?: string;
+	commissioning_time?: string;
+	lastrepair?: string | null;
+	last_repair?: string | null;
+	flightid?: string | null;
+	flight_id?: string;
+	idftlfuelstore?: string;
+	idstlfuelstore?: string;
+	idshipstore?: string;
+	id_ftl_fuel_store?: string;
+	id_stl_fuel_store?: string;
+	id_ship_store?: string;
+	operatingtimeftl?: number;
+	operatingtimestl?: number;
+	operating_time_ftl?: number;
+	operating_time_stl?: number;
+	blueprintnaturalid: string;
+	blueprint_natural_id?: string;
 	is_owner: boolean;
-	company_code: string;
-	display_name: string;
-	personal_suffix: string;
+	companycode?: string;
+	company_code?: string;
+	displayname?: string;
+	display_name?: string;
+	personal_suffix?: string;
 }
 
 export interface ShipCargo {

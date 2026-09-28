@@ -16,13 +16,25 @@ export interface CashFlowCategory {
 	AllTime: CashFlowMetrics;
 }
 
+export interface PartnerMetrics {
+	code: string;
+	name: string;
+	volume: number;
+	net: number;
+	lastTimestamp?: string;
+}
+
 export interface Transaction {
 	Id: string;
+	ContractId?: string;
 	Type: string;
 	Amount: number;
+	ItemQuantity?: number;
 	Timestamp: string;
 	PartnerName: string;
 	PartnerCode: string;
+	Category?: string;
+	Description?: string;
 }
 
 export interface CurrencyData {
@@ -31,6 +43,8 @@ export interface CurrencyData {
 	LockedBuy: number;
 	LockedSell: number;
 	InventoryValue: number;
+	BaseValuation?: number;
+	ShipValuation?: number;
 	PendingReceivable: number;
 	PendingPayable: number;
 	TotalAssets: number;
@@ -75,4 +89,34 @@ export interface PublicCompanyProfile {
 	ActiveDaysPerWeek: number;
 	CreatedTimestamp: number;
 	Gifts: any;
+}
+
+// Core Financial State per Currency (Specification Data Model)
+export interface CurrencyLedger {
+	Currency: string;
+	LiquidCash: number;
+
+	Valuations: {
+		WarehouseInventory: number;
+		BaseInventory: number;
+		ShipCargo: number;
+		FixedAssets: number;
+	};
+
+	MarketExposure: {
+		CxBidsLocked: number;
+		CxAsksValue: number;
+		LocalMarketAdsLocked: number;
+	};
+
+	Liabilities: {
+		PendingReceivables: number;
+		PendingPayables: number;
+		ActiveLoans: number;
+		TaxesOwed: number;
+	};
+
+	CashFlows: CashFlowCategory[];
+	TransactionHistory: Transaction[];
+	DailyBalances: HistoryPoint[];
 }

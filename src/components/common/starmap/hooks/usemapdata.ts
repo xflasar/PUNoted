@@ -155,31 +155,54 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 			const planetsBySystem = new Map<string, any[]>();
 			const fullPlanetDataMap: Record<string, PlanetData[]> = {};
 			for (const p of data.planets || []) {
-				const sid = String(p.systemid ?? "unknown");
+				const sid = String(p.systemid ?? p.SystemId ?? "unknown");
 				if (!planetsBySystem.has(sid)) planetsBySystem.set(sid, []);
 				planetsBySystem.get(sid)!.push(p);
+
+				const rawRes = p.resources ?? p.Resources ?? [];
+				const normalizedRes = Array.isArray(rawRes)
+					? rawRes.map((r: any) => ({
+							material: r.material || r.MaterialId || r.name || "",
+							factor:
+								r.factor !== undefined
+									? r.factor
+									: r.Factor !== undefined
+										? r.Factor
+										: r.value,
+							type: r.type || r.ResourceType || "",
+						}))
+					: [];
+
+				const pid = String(
+					p.planetid ?? p.PlanetId ?? p.naturalid ?? p.PlanetNaturalId ?? "",
+				);
+
 				const orbitData: PlanetData = {
-					planetid: String(p.planetid),
-					planetname: p.name,
-					nextPopulation: p.nextPopulation,
-					planetPopulation: p.population ?? 0,
-					orbitindex: p.orbitindex ?? 0,
-					semimajoraxis: p.semimajoraxis ?? 50_000_000_000,
-					eccentricity: p.eccentricity ?? 0,
-					inclination: p.inclination ?? 0,
-					rightascension: p.rightascension ?? 0,
-					periapsis: p.periapsis ?? 0,
+					planetid: pid,
+					planetname: p.planetname ?? p.PlanetName ?? p.name ?? pid,
+					nextPopulation: p.nextPopulation ?? p.NextPopulation,
+					planetPopulation:
+						p.population ?? p.PlanetPopulation ?? p.Population ?? 0,
+					orbitindex: p.orbitindex ?? p.OrbitIndex ?? 0,
+					semimajoraxis:
+						p.semimajoraxis ?? p.OrbitSemiMajorAxis ?? 50_000_000_000,
+					eccentricity: p.eccentricity ?? p.OrbitEccentricity ?? 0,
+					inclination: p.inclination ?? p.OrbitInclination ?? 0,
+					rightascension: p.rightascension ?? p.OrbitRightAscension ?? 0,
+					periapsis: p.periapsis ?? p.OrbitPeriapsis ?? 0,
 					scaledOrbitalRadius: 0,
 					scaledPlanetRadius: BASE_PLANET_SIZE,
-					mass: p.mass,
-					type: p.planet_type,
-					resources: p.resources,
-					updatedat: p.updatedat,
-					gravity: p.gravity,
-					pressure: p.pressure,
-					temperature: p.temperature,
-					fertility: p.fertility,
-					cogc: p.cogc,
+					mass: p.mass ?? p.Mass,
+					type: p.planet_type ?? p.PlanetType ?? p.type ?? "TERRESTRIAL",
+					resources: normalizedRes,
+					updatedat: p.updatedat ?? p.UpdatedAt,
+					gravity: p.gravity ?? p.Gravity,
+					pressure: p.pressure ?? p.Pressure,
+					temperature: p.temperature ?? p.Temperature,
+					fertility: p.fertility ?? p.Fertility,
+					cogc: p.cogc ?? p.COGC,
+					Government: p.Government ?? p.government ?? [],
+					Motions: p.Motions ?? p.motions ?? [],
 				};
 				if (!fullPlanetDataMap[sid]) fullPlanetDataMap[sid] = [];
 				fullPlanetDataMap[sid].push(orbitData);
@@ -459,48 +482,62 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 	return processingPromise;
 };
 
-export const useMapData = (mapDataFromContext: any = null) => {
-	const [isLoading, setIsLoading] = useState(true);
-	const [fetchError, setFetchError] = useState<string | null>(null);
-	const [systemsPoints, setSystemsPoints] = useState<MapPoint[]>([]);
-	const [sectors, setSectors] = useState<Sector[]>([]);
-	const [empireLegend, setEmpireLegend] = useState<Record<string, string>>({});
+export const useMapDataInternal = (mapDataFromContext: any = null) => {
+	const [systemsPoints, setSystemsPoints] = useState<MapPoint[]>(
+		() => processedDataCache?.systemsPoints ?? [],
+	);
+	const [sectors, setSectors] = useState<Sector[]>(
+		() => processedDataCache?.sectors ?? [],
+	);
+	const [empireLegend, setEmpireLegend] = useState<Record<string, string>>(
+		() => processedDataCache?.empireLegend ?? {},
+	);
 
-	// Connections
 	const [systemConnections, setSystemConnections] = useState<
 		{ sourcePosition: number[]; targetPosition: number[] }[]
-	>([]);
+	>(() => processedDataCache?.systemConnections ?? []);
 	const [gatewayConnections, setGatewayConnections] = useState<
 		{ sourcePosition: number[]; targetPosition: number[]; type: string }[]
-	>([]);
+	>(() => processedDataCache?.gatewayConnections ?? []);
 
-	// Object Data
 	const [allPlanetsData, setAllPlanetsData] = useState<
 		Record<string, PlanetData[]>
-	>({});
+	>(() => processedDataCache?.allPlanetsData ?? {});
 	const [allStationsData, setAllStationsData] = useState<
 		Record<string, StationData[]>
-	>({});
+	>(() => processedDataCache?.allStationsData ?? {});
 	const [allGatewaysData, setAllGatewaysData] = useState<
 		Record<string, GatewayData[]>
-	>({});
+	>(() => processedDataCache?.allGatewaysData ?? {});
 
-	const [maxSystemPopulation, setMaxSystemPopulation] = useState<number>(0);
+	const [maxSystemPopulation, setMaxSystemPopulation] = useState<number>(
+		() => processedDataCache?.maxSystemPopulation ?? 0,
+	);
 	const [contentBounds, setContentBounds] = useState<{
 		minX: number;
 		minY: number;
 		maxX: number;
 		maxY: number;
-	} | null>(null);
+	} | null>(() => processedDataCache?.contentBounds ?? null);
+	const [rawConnections, setRawConnections] = useState<any[]>(
+		() => processedDataCache?.rawConnections ?? [],
+	);
 
-	const [rawConnections, setRawConnections] = useState<any[]>([]);
+	const [isLoading, setIsLoading] = useState<boolean>(!processedDataCache);
+	const [fetchError, setFetchError] = useState<string | null>(null);
 
 	useEffect(() => {
 		let mounted = true;
 		const fetchData = async () => {
+			if (processedDataCache) {
+				if (isLoading) setIsLoading(false);
+				return;
+			}
 			setIsLoading(true);
 			setFetchError(null);
 			try {
+				// Yield main thread so route transition and loading spinner render instantly
+				await new Promise((resolve) => setTimeout(resolve, 50));
 				const processed = await processMapDataSingleton(mapDataFromContext);
 
 				if (!mounted) return;
@@ -517,6 +554,7 @@ export const useMapData = (mapDataFromContext: any = null) => {
 				setContentBounds(processed.contentBounds);
 				setRawConnections(processed.rawConnections || []);
 
+				console.log("UseMapdata: map data loaded successfully");
 				setIsLoading(false);
 			} catch (err: any) {
 				console.error("map fetch error", err);
@@ -530,7 +568,7 @@ export const useMapData = (mapDataFromContext: any = null) => {
 		return () => {
 			mounted = false;
 		};
-	}, [mapDataFromContext]);
+	}, []);
 
 	return {
 		isLoading,
@@ -548,3 +586,5 @@ export const useMapData = (mapDataFromContext: any = null) => {
 		rawConnections,
 	};
 };
+
+export { useMapData } from "../context/mapdatacontext";

@@ -1,5 +1,6 @@
 import { fetchClient } from "../../../utils/apiclient";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import GlobalLoadingOverlay from "../../../components/common/globalloadingoverlay";
 import {
 	Box,
 	Typography,
@@ -241,8 +242,11 @@ const ContractsLoans: React.FC<{ onViewDetail: (id: string) => void }> = ({
 
 	if (loading)
 		return (
-			<Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
-				<CircularProgress />
+			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
+				<GlobalLoadingOverlay
+					loading={true}
+					statusText="CALCULATING LOAN SCHEDULES & COLLATERAL..."
+				/>
 			</Box>
 		);
 

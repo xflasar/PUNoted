@@ -26,3 +26,9 @@ dist-ssr
 *.sln
 *.sw?
 .history
+
+# Local preview images and backup files
+public/cosm_corp_preview.png
+public/cx_pricing_preview.png
+public/galaxy_map_preview.png
+*.bak

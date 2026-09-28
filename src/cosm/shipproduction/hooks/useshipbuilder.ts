@@ -39,7 +39,7 @@ export function useShipBuilder({
 				const headers = mockRole === "GUEST" ? { Authorization: "none" } : {};
 				try {
 					const res = await fetchClient(
-						"v1/corporation/ship-presets?corporation_id=COSM",
+						"internal/corporation/ship-presets?corporation_id=COSM",
 						{ headers },
 					);
 					let data = [];
@@ -172,7 +172,7 @@ export function useShipBuilder({
 				const headers = mockRole === "GUEST" ? { Authorization: "none" } : {};
 				try {
 					const res = await fetchClient(
-						"v1/corporation/ship-orders?corporation_id=COSM",
+						"internal/corporation/ship-orders?corporation_id=COSM",
 						{ headers },
 					);
 					if (!res.ok) throw new Error("Failed to load orders");
@@ -615,7 +615,7 @@ export function useShipBuilder({
 					const headers = mockRole === "GUEST" ? { Authorization: "none" } : {};
 					try {
 						const res = await fetchClient(
-							"v1/corporation/ship-presets?corporation_id=COSM",
+							"internal/corporation/ship-presets?corporation_id=COSM",
 							{ headers },
 						);
 						if (res.ok) {

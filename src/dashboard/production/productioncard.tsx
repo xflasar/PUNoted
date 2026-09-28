@@ -1,11 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
 	Box,
 	Typography,
 	Paper,
 	LinearProgress,
 	Tooltip,
-	Divider,
 	Chip,
 	useTheme,
 	alpha,
@@ -13,22 +12,31 @@ import {
 	InputAdornment,
 	Tabs,
 	Tab,
+	Button,
+	Divider,
 } from "@mui/material";
 import {
-	MapPin,
-	Flame,
-	Factory,
-	Archive,
 	ArrowUpCircle,
 	ArrowDownCircle,
-	Package,
-	Handshake,
 	Layers,
 	Warehouse,
 	ChevronRight,
+	Rocket,
+	Wrench,
+	Bell,
+	Target,
 } from "lucide-react";
 import MaterialBadge from "../../cosm/components/materialbadge";
 import type { SiteSummary, FlowData } from "./types";
+import { MATERIAL_PROPS, getMatProps } from "./utils/materialprops";
+import { FastLogisticsModal } from "../sites/components/fastlogisticsmodal";
+import { FastRepairModal } from "../sites/components/fastrepairmodal";
+import { SiteNotificationModal } from "../sites/components/sitenotificationmodal";
+import { SiteTargetModal } from "../sites/components/sitetargetmodal";
+import { useGlobalData } from "../../context/globaldatacontext";
+import { ProductionFlowsList } from "./components/productionflowslist";
+import { StorageItemsList } from "./components/storageitemslist";
+import { fetchClient } from "../../utils/apiclient";
 
 const formatFlow = (val: number) => {
 	const sign = val > 0 ? "+" : "";
@@ -79,28 +87,83 @@ export const ProductionCard = React.memo(
 		onSelect,
 	}: ProductionCardProps) => {
 		const theme = useTheme();
+		const globalData = useGlobalData();
+		const globalGetMatProps = globalData?.getMatProps || getMatProps;
+
 		const [tab, setTab] = useState<"production" | "storage" | "both">("both");
+		const [quickResupplyOpen, setQuickResupplyOpen] = useState(false);
+		const [quickExportOpen, setQuickExportOpen] = useState(false);
+		const [repairPlannerOpen, setRepairPlannerOpen] = useState(false);
+		const [siteNotifOpen, setSiteNotifOpen] = useState(false);
+		const [siteTargetModalOpen, setSiteTargetModalOpen] = useState(false);
+		const [materialTargetDays, setMaterialTargetDays] = useState<
+			Record<string, number>
+		>({});
+
+		useEffect(() => {
+			if (!siteId) return;
+			const loadSettings = async () => {
+				try {
+					const res = await fetchClient(
+						"/internal/entity-settings?domain=site",
+					);
+					if (res.ok) {
+						const json = await res.json();
+						if (json.entities && json.entities[siteId]) {
+							setMaterialTargetDays(
+								json.entities[siteId].material_target_days || {},
+							);
+						}
+					}
+				} catch (e) {
+					console.error("Failed to fetch site entity settings", e);
+				}
+			};
+			loadSettings();
+		}, [siteId, siteTargetModalOpen]);
 
 		const {
 			productionList,
 			consumptionList,
 			statusColor,
-			activeLines,
-			activeProducts,
 			storageList,
+			dailyImportVolume,
+			dailyImportMass,
+			dailyExportVolume,
+			dailyExportMass,
+			totalStoredUnits,
+			siteStoredVol,
+			siteStoredMass,
+			siteMaxVolCap,
+			siteMaxMassCap,
+			daysUntilStorageFull,
 		} = useMemo(() => {
 			const prod: FlowData[] = [];
 			const cons: FlowData[] = [];
 			let minDays = 999;
-			const products = new Set<string>();
+
+			let impVol = 0;
+			let impMass = 0;
+			let expVol = 0;
+			let expMass = 0;
 
 			Object.values(richFlows)
 				.sort((a, b) => a.ticker.localeCompare(b.ticker))
 				.forEach((f) => {
+					const props = globalGetMatProps(f.ticker);
 					if (f.flow > 0) {
 						prod.push(f);
+						const v = f.flow * props.volume;
+						const m = f.flow * props.weight;
+						expVol += v;
+						expMass += m;
 					} else if (f.flow < 0) {
 						const dailyBurn = Math.abs(f.flow);
+						const v = dailyBurn * props.volume;
+						const m = dailyBurn * props.weight;
+						impVol += v;
+						impMass += m;
+
 						const siteAvailable =
 							f.siteAmount !== undefined ? f.siteAmount : f.currentAmount;
 						const daysLeft = siteAvailable / dailyBurn;
@@ -115,38 +178,86 @@ export const ProductionCard = React.memo(
 			if (minDays < targetDays / 5) color = theme.palette.error.main;
 			else if (minDays < targetDays) color = theme.palette.warning.main;
 
-			let linesCount = 0;
-			site.production_lines?.forEach((l) => {
-				if (l.queue && l.queue.length > 0) {
-					linesCount++;
-					for (const f of l.queue) {
-						if (f.production_recipe) {
-							f.production_recipe.outputs?.forEach((out) => {
-								products.add(out.ticker);
-							});
-						}
-					}
-				}
-			});
-
 			const storage = [...(site.storage_items || [])].sort((a, b) =>
 				a.ticker.localeCompare(b.ticker),
 			);
+
+			const siteItems = storage.filter((s) => !s.type || s.type === "site");
+			const totalUnits = siteItems.reduce(
+				(sum, item) => sum + (item.amount || 0),
+				0,
+			);
+
+			let sVol = 0;
+			let sMass = 0;
+			siteItems.forEach((item) => {
+				const props = globalGetMatProps(item.ticker);
+				sVol += (item.amount || 0) * props.volume;
+				sMass += (item.amount || 0) * props.weight;
+			});
+
+			const matchingSiteUnit = Object.values(
+				globalData?.storageState?.units || {},
+			).find(
+				(u: any) =>
+					u.addressableid === site.siteid ||
+					(u.storageplanetid === site.planetid && u.type === "SITE"),
+			);
+
+			const baseVolCap =
+				site.storage_capacity ||
+				(site as any).volumecapacity ||
+				(site as any).capacity ||
+				matchingSiteUnit?.volumecapacity ||
+				(sVol > 0 ? sVol : 500);
+			const baseMassCap =
+				(site as any).weight_capacity ||
+				(site as any).weightcapacity ||
+				matchingSiteUnit?.weightcapacity ||
+				baseVolCap;
+
+			const maxVolCap = Math.max(sVol, baseVolCap);
+			const maxMassCap = Math.max(sMass, baseMassCap);
+
+			const netVolDelta = expVol - impVol;
+			const netMassDelta = expMass - impMass;
+
+			const remVolCap = Math.max(0, maxVolCap - sVol);
+			const remMassCap = Math.max(0, maxMassCap - sMass);
+
+			const daysVol =
+				netVolDelta > 0 && remVolCap > 0 ? remVolCap / netVolDelta : Infinity;
+			const daysMass =
+				netMassDelta > 0 && remMassCap > 0
+					? remMassCap / netMassDelta
+					: Infinity;
+			const minFull = Math.min(daysVol, daysMass);
+
+			const daysUntilFull = minFull < Infinity ? minFull : null;
 
 			return {
 				productionList: prod,
 				consumptionList: cons,
 				statusColor: color,
-				activeLines: linesCount,
-				activeProducts: Array.from(products).slice(0, 5),
 				storageList: storage,
+				dailyImportVolume: impVol,
+				dailyImportMass: impMass,
+				dailyExportVolume: expVol,
+				dailyExportMass: expMass,
+				totalStoredUnits: totalUnits,
+				siteStoredVol: sVol,
+				siteStoredMass: sMass,
+				siteMaxVolCap: maxVolCap,
+				siteMaxMassCap: maxMassCap,
+				daysUntilStorageFull: daysUntilFull,
 			};
 		}, [
 			richFlows,
-			site.production_lines,
 			site.storage_items,
+			site.storage_capacity,
 			targetDays,
 			theme,
+			globalGetMatProps,
 		]);
 
 		const siteOverallCondition =
@@ -161,682 +272,553 @@ export const ProductionCard = React.memo(
 					? theme.palette.warning.main
 					: theme.palette.error.main;
 
-		// Make leased cards visually distinct with a dashed border
 		const borderStyle =
 			site.isLeased && site.type === "Inbound" ? "dashed" : "solid";
 		const borderWidth =
 			site.isLeased && site.type === "Inbound" ? "2px" : "1px";
-		const isDark = theme.palette.mode === "dark";
 
-		// Prevent click on text selection
+		const permitsUsed =
+			site.invested_permits ??
+			(site as any).building_count ??
+			site.production_lines?.length ??
+			0;
+		const permitsMax =
+			site.maximum_permits ?? (site as any).plots ?? site.area ?? 0;
+		const permitsLabel =
+			permitsMax > 0
+				? `Permits ${permitsUsed}/${permitsMax}`
+				: `Lines ${permitsUsed}`;
+
+		const { dailyRevenue, dailyExpenses, dailyProfit } = useMemo(() => {
+			let rev = 0;
+			let exp = 0;
+			const priceMap: Record<string, number> = {};
+			const market = globalData?.marketData;
+			if (Array.isArray(market)) {
+				market.forEach((d: any) => {
+					priceMap[d.Ticker] =
+						(d["IC1-AskPrice"] || 0) > 0
+							? d["IC1-AskPrice"]
+							: d["IC1-Average"] || 0;
+				});
+			}
+			Object.values(richFlows).forEach((f) => {
+				const price = priceMap[f.ticker] || 0;
+				if (f.flow > 0) rev += f.flow * price;
+				else if (f.flow < 0) exp += Math.abs(f.flow * price);
+			});
+			return { dailyRevenue: rev, dailyExpenses: exp, dailyProfit: rev - exp };
+		}, [richFlows, globalData?.marketData]);
+
+		// Incoming ships calculation for this site Not working for now
+		const incomingFlights = useMemo(() => {
+			if (!globalData?.activeFlightPlans) return [];
+			const sitePlanet = (
+				site.planet_name ||
+				site.planet_name_alt ||
+				""
+			).toLowerCase();
+
+			return (globalData.activeFlightPlans || [])
+				.filter((fp: any) => {
+					const dest = (
+						fp.destination ||
+						fp.destinationplanetid ||
+						fp.destinationid ||
+						""
+					).toLowerCase();
+					return (
+						dest && (dest.includes(sitePlanet) || sitePlanet.includes(dest))
+					);
+				})
+				.map((fp: any) => {
+					const ship = globalData.ownerShips?.find(
+						(s: any) => s.id === fp.shipid || s.registration === fp.shipid,
+					);
+					const shipName =
+						ship?.name || ship?.registration || fp.shipid || "Ship";
+					const msLeft = fp.end ? Math.max(0, fp.end - Date.now()) : 0;
+					const hoursLeft = (msLeft / (1000 * 60 * 60)).toFixed(1);
+					const items: any[] = ship?.items || ship?.shipStorage?.items || [];
+					return { shipName, hoursLeft, items };
+				});
+		}, [globalData?.activeFlightPlans, globalData?.ownerShips, site]);
+
 		const handleClick = (e: React.MouseEvent) => {
 			const selection = window.getSelection();
 			if (selection && selection.toString().length > 0) {
-				return; // Don't trigger if user is copying text
+				return;
 			}
 			onSelect(siteId);
 		};
 
 		const renderProductionFlows = () => (
-			<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-				{productionList.length > 0 && (
-					<Box>
-						<Typography
-							variant="subtitle2"
-							sx={{
-								display: "flex",
-								alignItems: "center",
-								gap: 0.5,
-								mb: 0.25,
-								color: theme.palette.success.main,
-								fontWeight: 700,
-								fontSize: "0.65rem",
-							}}
-						>
-							<ArrowUpCircle size={12} /> PROD
-						</Typography>
-						<Box sx={{ display: "grid", gap: 0.25 }}>
-							{productionList.map((p) => (
-								<Box
-									key={p.ticker}
-									sx={{
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "center",
-										gap: 1,
-										py: 0.15,
-										borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
-									}}
-								>
-									<Box
-										sx={{
-											fontSize: "0.75em",
-											display: "flex",
-											alignItems: "center",
-										}}
-									>
-										<MaterialBadge ticker={p.ticker} />
-									</Box>
-									<Tooltip
-										title={
-											smartFormat(p.flow, true).isAbbreviated
-												? smartFormat(p.flow, true).full
-												: ""
-										}
-										disableHoverListener={
-											!smartFormat(p.flow, true).isAbbreviated
-										}
-									>
-										<Typography
-											variant="caption"
-											fontWeight={500}
-											color="success.main"
-											textAlign="right"
-											fontSize="0.75rem"
-											sx={{
-												fontFamily: "monospace",
-												fontVariantNumeric: "tabular-nums",
-												textDecoration: smartFormat(p.flow, true).isAbbreviated
-													? "underline dotted"
-													: "none",
-												textUnderlineOffset: "2px",
-												cursor: smartFormat(p.flow, true).isAbbreviated
-													? "help"
-													: "text",
-											}}
-										>
-											{smartFormat(p.flow, true).text}/d
-										</Typography>
-									</Tooltip>
-								</Box>
-							))}
-						</Box>
-					</Box>
-				)}
-
-				{consumptionList.length > 0 && (
-					<Box sx={{ mt: productionList.length ? 0.5 : 0 }}>
-						<Typography
-							variant="subtitle2"
-							sx={{
-								display: "flex",
-								alignItems: "center",
-								gap: 0.5,
-								mb: 0.25,
-								color: theme.palette.warning.main,
-								fontWeight: 700,
-								fontSize: "0.65rem",
-							}}
-						>
-							<ArrowDownCircle size={12} /> CONS
-						</Typography>
-						<Box sx={{ display: "grid", gap: 0.25 }}>
-							{consumptionList.map((c) => {
-								const isCritical = c.daysRemaining < targetDays / 5;
-								const isWarning = c.daysRemaining < targetDays;
-								const daysColor = isCritical
-									? "error.main"
-									: isWarning
-										? "warning.main"
-										: "success.main";
-								const {
-									text: needText,
-									full: needFull,
-									isAbbreviated,
-								} = smartFormat(c.missing);
-
-								return (
-									<Box
-										key={c.ticker}
-										sx={{
-											display: "grid",
-											gridTemplateColumns:
-												"min-content 1fr min-content min-content",
-											alignItems: "center",
-											gap: 0.5,
-											py: 0.15,
-											borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
-										}}
-									>
-										<Box
-											sx={{
-												fontSize: "0.75em",
-												display: "flex",
-												alignItems: "center",
-											}}
-										>
-											<MaterialBadge ticker={c.ticker} />
-										</Box>
-										<Tooltip
-											title={
-												smartFormat(c.flow, true).isAbbreviated
-													? smartFormat(c.flow, true).full
-													: ""
-											}
-											disableHoverListener={
-												!smartFormat(c.flow, true).isAbbreviated
-											}
-										>
-											<Typography
-												variant="caption"
-												color="text.secondary"
-												textAlign="right"
-												fontSize="0.75rem"
-												sx={{
-													fontFamily: "monospace",
-													fontVariantNumeric: "tabular-nums",
-													opacity: 0.9,
-													textDecoration: smartFormat(c.flow, true)
-														.isAbbreviated
-														? "underline dotted"
-														: "none",
-													textUnderlineOffset: "2px",
-													cursor: smartFormat(c.flow, true).isAbbreviated
-														? "help"
-														: "text",
-												}}
-											>
-												{smartFormat(c.flow, true).text}/d
-											</Typography>
-										</Tooltip>
-										<Tooltip title="Days remaining in Site (and Warehouse equivalent)">
-											<Typography
-												variant="caption"
-												fontWeight={500}
-												sx={{
-													color: daysColor,
-													cursor: "help",
-													whiteSpace: "nowrap",
-													fontFamily: "monospace",
-													fontVariantNumeric: "tabular-nums",
-													pr: 3,
-												}}
-												textAlign="right"
-												fontSize="0.75rem"
-											>
-												{c.daysRemaining > 999
-													? "∞"
-													: `${c.daysRemaining.toFixed(1)}d`}
-												{c.warehouseAmount &&
-												c.warehouseAmount > 0 &&
-												Math.abs(c.flow) > 0 ? (
-													<Typography
-														component="span"
-														variant="caption"
-														color="text.secondary"
-														sx={{ fontSize: "0.65rem", ml: 0.5 }}
-													>
-														(+
-														{(c.warehouseAmount / Math.abs(c.flow)).toFixed(1)}
-														d)
-													</Typography>
-												) : null}
-											</Typography>
-										</Tooltip>
-										<Box
-											sx={{
-												display: "flex",
-												justifyContent: "flex-end",
-												width: 36,
-											}}
-										>
-											{c.missing > 0 && (
-												<Tooltip
-													title={isAbbreviated ? `Need ${needFull}` : ""}
-													disableHoverListener={!isAbbreviated}
-												>
-													<Typography
-														variant="caption"
-														fontWeight={500}
-														color={daysColor}
-														sx={{
-															fontSize: "0.75rem",
-															textAlign: "right",
-															cursor: isAbbreviated ? "help" : "text",
-															textDecoration: isAbbreviated
-																? "underline dotted"
-																: "none",
-															textUnderlineOffset: "2px",
-															fontFamily: "monospace",
-															fontVariantNumeric: "tabular-nums",
-														}}
-													>
-														{needText}
-													</Typography>
-												</Tooltip>
-											)}
-										</Box>
-									</Box>
-								);
-							})}
-						</Box>
-					</Box>
-				)}
-
-				{!productionList.length && !consumptionList.length && (
-					<Typography
-						variant="caption"
-						color="text.disabled"
-						fontStyle="italic"
-						textAlign="center"
-						sx={{ py: 1, fontSize: "0.7rem" }}
-					>
-						No active flow
-					</Typography>
-				)}
-			</Box>
+			<ProductionFlowsList
+				productionList={productionList}
+				consumptionList={consumptionList}
+				targetDays={targetDays}
+				materialTargetDays={materialTargetDays}
+				dailyImportVolume={dailyImportVolume}
+				dailyImportMass={dailyImportMass}
+				dailyExportVolume={dailyExportVolume}
+				dailyExportMass={dailyExportMass}
+				dailyRevenue={dailyRevenue}
+				dailyExpenses={dailyExpenses}
+				dailyProfit={dailyProfit}
+			/>
 		);
 
-		const renderStorage = () => {
-			const siteStorage = storageList.filter(
-				(s) => !s.type || s.type === "site",
-			);
-			const warehouseStorage = storageList.filter(
-				(s) => s.type && s.type.includes("warehouse"),
-			);
+		const renderStorage = () => (
+			<StorageItemsList
+				storageList={storageList}
+				daysUntilStorageFull={daysUntilStorageFull}
+				site={site}
+				globalGetMatProps={globalGetMatProps}
+				globalData={globalData}
+			/>
+		);
 
-			const renderStorageSection = (
-				title: string,
-				icon: React.ReactNode,
-				list: typeof storageList,
-				color: string,
-			) => (
-				<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-					<Typography
-						variant="subtitle2"
+		return (
+			<>
+				<Paper
+					onClick={handleClick}
+					elevation={2}
+					sx={{
+						display: "flex",
+						flexDirection: "column",
+						borderRadius: "12px",
+						overflow: "hidden",
+						border: `${borderWidth} ${borderStyle} ${alpha(statusColor, site.isLeased ? 0.6 : 0.35)}`,
+						bgcolor: "rgba(20, 20, 20, 0.65)",
+						backdropFilter: "blur(20px)",
+						boxShadow: "0 6px 24px 0 rgba(0, 0, 0, 0.4)",
+						transition: "all 0.15s ease",
+						cursor: "pointer",
+						width: "100%",
+						"&:hover": {
+							boxShadow: `0 8px 24px -2px ${alpha(statusColor, 0.4)}`,
+							borderColor: statusColor,
+							bgcolor: "rgba(28, 28, 28, 0.75)",
+						},
+					}}
+				>
+					{/* --- HEADER --- */}
+					<Box
 						sx={{
+							px: 1.25,
+							py: 0.6,
 							display: "flex",
+							justifyContent: "space-between",
 							alignItems: "center",
-							gap: 0.5,
-							mb: 0.25,
-							color: color,
-							fontWeight: 700,
-							fontSize: "0.65rem",
+							bgcolor: alpha(statusColor, 0.1),
+							borderBottom: `1px solid ${alpha(statusColor, 0.15)}`,
 						}}
 					>
-						{icon} {title}
-					</Typography>
-					{list.length > 0 ? (
-						<Box sx={{ display: "grid", gap: 0.25 }}>
-							{list.map((s) => (
-								<Box
-									key={s.ticker}
+						<Box
+							sx={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "flex-start",
+								gap: 0.75,
+								overflow: "hidden",
+								flexWrap: "wrap",
+							}}
+						>
+							<Typography
+								noWrap
+								sx={{
+									fontSize: "1.05rem",
+									color: theme.palette.primary.main,
+									fontWeight: 800,
+								}}
+							>
+								{site.planet_name_alt === site.planet_name
+									? site.planet_name
+									: `${site.planet_name_alt} (${site.planet_name})`}
+							</Typography>
+
+							<Chip
+								label={permitsLabel}
+								size="small"
+								sx={{
+									height: 18,
+									fontSize: "0.7rem",
+									fontWeight: 800,
+									bgcolor: "rgba(123, 104, 238, 0.35)",
+									color: "#B4A6FF",
+									border: "1px solid rgba(180, 166, 255, 0.5)",
+								}}
+							/>
+						</Box>
+
+						{site.isLeased && (
+							<Chip
+								label={
+									site.type === "Inbound"
+										? `LEASED FROM: ${(site.partner || site.leased_from || "PARTNER").toUpperCase()}`
+										: `LOANED TO: ${(site.partner || site.leased_to || site.tenant || "PARTNER").toUpperCase()}`
+								}
+								size="small"
+								sx={{
+									height: 18,
+									fontSize: "0.75rem",
+									fontWeight: 600,
+									bgcolor:
+										site.type === "Inbound"
+											? "rgba(0, 229, 255, 0.15)"
+											: "rgba(255, 152, 0, 0.15)",
+									color: site.type === "Inbound" ? "#00e5ff" : "#ffb74d",
+									border: `1px dashed ${site.type === "Inbound" ? "rgba(0, 229, 255, 0.4)" : "rgba(255, 152, 0, 0.4)"}`,
+								}}
+							/>
+						)}
+
+						<Box
+							sx={{
+								display: "flex",
+								flexDirection: "row",
+								alignItems: "center",
+								justifyContent: "flex-end",
+								gap: 0.5,
+								flexShrink: 0,
+							}}
+						>
+							<Box
+								sx={{
+									display: "flex",
+									flexDirection: "column",
+									alignItems: "center",
+									gap: 0.5,
+								}}
+							>
+								<Button
+									size="small"
+									variant="contained"
+									onClick={(e) => {
+										e.stopPropagation();
+										setQuickResupplyOpen(true);
+									}}
 									sx={{
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "center",
-										gap: 1,
-										py: 0.15,
-										borderBottom: `1px dashed ${alpha(theme.palette.divider, 0.05)}`,
+										height: 20,
+										fontSize: "0.68rem",
+										fontWeight: 800,
+										bgcolor: "rgba(123, 104, 238, 0.2)",
+										color: "#B4A6FF",
+										border: "1px solid rgba(123, 104, 238, 0.45)",
+										textTransform: "none",
+										whiteSpace: "nowrap",
+										px: 1,
+										py: 0,
+										lineHeight: 1,
+										minWidth: "auto",
+										"&:hover": { bgcolor: "rgba(123, 104, 238, 0.35)" },
 									}}
 								>
-									<Box
+									Supply/Export
+								</Button>
+
+								<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+									<Tooltip title="Site Notification Settings">
+										<Button
+											size="small"
+											variant="outlined"
+											onClick={(e) => {
+												e.stopPropagation();
+												setSiteNotifOpen(true);
+											}}
+											sx={{
+												height: 20,
+												minWidth: 22,
+												px: 0.5,
+												fontSize: "0.68rem",
+												fontWeight: 800,
+												color: "#A594FF",
+												borderColor: "rgba(165, 148, 255, 0.4)",
+												bgcolor: "rgba(123, 104, 238, 0.15)",
+												"&:hover": {
+													bgcolor: "rgba(123, 104, 238, 0.3)",
+													borderColor: "#A594FF",
+												},
+											}}
+										>
+											<Bell size={11} />
+										</Button>
+									</Tooltip>
+
+									<Tooltip title="Click to open Site Repair & Condition Planner">
+										<Chip
+											icon={
+												<Wrench
+													size={10}
+													color={conditionColor}
+													style={{ marginLeft: 4 }}
+												/>
+											}
+											label={`${(siteOverallCondition * 100).toFixed(0)}%`}
+											size="small"
+											onClick={(e) => {
+												e.stopPropagation();
+												setRepairPlannerOpen(true);
+											}}
+											sx={{
+												height: 20,
+												fontSize: "0.7rem",
+												fontWeight: 800,
+												bgcolor: alpha(conditionColor, 0.15),
+												color: conditionColor,
+												border: `1px solid ${alpha(conditionColor, 0.3)}`,
+												cursor: "pointer",
+												transition: "all 0.15s ease",
+												"& .MuiChip-label": { px: 0.75 },
+												"&:hover": {
+													bgcolor: alpha(conditionColor, 0.25),
+												},
+											}}
+										/>
+									</Tooltip>
+								</Box>
+							</Box>
+
+							<ChevronRight
+								size={14}
+								color={theme.palette.text.secondary}
+								style={{ opacity: 0.5 }}
+							/>
+						</Box>
+					</Box>
+
+					{/* Site Notification Rules Modal */}
+					<SiteNotificationModal
+						open={siteNotifOpen}
+						onClose={() => setSiteNotifOpen(false)}
+						siteId={site.siteid || ""}
+						planetName={
+							site.planet_name_alt === site.planet_name
+								? site.planet_name
+								: `${site.planet_name_alt} (${site.planet_name})`
+						}
+					/>
+
+					{/* --- BODY --- */}
+					<Box
+						sx={{
+							p: 1,
+							flex: 1,
+							display: "flex",
+							flexDirection: "column",
+							gap: 0.75,
+						}}
+					>
+						{/* Incoming Ships Badges Section */}
+						{incomingFlights.length > 0 && (
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 1,
+									px: 1,
+									py: 0.4,
+									bgcolor: "rgba(123, 104, 238, 0.1)",
+									borderRadius: "6px",
+									border: "1px solid rgba(123, 104, 238, 0.25)",
+									flexWrap: "wrap",
+								}}
+							>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+									<Rocket size={13} color={theme.palette.primary.main} />
+									<Typography
+										variant="caption"
 										sx={{
-											fontSize: "0.75em",
-											display: "flex",
-											alignItems: "center",
+											fontSize: "0.68rem",
+											fontWeight: 800,
+											color: theme.palette.primary.main,
 										}}
 									>
-										<MaterialBadge ticker={s.ticker} />
-									</Box>
-									<Tooltip
-										title={
-											smartFormat(s.amount).isAbbreviated
-												? smartFormat(s.amount).full
-												: ""
-										}
-										disableHoverListener={!smartFormat(s.amount).isAbbreviated}
+										Incoming Ships ({incomingFlights.length}):
+									</Typography>
+								</Box>
+								{incomingFlights.map((flight, idx) => (
+									<Box
+										key={idx}
+										sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
 									>
 										<Typography
 											variant="caption"
-											fontWeight={500}
-											color="text.primary"
-											textAlign="right"
-											fontSize="0.75rem"
 											sx={{
-												fontFamily: "monospace",
-												fontVariantNumeric: "tabular-nums",
-												textDecoration: smartFormat(s.amount).isAbbreviated
-													? "underline dotted"
-													: "none",
-												textUnderlineOffset: "2px",
-												cursor: smartFormat(s.amount).isAbbreviated
-													? "help"
-													: "default",
+												fontSize: "0.68rem",
+												fontWeight: 700,
+												color: "white",
 											}}
 										>
-											{smartFormat(s.amount).text}
+											{flight.shipName} ({flight.hoursLeft}h)
 										</Typography>
-									</Tooltip>
-								</Box>
-							))}
-						</Box>
-					) : (
-						<Typography
-							variant="caption"
-							color="text.disabled"
-							fontStyle="italic"
-							textAlign="center"
-							sx={{ py: 1, fontSize: "0.7rem" }}
-						>
-							Empty storage
-						</Typography>
-					)}
-				</Box>
-			);
+										{flight.items.slice(0, 3).map((item: any, i: number) => (
+											<MaterialBadge
+												key={i}
+												ticker={item.materialTicker || item.ticker || item.name}
+											/>
+										))}
+									</Box>
+								))}
+							</Box>
+						)}
 
-			return (
-				<Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-					{renderStorageSection(
-						"SITE",
-						<Layers size={12} />,
-						siteStorage,
-						theme.palette.info.main,
-					)}
-					{renderStorageSection(
-						"WAREHOUSE",
-						<Warehouse size={12} />,
-						warehouseStorage,
-						theme.palette.warning.main,
-					)}
-				</Box>
-			);
-		};
-
-		return (
-			<Paper
-				onClick={handleClick}
-				elevation={2}
-				sx={{
-					display: "flex",
-					flexDirection: "column",
-					borderRadius: 2,
-					overflow: "hidden",
-					border: `${borderWidth} ${borderStyle} ${alpha(statusColor, site.isLeased ? 0.6 : 0.3)}`,
-					bgcolor: isDark
-						? alpha("#000000", 0.4)
-						: alpha(theme.palette.background.paper, 0.9),
-					backdropFilter: "blur(12px)",
-					transition: "all 0.1s ease",
-					cursor: "pointer",
-					width: "100%",
-					"&:hover": {
-						boxShadow: `0 4px 12px -2px ${alpha(statusColor, 0.3)}`,
-						borderColor: statusColor,
-					},
-				}}
-			>
-				{/* --- HEADER --- */}
-				<Box
-					sx={{
-						px: 1.5,
-						py: 0.75,
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						bgcolor: alpha(statusColor, 0.1),
-						borderBottom: `1px solid ${alpha(statusColor, 0.15)}`,
-					}}
-				>
-					<Box
-						sx={{
-							display: "flex",
-							alignItems: "center",
-							gap: 1,
-							overflow: "hidden",
-							flexWrap: "wrap",
-						}}
-					>
-						<Typography
-							variant="body1"
-							fontWeight={700}
-							color="text.primary"
-							noWrap
-							sx={{ fontSize: "0.9rem" }}
-						>
-							{site.planet_name_alt === site.planet_name
-								? site.planet_name
-								: `${site.planet_name_alt} (${site.planet_name})`}
-						</Typography>
-					</Box>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-						<Chip
-							icon={<Flame size={10} />}
-							label={`${(siteOverallCondition * 100).toFixed(0)}%`}
-							size="small"
+						{/* Sub-Header: Tabs with Full Naming + Enlarged Target Days Input */}
+						<Box
 							sx={{
-								height: 18,
-								fontSize: "0.65rem",
-								fontWeight: 600,
-								bgcolor: alpha(conditionColor, 0.1),
-								color: conditionColor,
-								border: `1px solid ${alpha(conditionColor, 0.25)}`,
-								"& .MuiChip-icon": { color: conditionColor },
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								gap: 1,
+								flexWrap: "wrap",
 							}}
-						/>
-						<ChevronRight
-							size={14}
-							color={theme.palette.text.secondary}
-							style={{ opacity: 0.5 }}
-						/>
-					</Box>
-				</Box>
-
-				{/* --- BODY --- */}
-				<Box
-					sx={{
-						p: 1,
-						flex: 1,
-						display: "flex",
-						flexDirection: "column",
-						gap: 0.75,
-					}}
-				>
-					{/* Permits & Target Input */}
-					<Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-						<Box sx={{ flex: 1 }}>
-							<Box
+						>
+							<Tabs
+								value={tab}
+								onChange={(_, newValue) => setTab(newValue)}
+								onClick={(e) => e.stopPropagation()}
 								sx={{
-									display: "flex",
-									justifyContent: "space-between",
+									minHeight: 26,
+									height: 26,
+									bgcolor: "rgba(0,0,0,0.4)",
+									borderRadius: "6px",
+									p: 0.25,
+									"& .MuiTab-root": {
+										minHeight: 22,
+										height: 22,
+										py: 0,
+										px: 1.25,
+										fontSize: "0.68rem",
+										fontWeight: 700,
+										color: "rgba(255,255,255,0.6)",
+										"&.Mui-selected": {
+											color: "white",
+											bgcolor: "#7B68EE",
+											borderRadius: "4px",
+										},
+									},
+									"& .MuiTabs-indicator": { display: "none" },
 								}}
 							>
+								<Tab label="BOTH" value="both" />
+								<Tab label="PRODUCTION" value="production" />
+								<Tab label="STORAGE" value="storage" />
+							</Tabs>
+
+							<Tooltip title="Configure Site Global & Per-Material Supply Target Days (CONS)">
+								<Button
+									size="small"
+									variant="outlined"
+									onClick={(e) => {
+										e.stopPropagation();
+										setSiteTargetModalOpen(true);
+									}}
+									startIcon={<Target size={12} />}
+									sx={{
+										height: 24,
+										px: 1,
+										fontSize: "0.72rem",
+										fontWeight: 800,
+										borderColor: "rgba(123, 104, 238, 0.4)",
+										color: "#B4A6FF",
+										bgcolor: "rgba(123, 104, 238, 0.15)",
+										textTransform: "none",
+										"&:hover": {
+											bgcolor: "rgba(123, 104, 238, 0.3)",
+											borderColor: "#7B68EE",
+										},
+									}}
+								>
+									Target: {targetDays}d
+								</Button>
+							</Tooltip>
+						</Box>
+
+						{/* Tab Content with Flexible Dynamic Column Widths & Perfect Horizontal Alignment */}
+						<Box sx={{ mt: 0.5 }}>
+							{tab === "both" && (
 								<Box
 									sx={{
 										display: "flex",
-										alignItems: "center",
-										gap: 0.5,
-										opacity: 0.7,
+										flexDirection: { xs: "column", md: "row" },
+										gap: 1.5,
+										width: "100%",
 									}}
 								>
-									<Archive size={10} />
-									<Typography
-										variant="caption"
-										fontWeight={600}
-										fontSize="0.6rem"
+									<Box
+										sx={{ flex: "1 1 66%", minWidth: 0, overflowX: "hidden" }}
 									>
-										PERMITS
-									</Typography>
+										{renderProductionFlows()}
+									</Box>
+									<Box
+										sx={{ flex: "1 1 34%", minWidth: 0, overflowX: "hidden" }}
+									>
+										{renderStorage()}
+									</Box>
 								</Box>
-								<Typography
-									variant="caption"
-									fontWeight={600}
-									color="text.primary"
-									fontSize="0.7rem"
-								>
-									{site.invested_permits} / {site.maximum_permits}
-								</Typography>
-							</Box>
+							)}
+							{tab === "production" && renderProductionFlows()}
+							{tab === "storage" && renderStorage()}
 						</Box>
-
-						<TextField
-							label="Target"
-							type="number"
-							variant="outlined"
-							size="small"
-							value={targetDays}
-							onChange={(e) => onTargetDaysChange(e.target.value)}
-							onClick={(e) => e.stopPropagation()}
-							slotProps={{
-								input: {
-									endAdornment: (
-										<InputAdornment position="end">
-											<Typography
-												variant="subtitle2"
-												color="text.secondary"
-												sx={{ fontSize: "0.7rem", marginRight: 0.5 }}
-											>
-												d
-											</Typography>
-										</InputAdornment>
-									),
-								},
-							}}
-							sx={{
-								width: 60,
-								flexShrink: 0,
-								"& .MuiInputBase-root": {
-									fontSize: "0.75rem",
-									borderRadius: 1,
-									height: 24,
-									paddingRight: 0,
-								},
-								"& .MuiInputLabel-root": {
-									fontSize: "0.7rem",
-									transform: "translate(6px, 4px) scale(1)",
-								},
-								"& .MuiInputLabel-shrink": {
-									transform: "translate(6px, -6px) scale(0.85)",
-								},
-							}}
-						/>
 					</Box>
+				</Paper>
 
-					<Divider sx={{ opacity: 0.2, my: 0.25 }} />
+				{/* Logistics & Export Planner Modal */}
+				{(quickResupplyOpen || quickExportOpen) && (
+					<FastLogisticsModal
+						open={quickResupplyOpen || quickExportOpen}
+						onClose={() => {
+							setQuickResupplyOpen(false);
+							setQuickExportOpen(false);
+						}}
+						initialTab={quickExportOpen ? "export" : "resupply"}
+						siteName={site.planet_name_alt || site.planet_name}
+						consumptionList={consumptionList}
+						productionList={productionList}
+						storageList={storageList}
+						targetDays={targetDays}
+						siteStorageCapacity={siteMaxVolCap}
+						warehouseStorageCapacity={(site as any).warehouse_capacity || 5000}
+						siteStoredVol={siteStoredVol}
+						siteStoredMass={siteStoredMass}
+						daysUntilFull={daysUntilStorageFull}
+					/>
+				)}
 
-					<Box
-						sx={{ borderBottom: 1, borderColor: "divider" }}
-						onClick={(e) => e.stopPropagation()}
-					>
-						<Tabs
-							value={tab}
-							onChange={(_, newValue) => setTab(newValue)}
-							centered
-							aria-label="site data tabs"
-							sx={{
-								minHeight: 24,
-								"& .MuiTab-root": {
-									minHeight: 24,
-									py: 0,
-									px: 1,
-									fontSize: "0.65rem",
-									fontWeight: 600,
-									transition: "0.2s",
-									"&:hover": {
-										bgcolor: alpha(theme.palette.primary.main, 0.1),
-										borderRadius: 1,
-									},
-								},
-							}}
-						>
-							<Tab label="Both" value="both" />
-							<Tab label="Production" value="production" />
-							<Tab label="Storage" value="storage" />
-						</Tabs>
-					</Box>
+				{/* Site Repair & Building Condition Planner Modal */}
+				{repairPlannerOpen && (
+					<FastRepairModal
+						open={repairPlannerOpen}
+						onClose={() => setRepairPlannerOpen(false)}
+						siteName={site.planet_name_alt || site.planet_name}
+						currentCondition={siteOverallCondition}
+						productionLines={site.production_lines}
+						sitePlatformConditions={
+							(site as any).site_platform_conditions || []
+						}
+						platformRepairList={(site as any).platform_repair_list || []}
+						planetProps={(site as any).planet_props}
+						richFlows={richFlows}
+					/>
+				)}
 
-					{/* --- DATA SECTION --- */}
-					<Box sx={{ flex: 1, minHeight: 60, mt: 0.5 }}>
-						{tab === "production" && renderProductionFlows()}
-						{tab === "storage" && renderStorage()}
-						{tab === "both" && (
-							<Box
-								sx={{
-									display: "flex",
-									flexDirection: { xs: "column", sm: "row" },
-									gap: 1,
-								}}
-							>
-								<Box
-									sx={{
-										flex: 1.8,
-										minWidth: 0,
-										borderRight: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-										pr: 1,
-									}}
-								>
-									{renderProductionFlows()}
-								</Box>
-								<Box sx={{ flex: 1, minWidth: 0 }}>{renderStorage()}</Box>
-							</Box>
-						)}
-					</Box>
-				</Box>
-
-				{/* --- FOOTER: ACTIVE LINES --- */}
-				<Box
-					sx={{
-						px: 1,
-						py: 0.5,
-						bgcolor: alpha(theme.palette.action.hover, 0.05),
-						borderTop: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-					}}
-				>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-						<Factory size={10} color={theme.palette.text.secondary} />
-						<Typography
-							variant="caption"
-							fontWeight={600}
-							color="text.secondary"
-							fontSize="0.65rem"
-						>
-							{site.production_lines?.length || 0} Lines
-						</Typography>
-					</Box>
-					{activeLines > 0 ? (
-						<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-							<Box
-								sx={{
-									display: "flex",
-									gap: 0.25,
-									flexWrap: "wrap",
-									justifyContent: "flex-end",
-								}}
-							>
-								{activeProducts.map((ticker) => (
-									<Chip
-										key={ticker}
-										label={ticker}
-										size="small"
-										variant="outlined"
-										sx={{
-											height: 14,
-											fontSize: "0.55rem",
-											fontWeight: 600,
-											borderColor: alpha(theme.palette.info.main, 0.3),
-											color: theme.palette.text.primary,
-											px: 0,
-											"& .MuiChip-label": { px: 0.5 },
-										}}
-									/>
-								))}
-							</Box>
-							<Package size={10} color={theme.palette.info.main} />
-						</Box>
-					) : (
-						<Typography
-							variant="caption"
-							color="text.disabled"
-							fontSize="0.65rem"
-						>
-							Idle
-						</Typography>
-					)}
-				</Box>
-			</Paper>
+				{/* Site Target Supply Modal (Global & CONS Material Targets) */}
+				<SiteTargetModal
+					open={siteTargetModalOpen}
+					onClose={() => setSiteTargetModalOpen(false)}
+					siteId={site.siteid || ""}
+					planetName={
+						site.planet_name_alt === site.planet_name
+							? site.planet_name
+							: `${site.planet_name_alt} (${site.planet_name})`
+					}
+					currentTargetDays={targetDays}
+					consumptionList={consumptionList}
+					onTargetDaysChange={onTargetDaysChange}
+				/>
+			</>
 		);
 	},
 );
+
+ProductionCard.displayName = "ProductionCard";

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
 import {
 	Dialog,
+	DialogTitle,
 	DialogContent,
 	IconButton,
 	Typography,
@@ -8,765 +8,631 @@ import {
 	Chip,
 	Divider,
 	CircularProgress,
-	useTheme,
-	useMediaQuery,
 	Paper,
-	Avatar,
-	Stack,
-	Tooltip,
 	Grid,
+	Stack,
+	LinearProgress,
 } from "@mui/material";
 import {
-	Close,
-	CalendarToday,
-	MonetizationOn,
-	Inventory2,
-	Assignment,
-	AccessTime,
-	CheckCircleOutlined,
-	RadioButtonUnchecked,
-	Description,
-	AttachMoney,
-	TrendingUp,
-	PieChart,
+	Close as CloseIcon,
+	Handshake as HandshakeIcon,
+	Person as PersonIcon,
+	Description as DescriptionIcon,
 } from "@mui/icons-material";
-import { alpha } from "@mui/material/styles";
-import { fetchClient } from "../../../utils/apiclient";
-import MaterialBadge from "../../../cosm/components/materialbadge";
-import { formatCurrency, getStatusColor, getStatusBg } from "../helpers/helper";
-import dayjs from "dayjs";
+import {
+	formatCurrency,
+	SEMANTIC_COLORS,
+} from "../../financial/utils/financeutils";
+import { useContractDetail } from "../hooks/usecontractdetail";
+import { ContractConditionCard } from "./contractconditioncard";
+import type { Condition } from "../types";
 
-// --- Types ---
-interface Condition {
-	id: string;
-	type: string;
-	status: string;
-	index: number;
-	party?: string;
-	deadline?: string;
-	amountmoney?: number;
-	currencymoney?: string;
-	interestamount?: number;
-	currency?: string;
-	repaymentamount?: number;
-	totalamount?: number;
-	implied_interest_rate?: number;
-	material_summary?: string;
-	addresssystemid?: string;
-	addressplanetid?: string;
-	addressstationid?: string;
-	destinationsystemid?: string;
-	destinationplanetid?: string;
-	destinationstationid?: string;
-	reputationchange?: number;
-	addresssystemname?: string;
-	addressplanetname?: string;
-	addressstationname?: string;
-	destinationsystemname?: string;
-	destinationplanetname?: string;
-	destinationstationname?: string;
-}
-
-interface ContractDetailData {
-	id: string;
-	localid?: string;
-	name?: string;
-	date: string;
-	status: string;
-	contracttype?: string;
-	partnername?: string;
-	partnercode?: string;
-	duedate?: string;
-	preamble?: string;
-	party?: string;
-	is_income?: boolean;
-	total_amount?: number;
-	currency?: string;
-	conditions: Condition[];
-}
-
-interface Props {
+export interface ContractDetailDialogProps {
 	open: boolean;
 	contractId: string | null;
 	onClose: () => void;
+	showSettlementLogs?: boolean;
 }
 
-const ContractConditionRow = ({
-	condition,
-	contractParty,
-	contractCurrency,
-}: {
-	condition: Condition;
-	contractParty?: string;
-	contractCurrency?: string;
-}) => {
-	const theme = useTheme();
-	const isDone = condition.status === "FULFILLED";
-	const isMaterial =
-		condition.type === "PROVISION" ||
-		condition.type === "DEPOSIT" ||
-		condition.type === "WITHDRAW" ||
-		condition.type === "PROVISION_SHIPMENT" ||
-		condition.type === "PICKUP_SHIPMENT" ||
-		condition.type === "DELIVERY_SHIPMENT" ||
-		condition.type === "COMEX_PURCHASE_PICKUP";
-
-	const isLoanCondition =
-		condition.type === "LOAN_PAYOUT" || condition.type === "LOAN_INSTALLMENT";
-
-	const isMoney = !!condition.amountmoney || !!condition.repaymentamount;
-	const isMyCondition = condition.party === contractParty;
-
-	// Currency Resolver
-	const curr =
-		condition.currencymoney || condition.currency || contractCurrency;
-
-	return (
-		<Paper
-			elevation={0}
-			sx={{
-				px: 1,
-				py: 0.75,
-				mb: 0.5,
-				border: `1px solid ${theme.palette.divider}`,
-				bgcolor: isDone
-					? alpha(theme.palette.success.main, 0.04)
-					: "background.paper",
-				display: "flex",
-				alignItems: "center",
-				gap: 1,
-				transition: "all 0.1s",
-				"&:hover": { bgcolor: alpha(theme.palette.action.hover, 0.05) },
-			}}
-		>
-			{/* 1. Index number */}
-			<Typography
-				variant="caption"
-				color="text.disabled"
-				fontWeight={700}
-				sx={{ minWidth: 20, textAlign: "center", flexShrink: 0 }}
-			>
-				#{condition.index}
-			</Typography>
-
-			{/* 2. Type icon */}
-			<Avatar
-				variant="rounded"
-				sx={{
-					bgcolor: isMoney
-						? alpha(theme.palette.success.main, 0.1)
-						: isMaterial
-							? alpha(theme.palette.info.main, 0.1)
-							: alpha(theme.palette.action.selected, 0.3),
-					color: isMoney
-						? "success.main"
-						: isMaterial
-							? "info.main"
-							: "text.secondary",
-					width: 24,
-					height: 24,
-					flexShrink: 0,
-				}}
-			>
-				{isMoney ? (
-					<MonetizationOn sx={{ fontSize: 14 }} />
-				) : isMaterial ? (
-					<Inventory2 sx={{ fontSize: 14 }} />
-				) : (
-					<Assignment sx={{ fontSize: 14 }} />
-				)}
-			</Avatar>
-
-			{/* 3. Left content: type label + YOU/PARTNER chip + location/rep sub-info */}
-			<Box sx={{ flexGrow: 1, minWidth: 0 }}>
-				{/* Type label row */}
-				<Stack
-					direction="row"
-					spacing={0.75}
-					alignItems="center"
-					flexWrap="wrap"
-				>
-					<Typography
-						variant="subtitle2"
-						fontWeight={700}
-						fontSize="0.75rem"
-						noWrap
-					>
-						{condition.type.replace(/_/g, " ")}
-					</Typography>
-					<Chip
-						label={isMyCondition ? "YOU" : "PARTNER"}
-						size="small"
-						sx={{
-							height: 16,
-							fontSize: "0.55rem",
-							fontWeight: 800,
-							bgcolor: isMyCondition
-								? alpha(theme.palette.info.main, 0.1)
-								: alpha(theme.palette.warning.main, 0.1),
-							color: isMyCondition ? "info.main" : "warning.main",
-							border: `1px solid ${
-								isMyCondition
-									? alpha(theme.palette.info.main, 0.25)
-									: alpha(theme.palette.warning.main, 0.25)
-							}`,
-						}}
-					/>
-				</Stack>
-
-				{/* Location / Destination sub-row */}
-				{(condition.addresssystemid ||
-					condition.addressplanetid ||
-					condition.addressstationid) && (
-					<Typography
-						variant="caption"
-						color="text.secondary"
-						sx={{ fontSize: "0.65rem", display: "block", mt: 0.25 }}
-					>
-						📍{" "}
-						{condition.addressstationname ||
-							condition.addressplanetname ||
-							condition.addressstationid ||
-							condition.addressplanetid ||
-							condition.addresssystemid}
-						{condition.addresssystemname && ` [${condition.addresssystemname}]`}
-						{(condition.destinationsystemid ||
-							condition.destinationplanetid ||
-							condition.destinationstationid) && (
-							<>
-								{" ➔ "}
-								{condition.destinationstationname ||
-									condition.destinationplanetname ||
-									condition.destinationstationid ||
-									condition.destinationplanetid ||
-									condition.destinationsystemid}
-								{condition.destinationsystemname &&
-									` [${condition.destinationsystemname}]`}
-							</>
-						)}
-					</Typography>
-				)}
-
-				{/* Reputation */}
-				{condition.reputationchange != null && (
-					<Chip
-						label={`${condition.reputationchange > 0 ? "+" : ""}${condition.reputationchange} Rep`}
-						size="small"
-						color={condition.reputationchange >= 0 ? "success" : "error"}
-						variant="outlined"
-						sx={{ height: 14, fontSize: "0.55rem", fontWeight: 700, mt: 0.25 }}
-					/>
-				)}
-			</Box>
-
-			{/* 4. Right content: payment value / material badges / loan data */}
-			<Box sx={{ textAlign: "right", flexShrink: 0, maxWidth: "45%" }}>
-				{/* Standard payment */}
-				{!isLoanCondition && condition.amountmoney && (
-					<Typography
-						variant="body2"
-						fontFamily="monospace"
-						fontWeight={700}
-						sx={{
-							color: isMyCondition ? "error.main" : "success.main",
-							fontSize: "0.85rem",
-						}}
-					>
-						{isMyCondition ? "-" : "+"}
-						{formatCurrency(condition.amountmoney, curr)}
-					</Typography>
-				)}
-
-				{/* Material badges */}
-				{isMaterial && condition.material_summary && (
-					<Box
-						sx={{
-							display: "flex",
-							flexWrap: "wrap",
-							gap: 0.4,
-							justifyContent: "flex-end",
-						}}
-					>
-						{condition.material_summary.split(", ").map((entry, i) => {
-							const match = entry.match(/^(\d+)x\s+(.+)$/);
-							if (!match)
-								return (
-									<Typography
-										key={i}
-										variant="caption"
-										color="text.secondary"
-										sx={{ fontSize: "0.6rem" }}
-									>
-										{entry}
-									</Typography>
-								);
-							const [, qty, ticker] = match;
-							return (
-								<Box
-									key={i}
-									sx={{
-										display: "inline-flex",
-										alignItems: "center",
-										gap: 0.2,
-									}}
-								>
-									<Typography
-										variant="caption"
-										color="text.secondary"
-										sx={{ fontSize: "0.6rem", lineHeight: 1 }}
-									>
-										{qty}x
-									</Typography>
-									<span style={{ fontSize: "0.6rem" }}>
-										<MaterialBadge ticker={ticker} />
-									</span>
-								</Box>
-							);
-						})}
-					</Box>
-				)}
-
-				{/* Loan installment data */}
-				{isLoanCondition && (
-					<Box
-						sx={{
-							display: "flex",
-							gap: 1.5,
-							flexDirection: "row",
-							alignItems: "flex-end",
-							justifyContent: "flex-end",
-						}}
-					>
-						{condition.repaymentamount !== undefined && (
-							<Box sx={{ textAlign: "right" }}>
-								<Typography
-									variant="caption"
-									display="block"
-									color="text.secondary"
-									sx={{ fontSize: "0.6rem" }}
-								>
-									PRINCIPAL
-								</Typography>
-								<Typography
-									variant="caption"
-									fontFamily="monospace"
-									fontWeight={600}
-									sx={{ fontSize: "0.72rem" }}
-								>
-									{formatCurrency(condition.repaymentamount, curr)}
-								</Typography>
-							</Box>
-						)}
-						{condition.interestamount !== undefined && (
-							<Box sx={{ textAlign: "right" }}>
-								<Typography
-									variant="caption"
-									display="block"
-									color="text.secondary"
-									sx={{ fontSize: "0.6rem" }}
-								>
-									INTEREST
-								</Typography>
-								<Typography
-									variant="caption"
-									fontFamily="monospace"
-									fontWeight={600}
-									color="success.main"
-									sx={{ fontSize: "0.72rem" }}
-								>
-									+{formatCurrency(condition.interestamount, curr)}
-								</Typography>
-							</Box>
-						)}
-						{condition.totalamount !== undefined && (
-							<Box sx={{ textAlign: "right" }}>
-								<Typography
-									variant="caption"
-									display="block"
-									color="text.secondary"
-									sx={{ fontSize: "0.6rem" }}
-								>
-									TOTAL
-								</Typography>
-								<Typography
-									variant="caption"
-									fontFamily="monospace"
-									fontWeight={800}
-									sx={{ fontSize: "0.72rem" }}
-								>
-									{formatCurrency(condition.totalamount, curr)}
-								</Typography>
-							</Box>
-						)}
-					</Box>
-				)}
-
-				{/* Deadline chip */}
-				{condition.deadline && (
-					<Chip
-						icon={<AccessTime sx={{ fontSize: "10px !important" }} />}
-						label={dayjs(condition.deadline).format("MMM D, HH:mm")}
-						size="small"
-						variant="outlined"
-						sx={{
-							mt: 0.25,
-							height: 18,
-							fontSize: "0.6rem",
-							border: "none",
-							bgcolor: alpha(theme.palette.warning.main, 0.1),
-							color: theme.palette.warning.main,
-						}}
-					/>
-				)}
-			</Box>
-
-			{/* 5. Status icon */}
-			{isDone ? (
-				<CheckCircleOutlined
-					fontSize="small"
-					color="success"
-					sx={{ flexShrink: 0 }}
-				/>
-			) : (
-				<RadioButtonUnchecked
-					fontSize="small"
-					color="disabled"
-					sx={{ flexShrink: 0 }}
-				/>
-			)}
-		</Paper>
-	);
-};
-
-// --- Main Dialog ---
-const ContractDetailDialog: React.FC<Props> = ({
+export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
 	open,
 	contractId,
 	onClose,
+	showSettlementLogs = false,
 }) => {
-	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-	const [data, setData] = useState<ContractDetailData | null>(null);
-	const [loading, setLoading] = useState(false);
+	const {
+		contract,
+		vendorOrders,
+		loading,
+		theme,
+		corpPrices,
+		marketData,
+		storageState,
+		financialData,
+	} = useContractDetail({ contractId, open });
 
-	useEffect(() => {
-		if (open && contractId) {
-			setLoading(true);
-			fetchClient(`/internal/contracts/detail?contract_id=${contractId}`)
-				.then((res) => res.json())
-				.then((json) =>
-					setData(
-						json.contract
-							? { ...json.contract, conditions: json.conditions }
-							: json,
-					),
-				)
-				.catch(console.error)
-				.finally(() => setLoading(false));
-		} else {
-			setData(null);
-		}
-	}, [open, contractId]);
+	if (!open || !contractId) return null;
 
-	if (!contractId) return null;
-	const c = data;
+	const allConditions: Condition[] = contract?.conditions || [];
 
 	return (
 		<Dialog
 			open={open}
 			onClose={onClose}
-			fullScreen={isMobile}
 			maxWidth="lg"
-			fullWidth
 			slotProps={{
 				paper: {
 					sx: {
-						bgcolor: theme.palette.background.default,
-						backgroundImage: "none",
-						borderRadius: isMobile ? 0 : 2,
-						height: isMobile ? "100%" : "80vh",
+						backgroundColor: "rgba(10, 10, 20, 0.96)",
+						backdropFilter: "blur(25px)",
+						border: "1px solid rgba(123, 104, 238, 0.35)",
+						borderRadius: "14px",
+						boxShadow:
+							"0 0 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(123, 104, 238, 0.25)",
+						color: "white",
+						overflow: "hidden",
+						m: { xs: 1, sm: "auto" },
+						maxWidth: { xs: "98vw", sm: "90vw", md: "1100px" },
+						width: { xs: "100%", sm: "900px", md: "1100px" },
+						maxHeight: { xs: "94vh", sm: "90vh" },
 					},
 				},
 			}}
 		>
-			{/* 1. SLIM HEADER */}
-			<Box
+			{/* Dialog Header */}
+			<DialogTitle
 				sx={{
-					bgcolor: theme.palette.primary.main,
-					color: "primary.contrastText",
-					p: 1,
+					p: { xs: 1.5, sm: 2 },
+					px: { xs: 2, sm: 2.5 },
 					display: "flex",
-					justifyContent: "space-between",
 					alignItems: "center",
+					justifyContent: "space-between",
+					borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+					bgcolor: "rgba(123, 104, 238, 0.06)",
 				}}
 			>
-				<Stack direction="row" alignItems="center" spacing={2}>
-					<Assignment />
+				<Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+					<Box
+						sx={{
+							p: 0.75,
+							borderRadius: "8px",
+							bgcolor: "rgba(123, 104, 238, 0.15)",
+							color: "#7b68ee",
+							display: "flex",
+						}}
+					>
+						<HandshakeIcon />
+					</Box>
 					<Box>
-						<Typography variant="subtitle1" fontWeight={800} lineHeight={1.1}>
-							{c?.name || "Contract Details"}
-						</Typography>
-						<Typography variant="caption" sx={{ opacity: 0.8 }}>
-							{c?.localid} • {c?.contracttype}
-						</Typography>
-					</Box>
-				</Stack>
-				<IconButton
-					onClick={onClose}
-					size="small"
-					sx={{ color: "inherit", bgcolor: "rgba(0,0,0,0.1)" }}
-				>
-					<Close />
-				</IconButton>
-			</Box>
-
-			<DialogContent
-				sx={{ p: 0, display: "flex", flexDirection: "column", height: "100%" }}
-			>
-				{loading || !c ? (
-					<Box
-						sx={{
-							flex: 1,
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-						}}
-					>
-						<CircularProgress />
-					</Box>
-				) : (
-					<Box
-						sx={{
-							flex: 1,
-							display: "flex",
-							flexDirection: "column",
-							p: 2,
-							gap: 2,
-						}}
-					>
-						{/* 2. INFO BAR (Space Between Alignment) */}
-						<Paper
-							variant="outlined"
+						<Box
 							sx={{
-								p: 1.5,
-								bgcolor: alpha(theme.palette.background.default, 0.5),
 								display: "flex",
-								justifyContent: "space-between",
 								alignItems: "center",
-								flexWrap: "wrap",
 								gap: 1,
+								flexWrap: "wrap",
 							}}
 						>
-							{/* Value */}
-							<Box
-								sx={{
-									flex: 1,
-									minWidth: "fit-content",
-									justifyContent: "center",
-								}}
+							<Typography
+								variant="subtitle1"
+								sx={{ fontWeight: 800, color: "white", fontSize: "1.05rem" }}
 							>
-								<Typography
-									variant="caption"
-									color="text.secondary"
-									fontWeight={700}
+								{contract?.name || `Contract Agreement [ ${contract?.id} ]`}
+							</Typography>
+							<Chip
+								label={contract?.status}
+								size="small"
+								sx={{
+									height: 20,
+									fontSize: "0.62rem",
+									fontWeight: 800,
+									bgcolor:
+										contract?.status === "FULFILLED"
+											? "rgba(74, 222, 128, 0.15)"
+											: "rgba(123, 104, 238, 0.15)",
+									color:
+										contract?.status === "FULFILLED"
+											? SEMANTIC_COLORS.neonGreen
+											: "#7b68ee",
+									border: `1px solid ${contract?.status === "FULFILLED" ? "rgba(74, 222, 128, 0.3)" : "rgba(123, 104, 238, 0.3)"}`,
+								}}
+							/>
+							{contract?.action_state && (
+								<Chip
+									label={contract.action_state.label}
+									size="small"
+									color={contract.action_state.color}
+									sx={{ height: 20, fontSize: "0.62rem", fontWeight: 800 }}
+								/>
+							)}
+						</Box>
+						<Typography
+							sx={{
+								fontSize: "0.72rem",
+								color: "#7b68ee",
+								fontFamily: "monospace",
+								fontWeight: 700,
+							}}
+						>
+							{contract?.id} • {contract?.contracttype || "TRADE"}
+						</Typography>
+					</Box>
+				</Box>
+				<IconButton
+					onClick={onClose}
+					sx={{
+						color: "rgba(255, 255, 255, 0.5)",
+						"&:hover": { color: "white" },
+					}}
+				>
+					<CloseIcon fontSize="small" />
+				</IconButton>
+			</DialogTitle>
+
+			{/* Dialog Content */}
+			<DialogContent
+				sx={{
+					p: { xs: 1.25, sm: 1.75 },
+					display: "flex",
+					flexDirection: "column",
+					gap: 1.25,
+					overflowY: "auto",
+				}}
+			>
+				{loading ? (
+					<Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+						<CircularProgress size={30} sx={{ color: "#7b68ee" }} />
+					</Box>
+				) : !contract ? (
+					<Typography
+						variant="body2"
+						color="text.secondary"
+						align="center"
+						sx={{ py: 3 }}
+					>
+						Unable to load contract details.
+					</Typography>
+				) : (
+					<>
+						{/* Overview KPI Cards Grid */}
+						<Grid
+							container
+							spacing={1.25}
+							sx={{ justifyContent: "space-around", mt: 1 }}
+						>
+							{/* Card 1: Total Contract Value */}
+							<Grid item xs={12} sm={4}>
+								<Box
+									sx={{
+										p: 1.25,
+										borderRadius: "8px",
+										bgcolor: "rgba(18, 18, 37, 0.6)",
+										borderColor: "rgba(123, 104, 238, 0.2)",
+										border: "1px solid rgba(123, 104, 238, 0.25)",
+										height: "100%",
+										display: "flex",
+										flexDirection: "column",
+										justifyContent: "space-between",
+									}}
 								>
-									TOTAL VALUE
-								</Typography>
-								<Stack direction="row" spacing={0.5} alignItems="center">
-									<Typography
-										variant="h6"
-										fontFamily="monospace"
-										fontWeight={700}
-										lineHeight={1}
+									<Box
 										sx={{
-											color: c.is_income ? "success.main" : "error.main",
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "space-between",
 										}}
 									>
-										{c.is_income ? "+" : "-"}
-										{formatCurrency(
-											c.conditions
-												.filter(
-													(cond) =>
-														cond.type === "PAYMENT" ||
-														cond.type === "LOAN_INSTALLMENT" ||
-														cond.type === "LOAN_PAYOUT",
-												)
-												.reduce(
-													(acc, cond) =>
-														acc + (cond.amountmoney || cond.totalamount || 0),
-													0,
-												) ||
-												c.total_amount ||
-												0,
-											c.currency || "ICA",
+										<Typography
+											variant="caption"
+											sx={{
+												color: "rgba(255,255,255,0.6)",
+												fontWeight: 800,
+												fontSize: "0.62rem",
+												textTransform: "uppercase",
+											}}
+										>
+											TOTAL CONTRACT VALUE
+										</Typography>
+										{contract.has_amount && (
+											<Chip
+												label={
+													contract.is_income
+														? "NET INCOME (+)"
+														: "NET EXPENSE (-)"
+												}
+												size="small"
+												sx={{
+													height: 16,
+													fontSize: "0.52rem",
+													fontWeight: 800,
+													bgcolor: contract.is_income
+														? "rgba(74, 222, 128, 0.15)"
+														: "rgba(239, 68, 68, 0.15)",
+													color: contract.amount_color,
+												}}
+											/>
 										)}
-									</Typography>
-								</Stack>
-							</Box>
+									</Box>
 
-							<Divider orientation="vertical" flexItem />
-
-							{/* Partner */}
-							<Box sx={{ flex: 1, minWidth: "fit-content" }}>
-								<Typography
-									variant="caption"
-									color="text.secondary"
-									fontWeight={700}
-								>
-									PARTNER
-								</Typography>
-								<Stack direction="row" spacing={1} alignItems="center">
-									<Avatar
+									<Typography
 										sx={{
-											width: 20,
-											height: 20,
-											fontSize: 10,
-											bgcolor: theme.palette.secondary.main,
+											fontSize: "1.15rem",
+											fontFamily: "monospace",
+											fontWeight: 800,
+											color: contract.amount_color,
+											my: 0.5,
 										}}
 									>
-										{c.partnercode ? c.partnercode.substring(0, 2) : "?"}
-									</Avatar>
-									<Box>
-										<Typography variant="body2" fontWeight={700} lineHeight={1}>
-											{c.partnername}
+										{contract.sign}
+										{formatCurrency(contract.total_amount)}{" "}
+										{contract.contract_currency}
+									</Typography>
+
+									<Typography
+										sx={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.5)" }}
+									>
+										Role: {contract.partner} (
+										{contract.is_income
+											? "Income Receivable"
+											: "Expense Payable"}
+										)
+									</Typography>
+								</Box>
+							</Grid>
+
+							{/* Card 2: Counterparty & Role */}
+							<Grid item xs={12} sm={4}>
+								<Box
+									sx={{
+										p: 1.25,
+										borderRadius: "8px",
+										bgcolor: "rgba(18, 18, 37, 0.6)",
+										borderColor: "rgba(123, 104, 238, 0.2)",
+										border: "1px solid rgba(123, 104, 238, 0.25)",
+										height: "100%",
+										display: "flex",
+										flexDirection: "column",
+										justifyContent: "space-between",
+									}}
+								>
+									<Box
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "space-between",
+											mb: 0.5,
+										}}
+									>
+										<Typography
+											variant="caption"
+											sx={{
+												color: "rgba(255,255,255,0.6)",
+												fontWeight: 800,
+												fontSize: "0.62rem",
+												textTransform: "uppercase",
+											}}
+										>
+											COUNTERPARTY & ROLE
+										</Typography>
+										<Chip
+											label={contract.partner}
+											size="small"
+											sx={{
+												height: 16,
+												fontSize: "0.52rem",
+												fontWeight: 800,
+												bgcolor: "rgba(56, 189, 248, 0.15)",
+												color: "#38bdf8",
+											}}
+										/>
+									</Box>
+									<Box
+										sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+									>
+										<PersonIcon sx={{ fontSize: 18, color: "#7b68ee" }} />
+										<Typography
+											sx={{
+												fontSize: "0.92rem",
+												fontWeight: 800,
+												color: "white",
+											}}
+										>
+											{contract.partner_name}{" "}
+											{contract.partner_code && `[${contract.partner_code}]`}
+										</Typography>
+									</Box>
+									<Typography
+										sx={{
+											fontSize: "0.68rem",
+											color: contract.amount_color,
+											fontWeight: 700,
+											mt: 0.25,
+										}}
+									>
+										Contract Party: {contract.partner}
+									</Typography>
+								</Box>
+							</Grid>
+
+							{/* Card 3: Fulfillment Progress */}
+							<Grid item xs={12} sm={4}>
+								<Box
+									sx={{
+										p: 1.25,
+										borderRadius: "8px",
+										bgcolor: "rgba(18, 18, 37, 0.6)",
+										borderColor: "rgba(123, 104, 238, 0.2)",
+										border: "1px solid rgba(123, 104, 238, 0.25)",
+										height: "100%",
+										display: "flex",
+										flexDirection: "column",
+										justifyContent: "space-between",
+									}}
+								>
+									<Box
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "space-between",
+										}}
+									>
+										<Typography
+											variant="caption"
+											sx={{
+												color: "rgba(255,255,255,0.6)",
+												fontWeight: 800,
+												fontSize: "0.62rem",
+												textTransform: "uppercase",
+											}}
+										>
+											TERMS FULFILLMENT
 										</Typography>
 										<Typography
 											variant="caption"
-											color="text.secondary"
-											fontFamily="monospace"
+											sx={{
+												color: "#7b68ee",
+												fontWeight: 800,
+												fontSize: "0.68rem",
+											}}
 										>
-											{c.partnercode}
+											{contract.fulfilled_cond_count} /{" "}
+											{contract.total_cond_count}
 										</Typography>
 									</Box>
-								</Stack>
-							</Box>
+									<Box sx={{ my: 0.5 }}>
+										<LinearProgress
+											variant="determinate"
+											value={contract.fulfillment_percentage}
+											sx={{
+												height: 6,
+												borderRadius: 3,
+												bgcolor: "rgba(255, 255, 255, 0.08)",
+												"& .MuiLinearProgress-bar": {
+													borderRadius: 3,
+													bgcolor:
+														contract.fulfillment_percentage === 100
+															? SEMANTIC_COLORS.neonGreen
+															: "#7b68ee",
+												},
+											}}
+										/>
+									</Box>
+									<Box
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "space-between",
+										}}
+									>
+										<Typography
+											variant="caption"
+											sx={{
+												color: "rgba(255,255,255,0.5)",
+												fontSize: "0.6rem",
+											}}
+										>
+											Progress Rate:
+										</Typography>
+										<Typography
+											variant="caption"
+											sx={{
+												color:
+													contract.fulfillment_percentage === 100
+														? SEMANTIC_COLORS.neonGreen
+														: "white",
+												fontWeight: 800,
+												fontSize: "0.65rem",
+											}}
+										>
+											{contract.fulfillment_percentage}%
+										</Typography>
+									</Box>
+								</Box>
+							</Grid>
+						</Grid>
 
-							<Divider orientation="vertical" flexItem />
-
-							{/* Status */}
-							<Box sx={{ flex: 1, minWidth: "fit-content" }}>
-								<Typography
-									variant="caption"
-									color="text.secondary"
-									fontWeight={700}
-								>
-									STATUS
-								</Typography>
-								<Chip
-									label={c.status}
-									size="small"
-									sx={{
-										height: 20,
-										fontSize: "0.65rem",
-										fontWeight: 800,
-										mt: 0.5,
-										display: "flex",
-										width: "fit-content",
-										bgcolor: getStatusBg(c.status, theme),
-										color: getStatusColor(c.status, theme),
-									}}
-								/>
-							</Box>
-
-							<Divider orientation="vertical" flexItem />
-
-							{/* Date */}
-							<Box
-								sx={{ flex: 1, minWidth: "fit-content", textAlign: "right" }}
-							>
-								<Typography
-									variant="caption"
-									color="text.secondary"
-									fontWeight={700}
-								>
-									DATE
-								</Typography>
-								<Stack
-									direction="row"
-									spacing={0.5}
-									alignItems="center"
-									justifyContent="flex-end"
-								>
-									<CalendarToday
-										fontSize="inherit"
-										sx={{ fontSize: 14, color: "text.secondary" }}
-									/>
-									<Typography variant="body2" fontWeight={600}>
-										{dayjs(c.date).format("MMM D, YYYY")}
-									</Typography>
-								</Stack>
-							</Box>
-						</Paper>
-
-						{/* 3. PREAMBLE (Conditional) */}
-						{c.preamble && (
+						{/* Preamble Notice */}
+						{contract.preamble && (
 							<Paper
 								variant="outlined"
 								sx={{
-									p: 1,
-									bgcolor: alpha(theme.palette.info.main, 0.05),
-									border: `1px dashed ${alpha(theme.palette.info.main, 0.3)}`,
+									p: 1.25,
+									bgcolor: "rgba(123, 104, 238, 0.05)",
+									borderColor: "rgba(123, 104, 238, 0.2)",
 								}}
 							>
-								<Stack direction="row" spacing={1}>
-									<Description
-										fontSize="small"
-										color="info"
-										sx={{ opacity: 0.7 }}
-									/>
+								<Stack
+									sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}
+								>
 									<Typography
 										variant="body2"
 										sx={{
 											fontStyle: "italic",
-											fontSize: "0.8rem",
-											color: "text.secondary",
+											fontSize: "0.78rem",
+											color: "rgba(255,255,255,0.8)",
 										}}
 									>
-										{c.preamble}
+										{contract.preamble}
 									</Typography>
 								</Stack>
 							</Paper>
 						)}
 
-						{/* 4. CONDITIONS LIST */}
-						<Box sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
+						<Divider sx={{ borderColor: "rgba(255, 255, 255, 0.08)" }} />
+
+						{/* Contract Conditions List (Installments-Style Responsive Grid) */}
+						<Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
 							<Box
 								sx={{
 									display: "flex",
-									justifyContent: "space-between",
 									alignItems: "center",
-									mb: 1,
+									justifyContent: "space-between",
+								}}
+							>
+								<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+									<DescriptionIcon sx={{ fontSize: 16, color: "#7b68ee" }} />
+									<Typography
+										sx={{
+											fontSize: "0.82rem",
+											fontWeight: 800,
+											textTransform: "uppercase",
+											color: "rgba(255, 255, 255, 0.9)",
+											letterSpacing: "0.05em",
+										}}
+									>
+										Conditions ({allConditions.length})
+									</Typography>
+								</Box>
+								<Chip
+									label={`${contract.fulfilled_cond_count} / ${contract.total_cond_count} COMPLETED`}
+									size="small"
+									sx={{
+										height: 20,
+										fontSize: "0.62rem",
+										fontWeight: 800,
+										bgcolor:
+											contract.fulfilled_cond_count ===
+												contract.total_cond_count &&
+											contract.total_cond_count > 0
+												? "rgba(74, 222, 128, 0.15)"
+												: "rgba(123, 104, 238, 0.15)",
+										color:
+											contract.fulfilled_cond_count ===
+												contract.total_cond_count &&
+											contract.total_cond_count > 0
+												? SEMANTIC_COLORS.neonGreen
+												: "#7b68ee",
+										border: `1px solid ${contract.fulfilled_cond_count === contract.total_cond_count && contract.total_cond_count > 0 ? "rgba(74, 222, 128, 0.3)" : "rgba(123, 104, 238, 0.3)"}`,
+									}}
+								/>
+							</Box>
+
+							{allConditions.length > 0 ? (
+								<Box
+									sx={{
+										display: "flex",
+										flexWrap: "wrap",
+										gap: 1.25,
+										justifyContent: "flex-start",
+										width: "100%",
+									}}
+								>
+									{allConditions.map((cond, idx) => (
+										<ContractConditionCard
+											key={cond.id || idx}
+											cond={cond}
+											idx={idx}
+											contract={contract}
+											allConditions={allConditions}
+											marketData={marketData}
+											corpPrices={corpPrices}
+											vendorOrders={vendorOrders}
+											storageState={storageState}
+											financialData={financialData}
+										/>
+									))}
+								</Box>
+							) : (
+								<Typography
+									variant="body2"
+									sx={{ color: "text.secondary", fontStyle: "italic" }}
+								>
+									No conditions attached to this contract.
+								</Typography>
+							)}
+						</Box>
+
+						{/* Settlement Logs (Rendered on Financial Page) */}
+						{showSettlementLogs && (
+							<Box
+								sx={{
+									mt: 1,
+									pt: 1,
+									borderTop: `1px solid ${theme.palette.divider}`,
 								}}
 							>
 								<Typography
 									variant="caption"
-									color="text.secondary"
-									fontWeight={800}
+									sx={{
+										color: "text.secondary",
+										fontWeight: 800,
+										display: "block",
+										mb: 0.75,
+									}}
 								>
-									CONDITIONS ({c.conditions?.length || 0})
+									SETTLEMENT LOGS & TRANSACTION HISTORY
 								</Typography>
+								<Stack spacing={0.75}>
+									{allConditions
+										.filter(
+											(cond) =>
+												(cond.status || "").toUpperCase() === "FULFILLED",
+										)
+										.map((cond, idx) => (
+											<Paper
+												key={cond.id || idx}
+												variant="outlined"
+												sx={{
+													p: 1,
+													display: "flex",
+													justifyContent: "space-between",
+													alignItems: "center",
+													bgcolor: "rgba(74, 222, 128, 0.05)",
+													borderColor: "rgba(74, 222, 128, 0.2)",
+												}}
+											>
+												<Box>
+													<Typography
+														variant="subtitle2"
+														sx={{ fontSize: "0.75rem", fontWeight: 700 }}
+													>
+														Condition #{cond.index || idx + 1}:{" "}
+														{cond.type?.replace(/_/g, " ")}
+													</Typography>
+													{cond.material_summary && (
+														<Typography
+															variant="caption"
+															sx={{ color: "text.secondary" }}
+														>
+															{cond.material_summary}
+														</Typography>
+													)}
+												</Box>
+												<Chip
+													label="Fulfilled"
+													size="small"
+													color="success"
+													sx={{
+														height: 16,
+														fontSize: "0.55rem",
+														fontWeight: 800,
+													}}
+												/>
+											</Paper>
+										))}
+								</Stack>
 							</Box>
-
-							{!c.conditions || c.conditions.length === 0 ? (
-								<Typography
-									variant="body2"
-									color="text.secondary"
-									fontStyle="italic"
-								>
-									No conditions.
-								</Typography>
-							) : (
-								c.conditions.map((cond) => (
-									<ContractConditionRow
-										key={cond.id}
-										condition={cond}
-										contractCurrency={c.currency}
-										contractParty={c.party}
-									/>
-								))
-							)}
-						</Box>
-					</Box>
+						)}
+					</>
 				)}
 			</DialogContent>
 		</Dialog>

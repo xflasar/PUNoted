@@ -1544,13 +1544,12 @@ const Governance = () => {
 											/>
 										),
 										endAdornment: (
-											<>
-												{" "}
+											<React.Fragment>
 												{isPlanetsLoading ? (
 													<CircularProgress color="inherit" size={16} />
-												) : null}{" "}
-												{params.InputProps.endAdornment}{" "}
-											</>
+												) : null}
+												{params.InputProps.endAdornment}
+											</React.Fragment>
 										),
 									}}
 									sx={{ ...glassyStyle(theme), borderRadius: 1 }}

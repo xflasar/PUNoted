@@ -2,8 +2,16 @@ import React from "react";
 import { Box, Typography, useTheme, alpha } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useGlobalData } from "../../../../../context/globaldatacontext";
+import { useMapData } from "../../hooks/usemapdata";
 import { getOriginDestinationLabel } from "../../utils/flightplanorigindestination";
+import {
+	parseFlightTimestamp,
+	getFlightArrivalMs,
+	getFlightDepartureMs,
+} from "../../utils/timestamputils";
 import type { AnimatedShipData } from "../../types/maptypes";
+
+export { parseFlightTimestamp, getFlightArrivalMs, getFlightDepartureMs };
 
 interface ShipFlightStatusProps {
 	ship: AnimatedShipData;
@@ -15,16 +23,15 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 	isMine,
 }) => {
 	const theme = useTheme();
-	const { systemsPoints, allPlanetsData, allStationsData } = useGlobalData();
+	const { mapData } = useGlobalData();
+	const { systemsPoints, allPlanetsData, allStationsData } =
+		useMapData(mapData);
 	const activeFlight: any = ship.plan || (ship as any).flight;
 
-	const startStr = activeFlight?.arrivaltimestamp;
-	const endStr = activeFlight?.departuretimestamp;
+	const start = getFlightDepartureMs(activeFlight);
+	const end = getFlightArrivalMs(activeFlight);
 
-	if (!startStr || !endStr) return null;
-
-	const start = new Date(startStr).getTime();
-	const end = new Date(endStr).getTime();
+	if (!start || !end) return null;
 
 	const now = Date.now();
 	const totalDuration = end - start;

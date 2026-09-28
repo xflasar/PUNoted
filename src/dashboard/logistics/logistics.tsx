@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import GlobalLoadingOverlay from "../../components/common/globalloadingoverlay";
 import {
 	Box,
 	CircularProgress,
@@ -147,18 +148,11 @@ const Logistics: React.FC = () => {
 
 	if (loading) {
 		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "80vh",
-				}}
-			>
-				<CircularProgress />
-				<Typography variant="h6" sx={{ ml: 2 }}>
-					Loading Logistics Data...
-				</Typography>
+			<Box sx={{ position: "relative", minHeight: "80vh", width: "100%" }}>
+				<GlobalLoadingOverlay
+					loading={true}
+					statusText="OPTIMIZING LOGISTICS & FLEET ROUTES..."
+				/>
 			</Box>
 		);
 	}

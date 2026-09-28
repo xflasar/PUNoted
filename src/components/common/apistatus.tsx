@@ -1,8 +1,9 @@
 import { Box, Typography } from "@mui/material";
 import { styled } from "@mui/system";
+import { useGlobalData } from "../../context/globaldatacontext";
 
 interface ApiStatusProps {
-	apiStatus: "online" | "offline";
+	apiStatus?: "online" | "offline";
 }
 
 const StatusBox = styled(Box)(({ theme }) => ({
@@ -32,11 +33,14 @@ const StatusIndicator = styled(Box)(
 	}),
 );
 
-const ApiStatus = ({ apiStatus = "online" }: ApiStatusProps) => {
+const ApiStatus = ({ apiStatus: propApiStatus }: ApiStatusProps) => {
+	const { apiStatus: contextApiStatus } = useGlobalData();
+	const currentStatus = propApiStatus || contextApiStatus || "online";
+
 	let statusText = "";
 	let statusColor = "";
 
-	if (apiStatus === "online") {
+	if (currentStatus === "online") {
 		statusText = "API STATUS: ONLINE";
 		statusColor = "#90ee90";
 	} else {
@@ -44,7 +48,7 @@ const ApiStatus = ({ apiStatus = "online" }: ApiStatusProps) => {
 		statusColor = "red";
 	}
 
-	return apiStatus == "offline" ? (
+	return currentStatus === "offline" ? (
 		<StatusBox>
 			<StatusIndicator statusColor={statusColor} />
 			<Typography

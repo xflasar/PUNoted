@@ -8,6 +8,7 @@ import {
 	useTheme,
 	alpha,
 	Stack,
+	Skeleton,
 } from "@mui/material";
 import type { ContractListItem } from "../types";
 import { getStatusColor, getStatusBg, formatCurrency } from "../helpers/helper";
@@ -22,13 +23,76 @@ import {
 import dayjs from "dayjs";
 
 interface Props {
-	contract: ContractListItem;
+	contract?: ContractListItem;
 	onClick?: () => void;
 	rowHeight?: string | number;
+	loading?: boolean;
 }
 
-const ContractRow: React.FC<Props> = ({ contract, onClick, rowHeight }) => {
+const ContractRow: React.FC<Props> = ({
+	contract,
+	onClick,
+	rowHeight,
+	loading,
+}) => {
 	const theme = useTheme();
+
+	if (loading || !contract) {
+		return (
+			<TableRow sx={{ height: rowHeight || 40 }}>
+				<TableCell sx={{ py: 0.5, px: 1 }}>
+					<Skeleton
+						variant="text"
+						width="70%"
+						height={20}
+						sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
+					/>
+					<Skeleton
+						variant="text"
+						width="40%"
+						height={14}
+						sx={{ bgcolor: "rgba(255,255,255,0.05)" }}
+					/>
+				</TableCell>
+				<TableCell sx={{ py: 0.5, px: 1 }}>
+					<Skeleton
+						variant="rectangular"
+						width={60}
+						height={20}
+						sx={{ borderRadius: 1, bgcolor: "rgba(255,255,255,0.08)" }}
+					/>
+				</TableCell>
+				<TableCell sx={{ py: 0.5, px: 1 }}>
+					<Skeleton
+						variant="text"
+						width="60%"
+						height={20}
+						sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
+					/>
+				</TableCell>
+				<TableCell align="right" sx={{ py: 0.5, px: 1 }}>
+					<Skeleton
+						variant="text"
+						width="50%"
+						height={20}
+						sx={{ ml: "auto", bgcolor: "rgba(255,255,255,0.08)" }}
+					/>
+				</TableCell>
+				<TableCell align="right" sx={{ py: 0.5, px: 1 }}>
+					<Skeleton
+						variant="rectangular"
+						width={55}
+						height={18}
+						sx={{
+							ml: "auto",
+							borderRadius: 1,
+							bgcolor: "rgba(255,255,255,0.08)",
+						}}
+					/>
+				</TableCell>
+			</TableRow>
+		);
+	}
 
 	const getIcon = () => {
 		switch (contract.contracttype) {
@@ -49,77 +113,113 @@ const ContractRow: React.FC<Props> = ({ contract, onClick, rowHeight }) => {
 		}
 	};
 
+	const hasAmount =
+		contract.total_amount !== undefined &&
+		contract.total_amount !== null &&
+		contract.total_amount !== 0;
+	const isPositive =
+		contract.contracttype === "SELL" || contract.contracttype === "LOAN_TAKEN";
+	const isNegative =
+		contract.contracttype === "BUY" || contract.contracttype === "LOAN_GIVEN";
+	const sign = isPositive ? "+" : isNegative ? "-" : "";
+	const amountColor = isPositive
+		? theme.palette.success.main
+		: isNegative
+			? theme.palette.error.main
+			: theme.palette.text.primary;
+
 	return (
 		<TableRow
 			hover
 			onClick={onClick}
 			sx={{
-				bgcolor: alpha(theme.palette.background.default, 0.05),
-				backgroundImage: "none",
-				"&:last-child td, &:last-child th": { border: 0 },
 				cursor: "pointer",
-				transition: "background-color 0.1s",
 				height: rowHeight || "auto",
+				"&:last-child td, &:last-child th": { border: 0 },
 			}}
 		>
-			{/* 1. Contract Identity */}
-			<TableCell component="th" scope="row" sx={{ py: 0.5, px: 1 }}>
-				<Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
-					<Box sx={{ mt: 0.2 }}>{getIcon()}</Box>
+			{/* 1a. Contract ID & Name */}
+			<TableCell sx={{ py: 0.5, px: 1 }}>
+				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+					{getIcon()}
 					<Box sx={{ display: "flex", flexDirection: "column" }}>
 						<Typography
 							variant="body2"
-							fontWeight={700}
-							sx={{ fontSize: "0.8rem", lineHeight: 1 }}
+							sx={{ fontSize: "0.85rem", lineHeight: 1.1, fontWeight: 700 }}
 						>
-							{contract.localid || "No ID"}
+							{contract.name || contract.localid}
 						</Typography>
-						{contract.name && (
-							<Typography
-								variant="caption"
-								color="text.secondary"
-								sx={{ fontSize: "0.7rem", lineHeight: 1, mt: 0.2 }}
-							>
-								{contract.name}
-							</Typography>
-						)}
+						<Typography
+							variant="caption"
+							color="text.secondary"
+							sx={{
+								fontSize: "0.75rem",
+								fontFamily: "monospace",
+								lineHeight: 1,
+							}}
+						>
+							{contract.localid}
+						</Typography>
 					</Box>
 				</Box>
 			</TableCell>
 
 			{/* 1b. Type Column */}
 			<TableCell sx={{ py: 0.5, px: 1 }}>
-				<Typography
-					variant="body2"
-					fontWeight={700}
-					sx={{
-						fontSize: "0.8rem",
-						color:
-							contract.total_amount > 0
-								? contract.is_income
-									? "success.main"
-									: "error.main"
-								: "text.primary",
-					}}
-				>
-					{contract.contracttype === "SELL"
-						? "Sell"
-						: contract.contracttype === "BUY"
-							? "Buy"
-							: contract.contracttype === "SHIPMENT_GIVEN"
-								? "Ship (Out)"
-								: contract.contracttype === "SHIPMENT_TAKEN"
-									? "Ship (In)"
-									: contract.contracttype === "LOAN_GIVEN"
-										? "Lend"
-										: contract.contracttype === "LOAN_TAKEN"
-											? "Borrow"
-											: contract.contracttype === "EXPLORATION"
-												? "Exploration"
-												: contract.contracttype === "MOTION"
-													? "Motion"
+				{contract.contracttype === "MOTION" ||
+				(contract.preamble &&
+					(/MOT-\d+-\d+/i.test(contract.preamble) ||
+						/^Motion\s+MOT-/i.test(contract.preamble))) ||
+				(contract.name &&
+					(/MOT-\d+-\d+/i.test(contract.name) ||
+						/^Motion\s+MOT-/i.test(contract.name))) ? (
+					<Chip
+						label={
+							(contract as any).motionPlanetName ||
+							(contract as any).motion_planet_name
+								? `Motion (${(contract as any).motionPlanetName || (contract as any).motion_planet_name})`
+								: (contract.preamble || contract.name)?.match(
+											/MOT-(\d+)-/i,
+									  )?.[1]
+									? `Motion (Planet ${(contract.preamble || contract.name)?.match(/MOT-(\d+)-/i)?.[1]})`
+									: "Gov Motion"
+						}
+						size="small"
+						sx={{
+							height: 20,
+							fontSize: "0.68rem",
+							fontWeight: 800,
+							color: "#7b68ee",
+							bgcolor: alpha("#7b68ee", 0.15),
+							border: "1px solid rgba(123, 104, 238, 0.4)",
+						}}
+					/>
+				) : (
+					<Typography
+						variant="body2"
+						sx={{
+							fontSize: "0.8rem",
+							color: amountColor,
+							fontWeight: "700",
+						}}
+					>
+						{contract.contracttype === "SELL"
+							? "Sell"
+							: contract.contracttype === "BUY"
+								? "Buy"
+								: contract.contracttype === "SHIPMENT_GIVEN"
+									? "Ship (Out)"
+									: contract.contracttype === "SHIPMENT_TAKEN"
+										? "Ship (In)"
+										: contract.contracttype === "LOAN_GIVEN"
+											? "Lend"
+											: contract.contracttype === "LOAN_TAKEN"
+												? "Borrow"
+												: contract.contracttype === "EXPLORATION"
+													? "Exploration"
 													: "Other"}
-				</Typography>
+					</Typography>
+				)}
 			</TableCell>
 
 			{/* 2. Partner */}
@@ -127,35 +227,42 @@ const ContractRow: React.FC<Props> = ({ contract, onClick, rowHeight }) => {
 				<Box sx={{ display: "flex", flexDirection: "column" }}>
 					<Typography
 						variant="body2"
-						fontWeight={500}
-						sx={{ fontSize: "0.85rem", lineHeight: 1 }}
+						sx={{ fontSize: "0.85rem", lineHeight: 1, fontWeight: "500" }}
 					>
-						{contract.partnername || "Unknown"}
+						{contract.contracttype === "MOTION" ||
+						(contract.preamble && /^Motion\s+MOT-/i.test(contract.preamble))
+							? !contract.partnername || contract.partnername === "Unknown"
+								? `${(contract as any).motionPlanetName || (contract as any).motion_planet_name || `Planet ${contract.preamble?.match(/^Motion\s+MOT-(\d+)-/i)?.[1] || ""}`} Government`
+								: contract.partnername
+							: contract.partnername || "Unknown"}
 					</Typography>
 					<Typography
 						variant="caption"
 						color="text.secondary"
 						sx={{ fontSize: "0.75rem", fontFamily: "monospace", lineHeight: 1 }}
 					>
-						{contract.partnercode}
+						{contract.partnercode ||
+							(contract.contracttype === "MOTION" ||
+							(contract.preamble && /^Motion\s+MOT-/i.test(contract.preamble))
+								? "GOV"
+								: "")}
 					</Typography>
 				</Box>
 			</TableCell>
 
 			{/* 3. Total Value */}
 			<TableCell sx={{ py: 0.5, px: 1, textAlign: "right" }}>
-				{contract.total_amount > 0 ? (
+				{hasAmount ? (
 					<Typography
 						variant="subtitle2"
-						fontFamily="monospace"
-						fontWeight={800}
 						sx={{
 							fontSize: "0.85rem",
 							letterSpacing: -0.5,
-							color: contract.is_income ? "success.main" : "error.main",
+							color: amountColor,
+							fontWeight: "800",
 						}}
 					>
-						{contract.is_income ? "+" : "-"}
+						{sign}
 						{formatCurrency(contract.total_amount, contract.currency)}
 					</Typography>
 				) : (

@@ -27,6 +27,8 @@ const ROW_HEIGHT = 44;
 const HEADER_HEIGHT = 32;
 const OVERSCAN = 80;
 
+// Rework this
+
 /**
  * Represents the structure of market data records.
  */
@@ -503,8 +505,11 @@ const MarketPricesTab: React.FC<MarketPricesTabProps> = ({
 							</tr>
 						)}
 
-						{visibleRows.map((row) => (
-							<tr key={row.Ticker || row.ticker} className="virtual-row">
+						{visibleRows.map((row, idx) => (
+							<tr
+								key={`${row.Ticker || row.ticker || "row"}-${idx}`}
+								className="virtual-row"
+							>
 								<td className="col-ticker">
 									<MaterialBadge ticker={row.Ticker || row.ticker} />
 								</td>

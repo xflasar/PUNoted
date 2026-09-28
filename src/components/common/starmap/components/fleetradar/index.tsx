@@ -110,6 +110,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 	const [activeTabId, setActiveTabId] = useState<string>("my_ships");
 
 	// --- DATA PREP ---
+	console.log(
+		"📡 [FleetRadar] Received props -> ownShips:",
+		ownShips?.length,
+		ownShips,
+		"corpShips keys:",
+		Object.keys(corpShips || {}),
+	);
 	const lowerSearch = searchTerm.toLowerCase();
 
 	const filteredOwn = useMemo(() => {
@@ -194,16 +201,15 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 
 	// Determine available tabs dynamically
 	const availableTabs = useMemo(() => {
-		const tabs = [];
-		if (ownShips.length > 0) {
-			tabs.push({
+		const tabs = [
+			{
 				id: "my_ships",
 				label: "My Ships",
 				count: filteredOwn.length,
 				icon: <Sailing sx={{ fontSize: 16 }} />,
 				color: theme.palette.primary.main,
-			});
-		}
+			},
+		];
 		if (corpTotalShips > 0) {
 			tabs.push({
 				id: "corporation",
@@ -223,13 +229,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 			});
 		}
 		return tabs;
-	}, [
-		ownShips.length,
-		filteredOwn.length,
-		corpTotalShips,
-		otherTotalShips,
-		theme,
-	]);
+	}, [filteredOwn.length, corpTotalShips, otherTotalShips, theme]);
 
 	// Fallback to first tab if active tab becomes unavailable
 	const currentTabId = useMemo(() => {
@@ -357,16 +357,16 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 								{item.count} ships
 							</Typography>
 						</Box>
-						<Box
-							onClick={(e) => e.stopPropagation()}
-							sx={{ display: "flex", alignItems: "center" }}
-						>
+						<Box sx={{ display: "flex", alignItems: "center" }}>
 							<Tooltip
 								title={allGroupPaths ? "Hide Group Paths" : "Show Group Paths"}
 							>
 								<IconButton
 									size="small"
-									onClick={() => onToggleAllPaths(item.shipIds, !allGroupPaths)}
+									onClick={(e) => {
+										e.stopPropagation();
+										onToggleAllPaths(item.shipIds, !allGroupPaths);
+									}}
 									sx={{
 										color: allGroupPaths
 											? theme.palette.secondary.main
@@ -378,11 +378,24 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 									<Timeline sx={{ fontSize: 16 }} />
 								</IconButton>
 							</Tooltip>
-							{item.expanded ? (
-								<ExpandLess sx={{ color: theme.palette.action.disabled }} />
-							) : (
-								<ExpandMore sx={{ color: theme.palette.action.disabled }} />
-							)}
+							<IconButton
+								size="small"
+								onClick={(e) => {
+									e.stopPropagation();
+									onToggleCorpGroup(item.name);
+								}}
+								sx={{ p: 0.2 }}
+							>
+								{item.expanded ? (
+									<ExpandLess
+										sx={{ color: theme.palette.action.disabled, fontSize: 18 }}
+									/>
+								) : (
+									<ExpandMore
+										sx={{ color: theme.palette.action.disabled, fontSize: 18 }}
+									/>
+								)}
+							</IconButton>
 						</Box>
 					</ListItemButton>
 				);

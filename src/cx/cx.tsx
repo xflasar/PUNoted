@@ -1,131 +1,145 @@
-import React, { useCallback, useEffect, useState } from "react";
-import {
-	Box,
-	Button,
-	CircularProgress,
-	Container,
-	Typography,
-} from "@mui/material";
-import { API_BASE_URL } from "../config/api";
-import { FaArrowLeft } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
-import MarketPricesTab from "../cosm/pricelist/pricelist";
-
-type MarketDataRecord = Record<string, any>;
+import { useMemo } from "react";
+import { Box } from "@mui/material";
+import { CommoditySidebar } from "./components/commoditysidebar";
+import { ArbitrageFinder } from "./components/arbitragefinder";
+import { MarketList } from "./components/marketlist";
+import { CXPageSkeleton } from "./components/cxskeleton";
+import { TerminalView } from "./components/terminalview";
+import { CXHeader } from "./components/cxheader";
+import { useTickerData } from "./hooks/usetickerdata";
 
 const CX = () => {
-	const navigate = useNavigate();
-	const [marketData, setMarketData] = useState<MarketDataRecord[]>([]);
-	const [loading, setLoading] = useState<boolean>(true);
-	const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+	const {
+		marketData,
+		loadingMarket,
+		isMobile,
+		viewMode,
+		setViewMode,
+		selectedTicker,
+		selectedExchange,
+		days,
+		setDays,
+		startDate,
+		endDate,
+		mobileDrawerOpen,
+		setMobileDrawerOpen,
+		tickerState,
+		currentItem,
+		currentPrice,
+		handleCustomDateChange,
+		handleSelectCommodity,
+		handleSelectExchange,
+		handleMarketListSelectTicker,
+		navigate,
+	} = useTickerData();
 
-	const fetchMarketData = useCallback(async () => {
-		try {
-			const response = await fetch(`${API_BASE_URL}market_price_all`);
-			if (!response.ok) {
-				throw new Error("Network response was not ok");
-			}
-			const json = await response.json();
-			const data = Array.isArray(json) ? json : json.data || [];
-			setMarketData(data);
-			setLastUpdated(new Date());
-		} catch (err) {
-			console.error("Failed to fetch", err);
-		} finally {
-			setLoading(false);
-		}
-	}, []);
-
-	useEffect(() => {
-		fetchMarketData();
-		const interval = setInterval(fetchMarketData, 60000);
-		return () => clearInterval(interval);
-	}, [fetchMarketData]);
+	const sidebarContent = useMemo(
+		() => (
+			<CommoditySidebar
+				marketData={marketData}
+				selectedTicker={selectedTicker}
+				selectedExchange={selectedExchange}
+				onSelectCommodity={handleSelectCommodity}
+				onSelectExchange={handleSelectExchange}
+			/>
+		),
+		[
+			marketData,
+			selectedTicker,
+			selectedExchange,
+			handleSelectCommodity,
+			handleSelectExchange,
+		],
+	);
 
 	return (
-		<Container
-			maxWidth={false}
+		<Box
 			sx={{
-				width: "100%",
-				py: 2,
+				width: "100vw",
+				height: "100vh",
+				bgcolor: "#020205",
+				backgroundImage:
+					"radial-gradient(circle at 50% 20%, #080816 0%, #030308 60%, #000000 100%)",
+				color: "white",
 				display: "flex",
 				flexDirection: "column",
-				height: "100vh",
 				overflow: "hidden",
 			}}
 		>
-			<Box sx={{ mb: { xs: 4, sm: 6 }, position: "relative" }}>
-				<Box
-					sx={{
-						display: { xs: "none", sm: "flex" },
-						position: "absolute",
-						left: 0,
-						top: 0,
-					}}
-				>
-					<Button
-						variant="outlined"
-						startIcon={<FaArrowLeft style={{ color: "#7B68EE" }} />}
-						onClick={() => navigate("/")}
-						sx={{
-							color: "white",
-							borderColor: "#7B68EE",
-							fontSize: { xs: "0.75rem", sm: "1rem" },
-						}}
-					>
-						Back to Homepage
-					</Button>
-				</Box>
-
-				<Typography
-					variant="h3"
-					component="h1"
-					align="center"
-					sx={{
-						fontWeight: "bold",
-						letterSpacing: "0.05em",
-						background: "linear-gradient(90deg, #5D80F7, #7B68EE)",
-						WebkitBackgroundClip: "text",
-						WebkitTextFillColor: "transparent",
-						backgroundClip: "text",
-						textFillColor: "transparent",
-						fontSize: { xs: "2rem", sm: "3rem" },
-					}}
-				>
-					CX Prices
-				</Typography>
-			</Box>
-
+			<CXHeader
+				viewMode={viewMode}
+				setViewMode={setViewMode}
+				isMobile={isMobile}
+				navigate={navigate}
+			/>
 			<Box
 				sx={{
 					flex: 1,
-					overflow: "hidden",
-					position: "relative",
+					width: "100%",
+					maxWidth: 1560,
+					mx: "auto",
+					p: { xs: 1, sm: 2 },
 					display: "flex",
-					flexDirection: "column",
-					minHeight: 0,
+					gap: 2,
+					overflow: "hidden",
 				}}
 			>
-				{loading && marketData.length === 0 ? (
-					<Box
-						sx={{
-							display: "flex",
-							height: "100%",
-							alignItems: "center",
-							justifyContent: "center",
-						}}
-					>
-						<CircularProgress color="primary" />
-					</Box>
+				{loadingMarket && marketData.length === 0 ? (
+					<CXPageSkeleton />
 				) : (
-					<MarketPricesTab
-						isLoggedIn={false}
-						marketData={marketData}
-						lastUpdated={lastUpdated}
-					/>
+					<>
+						{/* Market Overview View */}
+						{viewMode === "market" && (
+							<Box
+								sx={{
+									width: "100%",
+									height: "100%",
+									display: "flex",
+									overflow: "hidden",
+								}}
+							>
+								<MarketList
+									marketData={marketData}
+									onSelectTicker={handleMarketListSelectTicker}
+								/>
+							</Box>
+						)}
+
+						{/* Trade & Arbitrage View */}
+						{viewMode === "arbitrage" && (
+							<Box
+								sx={{
+									width: "100%",
+									height: "100%",
+									display: "flex",
+									overflow: "hidden",
+								}}
+							>
+								<ArbitrageFinder marketData={marketData} />
+							</Box>
+						)}
+
+						{/* Terminal View */}
+						<TerminalView
+							viewMode={viewMode}
+							selectedTicker={selectedTicker}
+							selectedExchange={selectedExchange}
+							mobileDrawerOpen={mobileDrawerOpen}
+							setMobileDrawerOpen={setMobileDrawerOpen}
+							sidebarContent={sidebarContent}
+							handleCustomDateChange={handleCustomDateChange}
+							setDays={setDays}
+							tickerState={tickerState}
+							currentPrice={currentPrice}
+							currentItem={currentItem}
+							days={days}
+							startDate={startDate}
+							endDate={endDate}
+						/>
+					</>
 				)}
 			</Box>
-		</Container>
+		</Box>
 	);
 };
 
