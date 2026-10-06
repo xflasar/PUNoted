@@ -76,22 +76,25 @@ interface BaseStarMapProps {
 
 const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	mode,
+	overrideShips,
 	focusTarget,
 }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-	const mapState = useBaseStarMapData({ mode, focusTarget });
+	const mapState = useBaseStarMapData({ mode, overrideShips, focusTarget });
 
 	return (
 		<Paper
 			sx={{ flexGrow: 1, position: "relative", width: "100%", height: "100%" }}
 		>
-			<SearchBar
-				options={mapState.searchOptions}
-				onSelect={mapState.handleSearchSelect}
-				onSearchQueryChange={mapState.setSearchQuery}
-			/>
+			{mode !== "shipping" && (
+				<SearchBar
+					options={mapState.searchOptions}
+					onSelect={mapState.handleSearchSelect}
+					onSearchQueryChange={mapState.setSearchQuery}
+				/>
+			)}
 
 			<Box
 				ref={mapState.mapRef}
@@ -244,7 +247,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					/>
 				)}
 
-				{!mapState.centeredSystem &&
+				{mode !== "shipping" &&
+					!mapState.centeredSystem &&
 					mapState.isSearchResultsOpen &&
 					(mapState.searchQuery || mapState.isFilterActive) && (
 						<SearchResultsPanel

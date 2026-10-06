@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Paper, Typography } from "@mui/material";
 import MaterialBadge from "../../../../cosm/components/materialbadge";
+import { formatPrice } from "../../../../utils/formaters";
 
 interface ComexOrderFilledContentProps {
 	data: {
@@ -114,7 +115,7 @@ export const ComexOrderFilledContent: React.FC<
 						variant="caption"
 						sx={{ fontWeight: 700, color: "#64FFDA", fontSize: "0.7rem" }}
 					>
-						{price} {currency}
+						{formatPrice(price)} {currency}
 					</Typography>
 				</Box>
 			</Box>

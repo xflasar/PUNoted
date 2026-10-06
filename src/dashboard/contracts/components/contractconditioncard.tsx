@@ -33,6 +33,7 @@ export const ContractConditionCard: React.FC<ContractConditionCardProps> =
 			isFulfilled,
 			condType,
 			isMaterial,
+			isPickup,
 			isMoney,
 			isMyCondition,
 			matTicker,
@@ -239,8 +240,8 @@ export const ContractConditionCard: React.FC<ContractConditionCardProps> =
 								</Typography>
 							)}
 
-							{/* Stock level tag at specified delivery location */}
-							{matTicker && isMyCondition && !isFulfilled && (
+							{/* Stock level tag at specified delivery location (Only for delivery conditions) */}
+							{matTicker && isMyCondition && !isFulfilled && !isPickup && (
 								<Chip
 									label={`Stock: ${availableStock.toLocaleString()} / ${matQty || 1} ${hasEnoughStock ? "✓" : "⚠️"}`}
 									size="small"

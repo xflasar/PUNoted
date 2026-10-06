@@ -16,6 +16,10 @@ import {
 } from "../constants";
 
 interface BuildStaticGalaxyLayersProps {
+	mode?: "public" | "dashboard" | "shipping";
+	shippingModeHighlights?: {
+		systemIds: Set<string>;
+	};
 	isGalaxyView: boolean;
 	systemConnections: { sourcePosition: number[]; targetPosition: number[] }[];
 	gatewayConnections: {
@@ -47,6 +51,8 @@ interface BuildStaticGalaxyLayersProps {
  */
 export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 	const {
+		mode,
+		shippingModeHighlights,
 		isGalaxyView,
 		systemConnections,
 		gatewayConnections,
@@ -198,6 +204,37 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 					getLineColor: [255, 120, 0, 240],
 					getFillColor: [255, 120, 0, 25],
 					lineWidthMinPixels: 3.0,
+					stroked: true,
+					filled: true,
+					pickable: false,
+				}),
+			);
+		}
+	}
+
+	// Draw shipping mode system halos
+	if (isGalaxyView && mode === "shipping" && shippingModeHighlights?.systemIds && shippingModeHighlights.systemIds.size > 0) {
+		const shipmentSystems = systemsPoints.filter((s) =>
+			shippingModeHighlights.systemIds.has(s.originalSystemId || s.id),
+		);
+		if (shipmentSystems.length > 0) {
+			layers.push(
+				new ScatterplotLayer({
+					id: "systems-shipping-halo-highlight",
+					data: shipmentSystems,
+					getPosition: (d: any) => [d.x, d.y],
+					getRadius: (d: any) => {
+						const popRatio =
+							maxSystemPopulation > 1
+								? Math.log1p(d.population ?? 0) /
+									Math.log1p(maxSystemPopulation)
+								: 0;
+						return 32 * (1 + popRatio * 2);
+					},
+					radiusUnits: "meters",
+					getLineColor: [0, 229, 255, 255],
+					getFillColor: [0, 229, 255, 45],
+					lineWidthMinPixels: 3.5,
 					stroked: true,
 					filled: true,
 					pickable: false,

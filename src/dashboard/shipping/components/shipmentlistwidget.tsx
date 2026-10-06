@@ -12,6 +12,7 @@ import {
 	Tooltip,
 	Stack,
 	Chip,
+	CircularProgress,
 } from "@mui/material";
 import {
 	Search,
@@ -23,8 +24,7 @@ import {
 	CheckCircle,
 	Handshake,
 	Close,
-	Schedule,
-	Warning,
+	warning,
 } from "@mui/icons-material";
 import {
 	formatDistanceToNowStrict,
@@ -38,6 +38,10 @@ import type { ShipmentContract, ShipmentItem } from "../types";
 interface Props {
 	contracts: ShipmentContract[];
 	onSelect: (id: string) => void;
+	isPublicMode?: boolean;
+	notFoundIds?: string[];
+	loading?: boolean;
+	onLookupContract?: (id: string) => void;
 }
 
 // --- HELPER: Deadline Logic ---
@@ -256,12 +260,25 @@ const ContractRow = React.memo(
 export const ShipmentListWidget: React.FC<Props> = ({
 	contracts,
 	onSelect,
+	isPublicMode = false,
+	notFoundIds = [],
+	loading = false,
+	onLookupContract,
 }) => {
 	const theme = useTheme();
 	const [searchTerm, setSearchTerm] = useState("");
 	const [outboundExpanded, setOutboundExpanded] = useState(true);
 	const [inboundExpanded, setInboundExpanded] = useState(true);
 	const [isMinimized, setIsMinimized] = useState(false);
+
+	const handleSearchSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		const term = searchTerm.trim();
+		if (term && onLookupContract) {
+			onLookupContract(term);
+			setSearchTerm("");
+		}
+	};
 
 	// --- 1. Filter Data ---
 	const { outbound, inbound } = useMemo(() => {
@@ -270,19 +287,20 @@ export const ShipmentListWidget: React.FC<Props> = ({
 			(c) =>
 				!lower ||
 				c.local_id.toLowerCase().includes(lower) ||
-				c.partner_name.toLowerCase().includes(lower),
+				c.partner_name.toLowerCase().includes(lower) ||
+				c.contract_id.toLowerCase().includes(lower),
 		);
 		return {
 			// Using 'role' as requested
-			outbound: filtered.filter((c) => (c as any).role === "CARRIER"),
+			outbound: filtered.filter((c) => (c as any).role === "CARRIER" || !c.role),
 			inbound: filtered.filter((c) => (c as any).role === "CLIENT"),
 		};
 	}, [contracts, searchTerm]);
 
 	// --- 2. Auto-Collapse Logic ---
 	useEffect(() => {
-		setOutboundExpanded(outbound.length > 0);
-	}, [outbound.length]);
+		setOutboundExpanded(outbound.length > 0 || notFoundIds.length > 0);
+	}, [outbound.length, notFoundIds.length]);
 
 	useEffect(() => {
 		setInboundExpanded(inbound.length > 0);
@@ -391,7 +409,7 @@ export const ShipmentListWidget: React.FC<Props> = ({
 							letterSpacing: 2,
 						}}
 					>
-						LOGISTICS
+						{isPublicMode ? "PUBLIC TRACKING" : "LOGISTICS"}
 					</Typography>
 					<IconButton
 						size="small"
@@ -401,32 +419,72 @@ export const ShipmentListWidget: React.FC<Props> = ({
 						<Close fontSize="small" />
 					</IconButton>
 				</Box>
-				<Box
-					sx={{
-						display: "flex",
-						alignItems: "center",
-						bgcolor: alpha(theme.palette.background.default, 0.5),
-						borderRadius: 1,
-						px: 1,
-						py: 0.25,
-					}}
-				>
-					<Search
-						sx={{ fontSize: 16, color: theme.palette.text.disabled, mr: 1 }}
-					/>
-					<InputBase
-						placeholder="Search contracts..."
-						value={searchTerm}
-						onChange={(e) => setSearchTerm(e.target.value)}
+				<form onSubmit={handleSearchSubmit}>
+					<Box
 						sx={{
-							ml: 1,
-							flex: 1,
-							fontSize: "0.8rem",
-							color: theme.palette.text.primary,
+							display: "flex",
+							alignItems: "center",
+							bgcolor: alpha(theme.palette.background.default, 0.5),
+							borderRadius: 1,
+							px: 1,
+							py: 0.25,
 						}}
-					/>
-				</Box>
+					>
+						<Search
+							sx={{ fontSize: 16, color: theme.palette.text.disabled, mr: 1 }}
+						/>
+						<InputBase
+							placeholder={isPublicMode ? "Enter LocalID & press Enter..." : "Search contracts..."}
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+							sx={{
+								ml: 1,
+								flex: 1,
+								fontSize: "0.8rem",
+								color: theme.palette.text.primary,
+							}}
+						/>
+						{loading && (
+							<CircularProgress size={16} sx={{ color: theme.palette.primary.main, mr: 0.5 }} />
+						)}
+					</Box>
+				</form>
 			</Box>
+
+			{/* NOT FOUND ITEMS LIST */}
+			{notFoundIds.length > 0 && (
+				<Box sx={{ px: 1.5, py: 1, borderBottom: `1px solid ${theme.palette.divider}` }}>
+					<Typography variant="caption" sx={{ color: theme.palette.error.main, fontWeight: 700 }}>
+						NOT FOUND SHIPMENTS:
+					</Typography>
+					<Stack spacing={0.5} sx={{ mt: 0.5 }}>
+						{notFoundIds.map((id) => (
+							<Paper
+								key={id}
+								variant="outlined"
+								sx={{
+									p: 0.75,
+									display: "flex",
+									justifyContent: "space-between",
+									alignItems: "center",
+									borderColor: alpha(theme.palette.error.main, 0.3),
+									bgcolor: alpha(theme.palette.error.main, 0.08),
+								}}
+							>
+								<Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+									{id}
+								</Typography>
+								<Chip
+									label="NOT FOUND"
+									size="small"
+									color="error"
+									sx={{ height: 16, fontSize: "0.6rem", fontWeight: 700 }}
+								/>
+							</Paper>
+						))}
+					</Stack>
+				</Box>
+			)}
 
 			{/* Split Content Area (Flexbox Logic) */}
 			<Box
@@ -452,7 +510,6 @@ export const ShipmentListWidget: React.FC<Props> = ({
 					}}
 				>
 					<ListItem
-						button
 						onClick={() => setOutboundExpanded(!outboundExpanded)}
 						sx={{
 							bgcolor: alpha(outboundColor, 0.15),
@@ -463,24 +520,32 @@ export const ShipmentListWidget: React.FC<Props> = ({
 						}}
 					>
 						<Stack
-							direction="row"
-							alignItems="center"
-							spacing={1}
-							sx={{ flex: 1 }}
+							sx={{
+								direction: "row",
+								alignItems: "center",
+								spacing: 1,
+								flex: 1
+							}}
 						>
 							<ArrowUpward sx={{ fontSize: 16, color: outboundColor }} />
 							<ListItemText
 								primary="OUTBOUND"
 								secondary={`${outbound.length} active`}
-								primaryTypographyProps={{
-									variant: "subtitle2",
-									color: theme.palette.primary.main,
-									fontWeight: 700,
-									fontSize: "0.8rem",
-								}}
-								secondaryTypographyProps={{
-									variant: "caption",
-									color: alpha(theme.palette.primary.main, 0.7),
+								slotProps={{
+									primary: {
+										sx: {
+											color: theme.palette.primary.main,
+											variant: "subtitle2",
+											fontWeight: 700,
+											fontSize: "0.8rem",
+										}
+									},
+									secondary: {
+										sx: {
+											color: alpha(theme.palette.primary.main, 0.7),
+											variant: "caption",
+										}
+									}
 								}}
 								sx={{ my: 0 }}
 							/>

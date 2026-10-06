@@ -418,19 +418,39 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 	}, [props.allPlanetsData]);
 
 	const ownedSystemsData = useMemo(() => {
-		if (!isGalaxyView || !productionData) return [];
+		if (!isGalaxyView) return [];
 		const systemIds = new Set<string>();
-		for (const site of Object.values(productionData)) {
-			const isMine = !site.isLeased && !site.tenant;
-			if (isMine && site.planetid) {
-				const sysId = planetToSystemMap.get(site.planetid);
-				if (sysId) systemIds.add(sysId);
+
+		if (mode === "shipping") {
+			// In Shipping Mode: extract system IDs ONLY from physical shipment locations (systemid or planetid)
+			const contracts = props.shipmentState?.contracts || [];
+			contracts.forEach((contract: any) => {
+				contract.items?.forEach((item: any) => {
+					if (item.systemid) {
+						systemIds.add(item.systemid);
+					} else if (item.planetid) {
+						const sysId = planetToSystemMap.get(item.planetid);
+						if (sysId) systemIds.add(sysId);
+					}
+				});
+			});
+		} else {
+			// In Normal Mode: extract system IDs from user production sites/bases
+			if (productionData) {
+				for (const site of Object.values(productionData)) {
+					const isMine = !site.isLeased && !site.tenant;
+					if (isMine && site.planetid) {
+						const sysId = planetToSystemMap.get(site.planetid);
+						if (sysId) systemIds.add(sysId);
+					}
+				}
 			}
 		}
+
 		return systemsPoints.filter(
 			(p) => p.originalSystemId && systemIds.has(p.originalSystemId),
 		);
-	}, [productionData, planetToSystemMap, systemsPoints, isGalaxyView]);
+	}, [mode, productionData, props.shipmentState, props.animatedShipData, planetToSystemMap, systemsPoints, isGalaxyView]);
 
 	const debouncedZoom = useDebouncedZoom(galaxyViewState.zoom, 150);
 
@@ -537,8 +557,48 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		return buildSectorLayers(isGalaxyView, sectors, safeGetColor);
 	}, [isGalaxyView, sectors, safeGetColor]);
 
+	const shippingModeHighlights = useMemo(() => {
+		if (mode !== "shipping") return undefined;
+		const systemIds = new Set<string>();
+		const planetIds = new Set<string>();
+		const stationIds = new Set<string>();
+
+		// 1. Collect from shipment contract items (exact origin, destination, or current storage location)
+		const contracts = props.shipmentState?.contracts || [];
+		contracts.forEach((contract: any) => {
+			contract.items?.forEach((item: any) => {
+				if (item.systemid) systemIds.add(item.systemid);
+				if (item.planetid) planetIds.add(item.planetid);
+				if (item.location_type === "STATION" && item.location_name) {
+					stationIds.add(item.location_name);
+				}
+			});
+		});
+
+		// 2. Also collect from ships involved in active shipments
+		if (props.animatedShipData) {
+			props.animatedShipData.forEach((s: any) => {
+				if (s.addresssystemid) systemIds.add(s.addresssystemid);
+				if (s.destinationsystemid) systemIds.add(s.destinationsystemid);
+				if (s.originsystemid) systemIds.add(s.originsystemid);
+
+				if (s.addressplanetid) planetIds.add(s.addressplanetid);
+				if (s.destinationplanetid) planetIds.add(s.destinationplanetid);
+				if (s.originplanetid) planetIds.add(s.originplanetid);
+
+				if (s.addressstationid) stationIds.add(s.addressstationid);
+				if (s.destinationstationid) stationIds.add(s.destinationstationid);
+				if (s.originstationid) stationIds.add(s.originstationid);
+			});
+		}
+
+		return { systemIds, planetIds, stationIds };
+	}, [mode, props.shipmentState, props.animatedShipData]);
+
 	const staticGalaxyLayers = useMemo(() => {
 		return buildStaticGalaxyLayers({
+			mode,
+			shippingModeHighlights,
 			isGalaxyView,
 			systemConnections,
 			gatewayConnections,
@@ -558,6 +618,8 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			showLabels,
 		});
 	}, [
+		mode,
+		shippingModeHighlights,
 		isGalaxyView,
 		systemConnections,
 		gatewayConnections,
@@ -579,6 +641,8 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 	const dynamicLayers = useMemo(() => {
 		return buildDynamicLayers({
+			mode,
+			shippingModeHighlights,
 			starAtlas,
 			starMapping,
 			shipAtlas,
@@ -610,6 +674,8 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			handleShipClick,
 		});
 	}, [
+		mode,
+		shippingModeHighlights,
 		isGalaxyView,
 		isPlanetModeActive,
 		galaxyViewState.zoom,

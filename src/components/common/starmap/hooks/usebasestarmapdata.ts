@@ -36,11 +36,13 @@ const shallowViewEqual = (a: any, b: any) => {
 
 interface UseBaseStarMapDataProps {
 	mode: "public" | "dashboard" | "shipping";
+	overrideShips?: Record<string, any>;
 	focusTarget?: LocationFocusTarget | null;
 }
 
 export function useBaseStarMapData({
 	mode,
+	overrideShips,
 	focusTarget,
 }: UseBaseStarMapDataProps) {
 	const { filter } = useFilter();
@@ -63,6 +65,7 @@ export function useBaseStarMapData({
 		isMapLoading: isGlobalMapLoading,
 		storageState,
 		productionData,
+		shipmentState,
 	} = useGlobalData();
 
 	const isLoggedIn = useMemo(() => {
@@ -71,12 +74,22 @@ export function useBaseStarMapData({
 	}, []);
 
 	const effectiveOwnerShips = useMemo(() => {
-		return isLoggedIn ? ownerShips : [];
-	}, [isLoggedIn, ownerShips]);
+		if (!isLoggedIn) return [];
+		if (overrideShips) {
+			const allowedIds = new Set(Object.keys(overrideShips));
+			return ownerShips.filter((s) => allowedIds.has(s.id || (s as any).shipid));
+		}
+		return ownerShips;
+	}, [isLoggedIn, ownerShips, overrideShips]);
 
 	const effectiveOtherShips = useMemo(() => {
-		return isLoggedIn ? otherShips : [];
-	}, [isLoggedIn, otherShips]);
+		if (!isLoggedIn) return [];
+		if (overrideShips) {
+			const allowedIds = new Set(Object.keys(overrideShips));
+			return otherShips.filter((s) => allowedIds.has(s.id || (s as any).shipid));
+		}
+		return otherShips;
+	}, [isLoggedIn, otherShips, overrideShips]);
 
 	const [isInteracting, setIsInteracting] = useState(false);
 	const interactionTimeoutRef = useRef<number | null>(null);
@@ -967,6 +980,7 @@ export function useBaseStarMapData({
 			handleSystemClickWrapped,
 			handleSystemDoubleClick,
 			productionData,
+			shipmentState,
 			filter,
 			searchQuery,
 			rawConnections,

@@ -83,7 +83,7 @@ export const MapLegend: React.FC<MapLegendProps> = ({
 								variant="caption"
 								sx={{ fontSize: "0.6rem", color: "#00e5ff" }}
 							>
-								Your Sites / Bases
+								{mode === "shipping" ? "Shipment Locations" : "Your Sites / Bases"}
 							</Typography>
 						</Box>
 					)}
@@ -140,7 +140,9 @@ export const MapLegend: React.FC<MapLegendProps> = ({
 							variant="caption"
 							sx={{ fontSize: "0.6rem", color: "#00e5ff" }}
 						>
-							Planets with Your Sites
+							{mode === "shipping"
+								? "Shipment Storage / Locations"
+								: "Planets with Your Sites"}
 						</Typography>
 					</Box>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

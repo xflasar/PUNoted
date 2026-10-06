@@ -63,6 +63,7 @@ export interface UseMapLayersProps {
 	visiblePathShipIds: Set<string>;
 	selectedShipId: string | null;
 	productionData?: Record<string, any>;
+	shipmentState?: any;
 	filter?: FilterState;
 	searchQuery?: string;
 	rawConnections?: any[];

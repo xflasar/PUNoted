@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Condition, VendorOrder } from "../types";
-import { MATERIAL_CONDITION_TYPES } from "./usecontractdetail";
+import { MATERIAL_CONDITION_TYPES, isPickupCondition } from "./usecontractdetail";
 
 export interface UseContractConditionCardProps {
 	cond: Condition;
@@ -165,6 +165,7 @@ export function useContractConditionCard({
 		const condType = (cond.type || "CLAUSE").replace(/_/g, " ");
 
 		const isMaterial = MATERIAL_CONDITION_TYPES.has(cond.type);
+		const isPickup = isPickupCondition(cond.type);
 		const isMoney = !!cond.amountmoney || !!cond.repaymentamount;
 		const isMyCondition = cond.party === contract?.partner;
 
@@ -212,6 +213,7 @@ export function useContractConditionCard({
 			isFulfilled,
 			condType,
 			isMaterial,
+			isPickup,
 			isMoney,
 			isMyCondition,
 			matTicker,

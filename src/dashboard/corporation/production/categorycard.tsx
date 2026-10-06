@@ -64,9 +64,11 @@ export const CategoryCard = React.memo(
 		>({});
 
 		if (isDrilldown && items.length > 0 && drillType) {
-			const item = items[0];
-			const subItems: ProducerConsumerItem[] =
-				drillType === "prod" ? item.producers : item.consumers;
+			const subItems: ProducerConsumerItem[] = items.flatMap((it) =>
+				drillType === "prod" ? it.producers || [] : it.consumers || [],
+			);
+			const materialTicker =
+				(items[0] as any)?.materialTicker || category.split(" ")[0];
 			const color = drillType === "prod" ? "success" : "error";
 			const isProd = drillType === "prod" || color === "success";
 			const accentColor = isProd ? "#81C784" : "#FF8A80";
@@ -93,7 +95,7 @@ export const CategoryCard = React.memo(
 				}
 			>();
 
-			const userRecipes = item?.userRecipesUsed || [];
+			const userRecipes = (items[0] as any)?.userRecipesUsed || [];
 
 			subItems.forEach((i) => {
 				if (!userMap.has(i.player)) {
@@ -118,16 +120,16 @@ export const CategoryCard = React.memo(
 				uGroup.batchQueued += queuedBatch;
 
 				const matchedRecipes = userRecipes
-					.filter((rec) => {
+					.filter((rec: any) => {
 						const userMatches = rec.users?.some(
-							(u) => u.player === i.player && u.loc === i.loc,
+							(u: any) => u.player === i.player && u.loc === i.loc,
 						);
 						if (!userMatches) return false;
 
-						// For PRODUCERS: Check if item.ticker is an OUTPUT of the recipe
+						// For PRODUCERS: Check if materialTicker is an OUTPUT of the recipe
 						if (drillType === "prod") {
 							if (rec.outputs && Object.keys(rec.outputs).length > 0) {
-								return Boolean(rec.outputs[item.ticker]);
+								return Boolean(rec.outputs[materialTicker]);
 							}
 							// Fallback if outputs map is absent: check recipeKey (format: building:inputs=>outputs)
 							const arrowIdx = rec.recipeKey.indexOf("=>");
@@ -136,17 +138,17 @@ export const CategoryCard = React.memo(
 								return outPart
 									.split("-")
 									.some(
-										(part) =>
-											part.split("x")[1] === item.ticker ||
-											part === item.ticker,
+										(part: string) =>
+											part.split("x")[1] === materialTicker ||
+											part === materialTicker,
 									);
 							}
 							return true;
 						}
-						// For CONSUMERS: Check if item.ticker is an INPUT of the recipe
+						// For CONSUMERS: Check if materialTicker is an INPUT of the recipe
 						if (drillType === "cons") {
 							if (rec.inputs && Object.keys(rec.inputs).length > 0) {
-								return Boolean(rec.inputs[item.ticker]);
+								return Boolean(rec.inputs[materialTicker]);
 							}
 							// Fallback if inputs map is absent: check recipeKey (format: building:inputs=>outputs)
 							const colonIdx = rec.recipeKey.indexOf(":");
@@ -156,18 +158,18 @@ export const CategoryCard = React.memo(
 								return inPart
 									.split("-")
 									.some(
-										(part) =>
-											part.split("x")[1] === item.ticker ||
-											part === item.ticker,
+										(part: string) =>
+											part.split("x")[1] === materialTicker ||
+											part === materialTicker,
 									);
 							}
 							return true;
 						}
 						return true;
 					})
-					.map((rec) => {
+					.map((rec: any) => {
 						const uEntry = rec.users?.find(
-							(u) => u.player === i.player && u.loc === i.loc,
+							(u: any) => u.player === i.player && u.loc === i.loc,
 						);
 						return {
 							recipeKey: rec.recipeKey,
@@ -241,7 +243,7 @@ export const CategoryCard = React.memo(
 						}}
 					>
 						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-							{item && <MaterialBadge ticker={item.ticker} />}
+							<MaterialBadge ticker={materialTicker} />
 							<Typography
 								variant="subtitle2"
 								noWrap
