@@ -20,6 +20,23 @@ export const MATERIAL_CONDITION_TYPES = new Set([
 	"COMEX_PURCHASE_PICKUP",
 ]);
 
+export const PICKUP_CONDITION_TYPES = new Set([
+	"PICKUP",
+	"COMEX_PURCHASE_PICKUP",
+	"WITHDRAW",
+	"PICKUP_SHIPMENT",
+]);
+
+export function isPickupCondition(condType?: string): boolean {
+	if (!condType) return false;
+	const upper = condType.toUpperCase();
+	return (
+		PICKUP_CONDITION_TYPES.has(upper) ||
+		upper.includes("PICKUP") ||
+		upper.includes("WITHDRAW")
+	);
+}
+
 export function useContractDetail(
 	props: UseContractDetailProps,
 ): UseContractDetailResult {
@@ -174,6 +191,7 @@ export function useContractDetail(
 			const matConds = pendingConditions.filter(
 				(cond) =>
 					MATERIAL_CONDITION_TYPES.has(cond.type) &&
+					!isPickupCondition(cond.type) &&
 					cond.party === contractDetail.party,
 			);
 

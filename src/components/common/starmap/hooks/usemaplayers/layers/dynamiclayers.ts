@@ -31,6 +31,12 @@ import {
 } from "../constants";
 
 interface BuildDynamicLayersProps {
+	mode?: "public" | "dashboard" | "shipping";
+	shippingModeHighlights?: {
+		systemIds: Set<string>;
+		planetIds: Set<string>;
+		stationIds: Set<string>;
+	};
 	starAtlas: ImageBitmap | null;
 	starMapping?: any;
 	shipAtlas: ImageBitmap | null;
@@ -68,6 +74,8 @@ interface BuildDynamicLayersProps {
  */
 export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 	const {
+		mode,
+		shippingModeHighlights,
 		starAtlas,
 		starMapping,
 		shipAtlas,
@@ -392,6 +400,30 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 			}
 		}
 
+		// Shipping Mode Planet Halos
+		if (mode === "shipping" && shippingModeHighlights?.planetIds && shippingModeHighlights.planetIds.size > 0) {
+			const shipmentPlanets = activePlanets.filter((p) =>
+				shippingModeHighlights.planetIds.has(p.planetid || (p as any).id),
+			);
+			if (shipmentPlanets.length > 0) {
+				dLayers.push(
+					new ScatterplotLayer({
+						id: `planets-shipping-halo-${currentSystem?.originalSystemId || "none"}`,
+						data: shipmentPlanets,
+						getPosition: getPlanetPosition,
+						getRadius: (d: any) => (d.scaledPlanetRadius ?? 1.0) * 3.2,
+						radiusUnits: "meters",
+						getLineColor: [0, 229, 255, 255],
+						getFillColor: [0, 229, 255, 60],
+						lineWidthMinPixels: 3.0,
+						stroked: true,
+						filled: true,
+						pickable: false,
+					}),
+				);
+			}
+		}
+
 		if (activeStations && activeStations.length > 0) {
 			dLayers.push(
 				new IconLayer({
@@ -410,6 +442,30 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 					onHover: handleHoverTooltip,
 				}),
 			);
+		}
+
+		// Shipping Mode Station Halos
+		if (mode === "shipping" && shippingModeHighlights?.stationIds && shippingModeHighlights.stationIds.size > 0) {
+			const shipmentStations = activeStations.filter((st) =>
+				shippingModeHighlights.stationIds.has(st.stationid || st.id),
+			);
+			if (shipmentStations.length > 0) {
+				dLayers.push(
+					new ScatterplotLayer({
+						id: `stations-shipping-halo-${currentSystem?.originalSystemId || "none"}`,
+						data: shipmentStations,
+						getPosition: getStationPosition,
+						getRadius: (d: any) => (d.scaledStationRadius ?? 1.0) * 3.2,
+						radiusUnits: "meters",
+						getLineColor: [255, 185, 0, 255],
+						getFillColor: [255, 185, 0, 60],
+						lineWidthMinPixels: 3.0,
+						stroked: true,
+						filled: true,
+						pickable: false,
+					}),
+				);
+			}
 		}
 
 		// --- SMART SPOKE LABEL PLACEMENT (DE-COLLISION) ---

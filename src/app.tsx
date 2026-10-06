@@ -20,6 +20,7 @@ import Logistics from "./dashboard/logistics/logistics";
 import Governance from "./dashboard/governance/governancepage";
 import { CorporationOverview } from "./dashboard/corporation/corporationoverview";
 import ShipmentPage from "./dashboard/shipping/shipmentpage";
+import PublicShipmentPage from "./dashboard/shipping/publicshipmentpage";
 import { ProductionLeaderboard } from "./public/leaderboard";
 import { fetchClient } from "./utils/apiclient";
 import FinancialOverview from "./dashboard/financial/financialoverview";
@@ -270,6 +271,7 @@ function App() {
 
 						<Route path="/cx" element={<CX />} />
 						<Route path="/planner/:planId" element={<BasePlanner />} />
+						<Route path="/shipment/:trackingId" element={<PublicShipmentPage />} />
 
 						{/* Protected Routes - These are nested under a protected layout */}
 						<Route

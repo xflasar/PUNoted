@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Button, Link, Typography } from "@mui/material";
 import {
 	FaArrowRight,
+	FaBoxes,
 	FaChartLine,
 	FaChrome,
 	FaFirefoxBrowser,
@@ -11,6 +12,7 @@ import {
 	FaStore,
 	FaUsers,
 } from "react-icons/fa";
+
 import { DownloadGrid, ExtensionButton, NavButton } from "../styles";
 import { FeatureCarousel } from "./featurecarousel";
 import { useNavigate } from "react-router-dom";
@@ -246,6 +248,29 @@ export const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({
 					>
 						<FaMap style={{ marginRight: "0.5rem" }} /> Galaxy Map
 					</NavButton>
+
+					<NavButton
+						variant="outlined"
+						onClick={() => {
+							if (isLoggedIn) {
+								navigate("/dashboard/shipments");
+							} else {
+								navigate("/shipment/track");
+							}
+						}}
+						sx={{
+							color: "white",
+							borderColor: "rgba(255,255,255,0.15)",
+							"&:hover": {
+								borderColor: "#7b68ee",
+								bgcolor: "rgba(123,104,238,0.05)",
+							},
+							width: { xs: "100%", sm: "auto" },
+						}}
+					>
+						<FaBoxes style={{ marginRight: "0.5rem" }} /> Track Shipment
+					</NavButton>
+
 
 					{isLoggedIn && (
 						<NavButton

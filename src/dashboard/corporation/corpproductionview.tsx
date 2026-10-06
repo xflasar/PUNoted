@@ -49,6 +49,7 @@ import type {
 	ProductionSummaryItem,
 	CorpMember,
 	CustomCategory,
+	ProducerConsumerItem,
 } from "./types";
 import {
 	ALL_CATEGORIES,
@@ -272,13 +273,13 @@ export const CorpProductionView = React.memo(
 			Array<{
 				type: "header" | "row";
 				data:
-					| ProductionSummaryItem
-					| {
-							category: string;
-							count: number;
-							id?: string;
-							isDrilldown?: boolean;
-					  };
+				| ProductionSummaryItem
+				| {
+					category: string;
+					count: number;
+					id?: string;
+					isDrilldown?: boolean;
+				};
 				drillType?: "prod" | "cons";
 				isDrilldown?: boolean;
 			}>
@@ -355,11 +356,13 @@ export const CorpProductionView = React.memo(
 						return {
 							ticker: entry.player,
 							name: label,
+							production: type === "prod" ? entry.amount : 0,
 							productionTotal: type === "prod" ? entry.amount : 0,
 							productionAccurate:
 								type === "prod" && entry.isAccurate ? entry.amount : 0,
 							productionEstimated:
 								type === "prod" && !entry.isAccurate ? entry.amount : 0,
+							consumption: type === "cons" ? entry.amount : 0,
 							consumptionTotal: type === "cons" ? entry.amount : 0,
 							consumptionAccurate:
 								type === "cons" && entry.isAccurate ? entry.amount : 0,
@@ -372,6 +375,8 @@ export const CorpProductionView = React.memo(
 							batchProdQueued: entry.batchProdQueued,
 							batchConsActive: entry.batchConsActive,
 							batchConsQueued: entry.batchConsQueued,
+							materialTicker: item.ticker,
+							userRecipesUsed: item.userRecipesUsed,
 						};
 					});
 
@@ -534,13 +539,13 @@ export const CorpProductionView = React.memo(
 				const list: Array<{
 					type: "header" | "row";
 					data:
-						| ProductionSummaryItem
-						| {
-								category: string;
-								count: number;
-								id?: string;
-								isDrilldown?: boolean;
-						  };
+					| ProductionSummaryItem
+					| {
+						category: string;
+						count: number;
+						id?: string;
+						isDrilldown?: boolean;
+					};
 					drillType?: "prod" | "cons";
 					isDrilldown?: boolean;
 				}> = [];
@@ -705,8 +710,8 @@ export const CorpProductionView = React.memo(
 															p: 0.5,
 															color:
 																filterOpen ||
-																!selectedCategories.includes("ALL") ||
-																selectedMembers.length > 0
+																	!selectedCategories.includes("ALL") ||
+																	selectedMembers.length > 0
 																	? "primary.main"
 																	: "text.secondary",
 															bgcolor: filterOpen
@@ -1151,6 +1156,7 @@ export const CorpProductionView = React.memo(
 									</TableRow>
 								)}
 								itemContent={(_index, data) => {
+									console.log("itemContent", data)
 									if (data.type === "header") {
 										return (
 											<CategoryHeaderRow

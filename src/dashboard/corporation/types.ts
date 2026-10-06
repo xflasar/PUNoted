@@ -35,6 +35,7 @@ export interface ProductionSummaryItem {
 	batchConsQueued?: number;
 	producers: ProducerConsumerItem[];
 	consumers: ProducerConsumerItem[];
+	materialTicker?: string;
 	userRecipeInputs?: Record<string, number>;
 	userRecipesUsed?: Array<{
 		recipeKey: string;
