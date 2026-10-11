@@ -1281,17 +1281,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				flex: 1,
 				headerAlign: "right",
 				align: "right",
-				renderCell: ({ value, row }) => (
+				renderCell: ({ value }) => (
 					<Typography
 						variant="body2"
 						sx={{
 							fontWeight: "bold",
-							color:
-								row.quantity === 0
-									? theme.palette.error.main
-									: row.orderType === "sell"
-										? theme.palette.warning.main
-										: theme.palette.info.main,
+							color: theme.palette.primary.main,
 						}}
 					>
 						{formatAmount(Number(value))}
