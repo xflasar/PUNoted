@@ -39,6 +39,7 @@ const dbPromise = openDB(DB_NAME, 1, {
 
 interface GlobalDataContextState {
 	materialData: Record<string, MaterialData>;
+	isMaterialDataLoaded: boolean;
 	recipes: any[];
 	getMatProps: (ticker: string) => { weight: number; volume: number };
 	dashboardData: DashboardPayload | null;
@@ -149,6 +150,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	const [materialData, setMaterialData] = useState<
 		Record<string, MaterialData>
 	>({});
+	const [isMaterialDataLoaded, setIsMaterialDataLoaded] = useState(false);
 	const [recipes, setRecipes] = useState<any[]>([]);
 	const [marketData, setMarketData] = useState<Record<string, any>>({});
 	const [corpPrices, setCorpPrices] = useState<Record<string, number>>({});
@@ -666,7 +668,10 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	const fetchMaterials = useCallback(async () => {
 		try {
 			const cached = await getCachedData("global_materials");
-			if (cached) setMaterialData(cached);
+			if (cached) {
+				setMaterialData(cached);
+				setIsMaterialDataLoaded(true);
+			}
 
 			const res = await fetchClient("/internal/materials/list");
 			if (res?.ok) {
@@ -688,7 +693,10 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					await setCachedData("global_materials", matDict);
 				}
 			}
-		} catch {}
+		} catch {
+		} finally {
+			setIsMaterialDataLoaded(true);
+		}
 	}, [getCachedData, setCachedData]);
 
 	const fetchRecipes = useCallback(async () => {
@@ -1318,6 +1326,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 	const providerValue = useMemo(
 		() => ({
 			materialData,
+			isMaterialDataLoaded,
 			recipes,
 			getMatProps,
 			dashboardData,
@@ -1370,6 +1379,7 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 		}),
 		[
 			materialData,
+			isMaterialDataLoaded,
 			getMatProps,
 			dashboardData,
 			isLoading,
@@ -1433,6 +1443,7 @@ export const useGlobalData = (): GlobalDataContextState => {
 	if (!ctx) {
 		return {
 			materialData: {},
+			isMaterialDataLoaded: false,
 			recipes: [],
 			getMatProps: () => ({ weight: 1, volume: 1 }),
 			dashboardData: null,

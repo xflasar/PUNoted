@@ -1,9 +1,18 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, {
+	useState,
+	useMemo,
+	useEffect,
+	useCallback,
+	useRef,
+} from "react";
+import { createPortal } from "react-dom";
 import {
 	Dialog,
 	DialogTitle,
 	DialogContent,
+	Alert,
 	Box,
+	Link,
 	Typography,
 	TextField,
 	Button,
@@ -14,6 +23,7 @@ import {
 	useTheme,
 	useMediaQuery,
 	Drawer,
+	Snackbar,
 	Collapse,
 	alpha,
 } from "@mui/material";
@@ -32,12 +42,17 @@ import {
 	Store,
 	Warehouse,
 	Globe,
+	FileUp,
 } from "lucide-react";
 import { ContentCopy } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import PriceComparisonBadge from "./components/pricecomparisonbadge";
 import { getDiffStats } from "./utils/pricecomparison";
 import { pickPrice } from "./utils/pickprice";
+import {
+	parseShoppingListImport,
+	type ImportedShoppingListItem,
+} from "./utils/shoppinglistimport";
 import MaterialBadge from "../components/materialbadge";
 import LocationFilter, {
 	HORTUS_LOCATION_CODE,
@@ -46,6 +61,7 @@ import LocationFilter, {
 } from "./components/locationfilter";
 import InlineConfirmButton from "../components/inlineconfirmbutton";
 import { Modal } from "./modal";
+import { useGlobalData } from "../../context/globaldatacontext";
 import shoppingListHelp1 from "../../assets/screenshots/shopping_list_help_1.png";
 import shoppingListHelp2 from "../../assets/screenshots/shopping_list_help_2.png";
 import shoppingListHelp3 from "../../assets/screenshots/shopping_list_help_3.png";
@@ -1242,6 +1258,9 @@ const AvailableMaterialsPanel: React.FC<{
 	materials: any[];
 	selectedTickers: Set<string>;
 	onAdd: (m: any) => void;
+	onImport: (materials: ImportedShoppingListItem[]) => void;
+	validMaterialTickers: Set<string>;
+	isMaterialDataLoaded: boolean;
 	allLocations: LocationOption[];
 	selectedLocation: string | null;
 	onChangeLocation: (next: string | null) => void;
@@ -1252,6 +1271,9 @@ const AvailableMaterialsPanel: React.FC<{
 		materials,
 		selectedTickers,
 		onAdd,
+		onImport,
+		validMaterialTickers,
+		isMaterialDataLoaded,
 		allLocations,
 		selectedLocation,
 		onChangeLocation,
@@ -1259,6 +1281,66 @@ const AvailableMaterialsPanel: React.FC<{
 		onCloseMobile,
 	}) => {
 		const [search, setSearch] = useState("");
+		const [showImport, setShowImport] = useState(false);
+		const [importText, setImportText] = useState("");
+		const [importSnackbar, setImportSnackbar] = useState<{
+			open: boolean;
+			message: string;
+			severity: "success" | "error";
+		}>({ open: false, message: "", severity: "success" });
+		const importInputRef = useRef<HTMLTextAreaElement>(null);
+		const pendingImportRef = useRef(false);
+
+		useEffect(() => {
+			if (!showImport) return;
+			const frame = requestAnimationFrame(() =>
+				importInputRef.current?.focus(),
+			);
+			return () => cancelAnimationFrame(frame);
+		}, [showImport]);
+
+		const handleCloseImport = useCallback(() => {
+			setShowImport(false);
+			setImportText("");
+			pendingImportRef.current = false;
+		}, []);
+
+		const importMaterials = useCallback(() => {
+			try {
+				const importedMaterials = parseShoppingListImport(
+					importText,
+					validMaterialTickers,
+				);
+				onImport(importedMaterials);
+				handleCloseImport();
+				setImportSnackbar({
+					open: true,
+					message: `Imported ${importedMaterials.length} materials`,
+					severity: "success",
+				});
+			} catch (error) {
+				setImportSnackbar({
+					open: true,
+					message: error instanceof Error ? error.message : "Invalid input",
+					severity: "error",
+				});
+			}
+		}, [handleCloseImport, importText, onImport, validMaterialTickers]);
+
+		const handleImport = () => {
+			if (!isMaterialDataLoaded) {
+				pendingImportRef.current = true;
+				return;
+			}
+			importMaterials();
+		};
+
+		useEffect(() => {
+			if (!pendingImportRef.current || !isMaterialDataLoaded) return;
+			pendingImportRef.current = false;
+			const timeout = window.setTimeout(importMaterials, 0);
+			return () => window.clearTimeout(timeout);
+		}, [isMaterialDataLoaded, importMaterials, showImport]);
 
 		const filtered = useMemo(() => {
 			const terms = search
@@ -1300,11 +1382,21 @@ const AvailableMaterialsPanel: React.FC<{
 					>
 						AVAILABLE MATERIALS
 					</Typography>
-					{isMobile && (
-						<IconButton onClick={onCloseMobile}>
-							<X className="inline-icon" />
-						</IconButton>
-					)}
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+						<Button
+							size="small"
+							variant="outlined"
+							startIcon={<FileUp className="inline-icon" />}
+							onClick={() => setShowImport(true)}
+						>
+							IMPORT
+						</Button>
+						{isMobile && (
+							<IconButton onClick={onCloseMobile}>
+								<X className="inline-icon" />
+							</IconButton>
+						)}
+					</Box>
 				</Box>
 
 				<Box sx={{ p: isMobile ? 0 : 2, pb: 1 }}>
@@ -1377,6 +1469,57 @@ const AvailableMaterialsPanel: React.FC<{
 						</Typography>
 					)}
 				</Box>
+				<Modal
+					open={showImport}
+					onClose={handleCloseImport}
+					title="IMPORT MATERIALS"
+					actionLabel="IMPORT"
+					onAction={handleImport}
+					cancelColor="primary"
+				>
+					<TextField
+						autoFocus
+						fullWidth
+						multiline
+						minRows={8}
+						placeholder="Paste materials + quantities in CSV/TSV or XIT ACT JSON"
+						inputRef={importInputRef}
+						value={importText}
+						onChange={(event) => setImportText(event.target.value)}
+						sx={{ mt: 1 }}
+					/>
+					<Link
+						component="button"
+						type="button"
+						variant="body2"
+						onClick={() => setImportText("RAT,40\nOVE,4")}
+						sx={{ mt: 1 }}
+					>
+						Example
+					</Link>
+				</Modal>
+				{createPortal(
+					<Snackbar
+						open={importSnackbar.open}
+						autoHideDuration={3000}
+						anchorOrigin={{ vertical: "top", horizontal: "right" }}
+						onClose={() =>
+							setImportSnackbar((current) => ({ ...current, open: false }))
+						}
+						sx={{ zIndex: (theme) => theme.zIndex.modal + 2 }}
+					>
+						<Alert
+							onClose={() =>
+								setImportSnackbar((current) => ({ ...current, open: false }))
+							}
+							severity={importSnackbar.severity}
+							variant="filled"
+						>
+							{importSnackbar.message}
+						</Alert>
+					</Snackbar>,
+					document.body,
+				)}
 			</Box>
 		);
 	},
@@ -1400,8 +1543,14 @@ const ShoppingListModal: React.FC<{
 	cxPriceLookup: CxPriceLookup;
 }> = ({ open, handleClose, vendors, cxPriceLookup }) => {
 	const theme = useTheme();
+	const { materialData, isMaterialDataLoaded } = useGlobalData();
 	const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
 	const isCompact = useMediaQuery(theme.breakpoints.down("xl"));
+	const validMaterialTickers = useMemo(
+		() =>
+			new Set(Object.keys(materialData).map((ticker) => ticker.toUpperCase())),
+		[materialData],
+	);
 
 	// State management
 	const [insufficientStock, setInsufficientStock] = useState(false);
@@ -1604,6 +1753,17 @@ const ShoppingListModal: React.FC<{
 				},
 			];
 		});
+	}, []);
+
+	const handleImport = useCallback((materials: ImportedShoppingListItem[]) => {
+		setShoppingList(
+			materials.map(({ materialticker, quantity }) => ({
+				materialticker,
+				quantity,
+				frontendId: uuidv4(),
+				vendorPriority: [],
+			})),
+		);
 	}, []);
 
 	const handleUpdateQty = useCallback((id: string, qty: number) => {
@@ -1997,6 +2157,9 @@ const ShoppingListModal: React.FC<{
 									materials={availableMaterials}
 									selectedTickers={selectedTickers}
 									onAdd={handleAdd}
+									onImport={handleImport}
+									validMaterialTickers={validMaterialTickers}
+									isMaterialDataLoaded={isMaterialDataLoaded}
 									allLocations={allLocations}
 									selectedLocation={selectedLocation}
 									onChangeLocation={setSelectedLocation}
@@ -2032,6 +2195,9 @@ const ShoppingListModal: React.FC<{
 						materials={availableMaterials}
 						selectedTickers={selectedTickers}
 						onAdd={handleAdd}
+						onImport={handleImport}
+						validMaterialTickers={validMaterialTickers}
+						isMaterialDataLoaded={isMaterialDataLoaded}
 						allLocations={allLocations}
 						selectedLocation={selectedLocation}
 						onChangeLocation={setSelectedLocation}
