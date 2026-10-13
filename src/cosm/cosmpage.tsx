@@ -1,38 +1,48 @@
-import React from "react";
-import {
-	Typography,
-	Box,
-	Paper,
-	Button,
-	Tabs,
-	Tab,
-	Container,
-	useMediaQuery,
-} from "@mui/material";
-import { alpha, maxHeight, minHeight, useTheme, width } from "@mui/system";
+import React, { useState } from "react";
+import { Box, Paper, Tabs, Tab, Container, useMediaQuery } from "@mui/material";
+import { alpha, useTheme } from "@mui/system";
 import ProductionDashboard from "./shipproduction/productiondashboard";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import VendorsList from "./vendors/vendorlist";
-import { DollarSign, Rocket, ShoppingBasket, Store, Truck } from "lucide-react";
+import { DollarSign, Rocket, ShoppingBasket, Store } from "lucide-react";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import MainDashboard from "./pricelist/maindashboard";
 import ShippingMap from "./shipping/shippingmap";
-import { minutesInHour } from "date-fns/constants";
 //import ShippingBoard from './shipping/shippingboard';
 
-const TabPanel = (props: any) => {
-	const { children, value, index, ...other } = props;
+const VENDOR_TABS = ["vendors", "cart", "store"] as const;
+
+type VendorTab = (typeof VENDOR_TABS)[number];
+
+const isVendorTab = (tab: string): tab is VendorTab =>
+	VENDOR_TABS.includes(tab as VendorTab);
+
+const TabPanel = ({
+	children,
+	value,
+	index,
+	keepMounted,
+	...other
+}: {
+	children: React.ReactNode;
+	value: string;
+	index: string;
+	keepMounted: boolean;
+}) => {
+	const isActive = value === index;
 	return (
 		<Box
 			role="tabpanel"
-			hidden={value !== index}
+			hidden={!isActive}
 			id={`tabpanel-${index}`}
 			aria-labelledby={`tab-${index}`}
 			sx={{ height: "100%", maxHeight: "100%" }}
 			{...other}
 		>
-			{value === index && <Box sx={{ height: "100%" }}>{children}</Box>}
+			{(isActive || keepMounted) && (
+				<Box sx={{ height: "100%" }}>{children}</Box>
+			)}
 		</Box>
 	);
 };
@@ -62,11 +72,19 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 	// Get the current tab value from the URL or set a default
 	const tabValue =
 		searchParams.get("tab") || (isLoggedIn ? "vendors" : "production");
+	const activePanel = isVendorTab(tabValue) ? "vendors" : tabValue;
+	const [visitedPanels, setVisitedPanels] = useState(
+		() => new Set([activePanel]),
+	);
 
 	const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
 		if (newValue === "homepage") {
 			navigate("/");
 		} else {
+			const panel = isVendorTab(newValue) ? "vendors" : newValue;
+			setVisitedPanels((panels) =>
+				panels.has(panel) ? panels : new Set(panels).add(panel),
+			);
 			setSearchParams({ tab: newValue });
 		}
 	};
@@ -181,22 +199,35 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					width: { xs: "100%", sm: "100%" },
 				}}
 			>
-				<TabPanel value={tabValue} index="vendors">
-					<VendorsList loggedIn={isLoggedIn} activeTab="vendors" />
+				<TabPanel
+					value={activePanel}
+					index="vendors"
+					keepMounted={visitedPanels.has("vendors")}
+				>
+					<VendorsList
+						loggedIn={isLoggedIn}
+						activeTab={isVendorTab(tabValue) ? tabValue : "vendors"}
+					/>
 				</TabPanel>
-				<TabPanel value={tabValue} index="cart">
-					<VendorsList loggedIn={isLoggedIn} activeTab="cart" />
-				</TabPanel>
-				<TabPanel value={tabValue} index="store">
-					<VendorsList loggedIn={isLoggedIn} activeTab="store" />
-				</TabPanel>
-				<TabPanel value={tabValue} index="priceList">
+				<TabPanel
+					value={activePanel}
+					index="priceList"
+					keepMounted={visitedPanels.has("priceList")}
+				>
 					<MainDashboard />
 				</TabPanel>
-				<TabPanel value={tabValue} index="production">
+				<TabPanel
+					value={activePanel}
+					index="production"
+					keepMounted={visitedPanels.has("production")}
+				>
 					<ShipProductionTab isMobile={isMobile} />
 				</TabPanel>
-				<TabPanel value={tabValue} index="shipping">
+				<TabPanel
+					value={activePanel}
+					index="shipping"
+					keepMounted={visitedPanels.has("shipping")}
+				>
 					<ShippingMap />
 				</TabPanel>
 			</Box>

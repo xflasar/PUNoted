@@ -37,7 +37,6 @@ import {
 	X,
 } from "lucide-react";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./createvendorstoremodal";
 import EditVendorStoreModal from "./editvendorstoremodal";
 import ShoppingListModal from "./shoppinglistmodal";
@@ -808,8 +807,10 @@ const VendorsList = ({
 	activeTab: "vendors" | "cart" | "store";
 }) => {
 	const theme = useTheme();
-	const [searchParams, setSearchParams] = useSearchParams();
 	const [marketOptions] = useState(getStoredMarketOptions);
+	const [vendorViewMode, setVendorViewMode] = useState<"grid" | "table">(
+		marketOptions.view,
+	);
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [exactMatch, setExactMatch] = useState<boolean>(false);
 	const [hideUnavailable, setHideUnavailable] = useState(
@@ -822,10 +823,6 @@ const VendorsList = ({
 		"ASK" | "BID" | "BOTH"
 	>(marketOptions.side.toUpperCase() as "ASK" | "BID" | "BOTH");
 	const searchInputRef = useRef<HTMLInputElement>(null);
-	const querySubtab = searchParams.get("subtab");
-	const vendorViewMode: "grid" | "table" =
-		(isVendorViewMode(querySubtab) ? querySubtab : null) || marketOptions.view;
-
 	// Data States
 	const [vendorStores, setVendorStores] = useState<VendorStore[]>([]);
 	const [isLoadingVendors, setIsLoadingVendors] = useState<boolean>(true);
@@ -834,15 +831,6 @@ const VendorsList = ({
 		VendorStore | null | undefined
 	>(loggedIn ? undefined : null);
 	const [vendorsRefreshTick, setVendorsRefreshTick] = useState(0);
-
-	useEffect(() => {
-		if (querySubtab === vendorViewMode) {
-			return;
-		}
-		const nextParams = new URLSearchParams(searchParams);
-		nextParams.set("subtab", vendorViewMode);
-		setSearchParams(nextParams, { replace: true });
-	}, [querySubtab, searchParams, setSearchParams, vendorViewMode]);
 
 	useEffect(() => {
 		localStorage.setItem(
@@ -935,12 +923,8 @@ const VendorsList = ({
 
 	// Handlers
 	const handleViewModeChange = useCallback(
-		(newValue: "grid" | "table") => {
-			const nextParams = new URLSearchParams(searchParams);
-			nextParams.set("subtab", newValue);
-			setSearchParams(nextParams);
-		},
-		[searchParams, setSearchParams],
+		(newValue: "grid" | "table") => setVendorViewMode(newValue),
+		[],
 	);
 
 	const handleOnVendorChanged = useCallback(
