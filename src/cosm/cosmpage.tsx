@@ -14,7 +14,8 @@ import ProductionDashboard from "./shipproduction/productiondashboard";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import VendorsList from "./vendors/vendorlist";
-import { DollarSign, Rocket, Store, Truck } from "lucide-react";
+import { DollarSign, Rocket, ShoppingBasket, Store, Truck } from "lucide-react";
+import StorefrontIcon from "@mui/icons-material/Storefront";
 import MainDashboard from "./pricelist/maindashboard";
 import ShippingMap from "./shipping/shippingmap";
 import { minutesInHour } from "date-fns/constants";
@@ -34,10 +35,6 @@ const TabPanel = (props: any) => {
 			{value === index && <Box sx={{ height: "100%" }}>{children}</Box>}
 		</Box>
 	);
-};
-
-const VendorsTab = ({ isLoggedIn }: { isLoggedIn: boolean }) => {
-	return <VendorsList loggedIn={isLoggedIn} />;
 };
 
 const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
@@ -76,6 +73,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 
 	// Shared hover styles for all tabs
 	const tabHoverStyles = {
+		minHeight: 56,
 		transition: "background-color 0.2s ease",
 		"&:hover": {
 			backgroundColor: alpha(theme.palette.primary.main, 0.1),
@@ -99,7 +97,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 			<Paper
 				square
 				sx={{
-					bgcolor: alpha(theme.palette.background.default, 1),
+					bgcolor: alpha(theme.palette.common.white, 0.06),
 					border: "none",
 					boxShadow: "none",
 					borderRadius: "16px",
@@ -122,13 +120,14 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					}}
 				>
 					<Tab
-						label="Homepage"
+						label="Home"
 						icon={<FaArrowLeft />}
+						iconPosition="start"
 						value="homepage"
 						sx={{
 							...tabHoverStyles,
 							flexGrow: 0,
-							minWidth: 100,
+							minWidth: 120,
 							px: { xs: 2, sm: 3 },
 						}}
 					/>
@@ -140,7 +139,21 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 						sx={tabHoverStyles}
 					/>
 					<Tab
-						label="Price List"
+						label="Cart"
+						icon={<ShoppingBasket />}
+						iconPosition="start"
+						value="cart"
+						sx={tabHoverStyles}
+					/>
+					<Tab
+						label="Store"
+						icon={<StorefrontIcon />}
+						iconPosition="start"
+						value="store"
+						sx={tabHoverStyles}
+					/>
+					<Tab
+						label="Prices"
 						icon={<DollarSign />}
 						iconPosition="start"
 						value="priceList"
@@ -148,7 +161,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					/>
 					{/* <Tab label="Shipping" icon={<Truck />} iconPosition="start" value="shipping" sx={tabHoverStyles} /> */}
 					<Tab
-						label="Ship Production"
+						label="Ships"
 						icon={<Rocket />}
 						iconPosition="start"
 						value="production"
@@ -169,7 +182,13 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 				}}
 			>
 				<TabPanel value={tabValue} index="vendors">
-					<VendorsTab isLoggedIn={isLoggedIn} />
+					<VendorsList loggedIn={isLoggedIn} activeTab="vendors" />
+				</TabPanel>
+				<TabPanel value={tabValue} index="cart">
+					<VendorsList loggedIn={isLoggedIn} activeTab="cart" />
+				</TabPanel>
+				<TabPanel value={tabValue} index="store">
+					<VendorsList loggedIn={isLoggedIn} activeTab="store" />
 				</TabPanel>
 				<TabPanel value={tabValue} index="priceList">
 					<MainDashboard />

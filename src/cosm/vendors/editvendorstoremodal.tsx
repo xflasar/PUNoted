@@ -1,19 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
 	Box,
 	Typography,
 	Button,
 	CircularProgress,
-	IconButton,
 	useTheme,
 	Paper,
 } from "@mui/material";
 import { API_BASE_URL } from "../../config/api";
-import { DeleteIcon, PlusCircle, X } from "lucide-react";
+import { DeleteIcon } from "lucide-react";
 import AvailableMaterialsList from "./components/availablematerialslist";
 import MaterialTable from "./components/materialtable";
 import { Modal } from "./modal";
@@ -21,16 +16,12 @@ import { Modal } from "./modal";
 import { useVendorStoreManager } from "./hooks/usevendorstoremanager";
 import { useAvailableMaterials } from "./hooks/useavailablematerials";
 
-import type { Location, VendorStore } from "./types";
+import type { Location, OrderItem, VendorStore } from "./types";
 
 /**
  * Props for the EditVendorStoreModal component.
  */
 interface EditVendorStoreModalProps {
-	/** Indicates if the modal is open */
-	open: boolean;
-	/** Callback to close the modal */
-	handleClose: () => void;
 	/** State setter for the currently selected vendor store */
 	/** The vendor store being edited */
 	vendorStore: VendorStore | null;
@@ -48,8 +39,6 @@ interface EditVendorStoreModalProps {
  */
 const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 	vendorStore,
-	open,
-	handleClose,
 	onStoreDeleted,
 	onVendorChanged,
 }) => {
@@ -72,24 +61,23 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 		handleEditMaterial,
 		handleRemoveMaterial,
 		setOrdersToDelete,
+		reset,
 		hydrateAvailableMaterials,
 		normalizeVendorStore,
 	} = useVendorStoreManager(vendorStore);
 
 	// Custom hook to fetch available materials based on current CX
-	const { materials } = useAvailableMaterials(localVendorDetails.cx, open);
+	const { materials } = useAvailableMaterials(localVendorDetails.cx, true);
 
 	useEffect(() => {
-		if (!open || materials.length === 0) return;
+		if (materials.length === 0) return;
 		hydrateAvailableMaterials(materials);
-	}, [open, materials, hydrateAvailableMaterials]);
+	}, [materials, hydrateAvailableMaterials]);
 
 	/**
 	 * Fetches the available locations when the modal opens.
 	 */
 	useEffect(() => {
-		if (!open) return;
-
 		let isMounted = true;
 
 		const fetchLocations = async () => {
@@ -124,7 +112,52 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 		return () => {
 			isMounted = false;
 		};
-	}, [open]);
+	}, []);
+
+	const isDirty = useMemo(() => {
+		if (!vendorStore) return false;
+
+		const comparableState = (
+			details: typeof localVendorDetails,
+			orders: OrderItem[],
+			deleted: string[] = [],
+		) =>
+			JSON.stringify({
+				details,
+				orders: orders
+					.map((order) => ({
+						orderid: order.orderid || null,
+						materialticker: order.materialticker,
+						ordertype: order.ordertype,
+						fixedprice: order.isPriceLocked ? -1 : order.price?.fixedprice,
+						materialid: order.materialid,
+						reserved: order.reserved,
+						location: (order.locations || order.location || []).map(
+							(location) => ({ id: location.id, amount: location.amount }),
+						),
+					}))
+					.sort((a, b) =>
+						`${a.orderid}:${a.materialticker}:${a.ordertype}`.localeCompare(
+							`${b.orderid}:${b.materialticker}:${b.ordertype}`,
+						),
+					),
+				deleted: [...deleted].sort(),
+			});
+
+		return (
+			comparableState(localVendorDetails, allOrders, ordersToDelete) !==
+			comparableState(
+				{
+					companyName: vendorStore.vendor.companyname || "",
+					gameName: vendorStore.vendor.gamename || "",
+					companyCode: vendorStore.vendor.companycode || "",
+					corpName: vendorStore.vendor.corpname || "",
+					cx: vendorStore.vendor.cx || "IC1",
+				},
+				vendorStore.orders,
+			)
+		);
+	}, [allOrders, localVendorDetails, ordersToDelete, vendorStore]);
 
 	/**
 	 * Saves the modified vendor details and orders to the backend.
@@ -172,7 +205,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 			}
 
 			onVendorChanged(normalizeVendorStore(result.vendor_store));
-			handleClose();
 		} catch (err) {
 			setError(
 				`Failed to save changes. ${err instanceof Error ? err.message : ""}`,
@@ -187,7 +219,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 		allOrders,
 		ordersToDelete,
 		onVendorChanged,
-		handleClose,
 		setOrdersToDelete,
 		normalizeVendorStore,
 	]);
@@ -219,7 +250,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 			}
 
 			onStoreDeleted(vendorStore.vendor.vendorid);
-			handleClose();
 		} catch (err) {
 			setError(
 				`Failed to delete store. ${err instanceof Error ? err.message : ""}`,
@@ -227,61 +257,19 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 		} finally {
 			setIsDeleting(false);
 		}
-	}, [vendorStore, onStoreDeleted, handleClose]);
+	}, [vendorStore, onStoreDeleted]);
 
 	return (
 		<>
-			<Dialog
-				open={open}
-				onClose={handleClose}
-				maxWidth={false}
-				fullScreen
-				slotProps={{
-					paper: {
-						sx: { display: "flex", flexDirection: "column" },
-					},
-				}}
-			>
+			<Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
 				<Box
-					sx={{
-						position: "absolute",
-						width: "100%",
-						height: "100%",
-						background: "rgba(0,0,0,0.8)",
-						backdropFilter: "blur(1px)",
-						WebkitBackdropFilter: "blur(1px)",
-					}}
-				/>
-
-				{/* 1. HEADER */}
-				<DialogTitle
-					sx={{
-						p: 1.5,
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						borderBottom: `1px solid ${theme.palette.divider}`,
-						flexShrink: 0,
-						zIndex: 2,
-						background: theme.palette.background.default,
-					}}
-				>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-						<PlusCircle className="inline-icon" />
-						<Typography variant="h6">Your Store</Typography>
-					</Box>
-					<IconButton onClick={handleClose}>
-						<X className="inline-icon" />
-					</IconButton>
-				</DialogTitle>
-
-				{/* 2. CONTENT */}
-				<DialogContent
 					sx={{
 						p: 0,
 						m: 1,
 						display: "flex",
 						flexDirection: "column",
+						flex: 1,
+						minHeight: 0,
 						overflow: "hidden",
 						gap: 1,
 						zIndex: 2,
@@ -317,7 +305,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									flex: 1,
 									display: "flex",
 									flexDirection: "column",
-									background: theme.palette.background.default,
+									background: theme.palette.background.paper,
 									overflow: "hidden",
 									border: `1px solid ${theme.palette.divider}`,
 									borderRadius: 2,
@@ -342,7 +330,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									flex: 1,
 									display: "flex",
 									flexDirection: "column",
-									background: theme.palette.background.default,
+									background: theme.palette.background.paper,
 									overflow: "hidden",
 									border: `1px solid ${theme.palette.divider}`,
 									borderRadius: 2,
@@ -376,7 +364,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									flex: 1,
 									display: "flex",
 									flexDirection: "column",
-									background: theme.palette.background.default,
+									background: theme.palette.background.paper,
 									overflow: "hidden",
 									border: `1px solid ${theme.palette.divider}`,
 									borderRadius: 2,
@@ -390,14 +378,14 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 							</Paper>
 						</Box>
 					</Box>
-				</DialogContent>
+				</Box>
 
 				{/* 3. FOOTER */}
-				<DialogActions
+				<Box
 					sx={{
 						p: 1.5,
 						borderTop: `1px solid ${theme.palette.divider}`,
-						background: theme.palette.background.default,
+						background: theme.palette.background.paper,
 						flexShrink: 0,
 						zIndex: 2,
 						position: "relative",
@@ -453,27 +441,27 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						</Box>
 						<Box sx={{ display: "flex", alignItems: "center", gap: 5 }}>
 							<Button
-								onClick={handleClose}
-								disabled={isSaving || isDeleting}
+								onClick={reset}
+								disabled={!isDirty || isSaving || isDeleting}
 								color="inherit"
 							>
-								Discard Changes
+								DISCARD
 							</Button>
 							<Button
 								onClick={handleSave}
 								variant="contained"
-								disabled={isSaving || isDeleting}
+								disabled={!isDirty || isSaving || isDeleting}
 							>
 								{isSaving ? (
 									<CircularProgress className="inline-icon" color="inherit" />
 								) : (
-									"Save & Close"
+									"SAVE"
 								)}
 							</Button>
 						</Box>
 					</Box>
-				</DialogActions>
-			</Dialog>
+				</Box>
+			</Box>
 
 			<Modal
 				open={deleteConfirmOpen}
