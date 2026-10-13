@@ -23,6 +23,7 @@ import {
 	useTheme,
 	IconButton,
 	CircularProgress,
+	Button,
 	alpha,
 } from "@mui/material";
 import {
@@ -802,9 +803,11 @@ const VendorCard = React.memo(
 const VendorsList = ({
 	loggedIn,
 	activeTab,
+	onLoginRequest,
 }: {
 	loggedIn: boolean;
 	activeTab: "vendors" | "cart" | "store";
+	onLoginRequest: () => void;
 }) => {
 	const theme = useTheme();
 	const [marketOptions] = useState(getStoredMarketOptions);
@@ -1475,6 +1478,29 @@ const VendorsList = ({
 	}
 
 	if (activeTab === "store") {
+		if (!loggedIn) {
+			return (
+				<Box
+					sx={{
+						height: "100%",
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						justifyContent: "center",
+						gap: 2,
+						textAlign: "center",
+					}}
+				>
+					<Typography variant="h6">
+						Create your own store and list materials on the PUNoted Market
+					</Typography>
+					<Button variant="contained" onClick={onLoginRequest}>
+						Login / Register
+					</Button>
+				</Box>
+			);
+		}
+
 		if (userVendorStore === undefined) {
 			return (
 				<Box

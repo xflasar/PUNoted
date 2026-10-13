@@ -9,6 +9,7 @@ import { DollarSign, Rocket, ShoppingBasket, Store } from "lucide-react";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import MainDashboard from "./pricelist/maindashboard";
 import ShippingMap from "./shipping/shippingmap";
+import AuthenticationBox from "../landingpage/auth/authenticationbox";
 //import ShippingBoard from './shipping/shippingboard';
 
 const VENDOR_TABS = ["vendors", "cart", "store"] as const;
@@ -63,11 +64,18 @@ const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
 	);
 };
 
-const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
+const CosmPage = ({
+	isLoggedIn = false,
+	onLoginSuccess,
+}: {
+	isLoggedIn?: boolean;
+	onLoginSuccess: () => void;
+}) => {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+	const [showAuthentication, setShowAuthentication] = useState(false);
 
 	// Get the current tab value from the URL or set a default
 	const tabValue =
@@ -207,6 +215,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					<VendorsList
 						loggedIn={isLoggedIn}
 						activeTab={isVendorTab(tabValue) ? tabValue : "vendors"}
+						onLoginRequest={() => setShowAuthentication(true)}
 					/>
 				</TabPanel>
 				<TabPanel
@@ -231,6 +240,12 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					<ShippingMap />
 				</TabPanel>
 			</Box>
+			{showAuthentication && (
+				<AuthenticationBox
+					onLoginSuccess={onLoginSuccess}
+					onBackToLanding={() => setShowAuthentication(false)}
+				/>
+			)}
 		</Container>
 	);
 };

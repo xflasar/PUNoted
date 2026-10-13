@@ -13,6 +13,7 @@ import { useTheme } from "@mui/material/styles";
 import React, { useEffect, useState } from "react";
 import { API_BASE_URL } from "../../config/api";
 import type { VendorStore } from "./types";
+import { Toast } from "./toast";
 
 type RequiredField = "companyName" | "gameName" | "companyCode" | "cx";
 const cleanLocalStorageString = (value: string | null): string => {
@@ -27,6 +28,7 @@ const VendorCreationModal: React.FC<{
 }> = ({ onVendorCreated }) => {
 	const theme = useTheme();
 	const [isSaving, setIsSaving] = useState(false);
+	const [showSaveError, setShowSaveError] = useState(false);
 	const [invalidFields, setInvalidFields] = useState<Set<RequiredField>>(
 		new Set(),
 	);
@@ -122,6 +124,7 @@ const VendorCreationModal: React.FC<{
 			onVendorCreated(newVendorStore);
 		} catch (err) {
 			console.error("Failed to save vendor store:", err);
+			setShowSaveError(true);
 		} finally {
 			setIsSaving(false);
 		}
@@ -344,6 +347,12 @@ const VendorCreationModal: React.FC<{
 					"Create Store"
 				)}
 			</Button>
+			<Toast
+				open={showSaveError}
+				message="Something went wrong — please try again"
+				color="error"
+				onClose={() => setShowSaveError(false)}
+			/>
 		</Box>
 	);
 };

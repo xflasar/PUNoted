@@ -5,9 +5,7 @@ import React, {
 	useCallback,
 	useRef,
 } from "react";
-import { createPortal } from "react-dom";
 import {
-	Alert,
 	Box,
 	Link,
 	Typography,
@@ -21,7 +19,6 @@ import {
 	useMediaQuery,
 	CircularProgress,
 	Drawer,
-	Snackbar,
 	Collapse,
 	alpha,
 } from "@mui/material";
@@ -52,6 +49,7 @@ import {
 	type ImportedShoppingListItem,
 } from "./utils/shoppinglistimport";
 import MaterialBadge from "../components/materialbadge";
+import { Toast } from "./toast";
 import LocationFilter, {
 	HORTUS_LOCATION_CODE,
 	matchesLocationFilter,
@@ -1303,8 +1301,8 @@ const AvailableMaterialsPanel: React.FC<{
 		const [importSnackbar, setImportSnackbar] = useState<{
 			open: boolean;
 			message: string;
-			severity: "success" | "error";
-		}>({ open: false, message: "", severity: "success" });
+			color: "success" | "error";
+		}>({ open: false, message: "", color: "success" });
 		const importInputRef = useRef<HTMLTextAreaElement>(null);
 		const pendingImportRef = useRef(false);
 
@@ -1333,13 +1331,13 @@ const AvailableMaterialsPanel: React.FC<{
 				setImportSnackbar({
 					open: true,
 					message: `Imported ${importedMaterials.length} materials`,
-					severity: "success",
+					color: "success",
 				});
 			} catch (error) {
 				setImportSnackbar({
 					open: true,
 					message: error instanceof Error ? error.message : "Invalid input",
-					severity: "error",
+					color: "error",
 				});
 			}
 		}, [handleCloseImport, importText, onImport, validMaterialTickers]);
@@ -1515,28 +1513,14 @@ const AvailableMaterialsPanel: React.FC<{
 						Example
 					</Link>
 				</Modal>
-				{createPortal(
-					<Snackbar
-						open={importSnackbar.open}
-						autoHideDuration={3000}
-						anchorOrigin={{ vertical: "top", horizontal: "right" }}
-						onClose={() =>
-							setImportSnackbar((current) => ({ ...current, open: false }))
-						}
-						sx={{ zIndex: (theme) => theme.zIndex.modal + 2 }}
-					>
-						<Alert
-							onClose={() =>
-								setImportSnackbar((current) => ({ ...current, open: false }))
-							}
-							severity={importSnackbar.severity}
-							variant="filled"
-						>
-							{importSnackbar.message}
-						</Alert>
-					</Snackbar>,
-					document.body,
-				)}
+				<Toast
+					open={importSnackbar.open}
+					message={importSnackbar.message}
+					color={importSnackbar.color}
+					onClose={() =>
+						setImportSnackbar((current) => ({ ...current, open: false }))
+					}
+				/>
 			</Box>
 		);
 	},
