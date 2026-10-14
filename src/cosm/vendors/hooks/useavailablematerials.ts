@@ -55,12 +55,17 @@ const parseFioInventoryCsv = (csvText: string): Map<string, number> => {
  */
 export function useAvailableMaterials(cx: string, isOpen: boolean) {
 	const [materials, setMaterials] = useState<OrderItem[]>([]);
+	const [isLoading, setIsLoading] = useState(Boolean(cx && isOpen));
 
 	useEffect(() => {
-		if (!cx || !isOpen) return;
+		if (!cx || !isOpen) {
+			setIsLoading(false);
+			return;
+		}
 
 		let isMounted = true;
 		const fetchMaterials = async () => {
+			setIsLoading(true);
 			try {
 				const response = await fetch(
 					`${API_BASE_URL}internal/vendor/materials_price_list`,
@@ -148,6 +153,8 @@ export function useAvailableMaterials(cx: string, isOpen: boolean) {
 				if (isMounted) {
 					setMaterials([]);
 				}
+			} finally {
+				if (isMounted) setIsLoading(false);
 			}
 		};
 
@@ -156,9 +163,10 @@ export function useAvailableMaterials(cx: string, isOpen: boolean) {
 		return () => {
 			isMounted = false;
 		};
-	}, [isOpen, cx]);
+	}, [cx, isOpen]);
 
 	return {
 		materials,
+		isLoading,
 	};
 }

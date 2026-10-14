@@ -67,7 +67,10 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 	} = useVendorStoreManager(vendorStore);
 
 	// Custom hook to fetch available materials based on current CX
-	const { materials } = useAvailableMaterials(localVendorDetails.cx, true);
+	const { materials, isLoading: isLoadingMaterials } = useAvailableMaterials(
+		localVendorDetails.cx,
+		true,
+	);
 
 	useEffect(() => {
 		if (materials.length === 0) return;
@@ -372,6 +375,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 							>
 								<AvailableMaterialsList
 									materials={materials}
+									isLoading={isLoadingMaterials}
 									allOrders={allOrders}
 									onAddMaterial={handleAddMaterial}
 								/>

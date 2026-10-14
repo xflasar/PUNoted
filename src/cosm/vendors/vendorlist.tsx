@@ -834,6 +834,11 @@ const VendorsList = ({
 		VendorStore | null | undefined
 	>(loggedIn ? undefined : null);
 	const [vendorsRefreshTick, setVendorsRefreshTick] = useState(0);
+	const [hasVisitedStore, setHasVisitedStore] = useState(activeTab === "store");
+
+	useEffect(() => {
+		if (activeTab === "store") setHasVisitedStore(true);
+	}, [activeTab]);
 
 	useEffect(() => {
 		localStorage.setItem(
@@ -1467,19 +1472,15 @@ const VendorsList = ({
 		/>
 	);
 
-	if (activeTab === "cart") {
-		return (
-			<ShoppingListModal
-				isLoading={isLoadingVendors}
-				vendors={vendorStores}
-				cxPriceLookup={cxPriceLookup}
-			/>
-		);
-	}
-
-	if (activeTab === "store") {
-		if (!loggedIn) {
-			return (
+	const store = (activeTab === "store" || hasVisitedStore) && (
+		<Box
+			key="store"
+			sx={{
+				display: activeTab === "store" ? "block" : "none",
+				height: "100%",
+			}}
+		>
+			{!loggedIn ? (
 				<Box
 					sx={{
 						height: "100%",
@@ -1498,11 +1499,7 @@ const VendorsList = ({
 						Login / Register
 					</Button>
 				</Box>
-			);
-		}
-
-		if (userVendorStore === undefined) {
-			return (
+			) : userVendorStore === undefined ? (
 				<Box
 					sx={{
 						height: "100%",
@@ -1513,22 +1510,38 @@ const VendorsList = ({
 				>
 					<CircularProgress color="primary" />
 				</Box>
-			);
-		}
+			) : userVendorStore ? (
+				<EditVendorStoreModal
+					vendorStore={userVendorStore}
+					onStoreDeleted={handleOnStoreDeleted}
+					onVendorChanged={handleOnVendorChanged}
+				/>
+			) : (
+				<VendorCreationModal onVendorCreated={handleOnVendorCreated} />
+			)}
+		</Box>
+	);
 
-		return userVendorStore ? (
-			<EditVendorStoreModal
-				vendorStore={userVendorStore}
-				onStoreDeleted={handleOnStoreDeleted}
-				onVendorChanged={handleOnVendorChanged}
-			/>
-		) : (
-			<VendorCreationModal onVendorCreated={handleOnVendorCreated} />
-		);
+	if (activeTab === "cart") {
+		return [
+			store,
+			<ShoppingListModal
+				key="cart"
+				isLoading={isLoadingVendors}
+				vendors={vendorStores}
+				cxPriceLookup={cxPriceLookup}
+			/>,
+		];
 	}
 
-	return (
+	if (activeTab === "store") {
+		return [store];
+	}
+
+	return [
+		store,
 		<Box
+			key="market"
 			sx={{
 				boxSizing: "border-box",
 				margin: { xs: 0, sm: "0 0rem" },
@@ -1887,8 +1900,8 @@ const VendorsList = ({
 					</Box>
 				</>
 			)}
-		</Box>
-	);
+		</Box>,
+	];
 };
 
 export default VendorsList;
