@@ -12,6 +12,7 @@ import { DeleteIcon } from "lucide-react";
 import AvailableMaterialsList from "./components/availablematerialslist";
 import MaterialTable from "./components/materialtable";
 import { Modal } from "./modal";
+import { Toast } from "./toast";
 
 import { useVendorStoreManager } from "./hooks/usevendorstoremanager";
 import { useAvailableMaterials } from "./hooks/useavailablematerials";
@@ -46,7 +47,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 
 	const [isSaving, setIsSaving] = useState<boolean>(false);
 	const [isDeleting, setIsDeleting] = useState<boolean>(false);
-	const [error, setError] = useState<string | null>(null);
+	const [showErrorToast, setShowErrorToast] = useState(false);
 	const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
 	const [locations, setLocations] = useState<Location[]>([]);
 
@@ -168,7 +169,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 	const handleSave = useCallback(async () => {
 		if (!vendorStore) return;
 		setIsSaving(true);
-		setError(null);
+		setShowErrorToast(false);
 
 		const payload = {
 			vendorid: vendorStore.vendor.vendorid,
@@ -207,14 +208,12 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				throw new Error("Save response missing updated store.");
 			}
 
+			setOrdersToDelete([]);
 			onVendorChanged(normalizeVendorStore(result.vendor_store));
-		} catch (err) {
-			setError(
-				`Failed to save changes. ${err instanceof Error ? err.message : ""}`,
-			);
+		} catch {
+			setShowErrorToast(true);
 		} finally {
 			setIsSaving(false);
-			setOrdersToDelete([]);
 		}
 	}, [
 		vendorStore,
@@ -234,7 +233,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 
 		setDeleteConfirmOpen(false);
 		setIsDeleting(true);
-		setError(null);
+		setShowErrorToast(false);
 
 		try {
 			const response = await fetch(
@@ -253,10 +252,8 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 			}
 
 			onStoreDeleted(vendorStore.vendor.vendorid);
-		} catch (err) {
-			setError(
-				`Failed to delete store. ${err instanceof Error ? err.message : ""}`,
-			);
+		} catch {
+			setShowErrorToast(true);
 		} finally {
 			setIsDeleting(false);
 		}
@@ -392,7 +389,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						background: theme.palette.background.paper,
 						flexShrink: 0,
 						zIndex: 2,
-						position: "relative",
 						display: "flex",
 						flexDirection: "row",
 						justifyContent: "center",
@@ -400,21 +396,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						gap: 1,
 					}}
 				>
-					{error && (
-						<Typography
-							variant="body2"
-							color="error"
-							sx={{
-								position: "absolute",
-								left: 0,
-								right: 0,
-								textAlign: "center",
-								px: 2,
-							}}
-						>
-							{error}
-						</Typography>
-					)}
 					<Box
 						sx={{
 							display: "flex",
@@ -466,6 +447,12 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 					</Box>
 				</Box>
 			</Box>
+			<Toast
+				open={showErrorToast}
+				onClose={() => setShowErrorToast(false)}
+				message="Something went wrong — please reload and/or try again"
+				color="error"
+			/>
 
 			<Modal
 				open={deleteConfirmOpen}
