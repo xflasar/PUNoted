@@ -1,10 +1,5 @@
 import {
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	DialogActions,
 	Box,
-	Typography,
 	TextField,
 	Button,
 	CircularProgress,
@@ -15,23 +10,12 @@ import {
 	InputLabel,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { API_BASE_URL } from "../../config/api";
-import { Store } from "lucide-react";
-import React from "react";
+import type { VendorStore } from "./types";
+import { Toast } from "./toast";
 
-interface VendorStore {
-	vendor: {
-		vendorid: string;
-		companycode: string;
-		companyname: string;
-		corpname: string;
-		gamename: string;
-		isactive: boolean;
-		cx: string;
-	};
-	orders: Array<Record<string, unknown>>;
-}
+type RequiredField = "companyName" | "gameName" | "companyCode" | "cx";
 const cleanLocalStorageString = (value: string | null): string => {
 	if (value === null || value === "null" || value === "undefined") {
 		return "";
@@ -40,29 +24,29 @@ const cleanLocalStorageString = (value: string | null): string => {
 };
 
 const VendorCreationModal: React.FC<{
-	open: boolean;
-	handleClose: () => void;
-	vendorStore: VendorStore | null;
 	onVendorCreated: (vendorStore: VendorStore) => void;
-}> = ({ vendorStore, open, handleClose, onVendorCreated }) => {
+}> = ({ onVendorCreated }) => {
 	const theme = useTheme();
 	const [isSaving, setIsSaving] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [showSaveError, setShowSaveError] = useState(false);
+	const [invalidFields, setInvalidFields] = useState<Set<RequiredField>>(
+		new Set(),
+	);
 
-	const [localCompanyName, setLocalCompanyName] = useState(
-		vendorStore?.vendor.companyname || "",
-	);
-	const [localCompanyCode, setLocalCompanyCode] = useState(
-		vendorStore?.vendor.companycode || "",
-	);
-	const [localCorpName, setLocalCorpName] = useState(
-		vendorStore?.vendor.corpname || "",
-	);
-	const [localGameName, setLocalGameName] = useState(
-		vendorStore?.vendor.gamename || "",
-	);
-	const [localCx, setLocalCx] = useState(vendorStore?.vendor.cx || "IC1");
+	const [localCompanyName, setLocalCompanyName] = useState("");
+	const [localCompanyCode, setLocalCompanyCode] = useState("");
+	const [localCorpName, setLocalCorpName] = useState("");
+	const [localGameName, setLocalGameName] = useState("");
+	const [localCx, setLocalCx] = useState("IC1");
 	const CX_OPTIONS = ["AI1", "CI2", "CI1", "IC1", "NC2", "NC1"];
+	const clearInvalidField = (field: RequiredField) => {
+		setInvalidFields((current) => {
+			if (!current.has(field)) return current;
+			const next = new Set(current);
+			next.delete(field);
+			return next;
+		});
+	};
 
 	useEffect(() => {
 		setLocalCompanyName(
@@ -81,30 +65,30 @@ const VendorCreationModal: React.FC<{
 	}, []);
 
 	const handleSave = async () => {
-		setIsSaving(true);
-		setError(null);
-
 		// 1. Trim all local state variables before validation and payload creation
-		const trimmedCompanyName = localCompanyName ? localCompanyName.trim() : "";
-		const trimmedGameName = localGameName ? localGameName.trim() : "";
-		const trimmedCompanyCode = localCompanyCode ? localCompanyCode.trim() : "";
-		const trimmedCorpName = localCorpName ? localCorpName.trim() : "";
-		const trimmedCx = localCx ? localCx.trim() : "";
+		const trimmedCompanyName = localCompanyName.trim();
+		const trimmedGameName = localGameName.trim();
+		const trimmedCompanyCode = localCompanyCode.trim();
+		const trimmedCorpName = localCorpName.trim();
+		const trimmedCx = localCx.trim();
 
 		// 2. CLIENT-SIDE VALIDATION using trimmed values
-		const requiredFields = [
-			{ value: trimmedCompanyName, name: "Company Name" },
-			{ value: trimmedGameName, name: "Game Name" },
-			{ value: trimmedCompanyCode, name: "Company Code" },
-			{ value: trimmedCx, name: "CX" },
+		const requiredFields: Array<{ field: RequiredField; value: string }> = [
+			{ field: "companyName", value: trimmedCompanyName },
+			{ field: "gameName", value: trimmedGameName },
+			{ field: "companyCode", value: trimmedCompanyCode },
+			{ field: "cx", value: trimmedCx },
 		];
-		for (const field of requiredFields) {
-			if (field.value === "") {
-				setError(`${field.name} is required.`);
-				setIsSaving(false);
-				return;
-			}
+		const invalid = new Set(
+			requiredFields
+				.filter((field) => field.value === "")
+				.map((field) => field.field),
+		);
+		setInvalidFields(invalid);
+		if (invalid.size > 0) {
+			return;
 		}
+		setIsSaving(true);
 
 		// 3. Use trimmed values in the payload
 		const payload = {
@@ -138,261 +122,238 @@ const VendorCreationModal: React.FC<{
 
 			// Use the complete, server-generated data to update the state.
 			onVendorCreated(newVendorStore);
-
-			handleClose();
 		} catch (err) {
 			console.error("Failed to save vendor store:", err);
-			setError(
-				`Failed to save changes. ${err instanceof Error ? err.message : ""}`,
-			);
+			setShowSaveError(true);
 		} finally {
 			setIsSaving(false);
 		}
 	};
 
 	return (
-		<React.Fragment>
-			<Dialog
-				open={open}
-				onClose={handleClose}
-				maxWidth="sm"
-				fullWidth
-				scroll="body"
-				slotProps={{
-					backdrop: {
-						sx: {
-							backdropFilter: "blur(5px)",
-						},
-					},
-					paper: {
-						sx: {
-							background: "transparent",
-							backgroundImage: "none",
-							boxShadow: "none",
-							width: "calc(100% - 32px)",
-							maxWidth: 520,
-							margin: 0,
-							position: "fixed",
-							top: "50%",
-							left: "50%",
-							transform: "translate(-50%, -50%)",
-						},
-					},
+		<Box
+			sx={{
+				height: "100%",
+				width: "100%",
+				overflowY: "auto",
+				px: 2,
+				mx: "auto",
+				maxWidth: 520,
+				display: "flex",
+				flexDirection: "column",
+				justifyContent: "center",
+			}}
+		>
+			<Paper
+				sx={{
+					p: 3,
+					background: theme.palette.background.paper,
+					boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+					borderRadius: "15px",
+					display: "flex",
+					flexDirection: "column",
+					gap: 2,
 				}}
 			>
-				<DialogTitle sx={{ color: theme.palette.primary.main, py: 2 }}>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-						<Store />
-						Create Store
-					</Box>
-				</DialogTitle>
-				<DialogContent
-					sx={{
-						color: theme.palette.primary.main,
-						display: "flex",
-						flexDirection: "column",
-						height: "90vh",
+				<TextField
+					fullWidth
+					label="Company Name"
+					variant="outlined"
+					size="small"
+					value={localCompanyName}
+					error={invalidFields.has("companyName")}
+					onChange={(e) => {
+						setLocalCompanyName(e.target.value);
+						clearInvalidField("companyName");
 					}}
+					sx={{
+						"& .MuiOutlinedInput-root": {
+							color: theme.palette.text.primary,
+							"& fieldset": { borderColor: theme.palette.primary.dark },
+							"&:hover fieldset": {
+								borderColor: theme.palette.primary.light,
+							},
+							"&.Mui-focused fieldset": {
+								borderColor: "rgb(123, 104, 238)",
+							},
+							"&.Mui-error fieldset": {
+								borderColor: theme.palette.error.main,
+							},
+						},
+					}}
+					InputLabelProps={{
+						sx: { color: theme.palette.primary.light },
+					}}
+				/>
+				<TextField
+					fullWidth
+					label="Game Name"
+					variant="outlined"
+					size="small"
+					value={localGameName}
+					error={invalidFields.has("gameName")}
+					onChange={(e) => {
+						setLocalGameName(e.target.value);
+						clearInvalidField("gameName");
+					}}
+					sx={{
+						"& .MuiOutlinedInput-root": {
+							color: theme.palette.text.primary,
+							"& fieldset": { borderColor: theme.palette.primary.dark },
+							"&:hover fieldset": {
+								borderColor: theme.palette.primary.light,
+							},
+							"&.Mui-focused fieldset": {
+								borderColor: "rgb(123, 104, 238)",
+							},
+							"&.Mui-error fieldset": {
+								borderColor: theme.palette.error.main,
+							},
+						},
+					}}
+					InputLabelProps={{
+						sx: { color: theme.palette.primary.light },
+					}}
+				/>
+				<TextField
+					fullWidth
+					label="Company Code"
+					variant="outlined"
+					size="small"
+					value={localCompanyCode}
+					error={invalidFields.has("companyCode")}
+					onChange={(e) => {
+						setLocalCompanyCode(e.target.value);
+						clearInvalidField("companyCode");
+					}}
+					sx={{
+						"& .MuiOutlinedInput-root": {
+							color: theme.palette.text.primary,
+							"& fieldset": { borderColor: theme.palette.primary.dark },
+							"&:hover fieldset": {
+								borderColor: theme.palette.primary.light,
+							},
+							"&.Mui-focused fieldset": {
+								borderColor: "rgb(123, 104, 238)",
+							},
+							"&.Mui-error fieldset": {
+								borderColor: theme.palette.error.main,
+							},
+						},
+					}}
+					InputLabelProps={{
+						sx: { color: theme.palette.primary.light },
+					}}
+				/>
+				<TextField
+					fullWidth
+					label="Corp Name"
+					variant="outlined"
+					size="small"
+					value={localCorpName}
+					onChange={(e) => setLocalCorpName(e.target.value)}
+					sx={{
+						"& .MuiOutlinedInput-root": {
+							color: theme.palette.text.primary,
+							"& fieldset": { borderColor: theme.palette.primary.dark },
+							"&:hover fieldset": {
+								borderColor: theme.palette.primary.light,
+							},
+							"&.Mui-focused fieldset": {
+								borderColor: "rgb(123, 104, 238)",
+							},
+						},
+					}}
+					InputLabelProps={{
+						sx: { color: theme.palette.primary.light },
+					}}
+				/>
+				<FormControl
+					fullWidth
+					variant="outlined"
+					size="small"
+					error={invalidFields.has("cx")}
 				>
-					{/* Vendor Details Editing Section */}
-					<Paper
+					<InputLabel
+						id="cx-select-label"
+						sx={{ color: theme.palette.primary.light }}
+					>
+						CX
+					</InputLabel>
+					<Select
+						labelId="cx-select-label"
+						value={localCx}
+						onChange={(e) => {
+							setLocalCx(e.target.value as string);
+							clearInvalidField("cx");
+						}}
+						label="CX"
 						sx={{
-							p: 3,
-							mb: 2,
-							background: theme.palette.background.paper,
-							boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-							borderRadius: "15px",
+							color: theme.palette.text.primary,
+							"& .MuiOutlinedInput-notchedOutline": {
+								borderColor: theme.palette.primary.dark,
+							},
+							"&:hover .MuiOutlinedInput-notchedOutline": {
+								borderColor: theme.palette.primary.light,
+							},
+							"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+								borderColor: "rgb(123, 104, 238)",
+							},
+							"&.Mui-error .MuiOutlinedInput-notchedOutline": {
+								borderColor: theme.palette.error.main,
+							},
+						}}
+						MenuProps={{
+							PaperProps: {
+								sx: {
+									background: theme.palette.background.paper,
+									border: "1px solid rgba(123, 104, 238, 0.5)",
+								},
+							},
 						}}
 					>
-						<Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-							<TextField
-								fullWidth
-								label="Company Name"
-								variant="outlined"
-								size="small"
-								value={localCompanyName}
-								onChange={(e) => setLocalCompanyName(e.target.value)}
+						{CX_OPTIONS.map((cx) => (
+							<MenuItem
+								key={cx}
+								value={cx}
 								sx={{
-									"& .MuiOutlinedInput-root": {
-										color: theme.palette.text.primary,
-										"& fieldset": { borderColor: theme.palette.primary.dark },
-										"&:hover fieldset": {
-											borderColor: theme.palette.primary.light,
-										},
-										"&.Mui-focused fieldset": {
-											borderColor: "rgb(123, 104, 238)",
-										},
+									color: theme.palette.text.primary,
+									"&:hover": {
+										color: "white",
+										bgcolor: "rgba(123, 104, 238, 0.2)",
 									},
 								}}
-								InputLabelProps={{
-									sx: { color: theme.palette.primary.light },
-								}}
-							/>
-							<TextField
-								fullWidth
-								label="Game Name"
-								variant="outlined"
-								size="small"
-								value={localGameName}
-								onChange={(e) => setLocalGameName(e.target.value)}
-								sx={{
-									"& .MuiOutlinedInput-root": {
-										color: theme.palette.text.primary,
-										"& fieldset": { borderColor: theme.palette.primary.dark },
-										"&:hover fieldset": {
-											borderColor: theme.palette.primary.light,
-										},
-										"&.Mui-focused fieldset": {
-											borderColor: "rgb(123, 104, 238)",
-										},
-									},
-								}}
-								InputLabelProps={{
-									sx: { color: theme.palette.primary.light },
-								}}
-							/>
-							<TextField
-								fullWidth
-								label="Company Code"
-								variant="outlined"
-								size="small"
-								value={localCompanyCode}
-								onChange={(e) => setLocalCompanyCode(e.target.value)}
-								sx={{
-									"& .MuiOutlinedInput-root": {
-										color: theme.palette.text.primary,
-										"& fieldset": { borderColor: theme.palette.primary.dark },
-										"&:hover fieldset": {
-											borderColor: theme.palette.primary.light,
-										},
-										"&.Mui-focused fieldset": {
-											borderColor: "rgb(123, 104, 238)",
-										},
-									},
-								}}
-								InputLabelProps={{
-									sx: { color: theme.palette.primary.light },
-								}}
-							/>
-							<TextField
-								fullWidth
-								label="Corp Name"
-								variant="outlined"
-								size="small"
-								value={localCorpName}
-								onChange={(e) => setLocalCorpName(e.target.value)}
-								sx={{
-									"& .MuiOutlinedInput-root": {
-										color: theme.palette.text.primary,
-										"& fieldset": { borderColor: theme.palette.primary.dark },
-										"&:hover fieldset": {
-											borderColor: theme.palette.primary.light,
-										},
-										"&.Mui-focused fieldset": {
-											borderColor: "rgb(123, 104, 238)",
-										},
-									},
-								}}
-								InputLabelProps={{
-									sx: { color: theme.palette.primary.light },
-								}}
-							/>
-							<FormControl fullWidth variant="outlined" size="small">
-								<InputLabel
-									id="cx-select-label"
-									sx={{ color: theme.palette.primary.light }}
-								>
-									CX
-								</InputLabel>
-								<Select
-									labelId="cx-select-label"
-									value={localCx}
-									onChange={(e) => setLocalCx(e.target.value as string)}
-									label="CX"
-									sx={{
-										color: theme.palette.text.primary,
-										"& .MuiOutlinedInput-notchedOutline": {
-											borderColor: theme.palette.primary.dark,
-										},
-										"&:hover .MuiOutlinedInput-notchedOutline": {
-											borderColor: theme.palette.primary.light,
-										},
-										"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-											borderColor: "rgb(123, 104, 238)",
-										},
-									}}
-									MenuProps={{
-										PaperProps: {
-											sx: {
-												background: theme.palette.background.paper,
-												border: "1px solid rgba(123, 104, 238, 0.5)",
-											},
-										},
-									}}
-								>
-									{CX_OPTIONS.map((cx) => (
-										<MenuItem
-											key={cx}
-											value={cx}
-											sx={{
-												color: theme.palette.text.primary,
-												"&:hover": {
-													color: "white",
-													bgcolor: "rgba(123, 104, 238, 0.2)",
-												},
-											}}
-										>
-											{cx}
-										</MenuItem>
-									))}
-								</Select>
-							</FormControl>
-						</Box>
-					</Paper>
-
-					{error && (
-						<Box
-							sx={{
-								color: theme.palette.error.main,
-								mt: 2,
-								textAlign: "center",
-							}}
-						>
-							<Typography variant="body2">{error}</Typography>
-						</Box>
-					)}
-					<DialogActions
-						sx={{ bgcolor: "transparent", mt: 2, justifyContent: "center" }}
-					>
-						<Button
-							onClick={handleClose}
-							disabled={isSaving}
-							color="inherit"
-							sx={{
-								color: "white",
-							}}
-						>
-							Cancel
-						</Button>
-						<Button
-							onClick={handleSave}
-							variant="contained"
-							disabled={isSaving}
-							sx={{
-								background: theme.palette.primary.dark,
-								"&:hover": { background: theme.palette.primary.light },
-							}}
-						>
-							{isSaving ? (
-								<CircularProgress size={24} color="inherit" />
-							) : (
-								"Create Store"
-							)}
-						</Button>
-					</DialogActions>
-				</DialogContent>
-			</Dialog>
-		</React.Fragment>
+							>
+								{cx}
+							</MenuItem>
+						))}
+					</Select>
+				</FormControl>
+			</Paper>
+			<Button
+				onClick={handleSave}
+				variant="contained"
+				disabled={isSaving}
+				sx={{
+					mt: 2,
+					alignSelf: "center",
+					background: theme.palette.primary.dark,
+					"&:hover": { background: theme.palette.primary.light },
+				}}
+			>
+				{isSaving ? (
+					<CircularProgress size={24} color="inherit" />
+				) : (
+					"Create Store"
+				)}
+			</Button>
+			<Toast
+				open={showSaveError}
+				message="Something went wrong — please try again"
+				color="error"
+				onClose={() => setShowSaveError(false)}
+			/>
+		</Box>
 	);
 };
 

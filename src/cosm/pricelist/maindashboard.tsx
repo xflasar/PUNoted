@@ -53,9 +53,6 @@ const MainDashboard: React.FC = () => {
 				height: "100%",
 				display: "flex",
 				flexDirection: "column",
-				bgcolor: "#0a0b1e",
-				backgroundImage:
-					"radial-gradient(circle at 50% 50%, #1a1d42 0%, #050508 100%)",
 				overflow: "hidden",
 			}}
 		>

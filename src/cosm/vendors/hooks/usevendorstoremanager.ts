@@ -48,6 +48,14 @@ const DEFAULT_LOCATION_BY_CX: Record<string, Location> = {
 	},
 };
 
+const getVendorDetails = (vendorStore: VendorStore | null) => ({
+	companyName: vendorStore?.vendor.companyname || "",
+	gameName: vendorStore?.vendor.gamename || "",
+	companyCode: vendorStore?.vendor.companycode || "",
+	corpName: vendorStore?.vendor.corpname || "",
+	cx: vendorStore?.vendor.cx || "IC1",
+});
+
 /**
  * Custom hook to manage the state of a vendor store, including its details, buy orders, and sell orders.
  * Provides handlers for adding, editing, and removing materials, as well as tracking deletions.
@@ -89,13 +97,9 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 		[],
 	);
 
-	const [localVendorDetails, setLocalVendorDetails] = useState(() => ({
-		companyName: "",
-		gameName: "",
-		companyCode: "",
-		corpName: "",
-		cx: "IC1",
-	}));
+	const [localVendorDetails, setLocalVendorDetails] = useState(() =>
+		getVendorDetails(initialVendorStore),
+	);
 
 	const [buyOrders, setBuyOrders] = useState<OrderItem[]>(() =>
 		initialVendorStore
@@ -115,16 +119,8 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 
 	const [ordersToDelete, setOrdersToDelete] = useState<string[]>([]);
 
-	/* eslint-disable react-hooks/set-state-in-effect */
-	useEffect(() => {
-		setLocalVendorDetails({
-			companyName: initialVendorStore?.vendor.companyname || "",
-			gameName: initialVendorStore?.vendor.gamename || "",
-			companyCode: initialVendorStore?.vendor.companycode || "",
-			corpName: initialVendorStore?.vendor.corpname || "",
-			cx: initialVendorStore?.vendor.cx || "IC1",
-		});
-
+	const reset = useCallback(() => {
+		setLocalVendorDetails(getVendorDetails(initialVendorStore));
 		setBuyOrders(
 			initialVendorStore
 				? mapOrders(
@@ -141,6 +137,11 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 		);
 		setOrdersToDelete([]);
 	}, [initialVendorStore, mapOrders]);
+
+	/* eslint-disable react-hooks/set-state-in-effect */
+	useEffect(() => {
+		reset();
+	}, [reset]);
 	/* eslint-enable react-hooks/set-state-in-effect */
 
 	const allOrders = useMemo(
@@ -421,6 +422,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 		handleEditMaterial,
 		handleRemoveMaterial,
 		setOrdersToDelete,
+		reset,
 		hydrateAvailableMaterials,
 		normalizeVendorStore,
 	};

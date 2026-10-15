@@ -4,6 +4,7 @@ import {
 	Typography,
 	TextField,
 	Box,
+	CircularProgress,
 	useTheme,
 	Pagination,
 	Checkbox,
@@ -21,6 +22,8 @@ import { pickPrice } from "../utils/pickprice";
 interface AvailableMaterialsListProps {
 	/** The complete list of available materials */
 	materials: OrderItem[];
+	/** Whether the available materials request is pending */
+	isLoading: boolean;
 	/** The user's active current orders, used to disable adding duplicates */
 	allOrders: OrderItem[];
 	/** Callback to handle adding a new material as a buy or sell order */
@@ -39,6 +42,7 @@ const ESTIMATED_ROW_HEIGHT = 50;
  */
 const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 	materials,
+	isLoading,
 	allOrders,
 	onAddMaterial,
 }) => {
@@ -150,6 +154,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					variant="outlined"
 					placeholder="Search by Ticker..."
 					value={searchQuery}
+					disabled={isLoading}
 					onChange={(e) => {
 						setSearchQuery(e.target.value);
 						setPage(1);
@@ -168,6 +173,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					control={
 						<Checkbox
 							size="small"
+							disabled={isLoading}
 							checked={showUnavailable}
 							onChange={(e) => {
 								setShowUnavailable(e.target.checked);
@@ -208,7 +214,18 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 
 			{/* List Container - We attach the ref here to measure available height */}
 			<Box ref={listRef} sx={{ flexGrow: 1, overflowY: "auto" }}>
-				{paginatedMaterials.length === 0 ? (
+				{isLoading ? (
+					<Box
+						sx={{
+							display: "flex",
+							height: "100%",
+							alignItems: "center",
+							justifyContent: "center",
+						}}
+					>
+						<CircularProgress size={24} />
+					</Box>
+				) : paginatedMaterials.length === 0 ? (
 					<Box
 						sx={{
 							color: "text.secondary",

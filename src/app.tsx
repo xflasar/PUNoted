@@ -258,7 +258,12 @@ function App() {
 
 						<Route
 							path="/cosm"
-							element={<CosmPage isLoggedIn={isLoggedIn} />}
+							element={
+								<CosmPage
+									isLoggedIn={isLoggedIn}
+									onLoginSuccess={handleLoginSuccess}
+								/>
+							}
 						/>
 
 						<Route path="/galaxy-map" element={<GalaxyMap />} />
