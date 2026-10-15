@@ -77,9 +77,8 @@ const CosmPage = ({
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 	const [showAuthentication, setShowAuthentication] = useState(false);
 
-	// Get the current tab value from the URL or set a default
-	const tabValue =
-		searchParams.get("tab") || (isLoggedIn ? "vendors" : "production");
+	// Get the current tab value from the URL or default to Market.
+	const tabValue = searchParams.get("tab") || "vendors";
 	const activePanel = isVendorTab(tabValue) ? "vendors" : tabValue;
 	const [visitedPanels, setVisitedPanels] = useState(
 		() => new Set([activePanel]),
