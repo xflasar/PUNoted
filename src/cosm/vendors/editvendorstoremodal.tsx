@@ -276,27 +276,46 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						background: "transparent",
 					}}
 				>
-					{/* Middle: Buy & Sell Orders */}
+					{/* Available materials and orders */}
 					<Box
 						sx={{
 							flex: 1,
 							display: "flex",
 							flexDirection: { xs: "column", sm: "row" },
-							gap: { xs: 0, sm: 1 },
-							px: { xs: 0, sm: 1 },
+							gap: 1,
 							minHeight: 0,
-							justifyContent: { xs: "auto", sm: "center" },
 							overflowY: "auto",
 						}}
 					>
+						{/* Available Materials */}
+						<Paper
+							sx={{
+								flex: { xs: "0 0 40vh", sm: "0 0 380px" },
+								width: { sm: 380 },
+								display: "flex",
+								flexDirection: "column",
+								overflow: "hidden",
+								minHeight: 0,
+								background: theme.palette.background.paper,
+								border: `1px solid ${theme.palette.divider}`,
+								borderRadius: 2,
+							}}
+						>
+							<AvailableMaterialsList
+								materials={materials}
+								isLoading={isLoadingMaterials}
+								allOrders={allOrders}
+								onAddMaterial={handleAddMaterial}
+							/>
+						</Paper>
+
 						<Box
 							sx={{
+								flex: 1,
 								display: "flex",
 								flexDirection: "column",
 								gap: 1,
-								width: { xs: "100%", sm: "auto", md: "50%" },
-								px: 1,
-								pb: 1,
+								minHeight: 0,
 							}}
 						>
 							{/* Sell Orders */}
@@ -305,8 +324,9 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									flex: 1,
 									display: "flex",
 									flexDirection: "column",
-									background: theme.palette.background.paper,
 									overflow: "hidden",
+									minHeight: 0,
+									background: theme.palette.background.paper,
 									border: `1px solid ${theme.palette.divider}`,
 									borderRadius: 2,
 								}}
@@ -330,8 +350,9 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									flex: 1,
 									display: "flex",
 									flexDirection: "column",
-									background: theme.palette.background.paper,
 									overflow: "hidden",
+									minHeight: 0,
+									background: theme.palette.background.paper,
 									border: `1px solid ${theme.palette.divider}`,
 									borderRadius: 2,
 								}}
@@ -346,35 +367,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 									onEditMaterial={handleEditMaterial}
 									onRemoveMaterial={handleRemoveMaterial}
 									isBuyOrders={true}
-								/>
-							</Paper>
-						</Box>
-
-						{/* Bottom: Available Materials */}
-						<Box
-							sx={{
-								px: 1,
-								pb: 1,
-								display: "flex",
-								flexDirection: "column",
-							}}
-						>
-							<Paper
-								sx={{
-									flex: 1,
-									display: "flex",
-									flexDirection: "column",
-									background: theme.palette.background.paper,
-									overflow: "hidden",
-									border: `1px solid ${theme.palette.divider}`,
-									borderRadius: 2,
-								}}
-							>
-								<AvailableMaterialsList
-									materials={materials}
-									isLoading={isLoadingMaterials}
-									allOrders={allOrders}
-									onAddMaterial={handleAddMaterial}
 								/>
 							</Paper>
 						</Box>

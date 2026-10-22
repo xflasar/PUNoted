@@ -348,7 +348,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							...commonBoxSx,
 							gridTemplateColumns: {
 								xs: "1fr 1fr",
-								sm: "80px 100px 145px 150px 100px 80px 50px",
+								sm: "1fr 1fr 1.45fr 1.5fr 1fr 0.8fr 50px",
 							},
 							background: open ? theme.palette.background.paper : "transparent",
 						}}

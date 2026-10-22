@@ -1,5 +1,12 @@
 import React, { memo, useMemo, useState } from "react";
-import { Paper, Typography, Box, useTheme, Pagination } from "@mui/material";
+import {
+	Paper,
+	Typography,
+	Box,
+	useTheme,
+	Pagination,
+	Tooltip,
+} from "@mui/material";
 import OrderItemRow from "./orderitemrow";
 import type { OrderItem, Location } from "../types";
 
@@ -131,15 +138,33 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 			>
 				{title && (
 					<Typography
-						variant="h6"
+						variant="subtitle2"
 						sx={{
-							color: theme.palette.primary.main,
-							textAlign: "center",
-							p: 0.5,
+							color: "text.primary",
+							fontWeight: "bold",
+							p: 1.5,
+							bgcolor: "rgba(0,0,0,0.05)",
 							borderBottom: `1px solid ${theme.palette.divider}`,
+							flexShrink: 0,
+							minHeight: 56,
+							display: "flex",
+							alignItems: "center",
+							fontSize: "1.05rem",
 						}}
 					>
-						{title}
+						<Tooltip
+							title={
+								isBuyOrders ? "You buy from COSM members" : "You sell to COSM members"
+							}
+						>
+							<Box
+								component="span"
+								tabIndex={0}
+								sx={{ borderBottom: "1px dotted currentColor", cursor: "help" }}
+							>
+								{title?.toUpperCase()}
+							</Box>
+						</Tooltip>
 					</Typography>
 				)}
 
@@ -149,7 +174,7 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 						display: { sm: "grid", xs: "grid" },
 						gridTemplateColumns: {
 							xs: "40px 30px 40px 40px 40px 40px 40px",
-							sm: "80px 100px 145px 150px 100px 80px 50px",
+							sm: "1fr 1fr 1.45fr 1.5fr 1fr 0.8fr 50px",
 						},
 						alignItems: "center",
 						px: 2,

@@ -997,7 +997,11 @@ const OrderSummaryPanel: React.FC<{
 			>
 				<Typography
 					variant="subtitle2"
-					sx={{ color: "text.primary", fontWeight: "bold" }}
+					sx={{
+						color: "text.primary",
+						fontWeight: "bold",
+						fontSize: "1.05rem",
+					}}
 				>
 					CONTRACT DETAILS
 				</Typography>
@@ -1393,7 +1397,11 @@ const AvailableMaterialsPanel: React.FC<{
 				>
 					<Typography
 						variant="subtitle2"
-						sx={{ color: "text.primary", fontWeight: "bold" }}
+						sx={{
+							color: "text.primary",
+							fontWeight: "bold",
+							fontSize: "1.05rem",
+						}}
 					>
 						AVAILABLE MATERIALS
 					</Typography>
@@ -1993,7 +2001,11 @@ const ShoppingListModal: React.FC<{
 							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 								<Typography
 									variant="subtitle2"
-									sx={{ color: "text.primary", fontWeight: "bold" }}
+									sx={{
+										color: "text.primary",
+										fontWeight: "bold",
+										fontSize: "1.05rem",
+									}}
 								>
 									YOUR MATERIALS
 								</Typography>
