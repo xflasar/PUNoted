@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { API_BASE_URL } from "../../config/api";
 import { DeleteIcon } from "lucide-react";
+import GlobalLoadingOverlay from "../../components/common/globalloadingoverlay";
 import AvailableMaterialsList from "./components/availablematerialslist";
 import MaterialTable from "./components/materialtable";
 import { Modal } from "./modal";
@@ -54,8 +55,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 	// Custom hook to manage form state and orders for the vendor store
 	const {
 		localVendorDetails,
-		buyOrders,
-		sellOrders,
 		allOrders,
 		ordersToDelete,
 		handleAddMaterial,
@@ -261,7 +260,15 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 
 	return (
 		<>
-			<Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+			<Box
+				sx={{
+					position: "relative",
+					height: "100%",
+					display: "flex",
+					flexDirection: "column",
+				}}
+			>
+				<GlobalLoadingOverlay loading={isSaving} statusText="SAVING..." />
 				<Box
 					sx={{
 						p: 0,
@@ -309,67 +316,30 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 							/>
 						</Paper>
 
-						<Box
+						<Paper
 							sx={{
 								flex: 1,
 								display: "flex",
 								flexDirection: "column",
-								gap: 1,
+								overflow: "hidden",
 								minHeight: 0,
+								minWidth: 0,
+								background: theme.palette.background.paper,
+								border: `1px solid ${theme.palette.divider}`,
+								borderRadius: 2,
 							}}
 						>
-							{/* Sell Orders */}
-							<Paper
-								sx={{
-									flex: 1,
-									display: "flex",
-									flexDirection: "column",
-									overflow: "hidden",
-									minHeight: 0,
-									background: theme.palette.background.paper,
-									border: `1px solid ${theme.palette.divider}`,
-									borderRadius: 2,
-								}}
-							>
-								<MaterialTable
-									title="Ask Orders"
-									materials={sellOrders}
-									allOrders={allOrders}
-									locations={locations}
-									availableMaterialsList={materials}
-									onAddMaterial={handleAddMaterial}
-									onEditMaterial={handleEditMaterial}
-									onRemoveMaterial={handleRemoveMaterial}
-									isBuyOrders={false}
-								/>
-							</Paper>
-
-							{/* Buy Orders */}
-							<Paper
-								sx={{
-									flex: 1,
-									display: "flex",
-									flexDirection: "column",
-									overflow: "hidden",
-									minHeight: 0,
-									background: theme.palette.background.paper,
-									border: `1px solid ${theme.palette.divider}`,
-									borderRadius: 2,
-								}}
-							>
-								<MaterialTable
-									title="Bid Orders"
-									materials={buyOrders}
-									allOrders={allOrders}
-									locations={locations}
-									availableMaterialsList={materials}
-									onAddMaterial={handleAddMaterial}
-									onEditMaterial={handleEditMaterial}
-									onRemoveMaterial={handleRemoveMaterial}
-									isBuyOrders={true}
-								/>
-							</Paper>
-						</Box>
+							<MaterialTable
+								title="Your Store"
+								materials={allOrders}
+								allOrders={allOrders}
+								locations={locations}
+								availableMaterialsList={materials}
+								onAddMaterial={handleAddMaterial}
+								onEditMaterial={handleEditMaterial}
+								onRemoveMaterial={handleRemoveMaterial}
+							/>
+						</Paper>
 					</Box>
 				</Box>
 
@@ -429,11 +399,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								variant="contained"
 								disabled={!isDirty || isSaving || isDeleting}
 							>
-								{isSaving ? (
-									<CircularProgress className="inline-icon" color="inherit" />
-								) : (
-									"SAVE"
-								)}
+								SAVE
 							</Button>
 						</Box>
 					</Box>

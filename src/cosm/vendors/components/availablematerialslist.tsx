@@ -27,7 +27,7 @@ interface AvailableMaterialsListProps {
 	materials: OrderItem[];
 	/** Whether the available materials request is pending */
 	isLoading: boolean;
-	/** The user's active current orders, used to disable adding duplicates */
+	/** The user's active current orders, excluded from the available list */
 	allOrders: OrderItem[];
 	/** Callback to handle adding a new material as a buy or sell order */
 	onAddMaterial: (material: OrderItem, type: "buy" | "sell") => void;
@@ -38,7 +38,7 @@ const priceFormatter = new Intl.NumberFormat("en-US", {
 });
 
 const AvailableMaterialRow: React.FC<{
-	material: OrderItem & { isDisabled: boolean };
+	material: OrderItem;
 	onAddMaterial: (material: OrderItem, type: "buy" | "sell") => void;
 }> = React.memo(({ material, onAddMaterial }) => {
 	const theme = useTheme();
@@ -109,11 +109,10 @@ const AvailableMaterialRow: React.FC<{
 					size="small"
 					aria-label={`Add ${material.materialticker} to orders`}
 					onClick={() => onAddMaterial(material, "sell")}
-					disabled={material.isDisabled}
 				>
 					<PlusCircle
 						className="inline-icon"
-						color={material.isDisabled ? undefined : theme.palette.success.main}
+						color={theme.palette.success.main}
 					/>
 				</IconButton>
 			</Box>
@@ -140,19 +139,15 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 
 	const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-	// Filter and mark materials based on search and existing orders
-	const filteredAndMarkedMaterials = useMemo(() => {
+	const filteredMaterials = useMemo(() => {
 		const lowerCaseQuery = debouncedSearchQuery.toLowerCase();
+		const orderedTickers = new Set(
+			allOrders.map((order) => order.materialticker),
+		);
 		return materials
 			.filter((m) => m.materialticker.toLowerCase().includes(lowerCaseQuery))
 			.filter((m) => showUnavailable || m.instore > 0)
-			.map((m) => ({
-				...m,
-				// Disable adding if the user already has both a buy and a sell order for this ticker
-				isDisabled:
-					allOrders.filter((o) => o.materialticker === m.materialticker)
-						.length >= 2,
-			}));
+			.filter((m) => !orderedTickers.has(m.materialticker));
 	}, [debouncedSearchQuery, materials, allOrders, showUnavailable]);
 
 	return (
@@ -262,7 +257,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					>
 						<CircularProgress size={24} />
 					</Box>
-				) : filteredAndMarkedMaterials.length === 0 ? (
+				) : filteredMaterials.length === 0 ? (
 					<Box
 						sx={{
 							color: "text.secondary",
@@ -274,7 +269,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 						No materials found.
 					</Box>
 				) : (
-					filteredAndMarkedMaterials.map((material) => (
+					filteredMaterials.map((material) => (
 						<AvailableMaterialRow
 							key={material.frontendId || material.materialticker}
 							material={material}

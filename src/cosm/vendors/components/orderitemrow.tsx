@@ -12,27 +12,36 @@ import {
 	Typography,
 	TextField,
 	IconButton,
-	Select,
-	MenuItem,
-	FormControl,
+	Button,
 	Autocomplete,
 	useTheme,
 	Collapse,
 	Chip,
 	Tooltip,
+	alpha,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { RefreshCw, RefreshCwOff, Trash2 } from "lucide-react";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlineOutlined";
-import LockIcon from "@mui/icons-material/Lock";
-import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
 import type { OrderItem, Location } from "../types";
 import { formatCurrency } from "../../../dashboard/financial/utils/financeutils";
 import { formatAmount } from "../../../utils/formaters";
 import { pickPrice } from "../utils/pickprice";
 import { formatLocation } from "../utils/formatlocation";
 import MaterialBadge from "../../components/materialbadge";
+
+export const getLocationMarketQuantity = (
+	ordertype: OrderItem["ordertype"],
+	location: Pick<Location, "amount" | "storage_amount" | "available">,
+) => {
+	const inventory = Number(location.available ?? location.storage_amount) || 0;
+	const limit = Number(location.amount) || 0;
+	return Math.max(
+		0,
+		ordertype === "sell" ? inventory - limit : limit - inventory,
+	);
+};
 
 /**
  * A debounced text field component used to prevent rapid state updates and potential focus loss.
@@ -226,6 +235,14 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		}, [material.locationSource]);
 
 		const labelText = material.ordertype === "buy" ? "Demand" : "Reserve";
+		const labelTooltip =
+			material.ordertype === "buy"
+				? "Quantity you want to have"
+				: "Quantity not for sale";
+		const marketTooltip =
+			material.ordertype === "buy"
+				? "Quantity the market shows you want"
+				: "Quantity the market shows you have";
 		const isPriceLocked = Boolean(material.isPriceLocked);
 		const displayPrice = pickPrice({
 			fixedprice: isPriceLocked
@@ -241,6 +258,11 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		);
 		const totalAmount = currentLocations.reduce(
 			(sum: number, l: any) => sum + (l.amount || 0),
+			0,
+		);
+		const marketQuantity = currentLocations.reduce(
+			(sum: number, location: any) =>
+				sum + getLocationMarketQuantity(material.ordertype, location),
 			0,
 		);
 
@@ -348,7 +370,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							...commonBoxSx,
 							gridTemplateColumns: {
 								xs: "1fr 1fr",
-								sm: "1fr 1fr 1.45fr 1.5fr 1fr 0.8fr 50px",
+								sm: "1fr 1fr 1.45fr 1.5fr 0.8fr 0.8fr 0.8fr 50px",
 							},
 							background: open ? theme.palette.background.paper : "transparent",
 						}}
@@ -362,35 +384,72 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 
 						{/* 2. Type */}
 						<Cell label="Type">
-							<FormControl variant="standard" fullWidth>
-								<Select
-									size="small"
-									variant="outlined"
-									value={material.ordertype}
-									onChange={(e) =>
-										onEditMaterial?.(
-											material.frontendId,
-											"ordertype",
-											e.target.value as "buy" | "sell",
-										)
-									}
-									disabled={hasOtherOrderType}
-									sx={{ fontSize: "0.875rem" }}
-									MenuProps={{
-										slotProps: {
-											paper: {
-												sx: {
-													bgcolor: theme.palette.background.default,
-													backgroundImage: "none",
-												},
-											},
+							<Box
+								role="group"
+								aria-label={`Order type for ${material.materialticker}`}
+								sx={{ display: "inline-flex" }}
+							>
+								{(
+									[
+										{
+											type: "sell",
+											label: "ASK",
+											color: theme.palette.warning.light,
+											tooltip: "You sell to COSM members",
 										},
-									}}
-								>
-									<MenuItem value="sell">Ask</MenuItem>
-									<MenuItem value="buy">Bid</MenuItem>
-								</Select>
-							</FormControl>
+										{
+											type: "buy",
+											label: "BID",
+											color: theme.palette.info.light,
+											tooltip: "You buy from COSM members",
+										},
+									] as const
+								).map(({ type, label, color, tooltip }, index) => {
+									const active = material.ordertype === type;
+									return (
+										<Tooltip key={type} title={tooltip}>
+											<Box component="span" sx={{ display: "flex" }}>
+												<Button
+													size="small"
+													variant="outlined"
+													disabled={hasOtherOrderType}
+													aria-pressed={active}
+													onClick={() =>
+														onEditMaterial?.(
+															material.frontendId,
+															"ordertype",
+															type,
+														)
+													}
+													sx={{
+														minWidth: 0,
+														fontSize: "0.7rem",
+														fontWeight: "bold",
+														textDecoration: "underline dotted",
+														color: "grey.600",
+														border: "1px solid",
+														borderColor: "grey.600",
+														"&:hover": {
+															borderColor: "grey.600",
+															bgcolor: "action.hover",
+														},
+														borderRadius:
+															index === 0 ? "4px 0 0 4px" : "0 4px 4px 0",
+														...(active && {
+															color,
+															bgcolor: alpha(color, 0.1),
+															borderColor: alpha(color, 0.3),
+															"&:hover": { bgcolor: alpha(color, 0.1) },
+														}),
+													}}
+												>
+													{label}
+												</Button>
+											</Box>
+										</Tooltip>
+									);
+								})}
+							</Box>
 						</Cell>
 
 						{/* 3. Location (Full width on mobile) */}
@@ -398,35 +457,56 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							label="Location"
 							sx={{ gridColumn: { xs: "1 / -1", sm: "auto" } }}
 						>
-							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-								{currentLocations.length === 0 ? (
-									<Typography variant="caption" color="error">
-										Select Loc
-									</Typography>
-								) : currentLocations.length === 1 ? (
+							<Box sx={{ display: "flex", alignItems: "center" }}>
+								<Tooltip title="Edit locations">
 									<Chip
-										label={currentLocations[0].location_code}
+										onClick={() => setOpen(!open)}
+										aria-label="Edit locations"
+										sx={{ paddingLeft: 0.5 }}
+										label={
+											currentLocations.length === 0 ? (
+												<>
+													Select Location
+													<Box
+														component="span"
+														sx={{
+															display: "inline-flex",
+															verticalAlign: "middle",
+															transform: open
+																? "rotate(180deg)"
+																: "rotate(0deg)",
+															transition: "0.2s",
+														}}
+													>
+														<KeyboardArrowDownIcon className="inline-icon" />
+													</Box>
+												</>
+											) : (
+												<>
+													<Box component="span" sx={{ fontWeight: "bold" }}>
+														{sortedCurrentLocations[0].location_name}
+													</Box>
+													{currentLocations.length > 1 &&
+														` +${currentLocations.length - 1} more`}
+													<Box
+														component="span"
+														sx={{
+															display: "inline-flex",
+															verticalAlign: "middle",
+															transform: open
+																? "rotate(180deg)"
+																: "rotate(0deg)",
+															transition: "0.2s",
+														}}
+													>
+														<KeyboardArrowDownIcon className="inline-icon" />
+													</Box>
+												</>
+											)
+										}
 										size="small"
 									/>
-								) : (
-									<Chip
-										label={`${currentLocations.length} Locs`}
-										color="primary"
-										size="small"
-										variant="outlined"
-									/>
-								)}
-								<IconButton
-									size="small"
-									onClick={() => setOpen(!open)}
-									sx={{
-										ml: "auto",
-										transform: open ? "rotate(180deg)" : "rotate(0deg)",
-										transition: "0.2s",
-									}}
-								>
-									<KeyboardArrowDownIcon />
-								</IconButton>
+								</Tooltip>
 							</Box>
 						</Cell>
 
@@ -442,7 +522,11 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 								}}
 							>
 								<Tooltip
-									title={isPriceLocked ? "Auto COSM Price" : ""}
+									title={
+										isPriceLocked
+											? "Disable COSM Price Sync to set a custom price"
+											: ""
+									}
 									disableHoverListener={!isPriceLocked}
 								>
 									<Box sx={{ flex: 1, minWidth: 0 }}>
@@ -461,14 +545,26 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 													style: { textAlign: "center" },
 												},
 											}}
-											sx={{ width: "100%" }}
+											sx={{
+												width: "100%",
+												"& .MuiInputBase-root.Mui-disabled, & .MuiInputBase-input.Mui-disabled":
+													{
+														cursor: "not-allowed",
+													},
+											}}
 										/>
 									</Box>
 								</Tooltip>
-								<Tooltip title={isPriceLocked ? "COSM Price" : "Custom Price"}>
-									<IconButton
-										size="small"
-										sx={{ flexShrink: 0 }}
+								<Tooltip
+									title={`COSM Price Sync: ${isPriceLocked ? "ENABLED" : "DISABLED"}`}
+								>
+									<Button
+										variant={isPriceLocked ? "contained" : "outlined"}
+										size="large"
+										aria-label={
+											isPriceLocked ? "Disable COSM sync" : "Enable COSM sync"
+										}
+										sx={{ minWidth: 0, p: 1.4, borderRadius: "50%" }}
 										onClick={() =>
 											onEditMaterial?.(
 												material.frontendId,
@@ -478,36 +574,33 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										}
 									>
 										{isPriceLocked ? (
-											<LockIcon fontSize="small" />
+											<RefreshCw className="inline-icon" />
 										) : (
-											<LockOpenOutlinedIcon fontSize="small" />
+											<RefreshCwOff className="inline-icon" />
 										)}
-									</IconButton>
+									</Button>
 								</Tooltip>
 							</Box>
 						</Cell>
 
-						{/* 5. Total (Label text varies) */}
-						<Cell label={labelText}>
-							<Tooltip title={`Total ${labelText}. Expand location to edit.`}>
-								<DebouncedInput
-									size="small"
-									variant="outlined"
-									value={totalAmount || 0}
-									onChange={() => {}}
-									disabled={true}
-									slotProps={{
-										input: { style: { textAlign: "center" } },
-									}}
-									sx={{ width: "100%" }}
-								/>
-							</Tooltip>
+						{/* 5. Inventory */}
+						<Cell label="Inventory">
+							<Typography variant="body2" align="center">
+								{formatAmount(displayQuantity)}
+							</Typography>
 						</Cell>
 
-						{/* 6. In Store */}
-						<Cell label="In Store">
-							<Typography variant="body2">
-								{formatAmount(displayQuantity)}
+						{/* 6. Total (Label text varies) */}
+						<Cell label="Limit">
+							<Typography variant="body2" align="center">
+								{formatAmount(totalAmount || 0)}
+							</Typography>
+						</Cell>
+
+						{/* 7. Quantity listed on the market */}
+						<Cell label="Market">
+							<Typography variant="body2" align="center">
+								{formatAmount(marketQuantity)}
 							</Typography>
 						</Cell>
 
@@ -517,11 +610,12 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							sx={{ alignItems: { xs: "flex-end", sm: "center" } }}
 						>
 							<IconButton
+								color="error"
 								onClick={() =>
 									onRemoveMaterial?.(material?.frontendId, material.ordertype)
 								}
 							>
-								<DeleteIcon color="error" />
+								<Trash2 className="inline-icon" />
 							</IconButton>
 						</Cell>
 					</Box>
@@ -540,7 +634,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							<Box
 								sx={{
 									display: "grid",
-									gridTemplateColumns: "1.5fr 1fr 1.5fr 40px",
+									gridTemplateColumns: "1.5fr 1fr 1.5fr 1fr 40px",
 									gap: 2,
 									mb: 1,
 									px: 1,
@@ -567,7 +661,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										textAlign: "right",
 									}}
 								>
-									In Stock
+									Inventory
 								</Typography>
 								<Typography
 									variant="caption"
@@ -578,7 +672,41 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										opacity: 0.5,
 									}}
 								>
-									{labelText}
+									<Tooltip title={labelTooltip}>
+										<Box
+											component="span"
+											tabIndex={0}
+											sx={{
+												cursor: "help",
+												textDecoration: "underline dotted",
+											}}
+										>
+											{labelText}
+										</Box>
+									</Tooltip>
+								</Typography>
+								<Typography
+									variant="caption"
+									sx={{
+										color: theme.palette.text.secondary,
+										fontWeight: "bold",
+										textTransform: "uppercase",
+										opacity: 0.5,
+										textAlign: "right",
+									}}
+								>
+									<Tooltip title={marketTooltip}>
+										<Box
+											component="span"
+											tabIndex={0}
+											sx={{
+												cursor: "help",
+												textDecoration: "underline dotted",
+											}}
+										>
+											Market
+										</Box>
+									</Tooltip>
 								</Typography>
 								<Box />
 							</Box>
@@ -589,7 +717,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 									key={loc.id}
 									sx={{
 										display: "grid",
-										gridTemplateColumns: "1.5fr 1fr 1.5fr 40px",
+										gridTemplateColumns: "1.5fr 1fr 1.5fr 1fr 40px",
 										alignItems: "center",
 										gap: 2,
 										mb: 1,
@@ -616,10 +744,9 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										align="right"
 										sx={{
 											color:
-												((loc.available ?? loc.storage_amount) || 0) > 0
-													? theme.palette.success.light
-													: theme.palette.text.disabled,
-											fontWeight: "bold",
+												(Number(loc.available ?? loc.storage_amount) || 0) === 0
+													? "text.disabled"
+													: undefined,
 										}}
 									>
 										{formatAmount(loc.available ?? loc.storage_amount ?? 0)}
@@ -641,6 +768,21 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 											},
 										}}
 									/>
+
+									<Typography
+										variant="body2"
+										align="right"
+										sx={{
+											color:
+												getLocationMarketQuantity(material.ordertype, loc) === 0
+													? "text.disabled"
+													: undefined,
+										}}
+									>
+										{formatAmount(
+											getLocationMarketQuantity(material.ordertype, loc),
+										)}
+									</Typography>
 
 									{currentLocations.length > 1 ? (
 										<IconButton
@@ -787,6 +929,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		return (
 			prev.material === next.material &&
 			prev.locations === next.locations &&
+			prev.onEditMaterial === next.onEditMaterial &&
 			prev.hasOtherOrderType === next.hasOtherOrderType &&
 			prev.style === next.style
 		);
