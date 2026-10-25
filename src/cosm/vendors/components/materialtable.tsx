@@ -28,6 +28,8 @@ interface MaterialTableProps {
 	onAddMaterial: (material: OrderItem, type: "buy" | "sell") => void;
 	/** Optional title to display above the table. */
 	title?: string;
+	/** Optional action displayed alongside the title. */
+	headerAction?: React.ReactNode;
 	/** Optional list of available materials for reference when editing locations. */
 	availableMaterialsList?: OrderItem[];
 }
@@ -49,6 +51,7 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 		onEditMaterial,
 		onAddMaterial,
 		title,
+		headerAction,
 	}) => {
 		const theme = useTheme();
 
@@ -60,7 +63,6 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 			{ label: "Inventory" },
 			{ label: "Limit", tooltip: "Total Reserve/Demand" },
 			{ label: "Market", tooltip: "Quantity the Market shows you have/want" },
-			{ label: "Remove" },
 		];
 
 		const tickerToOtherOrderTypeMap = useMemo(() => {
@@ -105,11 +107,8 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 				}}
 			>
 				{title && (
-					<Typography
-						variant="subtitle2"
+					<Box
 						sx={{
-							color: "text.primary",
-							fontWeight: "bold",
 							p: 1.5,
 							bgcolor: "rgba(0,0,0,0.05)",
 							borderBottom: `1px solid ${theme.palette.divider}`,
@@ -117,27 +116,39 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 							minHeight: 56,
 							display: "flex",
 							alignItems: "center",
-							fontSize: "1.05rem",
+							gap: 2,
 						}}
 					>
-						{title.toUpperCase()}
-					</Typography>
+						<Typography
+							variant="subtitle2"
+							sx={{
+								color: "text.primary",
+								fontWeight: "bold",
+								fontSize: "1.05rem",
+							}}
+						>
+							{title.toUpperCase()}
+						</Typography>
+						{headerAction}
+					</Box>
 				)}
 
-				{/* Table Header (Hidden on Mobile) */}
+				{/* Table Header */}
 				<Box
 					sx={{
-						display: { sm: "grid", xs: "grid" },
-						gridTemplateColumns: {
-							xs: "40px 30px 40px 40px 40px 40px 40px 40px",
-							sm: "1fr 1fr 1.45fr 1.5fr 0.8fr 0.8fr 0.8fr 50px",
-						},
+						display: "flex",
 						alignItems: "center",
 						px: 2,
 						py: 0.5,
 						color: theme.palette.text.secondary,
 						fontWeight: "bold",
 						gap: 1,
+						"& > *": { flex: 1, minWidth: 0 },
+						"& > :nth-child(3), & > :nth-child(4)": { flex: 2 },
+						"& > :nth-child(5), & > :nth-child(6)": {
+							display: { xs: "none", md: "block" },
+						},
+						"& > :last-child": { flex: "0 0 40px", maxWidth: 40 },
 						borderBottom: `1px solid ${theme.palette.divider}`,
 						flexShrink: 0,
 						background: "transparent",
@@ -171,6 +182,7 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 							)}
 						</Typography>
 					))}
+					<Box aria-hidden />
 				</Box>
 
 				{/* Scrollable List */}

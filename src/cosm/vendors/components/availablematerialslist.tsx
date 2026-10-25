@@ -31,6 +31,8 @@ interface AvailableMaterialsListProps {
 	allOrders: OrderItem[];
 	/** Callback to handle adding a new material as a buy or sell order */
 	onAddMaterial: (material: OrderItem, type: "buy" | "sell") => void;
+	/** Optional callback to close the list when rendered in a drawer. */
+	onClose?: () => void;
 }
 
 const priceFormatter = new Intl.NumberFormat("en-US", {
@@ -132,6 +134,7 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 	isLoading,
 	allOrders,
 	onAddMaterial,
+	onClose,
 }) => {
 	const theme = useTheme();
 	const [searchQuery, setSearchQuery] = useState("");
@@ -161,11 +164,8 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 				background: "transparent",
 			}}
 		>
-			<Typography
-				variant="subtitle2"
+			<Box
 				sx={{
-					color: "text.primary",
-					fontWeight: "bold",
 					p: 1.5,
 					bgcolor: "rgba(0,0,0,0.05)",
 					borderBottom: `1px solid ${theme.palette.divider}`,
@@ -173,11 +173,25 @@ const AvailableMaterialsList: React.FC<AvailableMaterialsListProps> = ({
 					minHeight: 56,
 					display: "flex",
 					alignItems: "center",
-					fontSize: "1.05rem",
+					justifyContent: "space-between",
 				}}
 			>
-				AVAILABLE MATERIALS
-			</Typography>
+				<Typography
+					variant="subtitle2"
+					sx={{
+						color: "text.primary",
+						fontWeight: "bold",
+						fontSize: "1.05rem",
+					}}
+				>
+					AVAILABLE MATERIALS
+				</Typography>
+				{onClose && (
+					<IconButton aria-label="Close available materials" onClick={onClose}>
+						<X className="inline-icon" />
+					</IconButton>
+				)}
+			</Box>
 			<Box
 				sx={{
 					display: "flex",

@@ -106,7 +106,7 @@ const Cell = ({
 	return (
 		<Box
 			sx={{
-				width: "100%",
+				width: "auto",
 				textAlign: { xs: "left", sm: "center" },
 				display: "flex",
 				flexDirection: { xs: "column", sm: "block" },
@@ -126,7 +126,7 @@ const Cell = ({
 			>
 				{label}
 			</Typography>
-			<Box sx={{ width: "100%" }}>{children}</Box>
+			<Box>{children}</Box>
 		</Box>
 	);
 };
@@ -265,6 +265,10 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 				sum + getLocationMarketQuantity(material.ordertype, location),
 			0,
 		);
+		const marketColor =
+			material.ordertype === "sell"
+				? theme.palette.warning.light
+				: theme.palette.info.light;
 
 		// --- HANDLERS ---
 		const handleAddLocation = useCallback(
@@ -368,10 +372,10 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 					<Box
 						sx={{
 							...commonBoxSx,
-							gridTemplateColumns: {
-								xs: "1fr 1fr",
-								sm: "1fr 1fr 1.45fr 1.5fr 0.8fr 0.8fr 0.8fr 50px",
-							},
+							display: "flex",
+							"& > *": { flex: 1, minWidth: 0 },
+							"& > :nth-child(3), & > :nth-child(4)": { flex: 2 },
+							"& > :last-child": { flex: "0 0 40px", maxWidth: 40 },
 							background: open ? theme.palette.background.paper : "transparent",
 						}}
 					>
@@ -453,16 +457,21 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 						</Cell>
 
 						{/* 3. Location (Full width on mobile) */}
-						<Cell
-							label="Location"
-							sx={{ gridColumn: { xs: "1 / -1", sm: "auto" } }}
-						>
+						<Cell label="Location">
 							<Box sx={{ display: "flex", alignItems: "center" }}>
 								<Tooltip title="Edit locations">
 									<Chip
 										onClick={() => setOpen(!open)}
 										aria-label="Edit locations"
-										sx={{ paddingLeft: 0.5 }}
+										sx={{
+											"& .MuiChip-label": {
+												display: "flex",
+												alignItems: "center",
+												pl: 1,
+												pr: 0.5,
+												py: 0,
+											},
+										}}
 										label={
 											currentLocations.length === 0 ? (
 												<>
@@ -470,8 +479,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 													<Box
 														component="span"
 														sx={{
-															display: "inline-flex",
-															verticalAlign: "middle",
+															display: "flex",
 															transform: open
 																? "rotate(180deg)"
 																: "rotate(0deg)",
@@ -487,12 +495,11 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 														{sortedCurrentLocations[0].location_name}
 													</Box>
 													{currentLocations.length > 1 &&
-														` +${currentLocations.length - 1} more`}
+														` +${currentLocations.length - 1}`}
 													<Box
 														component="span"
 														sx={{
-															display: "inline-flex",
-															verticalAlign: "middle",
+															display: "flex",
 															transform: open
 																? "rotate(180deg)"
 																: "rotate(0deg)",
@@ -584,14 +591,17 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 						</Cell>
 
 						{/* 5. Inventory */}
-						<Cell label="Inventory">
+						<Cell
+							label="Inventory"
+							sx={{ display: { xs: "none", md: "block" } }}
+						>
 							<Typography variant="body2" align="center">
 								{formatAmount(displayQuantity)}
 							</Typography>
 						</Cell>
 
 						{/* 6. Total (Label text varies) */}
-						<Cell label="Limit">
+						<Cell label="Limit" sx={{ display: { xs: "none", md: "block" } }}>
 							<Typography variant="body2" align="center">
 								{formatAmount(totalAmount || 0)}
 							</Typography>
@@ -599,7 +609,14 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 
 						{/* 7. Quantity listed on the market */}
 						<Cell label="Market">
-							<Typography variant="body2" align="center">
+							<Typography
+								variant="body2"
+								align="center"
+								sx={{
+									fontWeight: 700,
+									color: marketQuantity > 0 ? marketColor : "text.disabled",
+								}}
+							>
 								{formatAmount(marketQuantity)}
 							</Typography>
 						</Cell>
@@ -624,240 +641,255 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 					<Collapse in={open} timeout="auto" unmountOnExit>
 						<Box
 							sx={{
-								px: { xs: 1, sm: 4 },
-								py: 1.5,
-								bgcolor: "rgba(0,0,0,0.15)",
+								p: 2,
+								bgcolor: "rgba(0,0,0,0.3)",
 								borderTop: `1px solid ${theme.palette.divider}`,
 							}}
 						>
-							{/* Header for Compact Table */}
-							<Box
-								sx={{
-									display: "grid",
-									gridTemplateColumns: "1.5fr 1fr 1.5fr 1fr 40px",
-									gap: 2,
-									mb: 1,
-									px: 1,
-								}}
-							>
-								<Typography
-									variant="caption"
-									sx={{
-										color: theme.palette.text.secondary,
-										fontWeight: "bold",
-										textTransform: "uppercase",
-										opacity: 0.5,
-									}}
-								>
-									Location
-								</Typography>
-								<Typography
-									variant="caption"
-									sx={{
-										color: theme.palette.text.secondary,
-										fontWeight: "bold",
-										textTransform: "uppercase",
-										opacity: 0.5,
-										textAlign: "right",
-									}}
-								>
-									Inventory
-								</Typography>
-								<Typography
-									variant="caption"
-									sx={{
-										color: theme.palette.text.secondary,
-										fontWeight: "bold",
-										textTransform: "uppercase",
-										opacity: 0.5,
-									}}
-								>
-									<Tooltip title={labelTooltip}>
-										<Box
-											component="span"
-											tabIndex={0}
-											sx={{
-												cursor: "help",
-												textDecoration: "underline dotted",
-											}}
-										>
-											{labelText}
-										</Box>
-									</Tooltip>
-								</Typography>
-								<Typography
-									variant="caption"
-									sx={{
-										color: theme.palette.text.secondary,
-										fontWeight: "bold",
-										textTransform: "uppercase",
-										opacity: 0.5,
-										textAlign: "right",
-									}}
-								>
-									<Tooltip title={marketTooltip}>
-										<Box
-											component="span"
-											tabIndex={0}
-											sx={{
-												cursor: "help",
-												textDecoration: "underline dotted",
-											}}
-										>
-											Market
-										</Box>
-									</Tooltip>
-								</Typography>
-								<Box />
-							</Box>
-
-							{/* Location Rows */}
-							{sortedCurrentLocations.map((loc: any) => (
+							<Box sx={{ width: "100%", maxWidth: 600, mx: "auto" }}>
+								{/* Header for Compact Table */}
 								<Box
-									key={loc.id}
 									sx={{
-										display: "grid",
-										gridTemplateColumns: "1.5fr 1fr 1.5fr 1fr 40px",
-										alignItems: "center",
+										display: "flex",
 										gap: 2,
+										"& > *": { flex: 1, minWidth: 0 },
+										"& > :first-child": { flex: 2 },
+										"& > :last-child": { flex: "0 0 40px", maxWidth: 40 },
 										mb: 1,
 										px: 1,
-										"&:hover": {
-											bgcolor: "rgba(255,255,255,0.03)",
-											borderRadius: 1,
-										},
 									}}
 								>
 									<Typography
 										variant="caption"
 										sx={{
-											overflow: "hidden",
-											textOverflow: "ellipsis",
-											whiteSpace: "nowrap",
+											color: theme.palette.text.secondary,
+											fontWeight: "bold",
+											textTransform: "uppercase",
+											opacity: 0.8,
 										}}
 									>
-										{formatLocation(loc.location_name, loc.location_code)}
+										Location
 									</Typography>
-
 									<Typography
-										variant="body2"
-										align="right"
+										variant="caption"
 										sx={{
-											color:
-												(Number(loc.available ?? loc.storage_amount) || 0) === 0
-													? "text.disabled"
-													: undefined,
+											color: theme.palette.text.secondary,
+											fontWeight: "bold",
+											textTransform: "uppercase",
+											opacity: 0.8,
+											textAlign: "right",
 										}}
 									>
-										{formatAmount(loc.available ?? loc.storage_amount ?? 0)}
+										Inventory
 									</Typography>
+									<Typography
+										variant="caption"
+										sx={{
+											color: theme.palette.text.secondary,
+											fontWeight: "bold",
+											textTransform: "uppercase",
+											opacity: 0.8,
+											textAlign: "right",
+										}}
+									>
+										<Tooltip title={labelTooltip}>
+											<Box
+												component="span"
+												tabIndex={0}
+												sx={{
+													cursor: "help",
+													textDecoration: "underline dotted",
+												}}
+											>
+												{labelText}
+											</Box>
+										</Tooltip>
+									</Typography>
+									<Typography
+										variant="caption"
+										sx={{
+											color: theme.palette.text.secondary,
+											fontWeight: "bold",
+											textTransform: "uppercase",
+											opacity: 0.8,
+											textAlign: "right",
+										}}
+									>
+										<Tooltip title={marketTooltip}>
+											<Box
+												component="span"
+												tabIndex={0}
+												sx={{
+													cursor: "help",
+													textDecoration: "underline dotted",
+												}}
+											>
+												{material.ordertype === "sell" ? "Have" : "Want"}
+											</Box>
+										</Tooltip>
+									</Typography>
+									<Box />
+								</Box>
 
-									<DebouncedInput
-										size="small"
-										placeholder="0"
-										type="text"
-										value={loc.amount || ""}
-										onChange={(val) => handleUpdateLocationAmount(loc.id, val)}
+								{/* Location Rows */}
+								{sortedCurrentLocations.map((loc: any) => (
+									<Box
+										key={loc.id}
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											gap: 2,
+											"& > *": { flex: 1, minWidth: 0 },
+											"& > :first-child": { flex: 2 },
+											"& > :last-child": { flex: "0 0 40px", maxWidth: 40 },
+											mb: 1,
+											px: 1,
+											"&:hover": {
+												bgcolor: "rgba(255,255,255,0.03)",
+												borderRadius: 1,
+											},
+										}}
+									>
+										<Typography
+											variant="caption"
+											sx={{
+												overflow: "hidden",
+												textOverflow: "ellipsis",
+												whiteSpace: "nowrap",
+											}}
+										>
+											{formatLocation(loc.location_name, loc.location_code)}
+										</Typography>
+
+										<Typography
+											variant="body2"
+											align="right"
+											sx={{
+												color:
+													(Number(loc.available ?? loc.storage_amount) || 0) ===
+													0
+														? "text.disabled"
+														: undefined,
+											}}
+										>
+											{formatAmount(loc.available ?? loc.storage_amount ?? 0)}
+										</Typography>
+
+										<DebouncedInput
+											size="small"
+											placeholder="0"
+											type="text"
+											value={loc.amount || ""}
+											onChange={(val) =>
+												handleUpdateLocationAmount(loc.id, val)
+											}
+											slotProps={{
+												input: {
+													sx: {
+														bgcolor: theme.palette.background.paper,
+														fontSize: "0.85rem",
+														height: "32px",
+														"& input": { textAlign: "right" },
+													},
+												},
+											}}
+										/>
+
+										<Typography
+											variant="body2"
+											align="right"
+											sx={{
+												fontWeight: 700,
+												color:
+													getLocationMarketQuantity(material.ordertype, loc) ===
+													0
+														? "text.disabled"
+														: marketColor,
+											}}
+										>
+											{formatAmount(
+												getLocationMarketQuantity(material.ordertype, loc),
+											)}
+										</Typography>
+
+										{currentLocations.length > 1 ? (
+											<IconButton
+												size="small"
+												onClick={() => handleRemoveLocation(loc.id)}
+											>
+												<RemoveCircleOutlineIcon
+													fontSize="small"
+													color="error"
+												/>
+											</IconButton>
+										) : (
+											<Box />
+										)}
+									</Box>
+								))}
+
+								<Box sx={{ mt: 1.5, px: 1 }}>
+									<Autocomplete
+										options={availableLocations}
+										getOptionLabel={(option) =>
+											typeof option === "string"
+												? option
+												: `${formatLocation(option.location_name, option.location_code)}: ${formatAmount(locationStockById.get(option.id) ?? 0)}`
+										}
+										isOptionEqualToValue={(option, value) =>
+											option.id === value.id
+										}
+										renderOption={(props, option) => {
+											const quantity = locationStockById.get(option.id) ?? 0;
+											const { key, ...optionProps } = props;
+
+											return (
+												<li key={key} {...optionProps}>
+													{formatLocation(
+														option.location_name,
+														option.location_code,
+													)}
+													:&nbsp;
+													<Box component="span" sx={{ fontWeight: "bold" }}>
+														{formatAmount(quantity)}
+													</Box>
+												</li>
+											);
+										}}
+										onChange={(event, newValue) => handleAddLocation(newValue)}
+										inputValue={locationInputValue}
+										onInputChange={(_event, newInputValue, reason) => {
+											if (reason === "reset") return;
+											setLocationInputValue(newInputValue);
+										}}
+										onClose={() => setLocationInputValue("")}
+										value={null}
 										slotProps={{
-											input: {
+											paper: {
 												sx: {
-													bgcolor: theme.palette.background.paper,
-													fontSize: "0.85rem",
-													height: "32px",
+													bgcolor: "background.default",
+													backgroundImage: "none",
 												},
 											},
 										}}
-									/>
-
-									<Typography
-										variant="body2"
-										align="right"
 										sx={{
-											color:
-												getLocationMarketQuantity(material.ordertype, loc) === 0
-													? "text.disabled"
-													: undefined,
+											mt: 1,
 										}}
-									>
-										{formatAmount(
-											getLocationMarketQuantity(material.ordertype, loc),
+										renderInput={(params) => (
+											<TextField
+												{...params}
+												size="small"
+												placeholder="+ Add Location"
+												variant="standard"
+												sx={{
+													bgcolor: "rgba(255,255,255,0.05)",
+													px: 1,
+													borderRadius: 1,
+												}}
+											/>
 										)}
-									</Typography>
-
-									{currentLocations.length > 1 ? (
-										<IconButton
-											size="small"
-											onClick={() => handleRemoveLocation(loc.id)}
-										>
-											<RemoveCircleOutlineIcon fontSize="small" color="error" />
-										</IconButton>
-									) : (
-										<Box />
-									)}
+									/>
 								</Box>
-							))}
-
-							<Box sx={{ mt: 1.5, px: 1 }}>
-								<Autocomplete
-									options={availableLocations}
-									getOptionLabel={(option) =>
-										typeof option === "string"
-											? option
-											: `${formatLocation(option.location_name, option.location_code)}: ${formatAmount(locationStockById.get(option.id) ?? 0)}`
-									}
-									isOptionEqualToValue={(option, value) =>
-										option.id === value.id
-									}
-									renderOption={(props, option) => {
-										const quantity = locationStockById.get(option.id) ?? 0;
-										const { key, ...optionProps } = props;
-
-										return (
-											<li key={key} {...optionProps}>
-												{formatLocation(
-													option.location_name,
-													option.location_code,
-												)}
-												:&nbsp;
-												<Box component="span" sx={{ fontWeight: "bold" }}>
-													{formatAmount(quantity)}
-												</Box>
-											</li>
-										);
-									}}
-									onChange={(event, newValue) => handleAddLocation(newValue)}
-									inputValue={locationInputValue}
-									onInputChange={(_event, newInputValue, reason) => {
-										if (reason === "reset") return;
-										setLocationInputValue(newInputValue);
-									}}
-									onClose={() => setLocationInputValue("")}
-									value={null}
-									slotProps={{
-										paper: {
-											sx: {
-												bgcolor: "background.default",
-												backgroundImage: "none",
-											},
-										},
-									}}
-									sx={{
-										mt: 1,
-									}}
-									renderInput={(params) => (
-										<TextField
-											{...params}
-											size="small"
-											placeholder="+ Add Location"
-											variant="standard"
-											sx={{
-												bgcolor: "rgba(255,255,255,0.05)",
-												px: 1,
-												borderRadius: 1,
-											}}
-										/>
-									)}
-								/>
 							</Box>
 						</Box>
 					</Collapse>

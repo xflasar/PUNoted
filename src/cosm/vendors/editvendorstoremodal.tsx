@@ -5,10 +5,12 @@ import {
 	Button,
 	CircularProgress,
 	useTheme,
+	useMediaQuery,
 	Paper,
+	Drawer,
 } from "@mui/material";
 import { API_BASE_URL } from "../../config/api";
-import { DeleteIcon } from "lucide-react";
+import { DeleteIcon, PlusCircle } from "lucide-react";
 import GlobalLoadingOverlay from "../../components/common/globalloadingoverlay";
 import AvailableMaterialsList from "./components/availablematerialslist";
 import MaterialTable from "./components/materialtable";
@@ -45,12 +47,18 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 	onVendorChanged,
 }) => {
 	const theme = useTheme();
+	const isCompact = useMediaQuery(theme.breakpoints.down("lg"));
 
 	const [isSaving, setIsSaving] = useState<boolean>(false);
 	const [isDeleting, setIsDeleting] = useState<boolean>(false);
 	const [showErrorToast, setShowErrorToast] = useState(false);
 	const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
+	const [showAvailableMaterials, setShowAvailableMaterials] = useState(false);
 	const [locations, setLocations] = useState<Location[]>([]);
+
+	useEffect(() => {
+		if (!isCompact) setShowAvailableMaterials(false);
+	}, [isCompact]);
 
 	// Custom hook to manage form state and orders for the vendor store
 	const {
@@ -288,33 +296,35 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						sx={{
 							flex: 1,
 							display: "flex",
-							flexDirection: { xs: "column", sm: "row" },
+							flexDirection: "row",
 							gap: 1,
 							minHeight: 0,
 							overflowY: "auto",
 						}}
 					>
 						{/* Available Materials */}
-						<Paper
-							sx={{
-								flex: { xs: "0 0 40vh", sm: "0 0 380px" },
-								width: { sm: 380 },
-								display: "flex",
-								flexDirection: "column",
-								overflow: "hidden",
-								minHeight: 0,
-								background: theme.palette.background.paper,
-								border: `1px solid ${theme.palette.divider}`,
-								borderRadius: 2,
-							}}
-						>
-							<AvailableMaterialsList
-								materials={materials}
-								isLoading={isLoadingMaterials}
-								allOrders={allOrders}
-								onAddMaterial={handleAddMaterial}
-							/>
-						</Paper>
+						{!isCompact && (
+							<Paper
+								sx={{
+									flex: "0 0 380px",
+									width: 380,
+									display: "flex",
+									flexDirection: "column",
+									overflow: "hidden",
+									minHeight: 0,
+									background: theme.palette.background.paper,
+									border: `1px solid ${theme.palette.divider}`,
+									borderRadius: 2,
+								}}
+							>
+								<AvailableMaterialsList
+									materials={materials}
+									isLoading={isLoadingMaterials}
+									allOrders={allOrders}
+									onAddMaterial={handleAddMaterial}
+								/>
+							</Paper>
+						)}
 
 						<Paper
 							sx={{
@@ -331,6 +341,22 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 						>
 							<MaterialTable
 								title="Your Store"
+								headerAction={
+									isCompact ? (
+										<Button
+											size="small"
+											variant="contained"
+											startIcon={<PlusCircle className="inline-icon" />}
+											onClick={() => setShowAvailableMaterials(true)}
+											sx={{
+												color: theme.palette.common.white,
+												fontWeight: "bold",
+											}}
+										>
+											ADD
+										</Button>
+									) : undefined
+								}
 								materials={allOrders}
 								allOrders={allOrders}
 								locations={locations}
@@ -405,6 +431,38 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 					</Box>
 				</Box>
 			</Box>
+			<Drawer
+				anchor="bottom"
+				open={isCompact && showAvailableMaterials}
+				onClose={() => setShowAvailableMaterials(false)}
+				slotProps={{
+					paper: {
+						sx: {
+							height: "100%",
+							borderTopLeftRadius: 16,
+							borderTopRightRadius: 16,
+							background: theme.palette.background.paper,
+							backgroundImage: "none",
+							borderTop: `1px solid ${theme.palette.divider}`,
+						},
+					},
+					backdrop: {
+						sx: { backgroundColor: theme.palette.background.default },
+					},
+				}}
+				sx={{ zIndex: 9999 }}
+			>
+				<AvailableMaterialsList
+					materials={materials}
+					isLoading={isLoadingMaterials}
+					allOrders={allOrders}
+					onClose={() => setShowAvailableMaterials(false)}
+					onAddMaterial={(material, type) => {
+						handleAddMaterial(material, type);
+						setShowAvailableMaterials(false);
+					}}
+				/>
+			</Drawer>
 			<Toast
 				open={showErrorToast}
 				onClose={() => setShowErrorToast(false)}
