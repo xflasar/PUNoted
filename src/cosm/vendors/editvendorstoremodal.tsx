@@ -8,9 +8,10 @@ import {
 	useMediaQuery,
 	Paper,
 	Drawer,
+	Collapse,
 } from "@mui/material";
 import { API_BASE_URL } from "../../config/api";
-import { DeleteIcon, PlusCircle } from "lucide-react";
+import { PlusCircle, Store } from "lucide-react";
 import GlobalLoadingOverlay from "../../components/common/globalloadingoverlay";
 import AvailableMaterialsList from "./components/availablematerialslist";
 import MaterialTable from "./components/materialtable";
@@ -339,95 +340,88 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								borderRadius: 2,
 							}}
 						>
-							<MaterialTable
-								title="Your Store"
-								headerAction={
-									isCompact ? (
+							<Box sx={{ flex: 1, minHeight: 0 }}>
+								<MaterialTable
+									title={`${vendorStore?.vendor.gamename || "Your"}'s Store`}
+									headerAction={
+										isCompact ? (
+											<Button
+												size="small"
+												variant="contained"
+												startIcon={<PlusCircle className="inline-icon" />}
+												onClick={() => setShowAvailableMaterials(true)}
+												sx={{
+													color: theme.palette.common.white,
+													fontWeight: "bold",
+												}}
+											>
+												ADD
+											</Button>
+										) : undefined
+									}
+									headerEndAction={
 										<Button
 											size="small"
-											variant="contained"
-											startIcon={<PlusCircle className="inline-icon" />}
-											onClick={() => setShowAvailableMaterials(true)}
+											variant="outlined"
+											startIcon={<Store className="inline-icon" />}
+											onClick={() => setDeleteConfirmOpen(true)}
+											disabled={isSaving || isDeleting}
 											sx={{
-												color: theme.palette.common.white,
 												fontWeight: "bold",
+												color: "text.secondary",
+												borderColor: "text.secondary",
+												"&:hover": {
+													color: "text.primary",
+													borderColor: "text.primary",
+												},
 											}}
 										>
-											ADD
+											CLOSE STORE
 										</Button>
-									) : undefined
-								}
-								materials={allOrders}
-								allOrders={allOrders}
-								locations={locations}
-								availableMaterialsList={materials}
-								onAddMaterial={handleAddMaterial}
-								onEditMaterial={handleEditMaterial}
-								onRemoveMaterial={handleRemoveMaterial}
-							/>
+									}
+									materials={allOrders}
+									allOrders={allOrders}
+									locations={locations}
+									availableMaterialsList={materials}
+									onAddMaterial={handleAddMaterial}
+									onEditMaterial={handleEditMaterial}
+									onRemoveMaterial={handleRemoveMaterial}
+								/>
+							</Box>
+							<Collapse
+								in={isDirty}
+								timeout={200}
+								unmountOnExit
+								sx={{ flexShrink: 0 }}
+							>
+								<Box
+									sx={{
+										p: 1.5,
+										borderTop: `1px solid ${theme.palette.divider}`,
+										display: "flex",
+										justifyContent: "center",
+										alignItems: "center",
+										gap: 8,
+										flexShrink: 0,
+									}}
+								>
+									<Button
+										onClick={reset}
+										disabled={!isDirty || isSaving || isDeleting}
+										color="inherit"
+									>
+										DISCARD
+									</Button>
+									<Button
+										onClick={handleSave}
+										variant="contained"
+										disabled={!isDirty || isSaving || isDeleting}
+									>
+										SAVE
+									</Button>
+								</Box>
+							</Collapse>
 						</Paper>
-					</Box>
-				</Box>
-
-				{/* 3. FOOTER */}
-				<Box
-					sx={{
-						p: 1.5,
-						borderTop: `1px solid ${theme.palette.divider}`,
-						background: theme.palette.background.paper,
-						flexShrink: 0,
-						zIndex: 2,
-						display: "flex",
-						flexDirection: "row",
-						justifyContent: "center",
-						alignItems: "center",
-						gap: 1,
-					}}
-				>
-					<Box
-						sx={{
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "space-between",
-							gap: 1,
-							width: "100%",
-						}}
-					>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-							<Button
-								variant="outlined"
-								color="error"
-								size="small"
-								onClick={() => setDeleteConfirmOpen(true)}
-								disabled={isSaving || isDeleting}
-								startIcon={
-									isDeleting ? (
-										<CircularProgress className="inline-icon" color="inherit" />
-									) : (
-										<DeleteIcon className="inline-icon" />
-									)
-								}
-								sx={{ height: "40px", whiteSpace: "nowrap", minWidth: 120 }}
-							>
-								Delete Store
-							</Button>
-						</Box>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 5 }}>
-							<Button
-								onClick={reset}
-								disabled={!isDirty || isSaving || isDeleting}
-								color="inherit"
-							>
-								DISCARD
-							</Button>
-							<Button
-								onClick={handleSave}
-								variant="contained"
-								disabled={!isDirty || isSaving || isDeleting}
-							>
-								SAVE
-							</Button>
-						</Box>
 					</Box>
 				</Box>
 			</Box>
@@ -473,13 +467,14 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 			<Modal
 				open={deleteConfirmOpen}
 				onClose={() => setDeleteConfirmOpen(false)}
-				title="Delete Store?"
-				actionLabel="Delete"
+				title="Close Store?"
+				actionLabel="Close"
 				onAction={handleDeleteVendorStore}
 				color="error"
 			>
 				<Typography>
-					You can create a new store later but existing orders will be deleted.
+					You can reopen anytime but your current store and materials will be
+					lost.
 				</Typography>
 			</Modal>
 		</>

@@ -30,6 +30,8 @@ interface MaterialTableProps {
 	title?: string;
 	/** Optional action displayed alongside the title. */
 	headerAction?: React.ReactNode;
+	/** Optional action aligned to the right edge of the title bar. */
+	headerEndAction?: React.ReactNode;
 	/** Optional list of available materials for reference when editing locations. */
 	availableMaterialsList?: OrderItem[];
 }
@@ -52,6 +54,7 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 		onAddMaterial,
 		title,
 		headerAction,
+		headerEndAction,
 	}) => {
 		const theme = useTheme();
 
@@ -130,6 +133,7 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 							{title.toUpperCase()}
 						</Typography>
 						{headerAction}
+						<Box sx={{ ml: "auto" }}>{headerEndAction}</Box>
 					</Box>
 				)}
 
