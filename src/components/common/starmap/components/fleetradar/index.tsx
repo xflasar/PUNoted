@@ -46,6 +46,7 @@ interface ShipListComponentProps {
 	selectedShipId: string | null;
 	ownShipsVisible: boolean;
 	onToggleOwnVisibility: () => void;
+	isSystemPanelOpen?: boolean;
 }
 
 type CorpListItem =
@@ -69,15 +70,15 @@ const GlobalProgressKeyframes = () => (
 			},
 			"@keyframes pulseRadar": {
 				"0%": {
-					boxShadow: "0 0 0 0 rgba(0, 229, 255, 0.4)",
+					boxShadow: "0 0 0 0 rgba(123, 104, 238, 0.45)",
 					transform: "scale(1)",
 				},
 				"70%": {
-					boxShadow: "0 0 0 10px rgba(0, 229, 255, 0)",
+					boxShadow: "0 0 0 10px rgba(123, 104, 238, 0)",
 					transform: "scale(1.05)",
 				},
 				"100%": {
-					boxShadow: "0 0 0 0 rgba(0, 229, 255, 0)",
+					boxShadow: "0 0 0 0 rgba(123, 104, 238, 0)",
 					transform: "scale(1)",
 				},
 			},
@@ -102,6 +103,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 	selectedShipId,
 	ownShipsVisible,
 	onToggleOwnVisibility,
+	isSystemPanelOpen = false,
 }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -429,37 +431,48 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 	if (searchResultsVisible) return null;
 
 	if (isMinimized) {
+		if (isMobile && isSystemPanelOpen) return null;
+
 		return (
 			<Paper
 				elevation={12}
 				sx={{
-					position: isMobile ? "fixed" : "absolute",
+					position: "absolute",
 					top: isMobile ? "auto" : "10vh",
-					bottom: isMobile ? 80 : "auto",
-					right: isMobile ? 20 : "auto",
-					left: isMobile ? "auto" : 20,
-					zIndex: 10,
-					bgcolor: "rgba(10, 12, 18, 0.85)",
-					backdropFilter: "blur(20px)",
-					border: "1px solid rgba(0, 229, 255, 0.2)",
+					bottom: isMobile ? 16 : "auto",
+					left: isMobile ? 16 : 20,
+					right: "auto",
+					zIndex: 1000,
+					bgcolor: "rgba(16, 16, 32, 0.85)",
+					backdropFilter: "blur(15px)",
+					border: "1px solid rgba(123, 104, 238, 0.35)",
 					borderRadius: "50%",
-					width: 56,
-					height: 56,
+					width: { xs: 44, sm: 52, md: 56 },
+					height: { xs: 44, sm: 52, md: 56 },
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "center",
 					animation: "pulseRadar 3s infinite",
 					cursor: "pointer",
 					transition: "all 0.3s ease",
+					boxShadow:
+						"0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(123, 104, 238, 0.2)",
 					"&:hover": {
-						transform: "scale(1.1)",
-						borderColor: "rgba(0, 229, 255, 0.5)",
+						transform: "scale(1.08)",
+						borderColor: theme.palette.primary.light,
+						boxShadow:
+							"0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(123, 104, 238, 0.45)",
 					},
 				}}
 				onClick={() => setIsMinimized(false)}
 			>
-				<IconButton color="primary">
-					<Sailing sx={{ color: "#00e5ff" }} />
+				<IconButton sx={{ p: { xs: 0.8, sm: 1.2 } }}>
+					<Sailing
+						sx={{
+							color: theme.palette.secondary.main,
+							fontSize: { xs: 20, sm: 24 },
+						}}
+					/>
 				</IconButton>
 			</Paper>
 		);
@@ -467,20 +480,20 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 
 	const containerStyle = isMobile
 		? {
-				position: "fixed",
+				position: "absolute" as const,
 				bottom: 0,
 				left: 0,
 				right: 0,
 				width: "100%",
-				maxHeight: "60dvh",
+				maxHeight: "65vh",
 				borderRadius: "20px 20px 0 0",
 				boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.5)",
 			}
 		: {
-				position: "absolute",
+				position: "absolute" as const,
 				top: "10vh",
 				left: 20,
-				width: 340,
+				width: { sm: 300, md: 340 },
 				height: "80vh",
 				borderRadius: "12px",
 				boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
@@ -505,7 +518,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 						? "rgba(0, 229, 255, 0.15)"
 						: "rgba(255, 255, 255, 0.08)",
 					color: theme.palette.text.primary,
-					zIndex: 10,
+					zIndex: 1002,
 					overflow: "hidden",
 					transition: "max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
 				}}
