@@ -28,6 +28,7 @@ import {
 	getSystemIcon,
 	getSystemPos,
 	getSemimajorAxisAU,
+	PACKAGE_ICON_DATA_URL,
 } from "../constants";
 
 interface BuildDynamicLayersProps {
@@ -37,6 +38,14 @@ interface BuildDynamicLayersProps {
 		planetIds: Set<string>;
 		stationIds: Set<string>;
 	};
+	packageCargoNodes?: {
+		id: string;
+		x: number;
+		y: number;
+		name: string;
+		type: "STATION" | "PLANET";
+		count: number;
+	}[];
 	starAtlas: ImageBitmap | null;
 	starMapping?: any;
 	shipAtlas: ImageBitmap | null;
@@ -76,6 +85,7 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 	const {
 		mode,
 		shippingModeHighlights,
+		packageCargoNodes,
 		starAtlas,
 		starMapping,
 		shipAtlas,
@@ -111,7 +121,7 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 	if (!starAtlas || !shipAtlas) return [];
 	const dLayers: any[] = [];
 
-	if (isPlanetModeActive && planetAtlas && stationsAtlas) {
+	if (!isGalaxyView && isPlanetModeActive && planetAtlas && stationsAtlas) {
 		const dockedShipsMap = new Map<string, any[]>();
 		const allSystemShips = animatedShipData || [];
 		allSystemShips.forEach((s: any) => {
@@ -158,15 +168,16 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 			);
 		}
 
-		if (orbitTrails && orbitTrails.length > 0) {
+		if (!isGalaxyView && orbitTrails && orbitTrails.length > 0) {
 			dLayers.push(
 				new PathLayer({
-					id: "orbit-trails",
+					id: `orbit-trails-${currentSystem?.originalSystemId || "default"}`,
 					data: orbitTrails,
 					getPath: getPathData,
 					getColor: getPathColor,
 					getWidth: 2,
 					widthUnits: "pixels",
+					widthMinPixels: 1.5,
 					parameters: { blend: true, depthTest: false },
 				}),
 			);
@@ -185,8 +196,6 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 				}),
 			);
 		}
-
-		if (flightPathLayers.length > 0) dLayers.push(...flightPathLayers);
 
 		dLayers.push(
 			new IconLayer<PlanetPosition>({
@@ -400,73 +409,23 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 			}
 		}
 
-		// Shipping Mode Planet Halos
-		if (mode === "shipping" && shippingModeHighlights?.planetIds && shippingModeHighlights.planetIds.size > 0) {
-			const shipmentPlanets = activePlanets.filter((p) =>
-				shippingModeHighlights.planetIds.has(p.planetid || (p as any).id),
-			);
-			if (shipmentPlanets.length > 0) {
-				dLayers.push(
-					new ScatterplotLayer({
-						id: `planets-shipping-halo-${currentSystem?.originalSystemId || "none"}`,
-						data: shipmentPlanets,
-						getPosition: getPlanetPosition,
-						getRadius: (d: any) => (d.scaledPlanetRadius ?? 1.0) * 3.2,
-						radiusUnits: "meters",
-						getLineColor: [0, 229, 255, 255],
-						getFillColor: [0, 229, 255, 60],
-						lineWidthMinPixels: 3.0,
-						stroked: true,
-						filled: true,
-						pickable: false,
-					}),
-				);
-			}
-		}
-
-		if (activeStations && activeStations.length > 0) {
-			dLayers.push(
-				new IconLayer({
-					id: `stations-dynamic-${currentSystem?.originalSystemId || "none"}`,
-					data: activeStations,
-					iconAtlas: stationsAtlas,
-					iconMapping: stationsMapping,
-					getIcon: getStationIcon,
-					getPosition: getStationPosition,
-					getSize: (d: any) => (d.scaledStationRadius ?? 1.0) * 2.0,
-					sizeUnits: "meters",
-					sizeMinPixels: 35,
-					sizeMaxPixels: 400,
-					pickable: true,
-					onClick: handleStationClick,
-					onHover: handleHoverTooltip,
-				}),
-			);
-		}
-
-		// Shipping Mode Station Halos
-		if (mode === "shipping" && shippingModeHighlights?.stationIds && shippingModeHighlights.stationIds.size > 0) {
-			const shipmentStations = activeStations.filter((st) =>
-				shippingModeHighlights.stationIds.has(st.stationid || st.id),
-			);
-			if (shipmentStations.length > 0) {
-				dLayers.push(
-					new ScatterplotLayer({
-						id: `stations-shipping-halo-${currentSystem?.originalSystemId || "none"}`,
-						data: shipmentStations,
-						getPosition: getStationPosition,
-						getRadius: (d: any) => (d.scaledStationRadius ?? 1.0) * 3.2,
-						radiusUnits: "meters",
-						getLineColor: [255, 185, 0, 255],
-						getFillColor: [255, 185, 0, 60],
-						lineWidthMinPixels: 3.0,
-						stroked: true,
-						filled: true,
-						pickable: false,
-					}),
-				);
-			}
-		}
+		dLayers.push(
+			new IconLayer({
+				id: `stations-dynamic-${currentSystem?.originalSystemId || "none"}`,
+				data: activeStations,
+				iconAtlas: stationsAtlas,
+				iconMapping: stationsMapping,
+				getIcon: getStationIcon,
+				getPosition: getStationPosition,
+				getSize: (d: any) => (d.scaledStationRadius ?? 1.0) * 2.0,
+				sizeUnits: "meters",
+				sizeMinPixels: 35,
+				sizeMaxPixels: 400,
+				pickable: true,
+				onClick: handleStationClick,
+				onHover: handleHoverTooltip,
+			}),
+		);
 
 		// --- SMART SPOKE LABEL PLACEMENT (DE-COLLISION) ---
 		const labelItems: any[] = [];
@@ -588,6 +547,83 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 				}),
 			);
 		}
+	}
+
+	// Stored Package Cargo Indicators (Warehouse / Storage) in System View - Always rendered ON TOP
+	if (mode === "shipping" && packageCargoNodes && packageCargoNodes.length > 0) {
+		const currentZoom = typeof zoom === "number" ? zoom : 1;
+		const nodeZoomFactor = Math.max(0, Math.min(1, (currentZoom - 0.5) / 1.5));
+		const nodeIconOffset: [number, number] = [0, -Math.round(20 * nodeZoomFactor)];
+		const nodeBadgeOffset: [number, number] = [0, -Math.round(20 * nodeZoomFactor) - 18];
+
+		dLayers.push(
+			new IconLayer({
+				id: `nodes-package-cargo-icons-${currentSystem?.originalSystemId || "none"}`,
+				data: packageCargoNodes,
+				getIcon: () => ({
+					url: PACKAGE_ICON_DATA_URL,
+					width: 64,
+					height: 64,
+					anchorY: 32, // centered anchor vertically
+				}),
+				getPosition: (d: any) => [d.x, d.y],
+				getSize: 30,
+				sizeUnits: "pixels",
+				sizeMinPixels: 20,
+				sizeMaxPixels: 46,
+				getPixelOffset: nodeIconOffset,
+				updateTriggers: {
+					getPixelOffset: [currentZoom],
+				},
+				billboard: true,
+				pickable: true,
+				parameters: { depthTest: false },
+				onClick: (info: any) => {
+					if (info.object) {
+						if (info.object.type === "STATION" && handleStationClick) {
+							handleStationClick({ object: info.object });
+						} else if (info.object.type === "PLANET" && handlePlanetClick) {
+							handlePlanetClick({ object: info.object });
+						}
+					}
+				},
+				onHover: (info: any) => {
+					if (info.object) {
+						handleHoverTooltip({
+							x: info.x,
+							y: info.y,
+							object: {
+								name: `📦 ${info.object.count} package(s) stored in ${info.object.name}`,
+							},
+						});
+					} else {
+						handleHoverTooltip({ object: null });
+					}
+				},
+			}),
+		);
+
+		dLayers.push(
+			new TextLayer({
+				id: `nodes-package-cargo-badges-${currentSystem?.originalSystemId || "none"}`,
+				data: packageCargoNodes,
+				getPosition: (d: any) => [d.x, d.y],
+				getText: (d: any) => `📦 ${d.count > 1 ? d.count : ""}`.trim(),
+				getSize: 12,
+				sizeUnits: "pixels",
+				getColor: [255, 185, 0, 255],
+				background: true,
+				getBackgroundColor: [20, 15, 5, 230],
+				backgroundPadding: [4, 2],
+				getPixelOffset: nodeBadgeOffset,
+				updateTriggers: {
+					getPixelOffset: [currentZoom],
+				},
+				billboard: true,
+				pickable: false,
+				parameters: { depthTest: false },
+			}),
+		);
 	}
 
 	return dLayers;

@@ -92,6 +92,9 @@ export const useViewNavigation = ({
 			transitionDuration: 300,
 			transitionInterpolator: new CartesianInterpolator(),
 		}));
+		setTimeout(() => {
+			ignoreOnViewStateChangeRef.current = false;
+		}, 350);
 	}, [
 		centeredSystem,
 		setCenteredSystem,
@@ -111,6 +114,9 @@ export const useViewNavigation = ({
 				transitionDuration: 500,
 				transitionInterpolator: new CartesianInterpolator(),
 			}));
+			setTimeout(() => {
+				ignoreOnViewStateChangeRef.current = false;
+			}, 550);
 		},
 		[setCenteredSystem, setGalaxyViewState, ignoreOnViewStateChangeRef],
 	);
@@ -119,30 +125,21 @@ export const useViewNavigation = ({
 		(sys: MapPoint | null) => {
 			if (!sys) return;
 			if (currentViewMode === "galaxy") {
-				transitionToSystemView(sys);
+				if (mode === "shipping") {
+					setCenteredSystem(sys);
+					setCurrentViewMode("system");
+				} else {
+					transitionToSystemView(sys);
+				}
 			} else if (currentViewMode === "system") {
 				transitionToGalaxyView();
 			}
 		},
-		[currentViewMode, transitionToSystemView, transitionToGalaxyView],
+		[currentViewMode, mode, setCenteredSystem, setCurrentViewMode, transitionToSystemView, transitionToGalaxyView],
 	);
 
 	// --- View State Logic ---
 
-	const handleIgnoredViewStateChange = (next: OrthographicViewState) => {
-		if (!ignoreOnViewStateChangeRef.current) return;
-
-		ignoreOnViewStateChangeRef.current = false; // 🔴 BREAK THE LOOP
-
-		if (currentViewMode === "system") {
-			setSystemViewState(next);
-		} else {
-			const old = viewStateRef.current || {};
-			if (viewStateChanged(old, next)) {
-				setGalaxyViewState(next);
-			}
-		}
-	};
 	const getConstrainedSystemViewState = (
 		next: any,
 		isUserInteracting = false,
@@ -160,8 +157,8 @@ export const useViewNavigation = ({
 		const bounds = systemBoundsRef.current;
 		const clampedZoom = Math.max(exitZoom, Math.min(8.0, next.zoom));
 
-		if (bounds) {
-			// 2. Pan Clamping (Stay within system bounds)
+		if (isUserInteracting && bounds) {
+			// 2. Pan Clamping (Stay within system bounds) - only during manual user interaction
 			const [tx, ty] = next.target;
 			const minX = bounds.minX - SYSTEM_PAN_OFFSET;
 			const maxX = bounds.maxX + SYSTEM_PAN_OFFSET;
@@ -177,18 +174,12 @@ export const useViewNavigation = ({
 				target: [clampedX, clampedY],
 				zoom: clampedZoom,
 			};
-		} else if (centeredSystem) {
-			// 3. Initial Load / No Bounds Yet
-			const initialZoom = initialPlanetZoomRef.current ?? clampedZoom;
-			const safeZoom = Math.max(
-				exitZoom,
-				Math.min(8.0, Math.max(initialZoom, next.zoom)),
-			);
-
+		} else if (isUserInteracting) {
+			// 3. User interaction before bounds or empty system - allow normal pan & zoom
 			return {
 				...next,
-				target: [centeredSystem.x, centeredSystem.y],
-				zoom: safeZoom,
+				target: next.target,
+				zoom: clampedZoom,
 			};
 		}
 
@@ -204,13 +195,21 @@ export const useViewNavigation = ({
 		if (currentViewMode === "system") {
 			initialPlanetZoomRef.current = null;
 		}
-	}, [currentViewMode, initialPlanetZoomRef]);
+	}, [
+		centeredSystem?.originalSystemId,
+		centeredSystem?.id,
+		currentViewMode,
+		initialPlanetZoomRef,
+	]);
 
 	useEffect(() => {
-		if (currentViewMode === "galaxy") {
-			systemBoundsRef.current = null;
-		}
-	}, [currentViewMode, systemBoundsRef]);
+		systemBoundsRef.current = null;
+	}, [
+		centeredSystem?.originalSystemId,
+		centeredSystem?.id,
+		currentViewMode,
+		systemBoundsRef,
+	]);
 
 	// --- Main Handler ---
 
@@ -223,7 +222,9 @@ export const useViewNavigation = ({
 		({ viewState: next, isUserInteracting = false }: any) => {
 			// Priority 1: Handle ongoing programmatic transitions (animations)
 			if (ignoreOnViewStateChangeRef.current) {
-				handleIgnoredViewStateChange(next);
+				if (viewStateRef) {
+					viewStateRef.current = next;
+				}
 				return;
 			}
 
@@ -279,7 +280,7 @@ export const useViewNavigation = ({
 	// --- Auto-Zoom Logic ---
 
 	useEffect(() => {
-		if (!isGalaxyView || mode === "shipping") return;
+		if (!isGalaxyView || ignoreOnViewStateChangeRef.current) return;
 
 		const z = galaxyViewState.zoom ?? -Infinity;
 

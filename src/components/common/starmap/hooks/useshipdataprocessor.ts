@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { AnimatedShipData } from "../types/maptypes";
-import { parseFlightTimestamp } from "../utils/timestamputils";
+import { parseFlightTimestamp, getFlightArrivalMs } from "../utils/timestamputils";
 
 export const useShipDataProcessor = (
 	ownerShips: AnimatedShipData[],
@@ -28,45 +28,51 @@ export const useShipDataProcessor = (
 		const inFlightShips: AnimatedShipData[] = [];
 
 		const processShip = (ship: AnimatedShipData, isOwnedByData: boolean) => {
-			const idVal = ship.id || (ship as any).shipid || (ship as any).ship_id;
-			const mapShip = {
+			const idVal = ship.shipid || ship.id;
+			const mapShip: AnimatedShipData = {
 				...ship,
 				id: idVal,
 				shipid: idVal,
-				ship_id: idVal,
 				visible: true,
-				isOwn: isOwnedByData,
-				addresssystemid:
-					(ship as any).addresssystemid || (ship as any).address_system_id,
-				addressplanetid:
-					(ship as any).addressplanetid || (ship as any).address_planet_id,
-				addressstationid:
-					(ship as any).addressstationid || (ship as any).address_station_id,
+				is_owner: isOwnedByData,
+				addresssystemid: ship.addresssystemid,
+				addressplanetid: ship.addressplanetid,
+				addressstationid: ship.addressstationid,
 			};
 
 			// 1. Determine Dynamic State based on time (Is it flying or landed?)
 			let isFlying = false;
 			let arrivalMs = 0;
-			if (
-				mapShip.plan &&
-				mapShip.plan.segments &&
-				mapShip.plan.segments.length > 0
-			) {
-				const segments = mapShip.plan.segments;
-				arrivalMs = segments[segments.length - 1].arrival;
-				if (now < arrivalMs) isFlying = true;
-			} else if (mapShip.plan && mapShip.plan.arrivaltimestamp) {
-				// Fallback if segments are missing
-				const t1 = parseFlightTimestamp(mapShip.plan.arrivaltimestamp);
-				const t2 = mapShip.plan.departuretimestamp
-					? parseFlightTimestamp(mapShip.plan.departuretimestamp)
-					: 0;
-				arrivalMs = Math.max(t1, t2);
-				if (now < arrivalMs) isFlying = true;
+			if (mapShip.plan) {
+				arrivalMs = getFlightArrivalMs(mapShip.plan);
+				if (arrivalMs > 0 && now < arrivalMs) {
+					isFlying = true;
+				}
 			}
 
-			if (isFlying) inFlightShips.push(mapShip);
-			else staticShips.push(mapShip); // Catches docked ships AND arrived ships waiting for WS sync
+			if (isFlying) {
+				inFlightShips.push(mapShip);
+			} else {
+				// Ship has arrived or is stationary: adopt destination location if flight completed
+				if (arrivalMs > 0 && now >= arrivalMs && mapShip.plan?.segments?.length) {
+					const lastSeg = mapShip.plan.segments[mapShip.plan.segments.length - 1];
+					if (lastSeg.destination_system_id) {
+						mapShip.addresssystemid = lastSeg.destination_system_id;
+					}
+					if (lastSeg.destination_station_id) {
+						mapShip.addressstationid = lastSeg.destination_station_id;
+					}
+					if (lastSeg.destination_planet_id) {
+						mapShip.addressplanetid = lastSeg.destination_planet_id;
+					}
+					if (lastSeg.destination_location_id) {
+						if (!mapShip.addressstationid && !mapShip.addressplanetid) {
+							mapShip.addressstationid = lastSeg.destination_location_id;
+						}
+					}
+				}
+				staticShips.push(mapShip); // Catches docked ships AND arrived ships waiting for WS sync
+			}
 
 			// 2. Visibility and Categorization
 			if (isOwnedByData) {
@@ -74,25 +80,8 @@ export const useShipDataProcessor = (
 				(mapShip as any).color = [0, 255, 127];
 				if (ownShipsVisible) allVisible.push(mapShip);
 			} else {
-				const compCode = (
-					ship.company_code ||
-					ship.companycode ||
-					ship.company_name ||
-					ship.companyname ||
-					ship.code ||
-					""
-				).trim();
-
-				const ownerName = (
-					ship.ownername ||
-					ship.owner_name ||
-					ship.owner ||
-					ship.username ||
-					ship.user_name ||
-					ship.display_name ||
-					ship.displayname ||
-					""
-				).trim();
+				const compCode = (ship.companycode || "").trim();
+				const ownerName = (ship.displayname || "").trim();
 
 				let displayName = "Corporation Member";
 				if (compCode && ownerName) {
@@ -149,17 +138,8 @@ export const useShipDataProcessor = (
 		// Derive active flight plans for the map lines
 		const isPlanActive = (s: AnimatedShipData) => {
 			if (!s.plan) return false;
-			if (s.plan.segments && s.plan.segments.length > 0) {
-				return s.plan.segments[s.plan.segments.length - 1].arrival > now;
-			}
-			if (s.plan.arrivaltimestamp) {
-				const t1 = parseFlightTimestamp(s.plan.arrivaltimestamp);
-				const t2 = s.plan.departuretimestamp
-					? parseFlightTimestamp(s.plan.departuretimestamp)
-					: 0;
-				return Math.max(t1, t2) > now;
-			}
-			return false;
+			const arrival = getFlightArrivalMs(s.plan);
+			return arrival > 0 && arrival > now;
 		};
 
 		const allCorpShips = otherShips;

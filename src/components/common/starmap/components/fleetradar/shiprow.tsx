@@ -104,31 +104,33 @@ const ShipRow: React.FC<ShipRowProps> = ({
 
 	const stlFuelPct = hasStlFuelSupport
 		? Math.round(
-				(stlFuelStore.volumeload / (stlFuelStore.volumecapacity || 1)) * 100,
-			)
+			(stlFuelStore.volumeload / (stlFuelStore.volumecapacity || 1)) * 100,
+		)
 		: 0;
 	const ftlFuelPct = hasFtlFuelSupport
 		? Math.round(
-				(ftlFuelStore.volumeload / (ftlFuelStore.volumecapacity || 1)) * 100,
-			)
+			(ftlFuelStore.volumeload / (ftlFuelStore.volumecapacity || 1)) * 100,
+		)
 		: 0;
 
 	const activeFlight: any = ship.plan || (ship as any).flight;
 	const end = getFlightArrivalMs(activeFlight);
 	const now = Date.now();
 	const isArrived = end > 0 && now >= end;
+	const isFlying = hasPlan && !isArrived;
 
 	const getLabel = getOriginDestinationLabel(
 		systemsPoints,
 		allPlanetsData,
 		allStationsData,
 	);
-	const currentLocation =
-		ship.currentLocationLabel ||
-		(ship.plan ? "In Transit" : "Orbital/Stationary");
 	const destName = activeFlight
 		? getLabel(activeFlight, false) || activeFlight.destination || "Unknown"
 		: "";
+	const currentLocation =
+		(isArrived && destName)
+			? destName
+			: (ship.currentLocationLabel || (isFlying ? "In Transit" : "Orbital/Stationary"));
 
 	const getCargoColor = (current: number, max: number) => {
 		const ratio = current / (max || 1);
@@ -140,13 +142,13 @@ const ShipRow: React.FC<ShipRowProps> = ({
 	const hasLowFuel =
 		(hasStlFuelSupport && stlFuelPct < 20) ||
 		(hasFtlFuelSupport && ftlFuelPct < 20);
-	const hasProblem = hasLowFuel || isArrived;
+	const hasProblem = hasLowFuel;
 
 	return (
 		<ListItemButton
 			onClick={() => {
 				setIsExpanded(!isExpanded);
-				onSelect(ship.id || ship.ship_id);
+				onSelect(ship.id);
 			}}
 			sx={{
 				flexDirection: "column",
@@ -396,11 +398,11 @@ const ShipRow: React.FC<ShipRowProps> = ({
 						flexShrink: 0,
 					}}
 				>
-					{hasPlan && (
+					{isFlying && (
 						<Tooltip title={isPathVisible ? "Hide Path" : "Show Path"}>
 							<IconButton
 								size="small"
-								onClick={() => onTogglePath(ship.id || ship.ship_id)}
+								onClick={() => onTogglePath(ship.id)}
 								sx={{
 									p: 0.5,
 									color: isPathVisible
@@ -421,7 +423,8 @@ const ShipRow: React.FC<ShipRowProps> = ({
 							size="small"
 							onClick={(e) => {
 								e.stopPropagation();
-								onSelect(ship.id || ship.ship_id);
+								console.log("Locate ship: ", ship);
+								onSelect(ship.shipid || ship.id);
 							}}
 							sx={{
 								p: 0.5,
@@ -461,33 +464,12 @@ const ShipRow: React.FC<ShipRowProps> = ({
 			</Box>
 
 			{/* COMPACT PLAN VIEW */}
-			{hasPlan && !isArrived && (
+			{isFlying && (
 				<ShipFlightStatus ship={ship} isMine={isMine} />
 			)}
 
-			{/* ARRIVED WARNING */}
-			{hasPlan && isArrived && (
-				<Box
-					sx={{ display: "flex", alignItems: "center", mt: 0.5, width: "100%" }}
-				>
-					<Typography
-						variant="caption"
-						sx={{
-							color: theme.palette.warning.main,
-							fontWeight: 700,
-							fontSize: "0.65rem",
-							display: "inline-flex",
-							alignItems: "center",
-							gap: 0.5,
-						}}
-					>
-						⚠️ Arrived at {destName} • Telemetry update required
-					</Typography>
-				</Box>
-			)}
-
-			{/* STATIONARY LOCATION */}
-			{!hasPlan && (
+			{/* STATIONARY / ARRIVED LOCATION */}
+			{!isFlying && (
 				<Typography
 					variant="caption"
 					sx={{
@@ -666,21 +648,8 @@ const ShipRow: React.FC<ShipRowProps> = ({
 									color: theme.palette.text.primary,
 								}}
 							>
-								{isArrived ? `${destName} (Arrived)` : currentLocation}
+								{currentLocation}
 							</Typography>
-							{isArrived && (
-								<Typography
-									variant="caption"
-									sx={{
-										color: theme.palette.warning.main,
-										display: "block",
-										mt: 0.5,
-										fontWeight: 650,
-									}}
-								>
-									⚠️ Flight ended. Awaiting telemetry update from Apex.
-								</Typography>
-							)}
 						</Box>
 					)}
 
@@ -865,7 +834,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 													{Math.round(
 														(shipStore.volumeload /
 															(shipStore.volumecapacity || 1)) *
-															100,
+														100,
 													)}
 													%)
 												</Typography>
@@ -928,7 +897,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 													{Math.round(
 														(shipStore.weightload /
 															(shipStore.weightcapacity || 1)) *
-															100,
+														100,
 													)}
 													%)
 												</Typography>
@@ -1043,8 +1012,7 @@ const ShipRow: React.FC<ShipRowProps> = ({
 
 export default React.memo(ShipRow, (prev, next) => {
 	return (
-		(prev.ship.id || prev.ship.ship_id) ===
-			(next.ship.id || next.ship.ship_id) &&
+		prev.ship.id === next.ship.id &&
 		prev.isSelected === next.isSelected &&
 		prev.isPathVisible === next.isPathVisible &&
 		prev.ship.plan === next.ship.plan

@@ -231,7 +231,7 @@ export function clusterShipsByRadius(
 	const processedShips = new Set<string>();
 
 	for (const ship of ships) {
-		const shipId = ship.ship_id || ship.shipid || ship.id;
+		const shipId = ship.shipid || ship.id;
 		if (processedShips.has(shipId) || !ship.position) continue;
 
 		const clusterShips = [ship];
@@ -246,8 +246,7 @@ export function clusterShipsByRadius(
 				const cellShips = grid.get(`${gx + dx},${gy + dy}`);
 				if (cellShips) {
 					for (const neighbor of cellShips) {
-						const neighborId =
-							neighbor.ship_id || neighbor.shipid || neighbor.id;
+						const neighborId = neighbor.shipid || neighbor.id;
 						if (processedShips.has(neighborId)) continue;
 
 						const d2 =

@@ -74,6 +74,7 @@ export interface ShipmentContract {
 	partner_name: string;
 	role: "CLIENT" | "CARRIER";
 	created_at: string;
+	deadline: string;
 	status?: string;
 	items: ShipmentItem[];
 }

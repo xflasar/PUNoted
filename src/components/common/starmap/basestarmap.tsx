@@ -5,6 +5,8 @@ import { OrthographicView, LinearInterpolator } from "@deck.gl/core";
 import type { AnimatedShipData } from "./types/maptypes";
 import type { LocationFocusTarget } from "../../../dashboard/shipping/components/shipmentdetailwidget";
 
+import type { ShipmentContract } from "../../../dashboard/shipping/types";
+
 // Custom Hook & Context
 import { useBaseStarMapData } from "./hooks/usebasestarmapdata";
 import { FilterProvider } from "./components/filter/filtercontext";
@@ -72,17 +74,19 @@ interface BaseStarMapProps {
 	shipments?: AnimatedShipData[];
 	overrideShips?: Record<string, any>;
 	focusTarget?: LocationFocusTarget | null;
+	contracts?: ShipmentContract[];
 }
 
 const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	mode,
 	overrideShips,
 	focusTarget,
+	contracts,
 }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-	const mapState = useBaseStarMapData({ mode, overrideShips, focusTarget });
+	const mapState = useBaseStarMapData({ mode, overrideShips, focusTarget, contracts });
 
 	return (
 		<Paper
@@ -173,7 +177,7 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 				/>
 
 				{mapState.hoveredInfo &&
-				mapState.hoveredInfo.object.type === "planet" ? (
+					mapState.hoveredInfo.object.type === "planet" ? (
 					<PlanetHoverTooltip
 						object={mapState.hoveredInfo.object}
 						x={mapState.hoveredInfo.x}
@@ -206,28 +210,21 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					/>
 				)}
 
-				<MapLegend
-					currentViewMode={mapState.currentViewMode}
-					isSystemPanelOpen={mapState.isSystemPanelOpen}
-					centeredSystem={mapState.centeredSystem}
-					isMobile={isMobile}
-					mode={mode}
-				/>
+				{mode !== "shipping" && (
+					<MapLegend
+						currentViewMode={mapState.currentViewMode}
+						isSystemPanelOpen={mapState.isSystemPanelOpen}
+						centeredSystem={mapState.centeredSystem}
+						isMobile={isMobile}
+						mode={mode}
+					/>
+				)}
 
-				{mapState.isSystemPanelOpen && mapState.centeredSystem && (
+				{mode !== "shipping" && mapState.isSystemPanelOpen && mapState.centeredSystem && (
 					<SystemDetailPanel
 						system={mapState.centeredSystem}
 						onClose={() => {
 							mapState.setIsSystemPanelOpen(false);
-							mapState.setCenteredSystem(null);
-							mapState.setCurrentViewMode("galaxy");
-							mapState.setGalaxyViewState((prev: any) => ({
-								...prev,
-								transitionDuration: 500,
-								transitionInterpolator: new LinearInterpolator({
-									transitionProps: ["target", "zoom"],
-								}),
-							}));
 						}}
 						onEnterSystemView={() => mapState.setCurrentViewMode("system")}
 						isGalaxyView={mapState.currentViewMode === "galaxy"}

@@ -19,7 +19,7 @@ export const MATERIAL_CONDITION_TYPES = new Set([
 	"DELIVERY",
 	"COMEX_PURCHASE_PICKUP",
 ]);
-
+// This might be wierd check database data for correct condition types
 export const PICKUP_CONDITION_TYPES = new Set([
 	"PICKUP",
 	"COMEX_PURCHASE_PICKUP",
@@ -217,9 +217,9 @@ export function useContractDetail(
 			return canFulfillAll
 				? { label: "Ready to Fulfill ✓ (In Stock)", color: "success" as const }
 				: {
-						label: "Action Blocked ⚠️ (Insufficient Stock)",
-						color: "warning" as const,
-					};
+					label: "Action Blocked ⚠️ (Insufficient Stock)",
+					color: "warning" as const,
+				};
 		})();
 
 		return {

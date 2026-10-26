@@ -53,12 +53,10 @@ const PlanetHoverTooltip: React.FC<PlanetHoverTooltipProps> = ({
 
 	// Filter ships docked at this planet
 	const ownShipsCount = ownerShips.filter(
-		(s) =>
-			String(s.address_planet_id || s.addressplanetid) === String(planetId),
+		(s) => String(s.addressplanetid) === String(planetId),
 	).length;
 	const otherShipsCount = otherShips.filter(
-		(s) =>
-			String(s.address_planet_id || s.addressplanetid) === String(planetId),
+		(s) => String(s.addressplanetid) === String(planetId),
 	).length;
 
 	// Planet resources

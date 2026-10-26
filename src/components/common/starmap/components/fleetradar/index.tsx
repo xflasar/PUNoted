@@ -148,7 +148,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 					count: matches.length,
 					expanded: isExpanded,
 					visible: !!visibleCorpGroups[groupName],
-					shipIds: matches.map((s) => s.id || s.ship_id),
+					shipIds: matches.map((s) => s.id),
 				});
 				if (isExpanded) {
 					for (const ship of matches) data.push({ type: "SHIP", data: ship });
@@ -178,7 +178,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 					count: matches.length,
 					expanded: isExpanded,
 					visible: !!visibleCorpGroups[groupName],
-					shipIds: matches.map((s) => s.id || s.ship_id),
+					shipIds: matches.map((s) => s.id),
 				});
 				if (isExpanded) {
 					for (const ship of matches) data.push({ type: "SHIP", data: ship });
@@ -243,7 +243,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 	const allOwnPathsVisible = useMemo(
 		() =>
 			filteredOwn.length > 0 &&
-			filteredOwn.every((s) => visiblePathShipIds.has(s.id || s.ship_id)),
+			filteredOwn.every((s) => visiblePathShipIds.has(s.id)),
 		[filteredOwn, visiblePathShipIds],
 	);
 	const allCorpVisible = useMemo(() => {
@@ -256,7 +256,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 		const allCorpShips = Object.values(corpShips).flat();
 		return (
 			allCorpShips.length > 0 &&
-			allCorpShips.every((s) => visiblePathShipIds.has(s.id || s.ship_id))
+			allCorpShips.every((s) => visiblePathShipIds.has(s.id))
 		);
 	}, [corpShips, visiblePathShipIds]);
 
@@ -270,7 +270,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 		const allOtherShips = Object.values(otherShips).flat();
 		return (
 			allOtherShips.length > 0 &&
-			allOtherShips.every((s) => visiblePathShipIds.has(s.id || s.ship_id))
+			allOtherShips.every((s) => visiblePathShipIds.has(s.id))
 		);
 	}, [otherShips, visiblePathShipIds]);
 
@@ -278,13 +278,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 	const renderOwnShipRow = useCallback(
 		(index: number, ship: AnimatedShipData) => (
 			<ShipRow
-				key={ship.id || ship.ship_id}
+				key={ship.id}
 				ship={ship}
 				onSelect={onSelectPosition}
 				isMine={true}
-				isPathVisible={visiblePathShipIds.has(ship.id || ship.ship_id)}
+				isPathVisible={visiblePathShipIds.has(ship.id)}
 				onTogglePath={onTogglePath}
-				isSelected={(ship.id || ship.ship_id) === selectedShipId}
+				isSelected={ship.id === selectedShipId}
 			/>
 		),
 		[onSelectPosition, visiblePathShipIds, onTogglePath, selectedShipId],
@@ -402,15 +402,13 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 			} else {
 				return (
 					<ShipRow
-						key={item.data.id || item.data.ship_id}
+						key={item.data.id}
 						ship={item.data}
 						onSelect={onSelectPosition}
 						isMine={false}
-						isPathVisible={visiblePathShipIds.has(
-							item.data.id || item.data.ship_id,
-						)}
+						isPathVisible={visiblePathShipIds.has(item.data.id)}
 						onTogglePath={onTogglePath}
-						isSelected={(item.data.id || item.data.ship_id) === selectedShipId}
+						isSelected={item.data.id === selectedShipId}
 						indentation={2}
 					/>
 				);
@@ -693,7 +691,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 											size="small"
 											onClick={() =>
 												onToggleAllPaths(
-													ownShips.map((s) => s.id || s.ship_id),
+													ownShips.map((s) => s.id),
 													!allOwnPathsVisible,
 												)
 											}
@@ -739,7 +737,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 												onToggleAllPaths(
 													Object.values(corpShips)
 														.flat()
-														.map((s) => s.id || s.ship_id),
+														.map((s) => s.id),
 													!allCorpPathsVisible,
 												)
 											}
@@ -794,7 +792,7 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 												onToggleAllPaths(
 													Object.values(otherShips)
 														.flat()
-														.map((s) => s.id || s.ship_id),
+														.map((s) => s.id),
 													!allOtherPathsVisible,
 												)
 											}

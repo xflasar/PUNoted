@@ -13,6 +13,7 @@ import {
 	Stack,
 	Chip,
 	CircularProgress,
+	useMediaQuery,
 } from "@mui/material";
 import {
 	Search,
@@ -24,7 +25,10 @@ import {
 	CheckCircle,
 	Handshake,
 	Close,
-	warning,
+	Warning,
+	History,
+	DeleteSweep,
+	WarningAmber,
 } from "@mui/icons-material";
 import {
 	formatDistanceToNowStrict,
@@ -37,6 +41,7 @@ import type { ShipmentContract, ShipmentItem } from "../types";
 
 interface Props {
 	contracts: ShipmentContract[];
+	selectedId?: string | null;
 	onSelect: (id: string) => void;
 	isPublicMode?: boolean;
 	notFoundIds?: string[];
@@ -117,10 +122,12 @@ const ContractRow = React.memo(
 	({
 		contract,
 		accentColor,
+		isSelected = false,
 		onClick,
 	}: {
 		contract: ShipmentContract;
 		accentColor: string;
+		isSelected?: boolean;
 		onClick: () => void;
 	}) => {
 		const theme = useTheme();
@@ -133,7 +140,6 @@ const ContractRow = React.memo(
 
 		return (
 			<ListItem
-				button
 				onClick={onClick}
 				sx={{
 					flexDirection: "column",
@@ -141,12 +147,17 @@ const ContractRow = React.memo(
 					p: 1.5,
 					mb: 0.75,
 					borderRadius: 2,
-					bgcolor: alpha(theme.palette.background.default, 0.6), // Fixed alpha issue
-					border: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+					bgcolor: isSelected
+						? alpha(accentColor, 0.18)
+						: alpha(theme.palette.background.default, 0.6),
+					border: isSelected
+						? `1.5px solid ${accentColor}`
+						: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+					boxShadow: isSelected ? `0 0 12px ${alpha(accentColor, 0.35)}` : "none",
 					transition: "all 0.2s",
 					"&:hover": {
-						bgcolor: alpha(accentColor, 0.1),
-						borderColor: alpha(accentColor, 0.3),
+						bgcolor: alpha(accentColor, 0.22),
+						borderColor: alpha(accentColor, 0.5),
 						transform: "translateX(2px)",
 					},
 					position: "relative",
@@ -160,9 +171,9 @@ const ContractRow = React.memo(
 						left: 0,
 						top: 0,
 						bottom: 0,
-						width: 4,
+						width: isSelected ? 6 : 4,
 						bgcolor: accentColor,
-						opacity: 0.8,
+						opacity: isSelected ? 1 : 0.8,
 					}}
 				/>
 
@@ -256,9 +267,18 @@ const ContractRow = React.memo(
 	},
 );
 
+interface RecentSearchItem {
+	query: string;
+	timestamp: number;
+}
+
+const STORAGE_KEY = "punoted_shipment_recent_searches";
+const MAX_RECENT_SEARCHES = 8;
+
 // --- MAIN WIDGET ---
 export const ShipmentListWidget: React.FC<Props> = ({
 	contracts,
+	selectedId,
 	onSelect,
 	isPublicMode = false,
 	notFoundIds = [],
@@ -266,17 +286,77 @@ export const ShipmentListWidget: React.FC<Props> = ({
 	onLookupContract,
 }) => {
 	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 	const [searchTerm, setSearchTerm] = useState("");
 	const [outboundExpanded, setOutboundExpanded] = useState(true);
 	const [inboundExpanded, setInboundExpanded] = useState(true);
 	const [isMinimized, setIsMinimized] = useState(false);
+	const [showRecent, setShowRecent] = useState(false);
+
+	// Load recent searches from localStorage
+	const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>(() => {
+		try {
+			const saved = localStorage.getItem(STORAGE_KEY);
+			return saved ? JSON.parse(saved) : [];
+		} catch {
+			return [];
+		}
+	});
+
+	// Save recent searches to localStorage
+	const saveRecentSearches = useCallback((items: RecentSearchItem[]) => {
+		setRecentSearches(items);
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+		} catch (e) {
+			console.error("Failed to save recent searches", e);
+		}
+	}, []);
+
+	const addRecentSearch = useCallback((query: string) => {
+		const trimmed = query.trim();
+		if (!trimmed) return;
+		setRecentSearches((prev) => {
+			const filtered = prev.filter((item) => item.query.toLowerCase() !== trimmed.toLowerCase());
+			const updated = [{ query: trimmed, timestamp: Date.now() }, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+			try {
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+			} catch {}
+			return updated;
+		});
+	}, []);
+
+	const clearRecentSearches = useCallback(() => {
+		saveRecentSearches([]);
+	}, [saveRecentSearches]);
+
+	const removeRecentSearch = useCallback((queryToRemove: string) => {
+		setRecentSearches((prev) => {
+			const updated = prev.filter((item) => item.query !== queryToRemove);
+			try {
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+			} catch {}
+			return updated;
+		});
+	}, []);
 
 	const handleSearchSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		const term = searchTerm.trim();
 		if (term && onLookupContract) {
+			addRecentSearch(term);
 			onLookupContract(term);
 			setSearchTerm("");
+			setShowRecent(false);
+		}
+	};
+
+	const handleSelectRecent = (query: string) => {
+		if (onLookupContract) {
+			addRecentSearch(query);
+			onLookupContract(query);
+			setSearchTerm("");
+			setShowRecent(false);
 		}
 	};
 
@@ -290,6 +370,7 @@ export const ShipmentListWidget: React.FC<Props> = ({
 				c.partner_name.toLowerCase().includes(lower) ||
 				c.contract_id.toLowerCase().includes(lower),
 		);
+
 		return {
 			// Using 'role' as requested
 			outbound: filtered.filter((c) => (c as any).role === "CARRIER" || !c.role),
@@ -312,29 +393,41 @@ export const ShipmentListWidget: React.FC<Props> = ({
 
 	// --- 4. Renderers ---
 	const renderOutboundRow = useCallback(
-		(index: number, c: ShipmentContract) => (
-			<Box sx={{ px: 1, pt: 0.5 }}>
-				<ContractRow
-					contract={c}
-					accentColor={outboundColor}
-					onClick={() => onSelect(c.contract_id)}
-				/>
-			</Box>
-		),
-		[onSelect, outboundColor],
+		(_index: number, c: ShipmentContract) => {
+			const isSelected =
+				Boolean(selectedId) &&
+				(c.contract_id === selectedId || c.local_id === selectedId);
+			return (
+				<Box sx={{ px: 1, pt: 0.5 }}>
+					<ContractRow
+						contract={c}
+						accentColor={outboundColor}
+						isSelected={isSelected}
+						onClick={() => onSelect(c.contract_id)}
+					/>
+				</Box>
+			);
+		},
+		[onSelect, outboundColor, selectedId],
 	);
 
 	const renderInboundRow = useCallback(
-		(index: number, c: ShipmentContract) => (
-			<Box sx={{ px: 1, pt: 0.5 }}>
-				<ContractRow
-					contract={c}
-					accentColor={inboundColor}
-					onClick={() => onSelect(c.contract_id)}
-				/>
-			</Box>
-		),
-		[onSelect, inboundColor],
+		(_index: number, c: ShipmentContract) => {
+			const isSelected =
+				Boolean(selectedId) &&
+				(c.contract_id === selectedId || c.local_id === selectedId);
+			return (
+				<Box sx={{ px: 1, pt: 0.5 }}>
+					<ContractRow
+						contract={c}
+						accentColor={inboundColor}
+						isSelected={isSelected}
+						onClick={() => onSelect(c.contract_id)}
+					/>
+				</Box>
+			);
+		},
+		[onSelect, inboundColor, selectedId],
 	);
 
 	if (isMinimized) {
@@ -343,22 +436,23 @@ export const ShipmentListWidget: React.FC<Props> = ({
 				elevation={6}
 				sx={{
 					position: "absolute",
-					top: "10vh",
-					left: 20,
+					top: isMobile ? (isPublicMode ? 64 : 16) : "10vh",
+					left: isMobile ? 12 : 20,
 					zIndex: 20,
 					bgcolor: alpha(theme.palette.background.default, 0.9),
 					borderRadius: "50%",
-					width: 56,
-					height: 56,
+					width: isMobile ? 44 : 56,
+					height: isMobile ? 44 : 56,
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "center",
 					border: `1px solid ${theme.palette.divider}`,
 					cursor: "pointer",
+					boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
 				}}
 			>
-				<IconButton onClick={() => setIsMinimized(false)} color="primary">
-					<Inventory />
+				<IconButton onClick={() => setIsMinimized(false)} color="primary" size={isMobile ? "small" : "medium"}>
+					<Inventory fontSize={isMobile ? "small" : "medium"} />
 				</IconButton>
 			</Paper>
 		);
@@ -369,26 +463,39 @@ export const ShipmentListWidget: React.FC<Props> = ({
 			elevation={6}
 			sx={{
 				position: "absolute",
-				top: "10vh",
-				left: 20,
-				width: 320,
-				height: "80vh",
+				...(isMobile
+					? {
+							top: isPublicMode ? 64 : 12,
+							left: 12,
+							right: 12,
+							width: "auto",
+							height: isPublicMode ? "auto" : selectedId ? "36vh" : "48vh",
+							maxHeight: isPublicMode ? "50vh" : "48vh",
+						}
+					: {
+							top: "10vh",
+							left: 20,
+							width: 320,
+							height: isPublicMode ? "auto" : "80vh",
+							maxHeight: isPublicMode ? "80vh" : undefined,
+						}),
 				display: "flex",
 				flexDirection: "column",
-				bgcolor: alpha(theme.palette.background.default, 0.85), // Fixed: background.default
+				bgcolor: alpha(theme.palette.background.default, 0.85),
 				backdropFilter: "blur(16px)",
 				border: `1px solid ${theme.palette.divider}`,
 				color: theme.palette.text.primary,
 				zIndex: 20,
 				overflow: "hidden",
 				borderRadius: 2,
+				boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
 			}}
 		>
 			{/* Header */}
 			<Box
 				sx={{
 					p: 1.5,
-					borderBottom: `1px solid ${theme.palette.divider}`,
+					borderBottom: !isPublicMode || notFoundIds.length > 0 ? `1px solid ${theme.palette.divider}` : "none",
 					bgcolor: alpha(theme.palette.background.default, 0.4),
 					flexShrink: 0,
 				}}
@@ -434,9 +541,12 @@ export const ShipmentListWidget: React.FC<Props> = ({
 							sx={{ fontSize: 16, color: theme.palette.text.disabled, mr: 1 }}
 						/>
 						<InputBase
-							placeholder={isPublicMode ? "Enter LocalID & press Enter..." : "Search contracts..."}
+							placeholder={isPublicMode ? "{LocalID}:{CompanyCode} (e.g. SHIP-001:ABC)" : "Search contracts..."}
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
+							onFocus={() => {
+								if (isPublicMode && recentSearches.length > 0) setShowRecent(true);
+							}}
 							sx={{
 								ml: 1,
 								flex: 1,
@@ -444,11 +554,175 @@ export const ShipmentListWidget: React.FC<Props> = ({
 								color: theme.palette.text.primary,
 							}}
 						/>
+						{isPublicMode && recentSearches.length > 0 && (
+							<Tooltip title="Recent Searches">
+								<IconButton
+									size="small"
+									onClick={() => setShowRecent(!showRecent)}
+									sx={{
+										p: 0.4,
+										mr: 0.5,
+										color: showRecent ? theme.palette.primary.main : theme.palette.text.secondary,
+									}}
+								>
+									<History sx={{ fontSize: 16 }} />
+								</IconButton>
+							</Tooltip>
+						)}
 						{loading && (
 							<CircularProgress size={16} sx={{ color: theme.palette.primary.main, mr: 0.5 }} />
 						)}
 					</Box>
 				</form>
+
+				{/* RECENT SEARCHES PANEL */}
+				{isPublicMode && showRecent && recentSearches.length > 0 && (
+					<Box
+						sx={{
+							mt: 1,
+							pt: 1,
+							borderTop: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+						}}
+					>
+						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+							<Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 700, fontSize: "0.65rem" }}>
+								RECENT SEARCHES
+							</Typography>
+							<Tooltip title="Clear history">
+								<IconButton
+									size="small"
+									onClick={clearRecentSearches}
+									sx={{ p: 0.2, color: theme.palette.text.disabled, "&:hover": { color: theme.palette.error.main } }}
+								>
+									<DeleteSweep sx={{ fontSize: 14 }} />
+								</IconButton>
+							</Tooltip>
+						</Box>
+
+						<Stack spacing={0.5} sx={{ maxHeight: "160px", overflowY: "auto", pr: 0.5 }}>
+							{recentSearches.map((item) => {
+								// Determine if query is found in contracts or in notFoundIds
+								const cleanQ = item.query.trim().toLowerCase();
+								const qParts = cleanQ.split(":");
+								const qLocal = qParts[0].trim();
+
+								const isFound = contracts.some((c) => {
+									const cid = (c.contract_id || "").toLowerCase();
+									const lid = (c.local_id || "").toLowerCase();
+									const pcode = (c.partner_name || "").toLowerCase();
+									return (
+										cid === cleanQ ||
+										lid === cleanQ ||
+										cid === qLocal ||
+										lid === qLocal ||
+										lid.split(":")[0].trim() === qLocal
+									);
+								});
+								const isNotFound = !isFound && notFoundIds.some((id) => {
+									const nid = id.toLowerCase();
+									return nid === cleanQ || nid === qLocal || nid.split(":")[0].trim() === qLocal;
+								});
+
+								let statusColor: "success" | "error" | "default" = "default";
+								let statusLabel = "RECENT";
+								let StatusIcon = History;
+
+								if (isFound) {
+									statusColor = "success";
+									statusLabel = "FOUND";
+									StatusIcon = CheckCircle;
+								} else if (isNotFound) {
+									statusColor = "error";
+									statusLabel = "NOT FOUND";
+									StatusIcon = WarningAmber;
+								}
+
+								return (
+									<Paper
+										key={item.query}
+										variant="outlined"
+										onClick={() => handleSelectRecent(item.query)}
+										sx={{
+											p: 0.6,
+											px: 1,
+											display: "flex",
+											justifyContent: "space-between",
+											alignItems: "center",
+											cursor: "pointer",
+											borderColor: alpha(
+												statusColor === "success"
+													? theme.palette.success.main
+													: statusColor === "error"
+														? theme.palette.error.main
+														: theme.palette.divider,
+												0.3,
+											),
+											bgcolor: alpha(
+												statusColor === "success"
+													? theme.palette.success.main
+													: statusColor === "error"
+														? theme.palette.error.main
+														: theme.palette.background.default,
+												0.06,
+											),
+											"&:hover": {
+												bgcolor: alpha(theme.palette.primary.main, 0.12),
+												borderColor: theme.palette.primary.main,
+											},
+										}}
+									>
+										<Box sx={{ display: "flex", alignItems: "center", gap: 0.8, overflow: "hidden", mr: 1 }}>
+											<StatusIcon
+												sx={{
+													fontSize: 13,
+													color:
+														statusColor === "success"
+															? theme.palette.success.main
+															: statusColor === "error"
+																? theme.palette.error.main
+																: theme.palette.text.disabled,
+													flexShrink: 0,
+												}}
+											/>
+											<Typography
+												variant="caption"
+												sx={{
+													fontFamily: "monospace",
+													fontWeight: 700,
+													fontSize: "0.75rem",
+													overflow: "hidden",
+													textOverflow: "ellipsis",
+													whiteSpace: "nowrap",
+												}}
+											>
+												{item.query}
+											</Typography>
+										</Box>
+
+										<Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+											<Chip
+												label={statusLabel}
+												size="small"
+												color={statusColor}
+												sx={{ height: 16, fontSize: "0.55rem", fontWeight: 700 }}
+											/>
+											<IconButton
+												size="small"
+												onClick={(e) => {
+													e.stopPropagation();
+													removeRecentSearch(item.query);
+												}}
+												sx={{ p: 0.2, color: theme.palette.text.disabled, "&:hover": { color: theme.palette.error.main } }}
+											>
+												<Close sx={{ fontSize: 12 }} />
+											</IconButton>
+										</Box>
+									</Paper>
+								);
+							})}
+						</Stack>
+					</Box>
+				)}
 			</Box>
 
 			{/* NOT FOUND ITEMS LIST */}
@@ -487,14 +761,15 @@ export const ShipmentListWidget: React.FC<Props> = ({
 			)}
 
 			{/* Split Content Area (Flexbox Logic) */}
-			<Box
-				sx={{
-					flex: 1,
-					overflow: "hidden",
-					display: "flex",
-					flexDirection: "column",
-				}}
-			>
+			{!isPublicMode && (
+				<Box
+					sx={{
+						flex: 1,
+						overflow: "hidden",
+						display: "flex",
+						flexDirection: "column",
+					}}
+				>
 				{/* 1. OUTBOUND */}
 				<Box
 					sx={{
@@ -594,7 +869,6 @@ export const ShipmentListWidget: React.FC<Props> = ({
 					}}
 				>
 					<ListItem
-						button
 						onClick={() => setInboundExpanded(!inboundExpanded)}
 						sx={{
 							bgcolor: alpha(inboundColor, 0.15),
@@ -606,23 +880,27 @@ export const ShipmentListWidget: React.FC<Props> = ({
 					>
 						<Stack
 							direction="row"
-							alignItems="center"
-							spacing={1}
-							sx={{ flex: 1 }}
+							sx={{ flex: 1, gap: 1, alignItems: "center" }}
 						>
 							<ArrowDownward sx={{ fontSize: 16, color: inboundColor }} />
 							<ListItemText
 								primary="INBOUND"
 								secondary={`${inbound.length} active`}
-								primaryTypographyProps={{
-									variant: "subtitle2",
-									color: inboundColor,
-									fontWeight: 700,
-									fontSize: "0.8rem",
-								}}
-								secondaryTypographyProps={{
-									variant: "caption",
-									color: alpha(inboundColor, 0.7),
+								slotProps={{
+									primary: {
+										sx: {
+											color: inboundColor,
+											fontWeight: 700,
+											fontSize: "0.8rem",
+										},
+										variant: "subtitle2",
+									},
+									secondary: {
+										sx: {
+											color: alpha(inboundColor, 0.7),
+										},
+										variant: "caption",
+									},
 								}}
 								sx={{ my: 0 }}
 							/>
@@ -659,6 +937,7 @@ export const ShipmentListWidget: React.FC<Props> = ({
 					)}
 				</Box>
 			</Box>
+			)}
 		</Paper>
 	);
 };

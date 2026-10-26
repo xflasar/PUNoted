@@ -1131,6 +1131,20 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 					}
 					return nextMap;
 				});
+
+				setShipmentState((prev) => {
+					if (!prev?.ships || !prev.ships[plan.shipid!]) return prev;
+					return {
+						...prev,
+						ships: {
+							...prev.ships,
+							[plan.shipid!]: {
+								...prev.ships[plan.shipid!],
+								flight: plan as any,
+							},
+						},
+					};
+				});
 				break;
 			}
 
