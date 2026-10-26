@@ -214,115 +214,168 @@ export interface Edge {
 	systemiddestination: string;
 }
 
+export interface FlightSegment {
+	segment_id?: number;
+	flight_id?: string;
+	segment_index?: number;
+	segment_type?: string;
+	departure: number; // Unix timestamp in milliseconds
+	arrival: number; // Unix timestamp in milliseconds
+	duration?: number;
+	origin_system_id?: string;
+	origin_location_id?: string;
+	origin_location_type?: string;
+	origin_orbit_data?: any;
+	destination_system_id?: string;
+	destination_location_id?: string;
+	destination_location_type?: string;
+	destination_orbit_data?: any;
+	stl_distance?: number;
+	stl_fuel?: number;
+	ftl_distance?: number;
+	ftl_fuel?: number;
+	damage?: number;
+	transferellipse?: any;
+
+	// Deprecated / view aliases
+	origin?: string;
+	destination?: string;
+	origin_system?: string;
+	destination_system?: string;
+}
+
 export interface FlightPlan {
 	id: string;
-	segments: FlightSegment[];
-	origin: string;
-	destination: string;
 	shipid?: string;
-	originid?: string;
-	destinationid?: string;
-	start?: number;
-	end?: number;
-	currentsegmentindex?: number;
+	userid?: string;
+	originsystemid?: string;
+	originstationid?: string | null;
+	originplanetid?: string | null;
+	destinationsystemid?: string;
+	destinationstationid?: string | null;
+	destinationplanetid?: string | null;
 	departuretimestamp?: string;
 	arrivaltimestamp?: string;
+	currentsegmentindex?: number;
+	aborted?: boolean;
+	damage?: number;
+	stldistance?: number;
+	stltotalconsumption?: number;
+	ftldistance?: number;
+	ftltotalconsumption?: number;
+	segments: FlightSegment[];
+
+	// UI & View helper fields
+	origin?: string;
+	destination?: string;
+	color?: number[];
+	isOwn?: boolean;
+	_arrivalMs?: number;
+	_departureMs?: number;
 	expired?: boolean;
-	originplanetid?: string;
-	destinationplanetid?: string;
-	originstationid?: string;
-	destinationstationid?: string;
-	originsystemid?: string;
-	destinationsystemid?: string;
 }
 
 export interface WorkerFlightPlan extends FlightPlan {}
 
-export interface FlightSegment {
-	departure: number; // Unix timestamp (milliseconds)
-	arrival: number; // Unix timestamp (milliseconds)
-	origin: string; // MapPoint of the segment's origin system
-	destination: string; // MapPoint of the segment's destination system
-	// ... other data
-}
-
-export interface AnimatedShipData {
-	id: string;
-	registration: string;
-	name: string;
-	display_name?: string;
-	ownerName?: string;
-	company_code?: string;
-	user_id?: string;
-	ownerId?: string;
-	is_owner?: boolean;
-	is_owner_ship?: boolean;
-	addressplanetid: string;
-	addresssystemid: string;
-	addressstationid: string;
-	type: string;
-	currentLocationLabel?: string;
-	plan: FlightPlan | null;
-	position: [number, number]; // [x, y] coordinates for the current time
-	progress: number; // 0.0 to 1.0, progress through the current segment
-	bearing?: number; // Optional bearing angle in degrees
-	visible?: boolean; // Optional visibility flag
-	cargo?: ShipCargo;
-	is_corp?: boolean;
-	iscorp?: boolean;
-}
-
-export interface ShipData extends AnimatedShipData {
+/**
+ * Authoritative Ship entity matching PostgreSQL 'ships' table and GET /internal/ships/
+ */
+export interface ShipData {
+	// Canonical Database Fields (lowercase without underscores)
 	shipid: string;
-	userid?: string;
-	user_id?: string;
+	userid?: string | null;
 	name: string | null;
 	registration: string;
-	ship_type: string;
+	type: string;                    // Base hull natural ID (e.g. "WSP")
+	ship_type: string;               // Cargo class ('HCB' | 'VCB' | 'WCB' | 'LCB' | 'TINY' | 'UNKNOWN')
+	
+	// Addressing / Location
 	addressplanetid?: string | null;
 	addressstationid?: string | null;
 	addresssystemid?: string | null;
-	address_planet_id?: string;
-	address_station_id?: string;
-	address_system_id?: string;
+	
+	// Performance & Stats
 	acceleration: number;
 	thrust: number;
 	volume: number;
 	mass: number;
-	operatingemptymass?: number;
-	operating_empty_mass?: number;
-	reactorpower?: number;
-	reactor_power?: number;
-	emitterpower?: number;
-	emitter_power?: number;
-	stlfuelflowrate?: number;
-	stl_fuel_flow_rate?: number;
+	operatingemptymass: number;
+	reactorpower: number;
+	emitterpower: number;
+	stlfuelflowrate: number;
 	status: string;
 	condition: number;
-	commissioningtime?: string;
-	commissioning_time?: string;
+	commissioningtime?: string | null;
 	lastrepair?: string | null;
-	last_repair?: string | null;
 	flightid?: string | null;
+	
+	// Stores & Operating Times
+	idftlfuelstore?: string | null;
+	idstlfuelstore?: string | null;
+	idshipstore?: string | null;
+	operatingtimeftl: number;
+	operatingtimestl: number;
+	blueprintnaturalid: string;
+	
+	// Joined Metadata from ships_repo.py
+	is_owner: boolean;
+	is_corp: boolean;
+	companycode?: string | null;
+	displayname?: string | null;
+	plan?: FlightPlan | null;
+
+	// Optional runtime/view coordinates when merged
+	id?: string;
+	position?: [number, number];
+	progress?: number;
+	bearing?: number;
+	visible?: boolean;
+	currentLocationLabel?: string;
+	cargo?: ShipCargo;
+
+	// --- Deprecated Backward Compatibility Aliases ---
+	user_id?: string;
+	ownerName?: string;
+	ownerId?: string;
+	flight?: FlightPlan | null;
 	flight_id?: string;
-	idftlfuelstore?: string;
-	idstlfuelstore?: string;
-	idshipstore?: string;
+	flightId?: string;
+	systemid?: string | null;
+	systemId?: string | null;
+	system_id?: string | null;
+	address_planet_id?: string;
+	address_station_id?: string;
+	address_system_id?: string;
+	operating_empty_mass?: number;
+	reactor_power?: number;
+	emitter_power?: number;
+	stl_fuel_flow_rate?: number;
+	commissioning_time?: string;
+	last_repair?: string | null;
 	id_ftl_fuel_store?: string;
 	id_stl_fuel_store?: string;
 	id_ship_store?: string;
-	operatingtimeftl?: number;
-	operatingtimestl?: number;
 	operating_time_ftl?: number;
 	operating_time_stl?: number;
-	blueprintnaturalid: string;
 	blueprint_natural_id?: string;
-	is_owner: boolean;
-	companycode?: string;
 	company_code?: string;
-	displayname?: string;
 	display_name?: string;
 	personal_suffix?: string;
+	iscorp?: boolean;
+	is_owner_ship?: boolean;
+}
+
+/**
+ * Runtime Animated Ship Model (for Starmap rendering & Web Worker)
+ */
+export interface AnimatedShipData extends ShipData {
+	id: string;                     // Matches shipid for Map/Deck.gl layer indexing
+	position: [number, number];     // Live [x, y] coordinates from Web Worker
+	progress: number;               // 0.0 to 1.0 progress through current segment
+	bearing?: number;               // Heading rotation in degrees
+	visible?: boolean;              // Visibility toggle on map
+	currentLocationLabel?: string;  // Formatted location string for UI
+	cargo?: ShipCargo;              // Cached cargo summary
 }
 
 export interface ShipCargo {
@@ -348,10 +401,12 @@ export interface UpdateShipData {
 	id: string;
 	position: [number, number];
 	bearing: number;
-	name: string;
+	name?: string | null;
 	registration: string;
 	visible?: boolean;
 	type: string;
+	positionMode?: "galaxy" | "system";
+	systemId?: string | null;
 }
 
 export interface ShipmentFlightSegment {

@@ -35,6 +35,12 @@ let plansMap: Map<string, any> = new Map();
 // --- OPTIMIZATION: Map for O(1) Galaxy Lookup ---
 const systemsMap: Map<string, MapPoint> = new Map();
 
+function getSysFromMap(map: Map<string, MapPoint>, id: any): MapPoint | undefined {
+	if (!id) return undefined;
+	const str = String(id);
+	return map.get(str) || map.get(str.toLowerCase()) || map.get(str.toUpperCase());
+}
+
 let centeredSystemCached: MapPoint | null = null;
 let isGalaxyViewCached = true;
 
@@ -227,10 +233,10 @@ function parseTimestamp(val: any): number {
 }
 
 function getFlightStatus(ship: any, plan: any) {
-	if (!plan || !plan.segments || !Array.isArray(plan.segments))
+	if (!plan || !plan.segments || !Array.isArray(plan.segments) || plan.segments.length === 0)
 		return {
 			isInterSystem: false,
-			systemId: ship.addresssystemid || ship.address_system_id,
+			systemId: ship.addresssystemid,
 		};
 	const now = Date.now();
 	const activeSegment = plan.segments.find((s: any) => {
@@ -239,12 +245,17 @@ function getFlightStatus(ship: any, plan: any) {
 		return now >= dep && now < arr;
 	});
 	if (activeSegment) {
+		const segType = (activeSegment.segment_type || "").toUpperCase();
 		const origSys =
 			activeSegment.origin_system_id || (activeSegment as any).origin_system;
 		const destSys =
 			activeSegment.destination_system_id ||
 			(activeSegment as any).destination_system;
-		if (origSys && destSys && origSys !== destSys) {
+		if (
+			segType === "JUMP" ||
+			segType === "CHARGE" ||
+			(origSys && destSys && origSys !== destSys)
+		) {
 			return {
 				isInterSystem: true,
 				origin: origSys,
@@ -253,18 +264,40 @@ function getFlightStatus(ship: any, plan: any) {
 		}
 		return { isInterSystem: false, systemId: origSys || destSys };
 	}
-	// ARRIVAL LIMBO LOGIC (Galaxy scale)
-	const arrTs = parseTimestamp(plan.arrivaltimestamp || plan._arrivalMs);
-	if (arrTs > 0 && now >= arrTs) {
-		const lastSeg = plan.segments[plan.segments.length - 1];
+
+	// Check if in flight overall (between departure of first segment and arrival of last segment)
+	const firstSeg = plan.segments[0];
+	const lastSeg = plan.segments[plan.segments.length - 1];
+	const firstDep = parseTimestamp(firstSeg?.departure);
+	const lastArr = parseTimestamp(lastSeg?.arrival);
+
+	if (firstDep > 0 && now < firstDep) {
 		return {
 			isInterSystem: false,
-			systemId: lastSeg.destination_system_id || lastSeg.origin_system_id,
+			systemId: firstSeg.origin_system_id || ship.addresssystemid,
 		};
 	}
+
+	if (lastArr > 0 && now >= lastArr) {
+		return {
+			isInterSystem: false,
+			systemId: lastSeg.destination_system_id || lastSeg.destination_system || lastSeg.origin_system_id,
+		};
+	}
+
+	// If between segments during a multi-leg flight, ship is still in origin system
+	const upcomingSeg = plan.segments.find((s: any) => parseTimestamp(s.departure) > now);
+	if (upcomingSeg) {
+		const upOrigSys = upcomingSeg.origin_system_id || upcomingSeg.origin_system;
+		return {
+			isInterSystem: false,
+			systemId: upOrigSys,
+		};
+	}
+
 	return {
 		isInterSystem: false,
-		systemId: ship.addresssystemid || ship.address_system_id,
+		systemId: ship.addresssystemid,
 	};
 }
 
@@ -290,8 +323,8 @@ function calculateShipPositionGalaxy(
 				const destSys =
 					activeSegment.destination_system_id ||
 					(activeSegment as any).destination_system;
-				const startSystem = sysMap.get(origSys);
-				const endSystem = sysMap.get(destSys);
+				const startSystem = getSysFromMap(sysMap, origSys);
+				const endSystem = getSysFromMap(sysMap, destSys);
 				if (startSystem && endSystem) {
 					const dep = parseTimestamp(activeSegment.departure);
 					const arr = parseTimestamp(activeSegment.arrival);
@@ -305,6 +338,8 @@ function calculateShipPositionGalaxy(
 					const y = startSystem.y + (endSystem.y - startSystem.y) * progress;
 					return [x, y, calculateBearing([x, y], [endSystem.x, endSystem.y])];
 				}
+				const fallbackSys = startSystem || endSystem;
+				if (fallbackSys) return [fallbackSys.x, fallbackSys.y, ship.bearing || 0];
 			}
 
 			// If after all segments (arrived)
@@ -313,7 +348,7 @@ function calculateShipPositionGalaxy(
 			if (lastArr > 0 && currentTime >= lastArr) {
 				const destSysId =
 					lastSeg.destination_system_id || lastSeg.origin_system_id;
-				const sys = sysMap.get(destSysId);
+				const sys = getSysFromMap(sysMap, destSysId);
 				if (sys) return [sys.x, sys.y, ship.bearing || 0];
 			}
 			// If before first segment (not departed yet)
@@ -321,12 +356,12 @@ function calculateShipPositionGalaxy(
 			const firstDep = parseTimestamp(firstSeg.departure);
 			if (firstDep > 0 && currentTime < firstDep) {
 				const origSysId = firstSeg.origin_system_id;
-				const sys = sysMap.get(origSysId);
+				const sys = getSysFromMap(sysMap, origSysId);
 				if (sys) return [sys.x, sys.y, ship.bearing || 0];
 			}
 		}
 
-		const sys = sysMap.get(ship.addresssystemid || ship.address_system_id);
+		const sys = getSysFromMap(sysMap, ship.addresssystemid);
 		return sys ? [sys.x, sys.y, ship.bearing || 0] : null;
 	} catch (err) {
 		return null;
@@ -384,6 +419,16 @@ function calculateShipPositionInSystem(
 				}
 
 				// Linear fallback between origin & destination location in-system
+				const getTarget = (id: any) => {
+					if (!id) return null;
+					const sId = String(id);
+					return (
+						targetLookup.get(sId) ||
+						targetLookup.get(sId.toLowerCase()) ||
+						targetLookup.get(sId.toLowerCase().replace(/^(planet-|station-)/, ""))
+					);
+				};
+
 				const origId =
 					activeSegment.origin_location_id ||
 					activeSegment.origin_planet_id ||
@@ -392,8 +437,8 @@ function calculateShipPositionInSystem(
 					activeSegment.destination_location_id ||
 					activeSegment.destination_planet_id ||
 					activeSegment.destination_station_id;
-				const origTgt = targetLookup.get(origId);
-				const destTgt = targetLookup.get(destId);
+				const origTgt = getTarget(origId);
+				const destTgt = getTarget(destId);
 
 				if (origTgt && destTgt) {
 					const x = origTgt.x + (destTgt.x - origTgt.x) * progress;
@@ -415,18 +460,22 @@ function calculateShipPositionInSystem(
 					lastSeg.destination_planet_id ??
 					lastSeg.destination_station_id ??
 					lastSeg.destination_location_id;
-				const target = targetLookup.get(destId);
+				const sId = destId ? String(destId) : "";
+				const target =
+					targetLookup.get(sId) ||
+					targetLookup.get(sId.toLowerCase()) ||
+					targetLookup.get(sId.toLowerCase().replace(/^(planet-|station-)/, ""));
 				if (target) return [target.x, target.y, ship.bearing || 0];
 			}
 		}
 
 		// Docked (Static)
-		const targetId =
-			ship.addressplanetid ??
-			ship.addressstationid ??
-			ship.address_planet_id ??
-			ship.address_station_id;
-		const target = targetLookup.get(targetId);
+		const targetId = ship.addressplanetid ?? ship.addressstationid;
+		const sTargetId = targetId ? String(targetId) : "";
+		const target =
+			targetLookup.get(sTargetId) ||
+			targetLookup.get(sTargetId.toLowerCase()) ||
+			targetLookup.get(sTargetId.toLowerCase().replace(/^(planet-|station-)/, ""));
 		if (target) return [target.x, target.y, ship.bearing || 0];
 		if (currentSystem)
 			return [currentSystem.x, currentSystem.y, ship.bearing || 0];
@@ -584,16 +633,30 @@ function calculateAndPostEverything() {
 	const targetLookup = new Map<string, { x: number; y: number }>();
 	if (!isGalaxyViewCached) {
 		for (let i = 0; i < planetCount; i++) {
-			targetLookup.set(cachedPlanets[i].raw.planetid, {
+			const pid = cachedPlanets[i].raw.planetid;
+			const pos = {
 				x: planetPosBuf[i * 2],
 				y: planetPosBuf[i * 2 + 1],
-			});
+			};
+			if (pid) {
+				const sPid = String(pid);
+				targetLookup.set(sPid, pos);
+				targetLookup.set(sPid.toLowerCase(), pos);
+				targetLookup.set(sPid.toLowerCase().replace(/^(planet-|station-)/, ""), pos);
+			}
 		}
 		for (let i = 0; i < stationCount; i++) {
-			targetLookup.set(cachedStations[i].raw.stationid, {
+			const sid = cachedStations[i].raw.stationid;
+			const pos = {
 				x: stationPosBuf[i * 2],
 				y: stationPosBuf[i * 2 + 1],
-			});
+			};
+			if (sid) {
+				const sSid = String(sid);
+				targetLookup.set(sSid, pos);
+				targetLookup.set(sSid.toLowerCase(), pos);
+				targetLookup.set(sSid.toLowerCase().replace(/^(planet-|station-)/, ""), pos);
+			}
 		}
 	}
 
@@ -604,8 +667,12 @@ function calculateAndPostEverything() {
 			bearing = ship.bearing || 0,
 			visible = 1;
 
-		const key = ship.plan?.id ?? ship.id;
-		const plan = plansMap.get(key) ?? ship.plan;
+		const planKey = ship.plan?.id ?? ship.shipid ?? ship.id;
+		const plan =
+			plansMap.get(planKey) ??
+			plansMap.get(ship.id) ??
+			plansMap.get(ship.shipid) ??
+			ship.plan;
 
 		const flightStatus = getFlightStatus(ship, plan);
 
@@ -619,8 +686,8 @@ function calculateAndPostEverything() {
 				} else visible = 0;
 			} else {
 				const sys =
-					systemsMap.get(ship.addresssystemid || ship.address_system_id) ||
-					systemsMap.get(flightStatus.systemId);
+					getSysFromMap(systemsMap, ship.addresssystemid) ||
+					getSysFromMap(systemsMap, flightStatus.systemId);
 				if (sys) {
 					x = sys.x;
 					y = sys.y;
@@ -630,7 +697,8 @@ function calculateAndPostEverything() {
 			if (flightStatus.isInterSystem) {
 				visible = 0;
 			} else if (
-				flightStatus.systemId !== centeredSystemCached?.originalSystemId
+				String(flightStatus.systemId || "").toLowerCase() !==
+				String(centeredSystemCached?.originalSystemId || centeredSystemCached?.id || "").toLowerCase()
 			) {
 				visible = 0;
 			} else {
@@ -660,7 +728,9 @@ function calculateAndPostEverything() {
 	}
 
 	// Trails
-	if (now - lastTrailUpdate > TRAIL_UPDATE_MS) regenerateTrails(worldTime);
+	if (!trailCache || trailCache.length === 0 || now - lastTrailUpdate > TRAIL_UPDATE_MS) {
+		regenerateTrails(worldTime);
+	}
 
 	// Stats
 	const tickEnd = nowMs();
@@ -709,11 +779,6 @@ function calculateAndPostEverything() {
 		delete msg.shipPos;
 		(self as any).postMessage(msg);
 	}
-
-	// After successful transfer, free large worker-side caches to allow GC
-	if (trailCache && trailCache.length > 0) {
-		trailCache = [];
-	}
 }
 
 function ensureInterval() {
@@ -746,10 +811,17 @@ self.onmessage = function (e: MessageEvent) {
 				systemsMap.clear();
 				for (const sys of d.payload.systemsPoints) {
 					if (sys.originalSystemId) systemsMap.set(sys.originalSystemId, sys);
+					if (sys.id) systemsMap.set(String(sys.id), sys);
 				}
 			}
 			centeredSystemCached = d.payload.centeredSystem || centeredSystemCached;
-			isGalaxyViewCached = !!d.payload.isPlanetModeActive; // best effort; init-data may or may not include this
+			if (typeof d.payload.isGalaxyView !== "undefined") {
+				isGalaxyViewCached = !!d.payload.isGalaxyView;
+			} else if (typeof d.payload.isPlanetModeActive !== "undefined") {
+				isGalaxyViewCached = !d.payload.isPlanetModeActive;
+			} else {
+				isGalaxyViewCached = false;
+			}
 			if (mainIntervalId) clearInterval(mainIntervalId);
 			mainIntervalId = setInterval(
 				calculateAndPostEverything,
@@ -801,10 +873,14 @@ self.onmessage = function (e: MessageEvent) {
 			systemsMap.clear();
 			for (const sys of d.payload.systemsPoints) {
 				if (sys.originalSystemId) systemsMap.set(sys.originalSystemId, sys);
+				if (sys.id) systemsMap.set(String(sys.id), sys);
 			}
 		}
 
 		centeredSystemCached = d.payload.centeredSystem || centeredSystemCached;
+		if (d.payload?.centeredSystem) {
+			starSystemForOrbits = d.payload.centeredSystem;
+		}
 		isGalaxyViewCached = !!d.payload.isGalaxyView;
 
 		ensureInterval();
@@ -814,6 +890,9 @@ self.onmessage = function (e: MessageEvent) {
 
 	if (type === "update-interval-context") {
 		centeredSystemCached = d.centeredSystem || centeredSystemCached;
+		if (d.centeredSystem) {
+			starSystemForOrbits = d.centeredSystem;
+		}
 		isGalaxyViewCached = !!d.isGalaxyView;
 		return;
 	}

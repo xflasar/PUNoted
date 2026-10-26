@@ -6,11 +6,12 @@ import BaseStarMap from "../../components/common/starmap/basestarmap";
 import { ShipmentListWidget } from "./components/shipmentlistwidget";
 import {
 	ShipmentDetailWidget,
-	LocationFocusTarget,
+	type LocationFocusTarget,
 } from "./components/shipmentdetailwidget";
 import { useGlobalData } from "../../context/globaldatacontext";
 import { API_BASE_URL } from "../../config/api";
 import type { ShipmentContract, ShipmentShip } from "./types";
+import { fetchClient } from "../../utils/apiclient";
 
 interface UnifiedShipmentPageProps {
 	isPublicMode?: boolean;
@@ -32,12 +33,25 @@ export const ShipmentPage: React.FC<UnifiedShipmentPageProps> = ({ isPublicMode 
 	const [notFoundIds, setNotFoundIds] = useState<string[]>([]);
 	const [publicLoading, setPublicLoading] = useState<boolean>(false);
 
-	const handleLookupContract = useCallback((targetId: string) => {
-		const cleanId = targetId.trim();
+	// Track company codes used to look up public contracts for refreshing
+	const [publicQueryKeys, setPublicQueryKeys] = useState<Record<string, string>>({});
+
+	const handleLookupContract = useCallback((targetId: string, companyCode?: string) => {
+		let cleanId = targetId.trim();
+		let cleanCompany = companyCode?.trim();
+
+		// Support '{LOCAL_ID}:{COMPANY}' (or space-separated) syntax
+		if (!cleanCompany && (cleanId.includes(":") || cleanId.includes(" "))) {
+			const delimiter = cleanId.includes(":") ? ":" : " ";
+			const parts = cleanId.split(delimiter);
+			cleanId = parts[0].trim();
+			cleanCompany = parts.slice(1).join("").trim();
+		}
+
 		if (!cleanId) return;
 
-		// 1. Check if contract exists in logged-in state
-		if (shipmentState?.contracts) {
+		// 1. Check if contract exists in logged-in state (non-public only)
+		if (!isPublicMode && shipmentState?.contracts) {
 			const foundInState = shipmentState.contracts.find(
 				(c) => c.contract_id === cleanId || c.local_id === cleanId,
 			);
@@ -52,43 +66,89 @@ export const ShipmentPage: React.FC<UnifiedShipmentPageProps> = ({ isPublicMode 
 			}
 		}
 
-		// 2. Fetch from public API
+		const queryKey = cleanCompany ? `${cleanId}:${cleanCompany}` : cleanId;
+
+		// If public mode and no company code is provided, reject immediately
+		if (isPublicMode && !cleanCompany) {
+			setNotFoundIds((prev) => (prev.includes(cleanId) ? prev : [...prev, cleanId]));
+			return;
+		}
+
+		// 2. Fetch from public API (always fresh fetch)
 		setPublicLoading(true);
-		fetch(`${API_BASE_URL}public/shipments/${cleanId}`)
+		const url = cleanCompany
+			? `${API_BASE_URL}public/shipments/${encodeURIComponent(cleanId)}?company=${encodeURIComponent(cleanCompany)}`
+			: `${API_BASE_URL}public/shipments/${encodeURIComponent(cleanId)}`;
+
+		fetchClient(url)
 			.then((res) => {
 				if (!res.ok) throw new Error("Not found");
 				return res.json();
 			})
 			.then((data) => {
 				if (data.success && data.data?.contract) {
-					const c = data.data.contract;
+					const c: ShipmentContract = data.data.contract;
 					setPublicContracts((prev) => {
-						if (prev.some((x) => x.contract_id === c.contract_id)) return prev;
+						const index = prev.findIndex((x) => x.contract_id === c.contract_id || x.local_id === c.local_id);
+						if (index >= 0) {
+							const copy = [...prev];
+							copy[index] = c;
+							return copy;
+						}
 						return [...prev, c];
 					});
 					if (data.data.ships) {
 						setPublicShips((prev) => ({ ...prev, ...data.data.ships }));
 					}
+					if (cleanCompany) {
+						setPublicQueryKeys((prev) => ({ ...prev, [c.contract_id]: cleanCompany }));
+					}
 					setSelectedId(c.contract_id);
-					setNotFoundIds((prev) => prev.filter((id) => id !== cleanId));
+					setNotFoundIds((prev) =>
+						prev.filter(
+							(id) =>
+								id !== cleanId &&
+								id !== queryKey &&
+								id !== `${cleanId}:${cleanCompany}` &&
+								id.toLowerCase() !== cleanId.toLowerCase() &&
+								id.toLowerCase() !== queryKey.toLowerCase(),
+						),
+					);
 				} else {
-					setNotFoundIds((prev) => (prev.includes(cleanId) ? prev : [...prev, cleanId]));
+					setNotFoundIds((prev) => (prev.includes(queryKey) ? prev : [...prev, queryKey]));
 				}
 			})
 			.catch(() => {
-				setNotFoundIds((prev) => (prev.includes(cleanId) ? prev : [...prev, cleanId]));
+				setNotFoundIds((prev) => (prev.includes(queryKey) ? prev : [...prev, queryKey]));
 			})
 			.finally(() => {
 				setPublicLoading(false);
 			});
-	}, [shipmentState]);
+	}, [shipmentState, isPublicMode]);
 
-	// Load initial URL trackingId if provided
+	// Load initial URL trackingId and ?company= if provided
 	useEffect(() => {
 		if (isPublicMode && trackingId && trackingId !== "track") {
-			handleLookupContract(trackingId);
+			const searchParams = new URLSearchParams(window.location.search);
+			const companyParam = searchParams.get("company") || undefined;
+			handleLookupContract(trackingId, companyParam);
 		}
 	}, [isPublicMode, trackingId, handleLookupContract]);
+
+	// Automatic 5-minute background refresh for public tracking
+	useEffect(() => {
+		if (!isPublicMode || publicContracts.length === 0) return;
+
+		const interval = setInterval(() => {
+			publicContracts.forEach((c) => {
+				const comp = publicQueryKeys[c.contract_id];
+				const rawId = (c.local_id || c.contract_id).split(":")[0].trim();
+				handleLookupContract(rawId, comp);
+			});
+		}, 5 * 60 * 1000);
+
+		return () => clearInterval(interval);
+	}, [isPublicMode, publicContracts, publicQueryKeys, handleLookupContract]);
 
 	// Resolve active contract
 	const activeContract = useMemo(() => {
@@ -101,18 +161,22 @@ export const ShipmentPage: React.FC<UnifiedShipmentPageProps> = ({ isPublicMode 
 		);
 	}, [isPublicMode, publicContracts, selectedId, shipmentState]);
 
-	// Filter visible ships
-	const visibleShips = useMemo(() => {
-		const shipsPool = isPublicMode ? publicShips : shipmentState?.ships || {};
-		const contractsPool = isPublicMode ? publicContracts : shipmentState?.contracts || [];
+	// Manual refresh active contract handler
+	const handleManualRefresh = useCallback(() => {
+		if (!activeContract) return;
+		const comp = publicQueryKeys[activeContract.contract_id];
+		const rawId = (activeContract.local_id || activeContract.contract_id).split(":")[0].trim();
+		handleLookupContract(rawId, comp);
+	}, [activeContract, publicQueryKeys, handleLookupContract]);
 
-		const targetContracts = activeContract ? [activeContract] : contractsPool;
+	// Filter visible ships: show only ships belonging to the selected contract
+	const visibleShips = useMemo(() => {
+		if (!activeContract) return {};
+		const shipsPool = isPublicMode ? publicShips : shipmentState?.ships || {};
 		const contractShipIds = new Set<string>();
 
-		targetContracts.forEach((contract) => {
-			contract.items?.forEach((item) => {
-				if (item.shipid) contractShipIds.add(item.shipid);
-			});
+		activeContract.items?.forEach((item) => {
+			if (item.shipid) contractShipIds.add(item.shipid);
 		});
 
 		const filtered: Record<string, ShipmentShip> = {};
@@ -122,7 +186,12 @@ export const ShipmentPage: React.FC<UnifiedShipmentPageProps> = ({ isPublicMode 
 			}
 		});
 		return filtered;
-	}, [isPublicMode, publicShips, publicContracts, shipmentState, activeContract]);
+	}, [isPublicMode, publicShips, shipmentState, activeContract]);
+
+	// Filter target contracts: show ONLY the selected contract (or empty if none selected)
+	const targetContracts = useMemo(() => {
+		return activeContract ? [activeContract] : [];
+	}, [activeContract]);
 
 	const memoizedStarMap = useMemo(
 		() => (
@@ -130,9 +199,10 @@ export const ShipmentPage: React.FC<UnifiedShipmentPageProps> = ({ isPublicMode 
 				mode="shipping"
 				overrideShips={visibleShips}
 				focusTarget={cameraFocus}
+				contracts={targetContracts}
 			/>
 		),
-		[visibleShips, cameraFocus],
+		[visibleShips, cameraFocus, targetContracts],
 	);
 
 	return (
@@ -184,12 +254,13 @@ export const ShipmentPage: React.FC<UnifiedShipmentPageProps> = ({ isPublicMode 
 			{/* REUSED SHIPMENT LIST WIDGET */}
 			<ShipmentListWidget
 				contracts={isPublicMode ? publicContracts : shipmentState?.contracts || []}
+				selectedId={selectedId}
 				isPublicMode={isPublicMode}
 				notFoundIds={notFoundIds}
 				loading={publicLoading}
 				onLookupContract={handleLookupContract}
 				onSelect={(id) => {
-					setSelectedId(id);
+					setSelectedId((prev) => (prev === id ? null : id));
 					setCameraFocus(null);
 				}}
 			/>
@@ -204,6 +275,8 @@ export const ShipmentPage: React.FC<UnifiedShipmentPageProps> = ({ isPublicMode 
 						setCameraFocus(null);
 					}}
 					onFocusLocation={(target) => setCameraFocus(target)}
+					onRefresh={isPublicMode ? handleManualRefresh : undefined}
+					isRefreshing={publicLoading}
 				/>
 			)}
 		</Box>

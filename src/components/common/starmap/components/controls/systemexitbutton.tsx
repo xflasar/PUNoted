@@ -41,6 +41,9 @@ export const SystemExitButton: React.FC<SystemExitButtonProps> = ({
 						transitionDuration: 300,
 						transitionInterpolator: new CartesianInterpolator(),
 					}));
+					setTimeout(() => {
+						ignoreOnViewStateChangeRef.current = false;
+					}, 350);
 				}}
 				sx={{ mt: 1 }}
 			>

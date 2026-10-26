@@ -13,6 +13,7 @@ import type {
 import {
 	calculateShipPositionGalaxy,
 	calculateShipPositionInSystem,
+	getShipFlightStatus,
 } from "../utils/shipposition";
 import {
 	calculateMovingPlanetPosition,
@@ -125,6 +126,8 @@ export const useAnimation = (
 		setActivePlanets([...poolRef.current.planets]);
 		setActiveStations([...poolRef.current.stations]);
 
+		setOrbitTrails([]);
+
 		if (!animationEnabled || !animationWorker) {
 			const SCALE_FACTOR = 5000000000;
 			const trails = rawPlanets.map((p) => {
@@ -154,15 +157,17 @@ export const useAnimation = (
 						planets: rawPlanets,
 						stations: rawStations,
 						centeredSystem,
+						isGalaxyView,
 					},
 				});
-			} catch {}
+			} catch { }
 		}
 	}, [
 		animationEnabled,
 		animationWorker,
 		centeredSystem,
 		isPlanetModeActive,
+		isGalaxyView,
 		allPlanetsData,
 		allStationsData,
 	]);
@@ -186,7 +191,7 @@ export const useAnimation = (
 				},
 			});
 			systemsSentRef.current = systemsPoints.length;
-		} catch {}
+		} catch { }
 	}, [animationEnabled, animationWorker, systemsPoints, isGalaxyView]);
 
 	// ============================================================
@@ -198,76 +203,147 @@ export const useAnimation = (
 		const newPool = new Map<string, UpdateShipData>();
 		const now = Date.now();
 		animatedShipData.forEach((s) => {
-			// Safely fallback to generic id or shipid if ship_id is not yet present
-			const shipId = s.ship_id || (s as any).shipid || (s as any).id;
+			const shipId = s.shipid || s.id;
 			if (!shipId) return;
 
+			const planKey = s.plan?.id ?? s.shipid ?? s.id;
+			const plan =
+				activeFlightPlans.find(
+					(p) =>
+						p.id === planKey ||
+						p.shipid === shipId ||
+						p.id === s.plan?.id,
+				) ?? s.plan;
+
+			const flightStatus = getShipFlightStatus(s, plan, now);
+			const positionMode: "galaxy" | "system" = flightStatus.isInterSystem ? "galaxy" : "system";
+			const shipSysId = flightStatus.systemId;
+
+			let initPos: [number, number] | null = null;
+			let initBearing = s.bearing || 0;
+
+			if (positionMode === "galaxy") {
+				const res = calculateShipPositionGalaxy(s, plan, now, systemsPoints);
+				if (res) {
+					initPos = [res[0], res[1]];
+					initBearing = res[2];
+				}
+			} else {
+				// Ship is in a system
+				const targetSysId = shipSysId || centeredSystem?.originalSystemId;
+				const cleanSysKey = String(targetSysId || "").toLowerCase().replace(/^sys-/, "");
+				const targetSys = targetSysId
+					? systemsPoints.find((p) => {
+							const pOrig = String(p.originalSystemId || "").toLowerCase().replace(/^sys-/, "");
+							const pId = String(p.id || "").toLowerCase().replace(/^sys-/, "");
+							return pOrig === cleanSysKey || pId === cleanSysKey;
+					  }) || centeredSystem
+					: centeredSystem;
+				const sysForCalc = targetSys || centeredSystem;
+				const rawPlanets = targetSysId
+					? allPlanetsData[cleanSysKey] || allPlanetsData[targetSysId] || []
+					: [];
+				const rawStations = targetSysId
+					? allStationsData[cleanSysKey] || allStationsData[targetSysId] || []
+					: [];
+				const computedPlanets = (targetSysId && targetSysId === centeredSystem?.originalSystemId && poolRef.current.planets.length > 0)
+					? poolRef.current.planets
+					: sysForCalc
+						? rawPlanets.map((p) => calculateMovingPlanetPosition(sysForCalc, p, now))
+						: [];
+				const computedStations = (targetSysId && targetSysId === centeredSystem?.originalSystemId && poolRef.current.stations.length > 0)
+					? poolRef.current.stations
+					: sysForCalc
+						? rawStations.map((st) => calculateMovingStationPosition(sysForCalc, st, now))
+						: [];
+				const targetObjects = [...computedPlanets, ...computedStations];
+
+				const res = calculateShipPositionInSystem(
+					s,
+					plan,
+					now,
+					targetObjects,
+					sysForCalc,
+				);
+				if (res) {
+					initPos = [res[0], res[1]];
+					initBearing = res[2] ?? s.bearing ?? 0;
+				} else if (sysForCalc) {
+					initPos = [sysForCalc.x, sysForCalc.y];
+				}
+			}
+
+			// Determine visibility for the current camera view
+			let isVisible = false;
+			if (isGalaxyView) {
+				isVisible = positionMode === "galaxy";
+			} else if (centeredSystem) {
+				const curSys = String(centeredSystem.originalSystemId || centeredSystem.id || "").toLowerCase();
+				const tgtSys = String(shipSysId || "").toLowerCase();
+				isVisible = positionMode === "system" && (!tgtSys || tgtSys === curSys);
+			}
+
 			const prev = shipPoolMapRef.current.get(shipId);
-			if (prev) {
+			if (prev && !systemChanged && prev.isGalaxyView === isGalaxyView && initPos !== null) {
 				newPool.set(shipId, {
 					...s,
+					id: shipId,
+					name: s.name ?? s.registration ?? "",
 					position: prev.position,
 					bearing: prev.bearing,
-					visible: prev.visible,
-				});
+					visible: isVisible,
+					positionMode,
+					systemId: shipSysId,
+					isGalaxyView,
+				} as any);
 			} else {
-				// Initial calculation
-				let initPos: [number, number] | null = null;
-				let initBearing = s.bearing || 0;
-				const plan =
-					activeFlightPlans.find((p) => p.id === (s.plan?.id ?? s.id)) ??
-					s.plan;
-
-				if (isGalaxyView) {
-					const res = calculateShipPositionGalaxy(s, plan, now, systemsPoints);
-					if (res) {
-						initPos = [res[0], res[1]];
-						initBearing = res[2];
-					}
-				} else if (centeredSystem) {
-					const rawPlanets =
-						allPlanetsData[centeredSystem.originalSystemId] || [];
-					const res = calculateShipPositionInSystem(
-						s,
-						plan,
-						now,
-						rawPlanets,
-						centeredSystem,
-					);
-					if (res) {
-						initPos = [res[0], res[1]];
-						initBearing = res[2] ?? s.bearing ?? 0;
-					}
-				}
-
 				newPool.set(shipId, {
 					...s,
+					id: shipId,
+					name: s.name ?? s.registration ?? "",
 					position: initPos || [0, 0],
 					bearing: initBearing,
-					visible: initPos !== null, // Only visible if we successfully calculated a position
-				});
+					visible: isVisible,
+					positionMode,
+					systemId: shipSysId,
+					isGalaxyView,
+				} as any);
 			}
 		});
 
 		shipPoolMapRef.current = newPool;
 
-		// Build signature using the correct identifier
-		const signature = animatedShipData
-			.map((s) => s.ship_id || (s as any).shipid || (s as any).id)
+		// Build signature using the identifier and current view mode/system
+		const shipSignature = animatedShipData
+			.map((s) => s.shipid || s.id)
 			.join("|");
+		const currentSysKey = centeredSystem?.originalSystemId || centeredSystem?.id || "none";
+		const signature = `${isGalaxyView ? "G" : "S"}_${currentSysKey}_${shipSignature}`;
+
+		console.log("Animated Data:", animatedShipData);
 
 		const isInitialOrChanged =
 			lastShipSignatureRef.current !== signature || updatedShips.length === 0;
 
+		console.log("[StarMap Debug][useAnimation] Ship sync check:", {
+			animationEnabled,
+			hasAnimationWorker: !!animationWorker,
+			animatedShipDataCount: animatedShipData.length,
+			newPoolSize: newPool.size,
+			currentUpdatedShipsCount: updatedShips.length,
+			isInitialOrChanged,
+		});
+
 		if (isInitialOrChanged) {
 			lastShipSignatureRef.current = signature;
+			console.log("[StarMap Debug][useAnimation] Setting updatedShips immediately to newPool size:", newPool.size);
 			setUpdatedShips(Array.from(newPool.values()));
 		}
 
 		const postToWorker = () => {
 			try {
 				workerShipIdsRef.current = animatedShipData.map(
-					(s) => s.ship_id || (s as any).id,
+					(s) => s.shipid || s.id,
 				);
 
 				animationWorker.postMessage({
@@ -277,9 +353,10 @@ export const useAnimation = (
 						activeFlightPlans,
 						isGalaxyView,
 						centeredSystem,
+						systemsPoints,
 					},
 				});
-			} catch {}
+			} catch { }
 			lastWorkerPostTime.current = Date.now();
 			scheduledPostRef.current = null;
 		};
@@ -371,7 +448,7 @@ export const useAnimation = (
 					setActiveStations([...pool.stations]);
 				}
 
-				if (workerPlans?.length) {
+				if (workerPlans?.length && typeof setActiveFlightPlans === "function") {
 					setActiveFlightPlans(workerPlans);
 				}
 			}

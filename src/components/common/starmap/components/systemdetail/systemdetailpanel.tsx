@@ -151,10 +151,10 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 		const ownList = Array.isArray(ownerShips) ? ownerShips : [];
 		const othersList = Array.isArray(otherShips) ? otherShips : [];
 		const own = ownList.filter(
-			(s) => s.address_system_id === systemId || s.addresssystemid === systemId,
+			(s) => s.addresssystemid === systemId,
 		);
 		const others = othersList.filter(
-			(s) => s.address_system_id === systemId || s.addresssystemid === systemId,
+			(s) => s.addresssystemid === systemId,
 		);
 		return { own, others };
 	}, [isLoggedIn, ownerShips, otherShips, systemId]);
@@ -2793,14 +2793,10 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 						{(() => {
 							const dockedShips = [
 								...systemShips.own.filter(
-									(s) =>
-										s.address_planet_id === selectedPlanetId ||
-										s.addressplanetid === selectedPlanetId,
+									(s) => s.addressplanetid === selectedPlanetId,
 								),
 								...systemShips.others.filter(
-									(s) =>
-										s.address_planet_id === selectedPlanetId ||
-										s.addressplanetid === selectedPlanetId,
+									(s) => s.addressplanetid === selectedPlanetId,
 								),
 							];
 							if (dockedShips.length === 0) return null;
@@ -2825,9 +2821,9 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 									>
 										{dockedShips.map((ship) => (
 											<Box
-												key={ship.id || ship.ship_id}
+												key={ship.shipid || ship.id}
 												onClick={() =>
-													onSelectShip && onSelectShip(ship.id || ship.ship_id)
+													onSelectShip && onSelectShip(ship.shipid || ship.id)
 												}
 												sx={{
 													display: "flex",
@@ -3123,14 +3119,10 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 						{(() => {
 							const dockedShips = [
 								...systemShips.own.filter(
-									(s) =>
-										s.address_station_id === selectedStationId ||
-										s.addressstationid === selectedStationId,
+									(s) => s.addressstationid === selectedStationId,
 								),
 								...systemShips.others.filter(
-									(s) =>
-										s.address_station_id === selectedStationId ||
-										s.addressstationid === selectedStationId,
+									(s) => s.addressstationid === selectedStationId,
 								),
 							];
 							if (dockedShips.length === 0) return null;
@@ -3155,9 +3147,9 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 									>
 										{dockedShips.map((ship) => (
 											<Box
-												key={ship.id || ship.ship_id}
+												key={ship.shipid || ship.id}
 												onClick={() =>
-													onSelectShip && onSelectShip(ship.id || ship.ship_id)
+													onSelectShip && onSelectShip(ship.shipid || ship.id)
 												}
 												sx={{
 													display: "flex",
@@ -3324,14 +3316,10 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 									// Present docked ships
 									const dockedShips = [
 										...systemShips.own.filter(
-											(s) =>
-												s.address_planet_id === planetId ||
-												s.addressplanetid === planetId,
+											(s) => s.addressplanetid === planetId,
 										),
 										...systemShips.others.filter(
-											(s) =>
-												s.address_planet_id === planetId ||
-												s.addressplanetid === planetId,
+											(s) => s.addressplanetid === planetId,
 										),
 									];
 
@@ -3630,14 +3618,10 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 									// Present docked ships
 									const dockedShips = [
 										...systemShips.own.filter(
-											(s) =>
-												s.address_station_id === stationId ||
-												s.addressstationid === stationId,
+											(s) => s.addressstationid === stationId,
 										),
 										...systemShips.others.filter(
-											(s) =>
-												s.address_station_id === stationId ||
-												s.addressstationid === stationId,
+											(s) => s.addressstationid === stationId,
 										),
 									];
 

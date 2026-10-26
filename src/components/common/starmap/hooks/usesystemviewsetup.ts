@@ -217,6 +217,8 @@ export const useSystemViewSetup = (
 	allStationsData: Record<string, StationData[]>,
 	systemExitZoomRef: React.MutableRefObject<number | null>,
 	currentViewMode: "galaxy" | "system",
+	isTransitioningRef?: React.MutableRefObject<boolean>,
+	suppressSystemCenterRef?: React.MutableRefObject<boolean>,
 ) => {
 	const [orbitLines, setOrbitLines] = useState<any[]>([]);
 	const [systemBoundingBox, setSystemBoundingBox] = useState<any[]>([]);
@@ -237,13 +239,30 @@ export const useSystemViewSetup = (
 			return;
 		}
 
-		const sid = centeredSystem.originalSystemId ?? "";
-		let planets = sid ? allPlanetsData[sid] || [] : [];
+		const rawSid = centeredSystem.originalSystemId || centeredSystem.id || "";
+		const cleanSid = String(rawSid).toLowerCase().replace(/^sys-/, "");
+		let planets = allPlanetsData[cleanSid] || allPlanetsData[rawSid] || allPlanetsData[`sys-${cleanSid}`] || [];
+		if (planets.length === 0 && cleanSid) {
+			for (const [k, v] of Object.entries(allPlanetsData || {})) {
+				if (k.toLowerCase().replace(/^sys-/, "") === cleanSid) {
+					planets = v;
+					break;
+				}
+			}
+		}
 		planets = planets
 			.slice()
 			.sort((a, b) => (a.semimajoraxis ?? 0) - (b.semimajoraxis ?? 0));
 
-		const stations = sid ? allStationsData[sid] || [] : [];
+		let stations = allStationsData[cleanSid] || allStationsData[rawSid] || allStationsData[`sys-${cleanSid}`] || [];
+		if (stations.length === 0 && cleanSid) {
+			for (const [k, v] of Object.entries(allStationsData || {})) {
+				if (k.toLowerCase().replace(/^sys-/, "") === cleanSid) {
+					stations = v;
+					break;
+				}
+			}
+		}
 
 		const VISUAL_MAX_RADIUS = 80;
 		const VISUAL_MIN_RADIUS = 8;
@@ -431,21 +450,30 @@ export const useSystemViewSetup = (
 			const ZOOM_EXIT_BUFFER = 1.5;
 			systemExitZoomRef.current = dynamicZoom - ZOOM_EXIT_BUFFER;
 
-			const systemCenter = [centeredSystem.x, centeredSystem.y];
-			const targetSystemViewState = {
-				target: systemCenter,
-				zoom: dynamicZoom, // Use dynamicZoom instead of PLANET_ZOOM_THRESHOLD
-				transitionDuration: 300,
-				transitionInterpolator: new CartesianInterpolator(),
-			};
-			ignoreOnViewStateChangeRef.current = true;
-			setSystemViewState(targetSystemViewState);
-			setCurrentViewMode("system");
+			const shouldSetCamera =
+				!isTransitioningRef?.current &&
+				!suppressSystemCenterRef?.current &&
+				initialPlanetZoomRef.current === null;
+
+			if (shouldSetCamera) {
+				const systemCenter = [centeredSystem.x, centeredSystem.y];
+				const targetSystemViewState = {
+					target: systemCenter,
+					zoom: dynamicZoom, // Use dynamicZoom instead of PLANET_ZOOM_THRESHOLD
+					transitionDuration: 300,
+					transitionInterpolator: new CartesianInterpolator(),
+				};
+				ignoreOnViewStateChangeRef.current = true;
+				setSystemViewState(targetSystemViewState);
+				setTimeout(() => {
+					ignoreOnViewStateChangeRef.current = false;
+				}, 350);
+			}
+			if (suppressSystemCenterRef?.current) {
+				suppressSystemCenterRef.current = false;
+			}
 			setSystemBoundingBox([{ polygon: polygon, color: finalColor }]);
 			initialPlanetZoomRef.current = dynamicZoom; // Update initialPlanetZoomRef as well
-			setTimeout(() => {
-				ignoreOnViewStateChangeRef.current = false;
-			}, 350);
 		} else {
 			setSystemBoundingBox([]);
 
@@ -453,23 +481,31 @@ export const useSystemViewSetup = (
 
 			// If no planets, still set a default system view state
 			const defaultZoom = -2;
-			initialPlanetZoomRef.current = defaultZoom;
 			systemExitZoomRef.current = defaultZoom - 1.5;
 
-			const systemCenter = [centeredSystem.x, centeredSystem.y];
-			const targetSystemViewState = {
-				target: systemCenter,
-				zoom: -2, // A reasonable default zoom for an empty system
-				transitionDuration: 300,
-				transitionInterpolator: new CartesianInterpolator(),
-			};
-			ignoreOnViewStateChangeRef.current = true;
-			setSystemViewState(targetSystemViewState);
-			setCurrentViewMode("system");
+			const shouldSetCamera =
+				!isTransitioningRef?.current &&
+				!suppressSystemCenterRef?.current &&
+				initialPlanetZoomRef.current === null;
+
+			if (shouldSetCamera) {
+				const systemCenter = [centeredSystem.x, centeredSystem.y];
+				const targetSystemViewState = {
+					target: systemCenter,
+					zoom: -2, // A reasonable default zoom for an empty system
+					transitionDuration: 300,
+					transitionInterpolator: new CartesianInterpolator(),
+				};
+				ignoreOnViewStateChangeRef.current = true;
+				setSystemViewState(targetSystemViewState);
+				setTimeout(() => {
+					ignoreOnViewStateChangeRef.current = false;
+				}, 350);
+			}
+			if (suppressSystemCenterRef?.current) {
+				suppressSystemCenterRef.current = false;
+			}
 			initialPlanetZoomRef.current = -2;
-			setTimeout(() => {
-				ignoreOnViewStateChangeRef.current = false;
-			}, 350);
 		}
 	}, [
 		centeredSystem,
@@ -481,6 +517,7 @@ export const useSystemViewSetup = (
 		ignoreOnViewStateChangeRef,
 		systemBoundsRef,
 		currentViewMode,
+		isTransitioningRef,
 	]);
 
 	return {

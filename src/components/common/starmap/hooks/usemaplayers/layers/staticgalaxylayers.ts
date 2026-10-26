@@ -13,6 +13,7 @@ import {
 	getLabelPos,
 	getPathData,
 	getConnectionColor,
+	PACKAGE_ICON_DATA_URL,
 } from "../constants";
 
 interface BuildStaticGalaxyLayersProps {
@@ -20,6 +21,7 @@ interface BuildStaticGalaxyLayersProps {
 	shippingModeHighlights?: {
 		systemIds: Set<string>;
 	};
+	packageCargoSystems?: { id: string; x: number; y: number; name: string; count: number }[];
 	isGalaxyView: boolean;
 	systemConnections: { sourcePosition: number[]; targetPosition: number[] }[];
 	gatewayConnections: {
@@ -44,6 +46,7 @@ interface BuildStaticGalaxyLayersProps {
 	handleSystemHover: (info: any) => void;
 	allPlanetsData: Record<string, any[]>;
 	showLabels: boolean;
+	zoom?: number;
 }
 
 /**
@@ -53,6 +56,7 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 	const {
 		mode,
 		shippingModeHighlights,
+		packageCargoSystems,
 		isGalaxyView,
 		systemConnections,
 		gatewayConnections,
@@ -70,6 +74,7 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 		handleSystemHover,
 		allPlanetsData,
 		showLabels,
+		zoom = 1,
 	} = props;
 
 	if (!isGalaxyView) return [];
@@ -212,37 +217,6 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 		}
 	}
 
-	// Draw shipping mode system halos
-	if (isGalaxyView && mode === "shipping" && shippingModeHighlights?.systemIds && shippingModeHighlights.systemIds.size > 0) {
-		const shipmentSystems = systemsPoints.filter((s) =>
-			shippingModeHighlights.systemIds.has(s.originalSystemId || s.id),
-		);
-		if (shipmentSystems.length > 0) {
-			layers.push(
-				new ScatterplotLayer({
-					id: "systems-shipping-halo-highlight",
-					data: shipmentSystems,
-					getPosition: (d: any) => [d.x, d.y],
-					getRadius: (d: any) => {
-						const popRatio =
-							maxSystemPopulation > 1
-								? Math.log1p(d.population ?? 0) /
-									Math.log1p(maxSystemPopulation)
-								: 0;
-						return 32 * (1 + popRatio * 2);
-					},
-					radiusUnits: "meters",
-					getLineColor: [0, 229, 255, 255],
-					getFillColor: [0, 229, 255, 45],
-					lineWidthMinPixels: 3.5,
-					stroked: true,
-					filled: true,
-					pickable: false,
-				}),
-			);
-		}
-	}
-
 	if (isGalaxyView && ownedSystemsData.length > 0) {
 		layers.push(
 			new ScatterplotLayer({
@@ -364,6 +338,83 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 					getColor: [filter, searchQuery, shortestPathData],
 					getBackgroundColor: [filter, searchQuery, shortestPathData],
 				},
+			}),
+		);
+	}
+
+	// Stored Package Cargo Indicators (Warehouse / Storage) in Galaxy View - Always rendered ON TOP
+	if (isGalaxyView && mode === "shipping" && packageCargoSystems && packageCargoSystems.length > 0) {
+		// When zoomed out (zoom <= 0.6), offset converges to 0 so the package icon sits directly on the system.
+		// When zoomed in (zoom >= 1.8), offset is slightly above (-18px).
+		const zoomFactor = Math.max(0, Math.min(1, (zoom - 0.6) / 1.2));
+		const iconOffset: [number, number] = [0, -Math.round(18 * zoomFactor)];
+		const badgeOffset: [number, number] = [0, -Math.round(18 * zoomFactor) - 18];
+
+		layers.push(
+			new IconLayer({
+				id: "systems-package-cargo-icons",
+				data: packageCargoSystems,
+				getIcon: () => ({
+					url: PACKAGE_ICON_DATA_URL,
+					width: 64,
+					height: 64,
+					anchorY: 32, // centered anchor vertically
+				}),
+				getPosition: (d: any) => [d.x, d.y],
+				getSize: 28,
+				sizeUnits: "pixels",
+				sizeMinPixels: 18,
+				sizeMaxPixels: 40,
+				getPixelOffset: iconOffset,
+				updateTriggers: {
+					getPixelOffset: [zoom],
+				},
+				billboard: true,
+				pickable: true,
+				parameters: { depthTest: false },
+				onClick: (info: any) => {
+					if (info.object) {
+						const sys = systemsPoints.find(
+							(s) => s.originalSystemId === info.object.id || s.id === info.object.id,
+						);
+						if (sys) handleSystemClick(sys);
+					}
+				},
+				onHover: (info: any) => {
+					if (info.object) {
+						handleSystemHover({
+							x: info.x,
+							y: info.y,
+							object: {
+								label: `📦 ${info.object.count} package(s) stored in ${info.object.name}`,
+							},
+						});
+					} else {
+						handleSystemHover({ object: null });
+					}
+				},
+			}),
+		);
+
+		layers.push(
+			new TextLayer({
+				id: "systems-package-cargo-badges",
+				data: packageCargoSystems,
+				getPosition: (d: any) => [d.x, d.y],
+				getText: (d: any) => `📦 ${d.count > 1 ? d.count : ""}`.trim(),
+				getSize: 12,
+				sizeUnits: "pixels",
+				getColor: [255, 185, 0, 255],
+				background: true,
+				getBackgroundColor: [20, 15, 5, 230],
+				backgroundPadding: [4, 2],
+				getPixelOffset: badgeOffset,
+				updateTriggers: {
+					getPixelOffset: [zoom],
+				},
+				billboard: true,
+				pickable: false,
+				parameters: { depthTest: false },
 			}),
 		);
 	}

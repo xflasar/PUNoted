@@ -105,7 +105,7 @@ export const useShipArrivalNotifier = (
 					payload.destination_name ||
 					payload.location ||
 					"destination";
-				const shipId = payload.ship_id || payload.id || "ship";
+				const shipId = payload.shipid || payload.ship_id || payload.id || "ship";
 				const key = `ws_${shipId}_${Date.now()}`;
 
 				if (!checkedArrivalsRef.current.has(key)) {
@@ -138,8 +138,7 @@ export const useShipArrivalNotifier = (
 				const arrivalMs = getFlightArrivalMs(plan);
 				if (arrivalMs <= 0) return;
 
-				const shipId =
-					ship.ship_id || ship.id || (ship as any).shipid || "unknown";
+				const shipId = ship.shipid || ship.id || "unknown";
 				const shipName = ship.name || ship.registration || shipId;
 				const arrivalKey = `arrival_${shipId}_${arrivalMs}`;
 

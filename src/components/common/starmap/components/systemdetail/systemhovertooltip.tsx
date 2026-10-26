@@ -45,12 +45,10 @@ const SystemHoverTooltip: React.FC<SystemHoverTooltipProps> = ({
 
 		// Count docked ships
 		const ownDockedCount = ownerShips.filter(
-			(s) =>
-				s.addressstationid === stationId || s.address_station_id === stationId,
+			(s) => s.addressstationid === stationId,
 		).length;
 		const otherDockedCount = otherShips.filter(
-			(s) =>
-				s.addressstationid === stationId || s.address_station_id === stationId,
+			(s) => s.addressstationid === stationId,
 		).length;
 
 		return (
@@ -178,10 +176,10 @@ const SystemHoverTooltip: React.FC<SystemHoverTooltipProps> = ({
 
 	// Count ships in this system
 	const ownShipsCount = ownerShips.filter(
-		(s) => s.address_system_id === systemId || s.addresssystemid === systemId,
+		(s) => s.addresssystemid === systemId,
 	).length;
 	const otherShipsCount = otherShips.filter(
-		(s) => s.address_system_id === systemId || s.addresssystemid === systemId,
+		(s) => s.addresssystemid === systemId,
 	).length;
 
 	// Aggregate unique resources from all planets
