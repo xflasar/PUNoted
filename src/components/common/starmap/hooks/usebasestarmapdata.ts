@@ -371,6 +371,22 @@ export function useBaseStarMapData({
 		[setCenteredSystem, setCurrentViewMode, setGalaxyViewState],
 	);
 
+	const handleExitSystemView = useCallback(() => {
+		ignoreOnViewStateChangeRef.current = true;
+		setCenteredSystem(null);
+		setIsSystemPanelOpen(false);
+		setCurrentViewMode("galaxy");
+		setGalaxyViewState((v: any) => ({
+			...v,
+			zoom: 1.5,
+			transitionDuration: 300,
+			transitionInterpolator: new CartesianInterpolator(),
+		}));
+		setTimeout(() => {
+			ignoreOnViewStateChangeRef.current = false;
+		}, 350);
+	}, [setCenteredSystem, setIsSystemPanelOpen, setCurrentViewMode, setGalaxyViewState]);
+
 	const handleSelectPlanet = useCallback(
 		(planetId: string, sys: MapPoint) => {
 			suppressSystemCenterRef.current = true;
@@ -1660,6 +1676,7 @@ export function useBaseStarMapData({
 		isFilterActive,
 		matchedSystems,
 		handleSelectSystem,
+		handleExitSystemView,
 		sliderMin,
 		sliderMax,
 		sliderMarks,

@@ -1,5 +1,6 @@
 import React from "react";
-import { Box, Paper, useTheme, useMediaQuery } from "@mui/material";
+import { Box, Paper, Button, useTheme, useMediaQuery } from "@mui/material";
+import { ArrowBack } from "@mui/icons-material";
 import DeckGL from "@deck.gl/react";
 import { OrthographicView, LinearInterpolator } from "@deck.gl/core";
 import type { AnimatedShipData } from "./types/maptypes";
@@ -88,6 +89,20 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 
 	const mapState = useBaseStarMapData({ mode, overrideShips, focusTarget, contracts });
 
+	const handleZoomIn = React.useCallback(() => {
+		const step = 0.5;
+		const currentZoom = mapState.activeViewState.zoom ?? 0;
+		const nextZoom = Math.min(mapState.sliderMax, currentZoom + step);
+		mapState.handleSliderChange(null as any, nextZoom);
+	}, [mapState]);
+
+	const handleZoomOut = React.useCallback(() => {
+		const step = 0.5;
+		const currentZoom = mapState.activeViewState.zoom ?? 0;
+		const nextZoom = Math.max(mapState.sliderMin, currentZoom - step);
+		mapState.handleSliderChange(null as any, nextZoom);
+	}, [mapState]);
+
 	return (
 		<Paper
 			sx={{ flexGrow: 1, position: "relative", width: "100%", height: "100%" }}
@@ -155,6 +170,7 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 						onToggleAllCorpVisibility={mapState.handleToggleAllCorpVisibility}
 						ownShipsVisible={mapState.ownShipsVisible}
 						onToggleOwnVisibility={mapState.handleToogleOwnShipsVisibility}
+						isSystemPanelOpen={mapState.isSystemPanelOpen}
 					/>
 				)}
 
@@ -259,6 +275,43 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 						/>
 					)}
 
+				{mapState.currentViewMode === "system" && (
+					<Button
+						variant="contained"
+						size="small"
+						startIcon={<ArrowBack sx={{ color: theme.palette.secondary.main }} />}
+						onClick={mapState.handleExitSystemView}
+						sx={{
+							position: "absolute",
+							top: { xs: 62, sm: 16 },
+							left: { xs: 12, sm: 20 },
+							zIndex: 1000,
+							bgcolor: "rgba(16, 16, 32, 0.85)",
+							backdropFilter: "blur(15px)",
+							border: "1px solid rgba(123, 104, 238, 0.35)",
+							borderRadius: "20px",
+							px: { xs: 1.5, sm: 2 },
+							py: 0.6,
+							color: "#ffffff",
+							fontSize: { xs: "0.7rem", sm: "0.75rem" },
+							fontWeight: 700,
+							letterSpacing: "0.05em",
+							textTransform: "none",
+							boxShadow:
+								"0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(123, 104, 238, 0.2)",
+							"&:hover": {
+								bgcolor: "rgba(24, 24, 48, 0.95)",
+								borderColor: theme.palette.primary.light,
+								boxShadow: "0 0 16px rgba(123, 104, 238, 0.45)",
+							},
+						}}
+					>
+						{mapState.centeredSystem?.name
+							? `Exit ${mapState.centeredSystem.name}`
+							: "Galaxy View"}
+					</Button>
+				)}
+
 				<MapZoomControls
 					currentViewMode={mapState.currentViewMode}
 					activeZoom={mapState.activeViewState.zoom ?? -3}
@@ -266,6 +319,9 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					sliderMax={mapState.sliderMax}
 					sliderMarks={mapState.sliderMarks}
 					onChange={mapState.handleSliderChange as any}
+					onZoomIn={handleZoomIn}
+					onZoomOut={handleZoomOut}
+					isSystemPanelOpen={mapState.isSystemPanelOpen}
 				/>
 			</Box>
 		</Paper>

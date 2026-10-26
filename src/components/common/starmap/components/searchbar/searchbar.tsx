@@ -7,6 +7,7 @@ import {
 	Box,
 	Autocomplete,
 	Typography,
+	useMediaQuery,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -36,6 +37,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 	onSearchQueryChange,
 }) => {
 	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 	const [inputValue, setInputValue] = useState("");
 	const [debouncedInput, setDebouncedInput] = useState("");
 	const [filtersOpen, setFiltersOpen] = useState(false);
@@ -109,12 +111,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
 		<Box
 			sx={{
 				position: "absolute",
-				top: 10,
+				top: { xs: 8, sm: 12, md: 16 },
 				left: "50%",
 				transform: "translateX(-50%)",
-				zIndex: 11,
-				width: "40%",
-				minWidth: 320,
+				zIndex: 1001,
+				width: { xs: "calc(100% - 24px)", sm: "380px", md: "460px", lg: "520px" },
 				maxWidth: 520,
 			}}
 		>
@@ -222,7 +223,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
 							<TextField
 								{...restParams}
 								variant="standard"
-								placeholder="Search for a system or planet..."
+								placeholder={
+									isMobile
+										? "Search systems / planets..."
+										: "Search for a system or planet..."
+								}
 								sx={{
 									"& .MuiInputBase-input::placeholder": {
 										color: "rgba(255, 255, 255, 0.4)",
