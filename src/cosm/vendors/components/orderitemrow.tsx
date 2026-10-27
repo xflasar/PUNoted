@@ -854,7 +854,18 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 											const { key, ...optionProps } = props;
 
 											return (
-												<li key={key} {...optionProps}>
+												<li
+													key={key}
+													{...optionProps}
+													style={{
+														...optionProps.style,
+														opacity: quantity === 0 ? 0.5 : 1,
+														borderBottom:
+															option.location_code === "HRT"
+																? `1px solid ${theme.palette.divider}`
+																: undefined,
+													}}
+												>
 													{formatLocation(
 														option.location_name,
 														option.location_code,
