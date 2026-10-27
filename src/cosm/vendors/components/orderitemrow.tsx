@@ -250,6 +250,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			material.ordertype === "buy"
 				? "Quantity the market shows you want"
 				: "Quantity the market shows you have";
+		const marketWarningTooltip = `Check Locations and ${material.ordertype === "buy" ? "Demand" : "Reserve"} settings`;
 		const isPriceLocked = Boolean(material.isPriceLocked);
 		const displayPrice = pickPrice({
 			fixedprice: isPriceLocked
@@ -624,10 +625,18 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 								align="center"
 								sx={{
 									fontWeight: 700,
-									color: marketQuantity > 0 ? marketColor : "text.disabled",
+									color: marketColor,
 								}}
 							>
-								{formatAmount(marketQuantity)}
+								{marketQuantity === 0 ? (
+									<Tooltip title={marketWarningTooltip}>
+										<span style={{ cursor: "help" }}>
+											{formatAmount(marketQuantity)} ⚠️
+										</span>
+									</Tooltip>
+								) : (
+									formatAmount(marketQuantity)
+								)}
 							</Typography>
 						</Cell>
 
