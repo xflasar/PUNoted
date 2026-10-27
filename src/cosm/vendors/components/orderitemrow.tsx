@@ -12,6 +12,7 @@ import {
 	Typography,
 	TextField,
 	IconButton,
+	InputAdornment,
 	Button,
 	Autocomplete,
 	useTheme,
@@ -259,6 +260,38 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			corpprice: material.price?.corpprice,
 			cxprice: material.price?.cxprice,
 		}).price;
+		const referencePrices = [
+			{ label: "COSM", price: material.price?.corpprice },
+			{ label: "CX", price: material.price?.cxprice },
+		].filter(
+			(reference): reference is { label: string; price: number } =>
+				typeof reference.price === "number" &&
+				Number.isFinite(reference.price) &&
+				reference.price > 0,
+		);
+		const priceRange = referencePrices.length
+			? {
+					min: Math.min(...referencePrices.map(({ price }) => price)) * 0.75,
+					max: Math.max(...referencePrices.map(({ price }) => price)) * 1.25,
+				}
+			: null;
+		const isPriceUnusual =
+			!isPriceLocked &&
+			priceRange !== null &&
+			(displayPrice < priceRange.min || displayPrice > priceRange.max);
+		const priceWarningTooltip = (
+			<>
+				{priceRange && displayPrice < priceRange.min ? "Low" : "High"} price
+				warning
+				<br />
+				{referencePrices.map(({ label, price }, index) => (
+					<React.Fragment key={label}>
+						{index > 0 && " · "}
+						{label}: <b>{formatCurrency(price)}</b>
+					</React.Fragment>
+				))}
+			</>
+		);
 		const displayQuantity = currentLocations.reduce(
 			(sum: number, loc: any) =>
 				sum + (loc.available ?? loc.storage_amount ?? loc.amount ?? 0),
@@ -558,17 +591,38 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 											}
 											disabled={isPriceLocked}
 											slotProps={{
-												input: {
+												input: isPriceUnusual
+													? {
+															startAdornment: (
+																<InputAdornment position="start">
+																	<Tooltip title={priceWarningTooltip}>
+																		<span style={{ cursor: "help" }}>⚠️</span>
+																	</Tooltip>
+																</InputAdornment>
+															),
+														}
+													: undefined,
+												htmlInput: {
 													min: 0,
-													style: { textAlign: "center" },
+													step: 0.01,
 												},
 											}}
 											sx={{
 												width: "100%",
-												"& .MuiInputBase-root.Mui-disabled, & .MuiInputBase-input.Mui-disabled":
-													{
-														cursor: "not-allowed",
+												"& .MuiInputBase-input": {
+													textAlign: "right",
+													fontWeight: "bold",
+												},
+												"& .MuiInputBase-root.Mui-disabled": {
+													cursor: "not-allowed",
+													opacity: 0.8,
+													"& .MuiOutlinedInput-notchedOutline": {
+														border: "none",
 													},
+												},
+												"& .MuiInputBase-input.Mui-disabled": {
+													cursor: "not-allowed",
+												},
 											}}
 										/>
 									</Box>
