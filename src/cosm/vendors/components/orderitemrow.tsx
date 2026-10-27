@@ -28,7 +28,10 @@ import type { OrderItem, Location } from "../types";
 import { formatCurrency } from "../../../dashboard/financial/utils/financeutils";
 import { formatAmount } from "../../../utils/formaters";
 import { pickPrice } from "../utils/pickprice";
-import { formatLocation } from "../utils/formatlocation";
+import {
+	formatLocation,
+	useLocationFormatVersion,
+} from "../utils/formatlocation";
 import MaterialBadge from "../../components/materialbadge";
 
 export const getLocationMarketQuantity = (
@@ -195,6 +198,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		availableMaterialsList,
 	}) => {
 		const theme = useTheme();
+		const locationFormatVersion = useLocationFormatVersion();
 		const [open, setOpen] = useState(false);
 		const [locationInputValue, setLocationInputValue] = useState("");
 
@@ -202,13 +206,16 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			return Array.isArray(material.locations) ? material.locations : [];
 		}, [material.locations]);
 
-		const compareLocations = useCallback((a: Location, b: Location) => {
-			if (a.location_code === "HRT") return -1;
-			if (b.location_code === "HRT") return 1;
-			return `${a.location_name} [${a.location_code}]`.localeCompare(
-				`${b.location_name} [${b.location_code}]`,
-			);
-		}, []);
+		const compareLocations = useCallback(
+			(a: Location, b: Location) => {
+				if (a.location_code === "HRT") return -1;
+				if (b.location_code === "HRT") return 1;
+				return formatLocation(a.location_name, a.location_code).localeCompare(
+					formatLocation(b.location_name, b.location_code),
+				);
+			},
+			[locationFormatVersion],
+		);
 
 		const sortedCurrentLocations = useMemo(() => {
 			return [...currentLocations].sort(compareLocations);
@@ -492,7 +499,10 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 											) : (
 												<>
 													<Box component="span" sx={{ fontWeight: "bold" }}>
-														{sortedCurrentLocations[0].location_name}
+														{formatLocation(
+															sortedCurrentLocations[0].location_name,
+															sortedCurrentLocations[0].location_code,
+														)}
 													</Box>
 													{currentLocations.length > 1 &&
 														` +${currentLocations.length - 1}`}

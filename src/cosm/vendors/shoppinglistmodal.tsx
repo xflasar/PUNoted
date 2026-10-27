@@ -58,6 +58,10 @@ import LocationFilter, {
 import InlineConfirmButton from "../components/inlineconfirmbutton";
 import { Modal } from "./modal";
 import { useGlobalData } from "../../context/globaldatacontext";
+import {
+	formatLocation as formatLocationLabel,
+	useLocationFormatVersion,
+} from "./utils/formatlocation";
 import shoppingListHelp1 from "../../assets/screenshots/shopping_list_help_1.png";
 import shoppingListHelp2 from "../../assets/screenshots/shopping_list_help_2.png";
 import shoppingListHelp3 from "../../assets/screenshots/shopping_list_help_3.png";
@@ -189,8 +193,6 @@ const formatAmount = (a: number | null | undefined): string =>
 	a == null || isNaN(a)
 		? "N/A"
 		: new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(a);
-const formatLocationLabel = (name: string, id: string): string =>
-	name === id ? name : `${name} (${id})`;
 const getSourceId = (order: Pick<OrderItem, "vendorid" | "location">) => {
 	const location = order.location?.[0];
 	return `${order.vendorid}:${location?.location_code || location?.location_name || "unknown"}`;
@@ -282,6 +284,7 @@ const VendorPrioritySelector: React.FC<{
 	onUpdatePriority: (newPriority: string[]) => void;
 }> = React.memo(({ sortedVendors, sourcedVendorIds, onUpdatePriority }) => {
 	const theme = useTheme();
+	useLocationFormatVersion();
 	const vendorsWithStock = useMemo(
 		() => sortedVendors.filter((vendor) => vendor.quantity > 0),
 		[sortedVendors],
@@ -1549,6 +1552,7 @@ const ShoppingListModal: React.FC<{
 	cxPriceLookup: CxPriceLookup;
 }> = ({ isLoading, vendors, cxPriceLookup }) => {
 	const theme = useTheme();
+	const locationFormatVersion = useLocationFormatVersion();
 	const { materialData, isMaterialDataLoaded } = useGlobalData();
 	const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
 	const isCompact = useMediaQuery(theme.breakpoints.down("xl"));
@@ -1896,19 +1900,21 @@ const ShoppingListModal: React.FC<{
 				const aIsHrt = a.location?.location_code === "HRT";
 				const bIsHrt = b.location?.location_code === "HRT";
 				if (aIsHrt !== bIsHrt) return aIsHrt ? -1 : 1;
-				return (
-					a.location?.location_name ||
-					a.location?.location_code ||
-					""
+				return formatLocationLabel(
+					a.location?.location_name,
+					a.location?.location_code,
 				).localeCompare(
-					b.location?.location_name || b.location?.location_code || "",
+					formatLocationLabel(
+						b.location?.location_name,
+						b.location?.location_code,
+					),
 				);
 			})
 			.map(({ location, vendors }) => ({
 				location,
 				vendors: Object.values(vendors),
 			}));
-	}, [shoppingSummary]);
+	}, [locationFormatVersion, shoppingSummary]);
 
 	const handleCopyContract = async (
 		locationCode: string,

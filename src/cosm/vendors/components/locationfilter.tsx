@@ -9,6 +9,10 @@ import {
 	type SxProps,
 	type Theme,
 } from "@mui/material";
+import {
+	formatLocation as formatLocationName,
+	useLocationFormatVersion,
+} from "../utils/formatlocation";
 
 export type LocationOption = { id: string; name?: string };
 export const ALL_LOCATIONS_ID = "all-locations";
@@ -30,9 +34,7 @@ const formatLocation = (option: LocationOption) =>
 	option.id === HORTUS_LOCATION_CODE ||
 	option.id === NOT_HORTUS_LOCATION
 		? option.name || option.id
-		: option.name && option.name !== option.id
-			? `${option.name} (${option.id})`
-			: option.name || option.id;
+		: formatLocationName(option.name, option.id);
 
 const LocationFilter = ({
 	locations,
@@ -48,6 +50,7 @@ const LocationFilter = ({
 	popperSx?: SxProps<Theme>;
 }) => {
 	const theme = useTheme();
+	const locationFormatVersion = useLocationFormatVersion();
 	const [inputValue, setInputValue] = useState("");
 	const options = useMemo(() => {
 		const sortedLocations = [...locations].sort((a, b) => {
@@ -66,7 +69,7 @@ const LocationFilter = ({
 					...sortedLocations.filter((location) => location !== hortus),
 				]
 			: [ALL_LOCATIONS, ...sortedLocations];
-	}, [locations]);
+	}, [locationFormatVersion, locations]);
 
 	useEffect(() => {
 		setInputValue(
