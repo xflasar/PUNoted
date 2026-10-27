@@ -1335,6 +1335,7 @@ const AvailableMaterialsPanel: React.FC<{
 				);
 				onImport(importedMaterials);
 				handleCloseImport();
+				onCloseMobile?.();
 				setImportSnackbar({
 					open: true,
 					message: `Imported ${importedMaterials.length} materials`,
@@ -1347,7 +1348,13 @@ const AvailableMaterialsPanel: React.FC<{
 					color: "error",
 				});
 			}
-		}, [handleCloseImport, importText, onImport, validMaterialTickers]);
+		}, [
+			handleCloseImport,
+			importText,
+			onCloseMobile,
+			onImport,
+			validMaterialTickers,
+		]);
 
 		const handleImport = () => {
 			if (!isMaterialDataLoaded) {
@@ -1414,6 +1421,7 @@ const AvailableMaterialsPanel: React.FC<{
 							variant="outlined"
 							startIcon={<FileUp className="inline-icon" />}
 							onClick={() => setShowImport(true)}
+							sx={{ fontWeight: "bold" }}
 						>
 							IMPORT
 						</Button>
@@ -2021,6 +2029,7 @@ const ShoppingListModal: React.FC<{
 										variant="contained"
 										startIcon={<PlusCircle className="inline-icon" />}
 										onClick={() => setShowAddItems(true)}
+										sx={{ fontWeight: "bold" }}
 									>
 										ADD
 									</Button>
@@ -2033,6 +2042,7 @@ const ShoppingListModal: React.FC<{
 										variant="contained"
 										startIcon={<Handshake className="inline-icon" />}
 										onClick={() => setShowSummary(true)}
+										sx={{ fontWeight: "bold" }}
 									>
 										CONTRACTS
 									</Button>

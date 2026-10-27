@@ -407,8 +407,9 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 								>
 									<Button
 										onClick={reset}
+										variant="outlined"
 										disabled={!isDirty || isSaving || isDeleting}
-										color="inherit"
+										sx={{ fontWeight: "bold" }}
 									>
 										DISCARD
 									</Button>
@@ -416,6 +417,7 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 										onClick={handleSave}
 										variant="contained"
 										disabled={!isDirty || isSaving || isDeleting}
+										sx={{ fontWeight: "bold" }}
 									>
 										SAVE
 									</Button>
