@@ -18,8 +18,10 @@ import {
 	CircularProgress,
 	Tooltip,
 	useTheme,
+	alpha,
 } from "@mui/material";
-import { Search, Trash2, PlusCircle, Copy } from "lucide-react";
+import { Search, Trash2, PlusCircle, Copy, X } from "lucide-react";
+import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import { API_BASE_URL } from "../../config/api";
 import MaterialBadge from "../components/materialbadge";
 import InlineConfirmButton from "../components/inlineconfirmbutton";
@@ -538,6 +540,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 	const [materials, setMaterials] = useState<MaterialData[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [exactMatch, setExactMatch] = useState(false);
 	const [copyToastOpen, setCopyToastOpen] = useState(false);
 	const deferredSearch = useDeferredValue(searchTerm);
 
@@ -645,10 +648,14 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 			.filter(
 				(material) =>
 					!terms.length ||
-					terms.some((term) => material.ticker.toLowerCase().startsWith(term)),
+					terms.some((term) =>
+						exactMatch
+							? material.ticker.toLowerCase() === term
+							: material.ticker.toLowerCase().includes(term),
+					),
 			)
 			.sort((a, b) => a.ticker.localeCompare(b.ticker));
-	}, [materials, deferredSearch]);
+	}, [materials, deferredSearch, exactMatch]);
 
 	// Aggregates the cumulative total cost of all entries within the shopping cart.
 	const totalCost = useMemo(
@@ -731,7 +738,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 					>
 						<TextField
 							fullWidth
-							placeholder="Filter (e.g. BBH, O)..."
+							placeholder="Search…"
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 							size="small"
@@ -739,15 +746,65 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 								input: {
 									startAdornment: (
 										<InputAdornment position="start">
-											<Search color="rgba(255,255,255,0.7)" size={20} />
+											<Search
+												className="inline-icon"
+												color={theme.palette.primary.main}
+											/>
+										</InputAdornment>
+									),
+									endAdornment: (
+										<InputAdornment position="end">
+											{searchTerm ? (
+												<Tooltip title="Clear Search">
+													<IconButton
+														size="small"
+														aria-label="Clear material search"
+														onClick={() => setSearchTerm("")}
+													>
+														<X className="inline-icon" />
+													</IconButton>
+												</Tooltip>
+											) : null}
+											<Tooltip
+												title={
+													exactMatch ? "Exact Match: ON" : "Exact Match: OFF"
+												}
+											>
+												<IconButton
+													size="small"
+													onClick={() => setExactMatch((prev) => !prev)}
+													sx={{
+														color: exactMatch
+															? "primary.main"
+															: "text.secondary",
+														bgcolor: exactMatch
+															? alpha(theme.palette.primary.main, 0.15)
+															: "transparent",
+													}}
+												>
+													<CenterFocusStrongIcon className="inline-icon" />
+												</IconButton>
+											</Tooltip>
 										</InputAdornment>
 									),
 								},
 							}}
 							sx={{
 								"& .MuiOutlinedInput-root": {
-									color: "white",
-									"& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
+									height: 40,
+									bgcolor: alpha(theme.palette.background.default, 0.5),
+									backdropFilter: "blur(5px)",
+									borderRadius: "12px",
+									"& fieldset": {
+										borderColor: alpha(theme.palette.common.white, 0.1),
+									},
+									"&:hover fieldset": {
+										borderColor: theme.palette.primary.main,
+									},
+									"&.Mui-focused fieldset": {
+										borderColor: theme.palette.primary.main,
+									},
+									color: theme.palette.text.primary,
 								},
 							}}
 						/>
