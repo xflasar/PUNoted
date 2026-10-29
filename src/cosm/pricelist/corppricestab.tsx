@@ -24,6 +24,7 @@ import { API_BASE_URL } from "../../config/api";
 import MaterialBadge from "../components/materialbadge";
 import InlineConfirmButton from "../components/inlineconfirmbutton";
 import PriceComparisonBadge from "../vendors/components/pricecomparisonbadge";
+import { Toast } from "../vendors/toast";
 import { getDiffStats } from "../vendors/utils/pricecomparison";
 
 const ROW_HEIGHT = 52;
@@ -537,6 +538,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 	const [materials, setMaterials] = useState<MaterialData[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [copyToastOpen, setCopyToastOpen] = useState(false);
 	const deferredSearch = useDeferredValue(searchTerm);
 
 	const [cart, setCart] = useState<CartItem[]>(() => {
@@ -653,6 +655,18 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 		() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
 		[cart],
 	);
+	const handleCopy = useCallback(async () => {
+		const text = [...cart]
+			.sort((a, b) => a.ticker.localeCompare(b.ticker))
+			.map((item) => `${item.ticker}\t${item.quantity}`)
+			.join("\n");
+		try {
+			await navigator.clipboard.writeText(text);
+			setCopyToastOpen(true);
+		} catch (error) {
+			console.error("Failed to copy materials", error);
+		}
+	}, [cart]);
 	const panelSx = {
 		background: theme.palette.background.paper,
 		border: `1px solid ${theme.palette.divider}`,
@@ -775,6 +789,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 						variant="contained"
 						startIcon={<Copy className="inline-icon" />}
 						disabled={cart.length === 0}
+						onClick={handleCopy}
 					>
 						COPY
 					</Button>
@@ -907,6 +922,12 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 					</Box>
 				</Box>
 			</Paper>
+			<Toast
+				open={copyToastOpen}
+				message="Copied!"
+				color="success"
+				onClose={() => setCopyToastOpen(false)}
+			/>
 		</Box>
 	);
 };
