@@ -28,6 +28,7 @@ import InlineConfirmButton from "../components/inlineconfirmbutton";
 import PriceComparisonBadge from "../vendors/components/pricecomparisonbadge";
 import { Toast } from "../vendors/toast";
 import { getDiffStats } from "../vendors/utils/pricecomparison";
+import { useMaterialSearch } from "../hooks/usematerialsearch";
 
 const ROW_HEIGHT = 52;
 const HEADER_HEIGHT = 40;
@@ -537,12 +538,12 @@ VirtualMaterialList.displayName = "VirtualMaterialList";
  */
 const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 	const theme = useTheme();
+	const { searchQuery, exactMatch, setSearchQuery, toggleExactMatch } =
+		useMaterialSearch();
 	const [materials, setMaterials] = useState<MaterialData[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [searchTerm, setSearchTerm] = useState("");
-	const [exactMatch, setExactMatch] = useState(false);
 	const [copyToastOpen, setCopyToastOpen] = useState(false);
-	const deferredSearch = useDeferredValue(searchTerm);
+	const deferredSearch = useDeferredValue(searchQuery);
 
 	const [cart, setCart] = useState<CartItem[]>(() => {
 		try {
@@ -739,8 +740,8 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 						<TextField
 							fullWidth
 							placeholder="Search…"
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
 							size="small"
 							slotProps={{
 								input: {
@@ -754,12 +755,12 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 									),
 									endAdornment: (
 										<InputAdornment position="end">
-											{searchTerm ? (
+											{searchQuery ? (
 												<Tooltip title="Clear Search">
 													<IconButton
 														size="small"
 														aria-label="Clear material search"
-														onClick={() => setSearchTerm("")}
+														onClick={() => setSearchQuery("")}
 													>
 														<X className="inline-icon" />
 													</IconButton>
@@ -772,7 +773,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 											>
 												<IconButton
 													size="small"
-													onClick={() => setExactMatch((prev) => !prev)}
+													onClick={toggleExactMatch}
 													sx={{
 														color: exactMatch
 															? "primary.main"
