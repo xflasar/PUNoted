@@ -15,32 +15,22 @@ import {
 	InputAdornment,
 	IconButton,
 	Button,
-	Stack,
 	CircularProgress,
+	Tooltip,
+	useTheme,
 } from "@mui/material";
-import {
-	Search,
-	Plus,
-	Trash2,
-	ShoppingCart,
-	RefreshCcw,
-	TrendingUp,
-	TrendingDown,
-	Minus,
-} from "lucide-react";
+import { Search, Trash2, PlusCircle, Copy } from "lucide-react";
 import { API_BASE_URL } from "../../config/api";
-import { glassStyle } from "./customcomponents/glassstyle";
 import MaterialBadge from "../components/materialbadge";
+import InlineConfirmButton from "../components/inlineconfirmbutton";
+import PriceComparisonBadge from "../vendors/components/pricecomparisonbadge";
+import { getDiffStats } from "../vendors/utils/pricecomparison";
 
 const ROW_HEIGHT = 52;
 const HEADER_HEIGHT = 40;
 const OVERSCAN = 25;
 
-const COL_WIDTHS = {
-	price: 90,
-	cx: 110,
-	action: 50,
-};
+const ACTION_COLUMN_WIDTH = 50;
 
 /**
  * Represents the baseline structure for a material's market details.
@@ -86,12 +76,21 @@ const SCROLLBAR_STYLES = `
     background: rgba(0, 0, 0, 0.2);
   }
   .custom-scroll::-webkit-scrollbar-thumb {
-    background: rgba(123, 104, 238, 0.4); 
+    background: rgba(123, 104, 238, 0.4);
     border-radius: 4px;
-    border: 2px solid rgba(0,0,0,0.1); 
+    border: 2px solid rgba(0,0,0,0.1);
   }
   .custom-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(123, 104, 238, 0.7);
+  }
+  .corp-price-table thead th {
+    color: #fff !important;
+    font-weight: 400;
+    font-size: 0.75rem !important;
+    text-transform: uppercase;
+  }
+  .corp-price-row:hover {
+    background-color: rgba(255,255,255,0.05);
   }
 `;
 
@@ -136,11 +135,12 @@ const BufferedInput = memo(({ value, onCommit }: BufferedInputProps) => {
 	 */
 	const handleBlur = useCallback(() => {
 		if (localVal === "") {
-			setLocalVal("0");
-			onCommit(0);
+			setLocalVal("1");
+			onCommit(1);
 		} else {
 			let parsed = parseInt(localVal, 10);
-			if (isNaN(parsed)) parsed = 0;
+			if (isNaN(parsed)) parsed = 1;
+			if (parsed < 1) parsed = 1;
 			if (parsed > 999999999) parsed = 999999999;
 			setLocalVal(parsed.toString());
 			if (parsed !== value) onCommit(parsed);
@@ -166,7 +166,7 @@ const BufferedInput = memo(({ value, onCommit }: BufferedInputProps) => {
 			style={{
 				width: "100%",
 				maxWidth: "80px",
-				textAlign: "center",
+				textAlign: "right",
 				background: "rgba(255,255,255,0.08)",
 				border: "1px solid rgba(255,255,255,0.1)",
 				borderRadius: "4px",
@@ -199,34 +199,20 @@ interface MaterialRowProps {
  */
 const MaterialRow = memo(
 	({ item, cxPrice, onAdd }: MaterialRowProps) => {
-		const diff = cxPrice ? item.price - cxPrice : 0;
-		const pct = cxPrice ? (diff / cxPrice) * 100 : 0;
-
-		const isCheaper = diff < 0;
-		const isExpensive = diff > 0;
-
-		const color = isCheaper
-			? "#69f0ae"
-			: isExpensive
-				? "#ff5252"
-				: "rgba(255,255,255,0.5)";
-		const badgeBg = isCheaper
-			? "rgba(105, 240, 174, 0.1)"
-			: isExpensive
-				? "rgba(255, 82, 82, 0.1)"
-				: "rgba(255,255,255,0.05)";
-		const Icon = isCheaper ? TrendingDown : isExpensive ? TrendingUp : Minus;
+		const cxStats = getDiffStats(item.price, cxPrice, "ask");
 
 		return (
 			<tr
+				className="corp-price-row"
 				style={{
 					height: ROW_HEIGHT,
-					borderBottom: "1px solid rgba(255,255,255,0.05)",
+					borderBottom: "1px solid rgba(255,255,255,0.15)",
 				}}
 			>
 				<td
 					style={{
 						padding: "0 8px",
+						textAlign: "center",
 						color: "white",
 						fontWeight: "bold",
 						fontSize: "0.9rem",
@@ -241,88 +227,54 @@ const MaterialRow = memo(
 					style={{
 						padding: "0 8px",
 						textAlign: "right",
-						color: "#7b68ee",
-						width: COL_WIDTHS.price,
-						fontWeight: 600,
-						fontSize: "0.9rem",
 					}}
 				>
-					{item.price.toLocaleString()} ICA
+					{item.price ? (
+						<>
+							<span style={{ color: "#ffca28", fontWeight: "bold" }}>
+								{item.price.toLocaleString()}
+							</span>{" "}
+							<span style={{ fontSize: "0.75em" }}>ICA</span>
+						</>
+					) : (
+						"—"
+					)}
 				</td>
 				<td
 					style={{
 						padding: "0 8px",
-						width: COL_WIDTHS.cx,
-						verticalAlign: "middle",
+						textAlign: "right",
 					}}
 				>
 					{cxPrice ? (
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "column",
-								alignItems: "flex-end",
-								justifyContent: "center",
-								gap: 2,
-							}}
-						>
-							<span
-								style={{
-									fontSize: "0.75rem",
-									color: "rgba(255,255,255,0.4)",
-									lineHeight: 1,
-								}}
-							>
-								{cxPrice.toLocaleString(undefined, {
-									maximumFractionDigits: 2,
-								})}{" "}
-								ICA
-							</span>
-							<div
-								style={{
-									display: "inline-flex",
-									alignItems: "center",
-									gap: 4,
-									padding: "2px 8px",
-									borderRadius: "50px",
-									backgroundColor: badgeBg,
-									border: `1px solid ${color}40`,
-									minWidth: "55px",
-									justifyContent: "center",
-									height: "20px",
-								}}
-							>
-								{Icon && <Icon size={10} color={color} />}
-								<span
-									style={{
-										fontSize: "0.7rem",
-										fontWeight: 700,
-										color: color,
-										lineHeight: 1,
-									}}
-								>
-									{Math.abs(pct).toFixed(1)}%
-								</span>
-							</div>
-						</div>
+						<>
+							<span style={{ color: "#ffca28", fontWeight: "bold" }}>
+								{Math.round(cxPrice).toLocaleString()}
+							</span>{" "}
+							<span style={{ fontSize: "0.75em" }}>ICA</span>
+						</>
 					) : (
-						<div style={{ textAlign: "right", color: "rgba(255,255,255,0.2)" }}>
-							-
-						</div>
+						"—"
 					)}
 				</td>
-				<td style={{ textAlign: "center", width: COL_WIDTHS.action }}>
-					<IconButton
-						size="small"
-						onClick={() => onAdd(item)}
-						sx={{
-							color: "#4caf50",
-							padding: "4px",
-							bgcolor: "rgba(76, 175, 80, 0.1)",
-							"&:hover": { bgcolor: "rgba(76, 175, 80, 0.3)" },
-						}}
-					>
-						<Plus size={18} />
+				<td
+					style={{
+						padding: "0 8px",
+						textAlign: "center",
+						verticalAlign: "middle",
+					}}
+				>
+					<div style={{ display: "flex", justifyContent: "center" }}>
+						{item.price && cxPrice && cxStats ? (
+							<PriceComparisonBadge label="CX" stats={cxStats} />
+						) : (
+							"—"
+						)}
+					</div>
+				</td>
+				<td style={{ textAlign: "center", width: ACTION_COLUMN_WIDTH }}>
+					<IconButton size="small" onClick={() => onAdd(item)}>
+						<PlusCircle className="inline-icon" color="#69f0ae" />
 					</IconButton>
 				</td>
 			</tr>
@@ -371,7 +323,25 @@ const CartRow = memo(
 				>
 					<MaterialBadge ticker={item.ticker} />
 				</td>
-				<td style={{ padding: "8px", textAlign: "center" }}>
+				<td
+					style={{
+						padding: "8px",
+						textAlign: "right",
+						fontSize: "0.9rem",
+					}}
+				>
+					{item.price ? (
+						<>
+							<span style={{ color: "#ffca28", fontWeight: "bold" }}>
+								{item.price.toLocaleString()}
+							</span>{" "}
+							<span style={{ fontSize: "0.75em" }}>ICA</span>
+						</>
+					) : (
+						"—"
+					)}
+				</td>
+				<td style={{ padding: "8px", textAlign: "right" }}>
 					<BufferedInput
 						value={item.quantity}
 						onCommit={(q) => onUpdate(item.id, q)}
@@ -381,11 +351,19 @@ const CartRow = memo(
 					style={{
 						padding: "8px",
 						textAlign: "right",
-						color: "#7b68ee",
 						fontSize: "0.9rem",
 					}}
 				>
-					{(item.price * item.quantity).toLocaleString()}
+					{item.price ? (
+						<>
+							<span style={{ color: "#ffca28", fontWeight: "bold" }}>
+								{(item.price * item.quantity).toLocaleString()}
+							</span>{" "}
+							<span style={{ fontSize: "0.75em" }}>ICA</span>
+						</>
+					) : (
+						"—"
+					)}
 				</td>
 				<td style={{ padding: "8px", textAlign: "center" }}>
 					<IconButton
@@ -465,6 +443,7 @@ const VirtualMaterialList = memo(
 				style={{ height: "100%", overflowY: "auto", overflowX: "hidden" }}
 			>
 				<table
+					className="corp-price-table"
 					style={{
 						width: "100%",
 						borderCollapse: "collapse",
@@ -475,7 +454,8 @@ const VirtualMaterialList = memo(
 						style={{
 							position: "sticky",
 							top: 0,
-							background: "#1a1d42",
+							background: "#0e0e1f",
+							borderBottom: "1px solid rgba(255,255,255,0.15)",
 							zIndex: 10,
 							boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
 						}}
@@ -483,45 +463,45 @@ const VirtualMaterialList = memo(
 						<tr style={{ height: HEADER_HEIGHT }}>
 							<th
 								style={{
-									textAlign: "left",
+									textAlign: "center",
 									padding: "0 8px",
-									color: "#fff",
-									fontSize: "0.8rem",
 								}}
 							>
-								Ticker
+								Material
 							</th>
 							<th
 								style={{
 									textAlign: "right",
 									padding: "0 8px",
-									color: "#fff",
-									width: COL_WIDTHS.price,
-									fontSize: "0.8rem",
 								}}
 							>
-								Price
+								COSM
 							</th>
 							<th
 								style={{
 									textAlign: "right",
 									padding: "0 8px",
-									color: "#fff",
-									width: COL_WIDTHS.cx,
-									fontSize: "0.8rem",
 								}}
 							>
-								CX Ask
+								CX
 							</th>
 							<th
-								style={{ textAlign: "center", width: COL_WIDTHS.action }}
+								style={{
+									textAlign: "center",
+									padding: "0 8px",
+								}}
+							>
+								COSMΔ
+							</th>
+							<th
+								style={{ textAlign: "center", width: ACTION_COLUMN_WIDTH }}
 							></th>
 						</tr>
 					</thead>
 					<tbody>
 						{paddingTop > 0 && (
 							<tr style={{ height: paddingTop }}>
-								<td colSpan={4} />
+								<td colSpan={5} />
 							</tr>
 						)}
 
@@ -536,7 +516,7 @@ const VirtualMaterialList = memo(
 
 						{paddingBottom > 0 && (
 							<tr style={{ height: paddingBottom }}>
-								<td colSpan={4} />
+								<td colSpan={5} />
 							</tr>
 						)}
 					</tbody>
@@ -553,6 +533,7 @@ VirtualMaterialList.displayName = "VirtualMaterialList";
  * an interactive shopping cart for material requisitions.
  */
 const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
+	const theme = useTheme();
 	const [materials, setMaterials] = useState<MaterialData[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
@@ -627,12 +608,12 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 	 * Modifies the explicit quantity requested for a specific cart item entry.
 	 *
 	 * @param id - The unique identifier of the target cart item.
-	 * @param qty - The newly requested quantity amount, bounded to a minimum of 0.
+	 * @param qty - The newly requested quantity amount, bounded to a minimum of 1.
 	 */
 	const updateQty = useCallback((id: number, qty: number) => {
 		setCart((prev) =>
 			prev.map((item) =>
-				item.id === id ? { ...item, quantity: Math.max(0, qty) } : item,
+				item.id === id ? { ...item, quantity: Math.max(1, qty) } : item,
 			),
 		);
 	}, []);
@@ -651,17 +632,20 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 	 */
 	const clearCart = useCallback(() => setCart([]), []);
 
-	// Applies the user's deferred textual search input to filter the overall material list.
+	// Applies the deferred ticker search to the material list.
 	const filteredMaterials = useMemo(() => {
-		if (!deferredSearch) return materials;
 		const terms = deferredSearch
 			.toLowerCase()
 			.split(",")
 			.map((t) => t.trim())
 			.filter(Boolean);
-		return materials.filter((m) =>
-			terms.some((t) => m.ticker.toLowerCase().startsWith(t)),
-		);
+		return materials
+			.filter(
+				(material) =>
+					!terms.length ||
+					terms.some((term) => material.ticker.toLowerCase().startsWith(term)),
+			)
+			.sort((a, b) => a.ticker.localeCompare(b.ticker));
 	}, [materials, deferredSearch]);
 
 	// Aggregates the cumulative total cost of all entries within the shopping cart.
@@ -669,6 +653,11 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 		() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
 		[cart],
 	);
+	const panelSx = {
+		background: theme.palette.background.paper,
+		border: `1px solid ${theme.palette.divider}`,
+		borderRadius: 2,
+	};
 
 	if (loading)
 		return (
@@ -689,9 +678,9 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 			sx={{
 				flex: 1,
 				display: "flex",
-				flexDirection: { xs: "column-reverse", md: "row" },
-				p: 2,
-				gap: 2,
+				flexDirection: { xs: "column", md: "row" },
+				p: { xs: 0, md: 1 },
+				gap: { xs: 0, md: 1 },
 				minHeight: 0,
 				height: "100%",
 				overflow: "hidden",
@@ -704,47 +693,51 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 					flex: { xs: "1 1 auto", md: "0 0 60%" },
 					display: "flex",
 					flexDirection: "column",
-					gap: 2,
 					height: "100%",
 					minHeight: 0,
 				}}
 			>
-				<Paper sx={{ ...glassStyle, p: 2, borderRadius: 2, flexShrink: 0 }}>
-					<TextField
-						fullWidth
-						placeholder="Filter (e.g. BBH, O)..."
-						value={searchTerm}
-						onChange={(e) => setSearchTerm(e.target.value)}
-						size="small"
-						slotProps={{
-							input: {
-								startAdornment: (
-									<InputAdornment position="start">
-										<Search color="rgba(255,255,255,0.7)" size={20} />
-									</InputAdornment>
-								),
-							},
-						}}
-						sx={{
-							"& .MuiOutlinedInput-root": {
-								color: "white",
-								"& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
-							},
-						}}
-					/>
-				</Paper>
-
 				<Paper
 					sx={{
-						...glassStyle,
+						...panelSx,
 						flex: 1,
-						borderRadius: 2,
 						overflow: "hidden",
 						display: "flex",
 						flexDirection: "column",
 						minHeight: 0,
 					}}
 				>
+					<Box
+						sx={{
+							p: 1,
+							borderBottom: `1px solid ${theme.palette.divider}`,
+							bgcolor: "rgba(0,0,0,0.05)",
+							flexShrink: 0,
+						}}
+					>
+						<TextField
+							fullWidth
+							placeholder="Filter (e.g. BBH, O)..."
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+							size="small"
+							slotProps={{
+								input: {
+									startAdornment: (
+										<InputAdornment position="start">
+											<Search color="rgba(255,255,255,0.7)" size={20} />
+										</InputAdornment>
+									),
+								},
+							}}
+							sx={{
+								"& .MuiOutlinedInput-root": {
+									color: "white",
+									"& fieldset": { borderColor: "rgba(255,255,255,0.3)" },
+								},
+							}}
+						/>
+					</Box>
 					<VirtualMaterialList
 						materials={filteredMaterials}
 						marketPrices={marketPrices}
@@ -756,8 +749,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 			<Paper
 				sx={{
 					flex: { xs: "0 0 auto", md: 1 },
-					...glassStyle,
-					borderRadius: 2,
+					...panelSx,
 					display: "flex",
 					flexDirection: "column",
 					height: { xs: "40vh", md: "100%" },
@@ -766,28 +758,34 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 			>
 				<Box
 					sx={{
-						p: 2,
-						borderBottom: "1px solid rgba(255,255,255,0.1)",
+						p: 1.5,
+						borderBottom: `1px solid ${theme.palette.divider}`,
+						bgcolor: "rgba(0,0,0,0.05)",
 						display: "flex",
 						alignItems: "center",
 						gap: 1,
 						flexShrink: 0,
 					}}
 				>
-					<ShoppingCart size={20} color="#7b68ee" />
-					<Typography variant="h6" sx={{ color: "white", fontWeight: 600 }}>
-						Req Order
+					<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+						YOUR MATERIALS
 					</Typography>
+					<Button
+						size="small"
+						variant="contained"
+						startIcon={<Copy className="inline-icon" />}
+						disabled={cart.length === 0}
+					>
+						COPY
+					</Button>
 					<Box sx={{ flexGrow: 1 }} />
-					{cart.length > 0 && (
-						<IconButton
-							size="small"
-							onClick={clearCart}
-							sx={{ color: "rgba(255,100,100,0.8)" }}
-						>
-							<RefreshCcw size={16} />
-						</IconButton>
-					)}
+					<InlineConfirmButton
+						buttonText="CLEAR"
+						icon={<Trash2 className="inline-icon" />}
+						color="error"
+						action={clearCart}
+						disabled={cart.length === 0}
+					/>
 				</Box>
 
 				<Box
@@ -805,17 +803,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 										padding: "8px",
 									}}
 								>
-									Item
-								</th>
-								<th
-									style={{
-										color: "#aaa",
-										textAlign: "center",
-										fontSize: "0.8rem",
-										padding: "8px",
-									}}
-								>
-									Qty
+									MATERIAL
 								</th>
 								<th
 									style={{
@@ -825,24 +813,56 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 										padding: "8px",
 									}}
 								>
-									Total
+									<Tooltip title="Price Per Unit">
+										<Box
+											component="span"
+											sx={{
+												cursor: "help",
+												textDecoration: "underline dotted",
+											}}
+										>
+											PPU
+										</Box>
+									</Tooltip>
+								</th>
+								<th
+									style={{
+										color: "#aaa",
+										textAlign: "right",
+										fontSize: "0.8rem",
+										padding: "8px",
+									}}
+								>
+									QUANTITY
+								</th>
+								<th
+									style={{
+										color: "#aaa",
+										textAlign: "right",
+										fontSize: "0.8rem",
+										padding: "8px",
+									}}
+								>
+									PRICE
 								</th>
 								<th></th>
 							</tr>
 						</thead>
 						<tbody>
-							{cart.map((item) => (
-								<CartRow
-									key={item.id}
-									item={item}
-									onUpdate={updateQty}
-									onRemove={removeFromCart}
-								/>
-							))}
+							{[...cart]
+								.sort((a, b) => a.ticker.localeCompare(b.ticker))
+								.map((item) => (
+									<CartRow
+										key={item.id}
+										item={item}
+										onUpdate={updateQty}
+										onRemove={removeFromCart}
+									/>
+								))}
 							{cart.length === 0 && (
 								<tr>
 									<td
-										colSpan={4}
+										colSpan={5}
 										style={{ textAlign: "center", padding: 20, color: "#666" }}
 									>
 										Cart is empty
@@ -855,32 +875,36 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 
 				<Box
 					sx={{
-						p: 2,
-						borderTop: "1px solid rgba(255,255,255,0.1)",
-						bgcolor: "rgba(0,0,0,0.2)",
+						p: 1.5,
+						bgcolor: "rgba(0,0,0,0.3)",
 						flexShrink: 0,
 					}}
 				>
-					<Stack
-						direction="row"
-						sx={{ mb: 2, justifyContent: "space-between" }}
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "flex-end",
+						}}
 					>
-						<Typography sx={{ color: "#aaa" }}>Total</Typography>
-						<Typography
-							variant="h5"
-							sx={{ color: "#7b68ee", fontWeight: "bold" }}
-						>
-							{totalCost.toLocaleString()} ICA
+						<Typography variant="caption" color="text.secondary">
+							TOTAL PRICE
 						</Typography>
-					</Stack>
-					<Button
-						fullWidth
-						variant="contained"
-						disabled={cart.length === 0}
-						sx={{ bgcolor: "#7b68ee" }}
-					>
-						Copy Order
-					</Button>
+						<Typography variant="h6" sx={{ lineHeight: 1 }}>
+							<Box
+								component="span"
+								sx={{ color: theme.palette.warning.main, fontWeight: "bold" }}
+							>
+								{totalCost.toLocaleString()}
+							</Box>{" "}
+							<Box
+								component="span"
+								sx={{ color: "text.primary", fontSize: "0.7rem" }}
+							>
+								ICA
+							</Box>
+						</Typography>
+					</Box>
 				</Box>
 			</Paper>
 		</Box>
