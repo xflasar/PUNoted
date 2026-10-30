@@ -22,11 +22,13 @@ import { CorporationOverview } from "./dashboard/corporation/corporationoverview
 import ShipmentPage from "./dashboard/shipping/shipmentpage";
 import PublicShipmentPage from "./dashboard/shipping/publicshipmentpage";
 import { ProductionLeaderboard } from "./public/leaderboard";
+import { PublicBanking } from "./public/publicbanking";
 import { fetchClient } from "./utils/apiclient";
 import FinancialOverview from "./dashboard/financial/financialoverview";
 import { API_BASE_URL } from "./config/api";
 import { BasePlanner } from "./dashboard/planner/baseplanner";
 import ContractsPage from "./dashboard/contracts/contracts";
+import BankingPage from "./dashboard/banking/banking";
 import { GlobalWsProvider } from "./dashboard/websocket/globalwscontext";
 import { GlobalDataProvider } from "./context/globaldatacontext";
 
@@ -272,6 +274,8 @@ function App() {
 						<Route path="/cx" element={<CX />} />
 						<Route path="/planner/:planId" element={<BasePlanner />} />
 						<Route path="/shipment/:trackingId" element={<PublicShipmentPage />} />
+						<Route path="/banks" element={<PublicBanking />} />
+						<Route path="/banking" element={<PublicBanking />} />
 
 						{/* Protected Routes - These are nested under a protected layout */}
 						<Route
@@ -304,6 +308,10 @@ function App() {
 								<Route
 									path="/dashboard/contracts"
 									element={<ContractsPage />}
+								/>
+								<Route
+									path="/dashboard/banking"
+									element={<BankingPage />}
 								/>
 								<Route path="/dashboard/shipments" element={<ShipmentPage />} />
 								<Route path="/dashboard/storage" element={<StoragePage />} />

@@ -1,10 +1,10 @@
 import HomeIcon from "@mui/icons-material/Home";
 import StorageIcon from "@mui/icons-material/Storage";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
-import FactoryIcon from "@mui/icons-material/Factory";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import SettingsIcon from "@mui/icons-material/Settings";
 import {
+	AccountBalance,
 	Assignment,
 	CoPresent,
 	Diversity3,
@@ -38,6 +38,11 @@ export const navItems = [
 		text: "Contracts",
 		icon: <Assignment />,
 		href: "/dashboard/contracts",
+	},
+	{
+		text: "Banking (WIP)",
+		icon: <AccountBalance />,
+		href: "/dashboard/banking",
 	},
 	{ text: "Governance (WIP)", icon: <Gavel />, href: "/dashboard/governance" },
 	{
