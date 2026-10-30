@@ -11,6 +11,7 @@ import {
 	FaSignOutAlt,
 	FaStore,
 	FaUsers,
+	FaLandmark,
 } from "react-icons/fa";
 
 import { DownloadGrid, ExtensionButton, NavButton } from "../styles";
@@ -195,7 +196,9 @@ export const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({
 						width: "100%",
 						display: "flex",
 						flexDirection: { xs: "column", sm: "row" },
+						flexWrap: "wrap",
 						justifyContent: "center",
+						alignItems: "center",
 						gap: 1.5,
 						mb: 3.5,
 					}}
@@ -269,6 +272,22 @@ export const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({
 						}}
 					>
 						<FaBoxes style={{ marginRight: "0.5rem" }} /> Track Shipment
+					</NavButton>
+
+					<NavButton
+						variant="outlined"
+						onClick={() => navigate("/banks")}
+						sx={{
+							color: "white",
+							borderColor: "rgba(255,255,255,0.15)",
+							"&:hover": {
+								borderColor: "#7b68ee",
+								bgcolor: "rgba(123,104,238,0.05)",
+							},
+							width: { xs: "100%", sm: "auto" },
+						}}
+					>
+						<FaLandmark style={{ marginRight: "0.5rem" }} /> Banks Directory
 					</NavButton>
 
 

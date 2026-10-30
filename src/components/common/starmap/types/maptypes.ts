@@ -275,25 +275,21 @@ export interface FlightPlan {
 	expired?: boolean;
 }
 
-export interface WorkerFlightPlan extends FlightPlan {}
+export interface WorkerFlightPlan extends FlightPlan { }
 
-/**
- * Authoritative Ship entity matching PostgreSQL 'ships' table and GET /internal/ships/
- */
 export interface ShipData {
-	// Canonical Database Fields (lowercase without underscores)
 	shipid: string;
 	userid?: string | null;
 	name: string | null;
 	registration: string;
 	type: string;                    // Base hull natural ID (e.g. "WSP")
 	ship_type: string;               // Cargo class ('HCB' | 'VCB' | 'WCB' | 'LCB' | 'TINY' | 'UNKNOWN')
-	
+
 	// Addressing / Location
 	addressplanetid?: string | null;
 	addressstationid?: string | null;
 	addresssystemid?: string | null;
-	
+
 	// Performance & Stats
 	acceleration: number;
 	thrust: number;
@@ -308,7 +304,7 @@ export interface ShipData {
 	commissioningtime?: string | null;
 	lastrepair?: string | null;
 	flightid?: string | null;
-	
+
 	// Stores & Operating Times
 	idftlfuelstore?: string | null;
 	idstlfuelstore?: string | null;
@@ -316,7 +312,7 @@ export interface ShipData {
 	operatingtimeftl: number;
 	operatingtimestl: number;
 	blueprintnaturalid: string;
-	
+
 	// Joined Metadata from ships_repo.py
 	is_owner: boolean;
 	is_corp: boolean;
@@ -369,13 +365,13 @@ export interface ShipData {
  * Runtime Animated Ship Model (for Starmap rendering & Web Worker)
  */
 export interface AnimatedShipData extends ShipData {
-	id: string;                     // Matches shipid for Map/Deck.gl layer indexing
-	position: [number, number];     // Live [x, y] coordinates from Web Worker
-	progress: number;               // 0.0 to 1.0 progress through current segment
-	bearing?: number;               // Heading rotation in degrees
-	visible?: boolean;              // Visibility toggle on map
-	currentLocationLabel?: string;  // Formatted location string for UI
-	cargo?: ShipCargo;              // Cached cargo summary
+	id: string;
+	position: [number, number];
+	progress: number;
+	bearing?: number;
+	visible?: boolean;
+	currentLocationLabel?: string;
+	cargo?: ShipCargo;
 }
 
 export interface ShipCargo {
@@ -391,9 +387,8 @@ export interface PreCalculatedShipData {
 	position: [number, number];
 	isCluster: boolean;
 	count: number;
-	bearing: number; // precomputed rotation where possible
+	bearing: number;
 	name: string;
-	// optional: ships array only kept for hover/click but not required for rendering
 	ships?: AnimatedShipData[];
 }
 

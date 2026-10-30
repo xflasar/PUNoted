@@ -60,23 +60,23 @@ export default function ContractsBank() {
 	const fetchData = async () => {
 		setLoading(true);
 		try {
-			const mbRes = await fetchClient("/internal/contracts/banks/my-bank");
+			const mbRes = await fetchClient("/internal/banking/my-bank");
 			const mbData = mbRes.ok ? await mbRes.json() : null;
 			setMyBank(mbData);
 
-			const bRes = await fetchClient("/internal/contracts/banks");
+			const bRes = await fetchClient("/internal/banking");
 			const bData = bRes.ok ? await bRes.json() : [];
 			setBanks(bData);
 
 			const rlRes = await fetchClient(
-				"/internal/contracts/banks/loans/requested",
+				"/internal/banking/loans/requested",
 			);
 			const rlData = rlRes.ok ? await rlRes.json() : [];
 			setRequestedLoans(rlData);
 
 			if (mbData) {
 				const recRes = await fetchClient(
-					`/internal/contracts/banks/loans/received?bank_id=${mbData.id}`,
+					`/internal/banking/loans/received?bank_id=${mbData.id}`,
 				);
 				const recData = recRes.ok ? await recRes.json() : [];
 				setReceivedLoans(recData);
@@ -95,7 +95,7 @@ export default function ContractsBank() {
 	const handleCreateBank = async (e: React.FormEvent) => {
 		e.preventDefault();
 		try {
-			const res = await fetchClient("/internal/contracts/banks", {
+			const res = await fetchClient("/internal/banking", {
 				method: "POST",
 				body: JSON.stringify({
 					name: createName,
@@ -118,7 +118,7 @@ export default function ContractsBank() {
 	const handleRequestLoanSubmit = async () => {
 		if (!selectedBank) return;
 		try {
-			const res = await fetchClient("/internal/contracts/banks/request", {
+			const res = await fetchClient("/internal/banking/request", {
 				method: "POST",
 				body: JSON.stringify({
 					bank_id: selectedBank.id,
@@ -141,7 +141,7 @@ export default function ContractsBank() {
 	const handleApproveLoan = async () => {
 		if (!selectedLoan) return;
 		try {
-			const res = await fetchClient("/internal/contracts/banks/loans/action", {
+			const res = await fetchClient("/internal/banking/loans/action", {
 				method: "POST",
 				body: JSON.stringify({
 					loan_id: selectedLoan.id,
@@ -163,7 +163,7 @@ export default function ContractsBank() {
 
 	const handleRejectLoan = async (loanId: string) => {
 		try {
-			const res = await fetchClient("/internal/contracts/banks/loans/action", {
+			const res = await fetchClient("/internal/banking/loans/action", {
 				method: "POST",
 				body: JSON.stringify({
 					loan_id: loanId,

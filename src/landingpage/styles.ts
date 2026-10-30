@@ -126,13 +126,12 @@ export const ExtensionButton = styled(Button)(({ theme }) => ({
 }));
 
 export const NavButton = styled(Button)(({ theme }) => ({
-	padding: theme.spacing(1.5, 3),
+	padding: theme.spacing(1.25, 2.5),
 	borderRadius: theme.spacing(2),
 	fontWeight: "bold",
 	fontSize: "0.85rem",
 	letterSpacing: "0.08em",
 	textTransform: "uppercase",
 	transition: "all 0.2s",
-	flex: 1,
 	minWidth: 120,
 }));
