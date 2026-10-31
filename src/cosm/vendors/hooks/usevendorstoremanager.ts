@@ -152,11 +152,7 @@ export function useVendorStoreManager(initialVendorStore: VendorStore | null) {
 	const handleAddMaterial = useCallback(
 		(material: OrderItem, type: "buy" | "sell" = "buy") => {
 			if (
-				allOrders.some(
-					(mat) =>
-						mat.materialticker === material.materialticker &&
-						mat.ordertype === type,
-				)
+				allOrders.some((mat) => mat.materialticker === material.materialticker)
 			)
 				return;
 

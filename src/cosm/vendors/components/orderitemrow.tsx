@@ -12,27 +12,40 @@ import {
 	Typography,
 	TextField,
 	IconButton,
-	Select,
-	MenuItem,
-	FormControl,
+	InputAdornment,
+	Button,
 	Autocomplete,
 	useTheme,
 	Collapse,
 	Chip,
 	Tooltip,
+	alpha,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { RefreshCw, RefreshCwOff, Trash2 } from "lucide-react";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlineOutlined";
-import LockIcon from "@mui/icons-material/Lock";
-import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
 import type { OrderItem, Location } from "../types";
 import { formatCurrency } from "../../../dashboard/financial/utils/financeutils";
 import { formatAmount } from "../../../utils/formaters";
 import { pickPrice } from "../utils/pickprice";
-import { formatLocation } from "../utils/formatlocation";
+import {
+	formatLocation,
+	useLocationFormatVersion,
+} from "../utils/formatlocation";
 import MaterialBadge from "../../components/materialbadge";
+
+export const getLocationMarketQuantity = (
+	ordertype: OrderItem["ordertype"],
+	location: Pick<Location, "amount" | "storage_amount" | "available">,
+) => {
+	const inventory = Number(location.available ?? location.storage_amount) || 0;
+	const limit = Number(location.amount) || 0;
+	return Math.max(
+		0,
+		ordertype === "sell" ? inventory - limit : limit - inventory,
+	);
+};
 
 /**
  * A debounced text field component used to prevent rapid state updates and potential focus loss.
@@ -97,7 +110,7 @@ const Cell = ({
 	return (
 		<Box
 			sx={{
-				width: "100%",
+				width: "auto",
 				textAlign: { xs: "left", sm: "center" },
 				display: "flex",
 				flexDirection: { xs: "column", sm: "block" },
@@ -117,7 +130,7 @@ const Cell = ({
 			>
 				{label}
 			</Typography>
-			<Box sx={{ width: "100%" }}>{children}</Box>
+			<Box>{children}</Box>
 		</Box>
 	);
 };
@@ -186,6 +199,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		availableMaterialsList,
 	}) => {
 		const theme = useTheme();
+		const locationFormatVersion = useLocationFormatVersion();
 		const [open, setOpen] = useState(false);
 		const [locationInputValue, setLocationInputValue] = useState("");
 
@@ -193,13 +207,16 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			return Array.isArray(material.locations) ? material.locations : [];
 		}, [material.locations]);
 
-		const compareLocations = useCallback((a: Location, b: Location) => {
-			if (a.location_code === "HRT") return -1;
-			if (b.location_code === "HRT") return 1;
-			return `${a.location_name} [${a.location_code}]`.localeCompare(
-				`${b.location_name} [${b.location_code}]`,
-			);
-		}, []);
+		const compareLocations = useCallback(
+			(a: Location, b: Location) => {
+				if (a.location_code === "HRT") return -1;
+				if (b.location_code === "HRT") return 1;
+				return formatLocation(a.location_name, a.location_code).localeCompare(
+					formatLocation(b.location_name, b.location_code),
+				);
+			},
+			[locationFormatVersion],
+		);
 
 		const sortedCurrentLocations = useMemo(() => {
 			return [...currentLocations].sort(compareLocations);
@@ -226,6 +243,15 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		}, [material.locationSource]);
 
 		const labelText = material.ordertype === "buy" ? "Demand" : "Reserve";
+		const labelTooltip =
+			material.ordertype === "buy"
+				? "Quantity you want to have"
+				: "Quantity not for sale";
+		const marketTooltip =
+			material.ordertype === "buy"
+				? "Quantity the market shows you want"
+				: "Quantity the market shows you have";
+		const marketWarningTooltip = `Check Locations and ${material.ordertype === "buy" ? "Demand" : "Reserve"} settings`;
 		const isPriceLocked = Boolean(material.isPriceLocked);
 		const displayPrice = pickPrice({
 			fixedprice: isPriceLocked
@@ -234,6 +260,38 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			corpprice: material.price?.corpprice,
 			cxprice: material.price?.cxprice,
 		}).price;
+		const referencePrices = [
+			{ label: "COSM", price: material.price?.corpprice },
+			{ label: "CX", price: material.price?.cxprice },
+		].filter(
+			(reference): reference is { label: string; price: number } =>
+				typeof reference.price === "number" &&
+				Number.isFinite(reference.price) &&
+				reference.price > 0,
+		);
+		const priceRange = referencePrices.length
+			? {
+					min: Math.min(...referencePrices.map(({ price }) => price)) * 0.75,
+					max: Math.max(...referencePrices.map(({ price }) => price)) * 1.25,
+				}
+			: null;
+		const isPriceUnusual =
+			!isPriceLocked &&
+			priceRange !== null &&
+			(displayPrice < priceRange.min || displayPrice > priceRange.max);
+		const priceWarningTooltip = (
+			<>
+				{priceRange && displayPrice < priceRange.min ? "Low" : "High"} price
+				warning
+				<br />
+				{referencePrices.map(({ label, price }, index) => (
+					<React.Fragment key={label}>
+						{index > 0 && " · "}
+						{label}: <b>{formatCurrency(price)}</b>
+					</React.Fragment>
+				))}
+			</>
+		);
 		const displayQuantity = currentLocations.reduce(
 			(sum: number, loc: any) =>
 				sum + (loc.available ?? loc.storage_amount ?? loc.amount ?? 0),
@@ -243,6 +301,15 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 			(sum: number, l: any) => sum + (l.amount || 0),
 			0,
 		);
+		const marketQuantity = currentLocations.reduce(
+			(sum: number, location: any) =>
+				sum + getLocationMarketQuantity(material.ordertype, location),
+			0,
+		);
+		const marketColor =
+			material.ordertype === "sell"
+				? theme.palette.warning.light
+				: theme.palette.info.light;
 
 		// --- HANDLERS ---
 		const handleAddLocation = useCallback(
@@ -346,10 +413,10 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 					<Box
 						sx={{
 							...commonBoxSx,
-							gridTemplateColumns: {
-								xs: "1fr 1fr",
-								sm: "80px 100px 145px 150px 100px 80px 50px",
-							},
+							display: "flex",
+							"& > *": { flex: 1, minWidth: 0 },
+							"& > :nth-child(3), & > :nth-child(4)": { flex: 2 },
+							"& > :last-child": { flex: "0 0 40px", maxWidth: 40 },
 							background: open ? theme.palette.background.paper : "transparent",
 						}}
 					>
@@ -362,71 +429,135 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 
 						{/* 2. Type */}
 						<Cell label="Type">
-							<FormControl variant="standard" fullWidth>
-								<Select
-									size="small"
-									variant="outlined"
-									value={material.ordertype}
-									onChange={(e) =>
-										onEditMaterial?.(
-											material.frontendId,
-											"ordertype",
-											e.target.value as "buy" | "sell",
-										)
-									}
-									disabled={hasOtherOrderType}
-									sx={{ fontSize: "0.875rem" }}
-									MenuProps={{
-										slotProps: {
-											paper: {
-												sx: {
-													bgcolor: theme.palette.background.default,
-													backgroundImage: "none",
-												},
-											},
+							<Box
+								role="group"
+								aria-label={`Order type for ${material.materialticker}`}
+								sx={{ display: "inline-flex" }}
+							>
+								{(
+									[
+										{
+											type: "sell",
+											label: "ASK",
+											color: theme.palette.warning.light,
+											tooltip: "You sell to COSM members",
 										},
-									}}
-								>
-									<MenuItem value="sell">Ask</MenuItem>
-									<MenuItem value="buy">Bid</MenuItem>
-								</Select>
-							</FormControl>
+										{
+											type: "buy",
+											label: "BID",
+											color: theme.palette.info.light,
+											tooltip: "You buy from COSM members",
+										},
+									] as const
+								).map(({ type, label, color, tooltip }, index) => {
+									const active = material.ordertype === type;
+									return (
+										<Tooltip key={type} title={tooltip}>
+											<Box component="span" sx={{ display: "flex" }}>
+												<Button
+													size="small"
+													variant="outlined"
+													disabled={hasOtherOrderType}
+													aria-pressed={active}
+													onClick={() =>
+														onEditMaterial?.(
+															material.frontendId,
+															"ordertype",
+															type,
+														)
+													}
+													sx={{
+														minWidth: 0,
+														fontSize: "0.7rem",
+														fontWeight: "bold",
+														textDecoration: "underline dotted",
+														color: "grey.600",
+														border: "1px solid",
+														borderColor: "grey.600",
+														"&:hover": {
+															borderColor: "grey.600",
+															bgcolor: "action.hover",
+														},
+														borderRadius:
+															index === 0 ? "4px 0 0 4px" : "0 4px 4px 0",
+														...(active && {
+															color,
+															bgcolor: alpha(color, 0.1),
+															borderColor: alpha(color, 0.3),
+															"&:hover": { bgcolor: alpha(color, 0.1) },
+														}),
+													}}
+												>
+													{label}
+												</Button>
+											</Box>
+										</Tooltip>
+									);
+								})}
+							</Box>
 						</Cell>
 
 						{/* 3. Location (Full width on mobile) */}
-						<Cell
-							label="Location"
-							sx={{ gridColumn: { xs: "1 / -1", sm: "auto" } }}
-						>
-							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-								{currentLocations.length === 0 ? (
-									<Typography variant="caption" color="error">
-										Select Loc
-									</Typography>
-								) : currentLocations.length === 1 ? (
+						<Cell label="Location">
+							<Box sx={{ display: "flex", alignItems: "center" }}>
+								<Tooltip title="Edit locations">
 									<Chip
-										label={currentLocations[0].location_code}
+										onClick={() => setOpen(!open)}
+										aria-label="Edit locations"
+										sx={{
+											"& .MuiChip-label": {
+												display: "flex",
+												alignItems: "center",
+												pl: 1,
+												pr: 0.5,
+												py: 0,
+											},
+										}}
+										label={
+											currentLocations.length === 0 ? (
+												<>
+													Select Location
+													<Box
+														component="span"
+														sx={{
+															display: "flex",
+															transform: open
+																? "rotate(180deg)"
+																: "rotate(0deg)",
+															transition: "0.2s",
+														}}
+													>
+														<KeyboardArrowDownIcon className="inline-icon" />
+													</Box>
+												</>
+											) : (
+												<>
+													<Box component="span" sx={{ fontWeight: "bold" }}>
+														{formatLocation(
+															sortedCurrentLocations[0].location_name,
+															sortedCurrentLocations[0].location_code,
+														)}
+													</Box>
+													{currentLocations.length > 1 &&
+														` +${currentLocations.length - 1}`}
+													<Box
+														component="span"
+														sx={{
+															display: "flex",
+															transform: open
+																? "rotate(180deg)"
+																: "rotate(0deg)",
+															transition: "0.2s",
+														}}
+													>
+														<KeyboardArrowDownIcon className="inline-icon" />
+													</Box>
+												</>
+											)
+										}
 										size="small"
 									/>
-								) : (
-									<Chip
-										label={`${currentLocations.length} Locs`}
-										color="primary"
-										size="small"
-										variant="outlined"
-									/>
-								)}
-								<IconButton
-									size="small"
-									onClick={() => setOpen(!open)}
-									sx={{
-										ml: "auto",
-										transform: open ? "rotate(180deg)" : "rotate(0deg)",
-										transition: "0.2s",
-									}}
-								>
-									<KeyboardArrowDownIcon />
-								</IconButton>
+								</Tooltip>
 							</Box>
 						</Cell>
 
@@ -442,7 +573,11 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 								}}
 							>
 								<Tooltip
-									title={isPriceLocked ? "Auto COSM Price" : ""}
+									title={
+										isPriceLocked
+											? "Disable COSM Price Sync to set a custom price"
+											: ""
+									}
 									disableHoverListener={!isPriceLocked}
 								>
 									<Box sx={{ flex: 1, minWidth: 0 }}>
@@ -456,19 +591,52 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 											}
 											disabled={isPriceLocked}
 											slotProps={{
-												input: {
+												input: isPriceUnusual
+													? {
+															startAdornment: (
+																<InputAdornment position="start">
+																	<Tooltip title={priceWarningTooltip}>
+																		<span style={{ cursor: "help" }}>⚠️</span>
+																	</Tooltip>
+																</InputAdornment>
+															),
+														}
+													: undefined,
+												htmlInput: {
 													min: 0,
-													style: { textAlign: "center" },
+													step: 0.01,
 												},
 											}}
-											sx={{ width: "100%" }}
+											sx={{
+												width: "100%",
+												"& .MuiInputBase-input": {
+													textAlign: "right",
+													fontWeight: "bold",
+												},
+												"& .MuiInputBase-root.Mui-disabled": {
+													cursor: "not-allowed",
+													opacity: 0.8,
+													"& .MuiOutlinedInput-notchedOutline": {
+														border: "none",
+													},
+												},
+												"& .MuiInputBase-input.Mui-disabled": {
+													cursor: "not-allowed",
+												},
+											}}
 										/>
 									</Box>
 								</Tooltip>
-								<Tooltip title={isPriceLocked ? "COSM Price" : "Custom Price"}>
-									<IconButton
-										size="small"
-										sx={{ flexShrink: 0 }}
+								<Tooltip
+									title={`COSM Price Sync: ${isPriceLocked ? "ENABLED" : "DISABLED"}`}
+								>
+									<Button
+										variant={isPriceLocked ? "contained" : "outlined"}
+										size="large"
+										aria-label={
+											isPriceLocked ? "Disable COSM sync" : "Enable COSM sync"
+										}
+										sx={{ minWidth: 0, p: 1.4, borderRadius: "50%" }}
 										onClick={() =>
 											onEditMaterial?.(
 												material.frontendId,
@@ -478,36 +646,51 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 										}
 									>
 										{isPriceLocked ? (
-											<LockIcon fontSize="small" />
+											<RefreshCw className="inline-icon" />
 										) : (
-											<LockOpenOutlinedIcon fontSize="small" />
+											<RefreshCwOff className="inline-icon" />
 										)}
-									</IconButton>
+									</Button>
 								</Tooltip>
 							</Box>
 						</Cell>
 
-						{/* 5. Total (Label text varies) */}
-						<Cell label={labelText}>
-							<Tooltip title={`Total ${labelText}. Expand location to edit.`}>
-								<DebouncedInput
-									size="small"
-									variant="outlined"
-									value={totalAmount || 0}
-									onChange={() => {}}
-									disabled={true}
-									slotProps={{
-										input: { style: { textAlign: "center" } },
-									}}
-									sx={{ width: "100%" }}
-								/>
-							</Tooltip>
+						{/* 5. Inventory */}
+						<Cell
+							label="Inventory"
+							sx={{ display: { xs: "none", md: "block" } }}
+						>
+							<Typography variant="body2" align="center">
+								{formatAmount(displayQuantity)}
+							</Typography>
 						</Cell>
 
-						{/* 6. In Store */}
-						<Cell label="In Store">
-							<Typography variant="body2">
-								{formatAmount(displayQuantity)}
+						{/* 6. Total (Label text varies) */}
+						<Cell label="Limit" sx={{ display: { xs: "none", md: "block" } }}>
+							<Typography variant="body2" align="center">
+								{formatAmount(totalAmount || 0)}
+							</Typography>
+						</Cell>
+
+						{/* 7. Quantity listed on the market */}
+						<Cell label="Market">
+							<Typography
+								variant="body2"
+								align="center"
+								sx={{
+									fontWeight: 700,
+									color: marketColor,
+								}}
+							>
+								{marketQuantity === 0 ? (
+									<Tooltip title={marketWarningTooltip}>
+										<span style={{ cursor: "help" }}>
+											{formatAmount(marketQuantity)} ⚠️
+										</span>
+									</Tooltip>
+								) : (
+									formatAmount(marketQuantity)
+								)}
 							</Typography>
 						</Cell>
 
@@ -517,11 +700,12 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 							sx={{ alignItems: { xs: "flex-end", sm: "center" } }}
 						>
 							<IconButton
+								color="error"
 								onClick={() =>
 									onRemoveMaterial?.(material?.frontendId, material.ordertype)
 								}
 							>
-								<DeleteIcon color="error" />
+								<Trash2 className="inline-icon" />
 							</IconButton>
 						</Cell>
 					</Box>
@@ -530,192 +714,266 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 					<Collapse in={open} timeout="auto" unmountOnExit>
 						<Box
 							sx={{
-								px: { xs: 1, sm: 4 },
-								py: 1.5,
-								bgcolor: "rgba(0,0,0,0.15)",
+								p: 2,
+								bgcolor: "rgba(0,0,0,0.3)",
 								borderTop: `1px solid ${theme.palette.divider}`,
 							}}
 						>
-							{/* Header for Compact Table */}
-							<Box
-								sx={{
-									display: "grid",
-									gridTemplateColumns: "1.5fr 1fr 1.5fr 40px",
-									gap: 2,
-									mb: 1,
-									px: 1,
-								}}
-							>
-								<Typography
-									variant="caption"
-									sx={{
-										color: theme.palette.text.secondary,
-										fontWeight: "bold",
-										textTransform: "uppercase",
-										opacity: 0.5,
-									}}
-								>
-									Location
-								</Typography>
-								<Typography
-									variant="caption"
-									sx={{
-										color: theme.palette.text.secondary,
-										fontWeight: "bold",
-										textTransform: "uppercase",
-										opacity: 0.5,
-										textAlign: "right",
-									}}
-								>
-									In Stock
-								</Typography>
-								<Typography
-									variant="caption"
-									sx={{
-										color: theme.palette.text.secondary,
-										fontWeight: "bold",
-										textTransform: "uppercase",
-										opacity: 0.5,
-									}}
-								>
-									{labelText}
-								</Typography>
-								<Box />
-							</Box>
-
-							{/* Location Rows */}
-							{sortedCurrentLocations.map((loc: any) => (
+							<Box sx={{ width: "100%", maxWidth: 600, mx: "auto" }}>
+								{/* Header for Compact Table */}
 								<Box
-									key={loc.id}
 									sx={{
-										display: "grid",
-										gridTemplateColumns: "1.5fr 1fr 1.5fr 40px",
-										alignItems: "center",
+										display: "flex",
 										gap: 2,
+										"& > *": { flex: 1, minWidth: 0 },
+										"& > :first-child": { flex: 2 },
+										"& > :last-child": { flex: "0 0 40px", maxWidth: 40 },
 										mb: 1,
 										px: 1,
-										"&:hover": {
-											bgcolor: "rgba(255,255,255,0.03)",
-											borderRadius: 1,
-										},
 									}}
 								>
 									<Typography
 										variant="caption"
 										sx={{
-											overflow: "hidden",
-											textOverflow: "ellipsis",
-											whiteSpace: "nowrap",
-										}}
-									>
-										{formatLocation(loc.location_name, loc.location_code)}
-									</Typography>
-
-									<Typography
-										variant="body2"
-										align="right"
-										sx={{
-											color:
-												((loc.available ?? loc.storage_amount) || 0) > 0
-													? theme.palette.success.light
-													: theme.palette.text.disabled,
+											color: theme.palette.text.secondary,
 											fontWeight: "bold",
+											textTransform: "uppercase",
+											opacity: 0.8,
 										}}
 									>
-										{formatAmount(loc.available ?? loc.storage_amount ?? 0)}
+										Location
 									</Typography>
+									<Typography
+										variant="caption"
+										sx={{
+											color: theme.palette.text.secondary,
+											fontWeight: "bold",
+											textTransform: "uppercase",
+											opacity: 0.8,
+											textAlign: "right",
+										}}
+									>
+										Inventory
+									</Typography>
+									<Typography
+										variant="caption"
+										sx={{
+											color: theme.palette.text.secondary,
+											fontWeight: "bold",
+											textTransform: "uppercase",
+											opacity: 0.8,
+											textAlign: "right",
+										}}
+									>
+										<Tooltip title={labelTooltip}>
+											<Box
+												component="span"
+												tabIndex={0}
+												sx={{
+													cursor: "help",
+													textDecoration: "underline dotted",
+												}}
+											>
+												{labelText}
+											</Box>
+										</Tooltip>
+									</Typography>
+									<Typography
+										variant="caption"
+										sx={{
+											color: theme.palette.text.secondary,
+											fontWeight: "bold",
+											textTransform: "uppercase",
+											opacity: 0.8,
+											textAlign: "right",
+										}}
+									>
+										<Tooltip title={marketTooltip}>
+											<Box
+												component="span"
+												tabIndex={0}
+												sx={{
+													cursor: "help",
+													textDecoration: "underline dotted",
+												}}
+											>
+												{material.ordertype === "sell" ? "Have" : "Want"}
+											</Box>
+										</Tooltip>
+									</Typography>
+									<Box />
+								</Box>
 
-									<DebouncedInput
-										size="small"
-										placeholder="0"
-										type="text"
-										value={loc.amount || ""}
-										onChange={(val) => handleUpdateLocationAmount(loc.id, val)}
+								{/* Location Rows */}
+								{sortedCurrentLocations.map((loc: any) => (
+									<Box
+										key={loc.id}
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											gap: 2,
+											"& > *": { flex: 1, minWidth: 0 },
+											"& > :first-child": { flex: 2 },
+											"& > :last-child": { flex: "0 0 40px", maxWidth: 40 },
+											mb: 1,
+											px: 1,
+											"&:hover": {
+												bgcolor: "rgba(255,255,255,0.03)",
+												borderRadius: 1,
+											},
+										}}
+									>
+										<Typography
+											variant="caption"
+											sx={{
+												overflow: "hidden",
+												textOverflow: "ellipsis",
+												whiteSpace: "nowrap",
+											}}
+										>
+											{formatLocation(loc.location_name, loc.location_code)}
+										</Typography>
+
+										<Typography
+											variant="body2"
+											align="right"
+											sx={{
+												color:
+													(Number(loc.available ?? loc.storage_amount) || 0) ===
+													0
+														? "text.disabled"
+														: undefined,
+											}}
+										>
+											{formatAmount(loc.available ?? loc.storage_amount ?? 0)}
+										</Typography>
+
+										<DebouncedInput
+											size="small"
+											placeholder="0"
+											type="text"
+											value={loc.amount || ""}
+											onChange={(val) =>
+												handleUpdateLocationAmount(loc.id, val)
+											}
+											slotProps={{
+												input: {
+													sx: {
+														bgcolor: theme.palette.background.paper,
+														fontSize: "0.85rem",
+														height: "32px",
+														"& input": { textAlign: "right" },
+													},
+												},
+											}}
+										/>
+
+										<Typography
+											variant="body2"
+											align="right"
+											sx={{
+												fontWeight: 700,
+												color:
+													getLocationMarketQuantity(material.ordertype, loc) ===
+													0
+														? "text.disabled"
+														: marketColor,
+											}}
+										>
+											{formatAmount(
+												getLocationMarketQuantity(material.ordertype, loc),
+											)}
+										</Typography>
+
+										{currentLocations.length > 1 ? (
+											<IconButton
+												size="small"
+												onClick={() => handleRemoveLocation(loc.id)}
+											>
+												<RemoveCircleOutlineIcon
+													fontSize="small"
+													color="error"
+												/>
+											</IconButton>
+										) : (
+											<Box />
+										)}
+									</Box>
+								))}
+
+								<Box sx={{ mt: 1.5, px: 1 }}>
+									<Autocomplete
+										options={availableLocations}
+										getOptionLabel={(option) =>
+											typeof option === "string"
+												? option
+												: `${formatLocation(option.location_name, option.location_code)}: ${formatAmount(locationStockById.get(option.id) ?? 0)}`
+										}
+										isOptionEqualToValue={(option, value) =>
+											option.id === value.id
+										}
+										renderOption={(props, option) => {
+											const quantity = locationStockById.get(option.id) ?? 0;
+											const { key, ...optionProps } = props;
+
+											return (
+												<li
+													key={key}
+													{...optionProps}
+													style={{
+														...optionProps.style,
+														opacity: quantity === 0 ? 0.5 : 1,
+														borderBottom:
+															option.location_code === "HRT"
+																? `1px solid ${theme.palette.divider}`
+																: undefined,
+													}}
+												>
+													{formatLocation(
+														option.location_name,
+														option.location_code,
+													)}
+													:&nbsp;
+													<Box component="span" sx={{ fontWeight: "bold" }}>
+														{formatAmount(quantity)}
+													</Box>
+												</li>
+											);
+										}}
+										onChange={(event, newValue) => handleAddLocation(newValue)}
+										inputValue={locationInputValue}
+										onInputChange={(_event, newInputValue, reason) => {
+											if (reason === "reset") return;
+											setLocationInputValue(newInputValue);
+										}}
+										onClose={() => setLocationInputValue("")}
+										value={null}
 										slotProps={{
-											input: {
+											paper: {
 												sx: {
-													bgcolor: theme.palette.background.paper,
-													fontSize: "0.85rem",
-													height: "32px",
+													bgcolor: "background.default",
+													backgroundImage: "none",
 												},
 											},
 										}}
+										sx={{
+											mt: 1,
+										}}
+										renderInput={(params) => (
+											<TextField
+												{...params}
+												size="small"
+												placeholder="+ Add Location"
+												variant="standard"
+												sx={{
+													bgcolor: "rgba(255,255,255,0.05)",
+													px: 1,
+													borderRadius: 1,
+												}}
+											/>
+										)}
 									/>
-
-									{currentLocations.length > 1 ? (
-										<IconButton
-											size="small"
-											onClick={() => handleRemoveLocation(loc.id)}
-										>
-											<RemoveCircleOutlineIcon fontSize="small" color="error" />
-										</IconButton>
-									) : (
-										<Box />
-									)}
 								</Box>
-							))}
-
-							<Box sx={{ mt: 1.5, px: 1 }}>
-								<Autocomplete
-									options={availableLocations}
-									getOptionLabel={(option) =>
-										typeof option === "string"
-											? option
-											: `${formatLocation(option.location_name, option.location_code)}: ${formatAmount(locationStockById.get(option.id) ?? 0)}`
-									}
-									isOptionEqualToValue={(option, value) =>
-										option.id === value.id
-									}
-									renderOption={(props, option) => {
-										const quantity = locationStockById.get(option.id) ?? 0;
-										const { key, ...optionProps } = props;
-
-										return (
-											<li key={key} {...optionProps}>
-												{formatLocation(
-													option.location_name,
-													option.location_code,
-												)}
-												:&nbsp;
-												<Box component="span" sx={{ fontWeight: "bold" }}>
-													{formatAmount(quantity)}
-												</Box>
-											</li>
-										);
-									}}
-									onChange={(event, newValue) => handleAddLocation(newValue)}
-									inputValue={locationInputValue}
-									onInputChange={(_event, newInputValue, reason) => {
-										if (reason === "reset") return;
-										setLocationInputValue(newInputValue);
-									}}
-									onClose={() => setLocationInputValue("")}
-									value={null}
-									slotProps={{
-										paper: {
-											sx: {
-												bgcolor: "background.default",
-												backgroundImage: "none",
-											},
-										},
-									}}
-									sx={{
-										mt: 1,
-									}}
-									renderInput={(params) => (
-										<TextField
-											{...params}
-											size="small"
-											placeholder="+ Add Location"
-											variant="standard"
-											sx={{
-												bgcolor: "rgba(255,255,255,0.05)",
-												px: 1,
-												borderRadius: 1,
-											}}
-										/>
-									)}
-								/>
 							</Box>
 						</Box>
 					</Collapse>
@@ -787,6 +1045,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = memo(
 		return (
 			prev.material === next.material &&
 			prev.locations === next.locations &&
+			prev.onEditMaterial === next.onEditMaterial &&
 			prev.hasOtherOrderType === next.hasOtherOrderType &&
 			prev.style === next.style
 		);

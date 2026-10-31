@@ -1,5 +1,5 @@
-import React, { memo, useMemo, useState } from "react";
-import { Paper, Typography, Box, useTheme, Pagination } from "@mui/material";
+import React, { memo, useMemo } from "react";
+import { Paper, Typography, Box, useTheme, Tooltip } from "@mui/material";
 import OrderItemRow from "./orderitemrow";
 import type { OrderItem, Location } from "../types";
 
@@ -26,18 +26,18 @@ interface MaterialTableProps {
 	) => void;
 	/** Callback fired to add a new order item. */
 	onAddMaterial: (material: OrderItem, type: "buy" | "sell") => void;
-	/** Whether this table specifically displays buy orders (adjusts columns and labels). */
-	isBuyOrders?: boolean;
 	/** Optional title to display above the table. */
 	title?: string;
+	/** Optional action displayed alongside the title. */
+	headerAction?: React.ReactNode;
+	/** Optional action aligned to the right edge of the title bar. */
+	headerEndAction?: React.ReactNode;
 	/** Optional list of available materials for reference when editing locations. */
 	availableMaterialsList?: OrderItem[];
 }
 
-const ITEMS_PER_PAGE = 15;
-
 /**
- * A paginated table component rendering a list of order items (either buy or sell orders).
+ * A table component rendering a list of order items (either buy or sell orders).
  * Provides inline editing and removing capabilities via the `OrderItemRow` component.
  *
  * @param {MaterialTableProps} props - The component props.
@@ -52,32 +52,21 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 		onRemoveMaterial,
 		onEditMaterial,
 		onAddMaterial,
-		isBuyOrders,
 		title,
+		headerAction,
+		headerEndAction,
 	}) => {
 		const theme = useTheme();
-		const [page, setPage] = useState(1);
 
-		const buyHeaders = [
-			{ label: "Ticker" },
-			{ label: "Type" },
-			{ label: "Location" },
+		const headers = [
+			{ label: "Material" },
+			{ label: "Side" },
+			{ label: "Locations" },
 			{ label: "Price" },
-			{ label: "Buy Limit" },
-			{ label: "In Store" },
-			{ label: "Remove" },
+			{ label: "Inventory" },
+			{ label: "Limit", tooltip: "Total Reserve/Demand" },
+			{ label: "Market", tooltip: "Quantity the Market shows you have/want" },
 		];
-		const sellHeaders = [
-			{ label: "Ticker" },
-			{ label: "Type" },
-			{ label: "Location" },
-			{ label: "Price" },
-			{ label: "Reserve" },
-			{ label: "In Store" },
-			{ label: "Remove" },
-		];
-
-		const headers = isBuyOrders ? buyHeaders : sellHeaders;
 
 		const tickerToOtherOrderTypeMap = useMemo(() => {
 			const buyTickers = new Set(
@@ -105,18 +94,9 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 			return map;
 		}, [allOrders]);
 
-		const count = Math.ceil(materials.length / ITEMS_PER_PAGE);
-		const paginatedMaterials = materials.slice(
-			(page - 1) * ITEMS_PER_PAGE,
-			page * ITEMS_PER_PAGE,
+		const sortedMaterials = [...materials].sort((a, b) =>
+			a.materialticker.localeCompare(b.materialticker),
 		);
-
-		const handlePageChange = (
-			_event: React.ChangeEvent<unknown>,
-			value: number,
-		) => {
-			setPage(value);
-		};
 
 		return (
 			<Paper
@@ -130,33 +110,49 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 				}}
 			>
 				{title && (
-					<Typography
-						variant="h6"
+					<Box
 						sx={{
-							color: theme.palette.primary.main,
-							textAlign: "center",
-							p: 0.5,
+							p: 1.5,
+							bgcolor: "rgba(0,0,0,0.05)",
 							borderBottom: `1px solid ${theme.palette.divider}`,
+							flexShrink: 0,
+							minHeight: 56,
+							display: "flex",
+							alignItems: "center",
+							gap: 2,
 						}}
 					>
-						{title}
-					</Typography>
+						<Typography
+							variant="subtitle2"
+							sx={{
+								color: "text.primary",
+								fontWeight: "bold",
+								fontSize: "1.05rem",
+							}}
+						>
+							{title.toUpperCase()}
+						</Typography>
+						{headerAction}
+						<Box sx={{ ml: "auto" }}>{headerEndAction}</Box>
+					</Box>
 				)}
 
-				{/* Table Header (Hidden on Mobile) */}
+				{/* Table Header */}
 				<Box
 					sx={{
-						display: { sm: "grid", xs: "grid" },
-						gridTemplateColumns: {
-							xs: "40px 30px 40px 40px 40px 40px 40px",
-							sm: "80px 100px 145px 150px 100px 80px 50px",
-						},
+						display: "flex",
 						alignItems: "center",
 						px: 2,
 						py: 0.5,
 						color: theme.palette.text.secondary,
 						fontWeight: "bold",
 						gap: 1,
+						"& > *": { flex: 1, minWidth: 0 },
+						"& > :nth-child(3), & > :nth-child(4)": { flex: 2 },
+						"& > :nth-child(5), & > :nth-child(6)": {
+							display: { xs: "none", md: "block" },
+						},
+						"& > :last-child": { flex: "0 0 40px", maxWidth: 40 },
 						borderBottom: `1px solid ${theme.palette.divider}`,
 						flexShrink: 0,
 						background: "transparent",
@@ -167,11 +163,30 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 							key={header.label}
 							variant="body2"
 							color="primary.dark"
-							sx={{ textAlign: "center", fontWeight: "bold" }}
+							sx={{
+								textAlign: "center",
+								fontSize: "0.8rem",
+								fontWeight: "bold",
+								textTransform: "uppercase",
+								opacity: 0.8,
+							}}
 						>
-							{header.label}
+							{header.tooltip ? (
+								<Tooltip title={header.tooltip}>
+									<Box
+										component="span"
+										tabIndex={0}
+										sx={{ cursor: "help", textDecoration: "underline dotted" }}
+									>
+										{header.label}
+									</Box>
+								</Tooltip>
+							) : (
+								header.label
+							)}
 						</Typography>
 					))}
+					<Box aria-hidden />
 				</Box>
 
 				{/* Scrollable List */}
@@ -181,14 +196,18 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 							sx={{
 								color: "text.disabled",
 								width: "100%",
+								height: "100%",
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
 								textAlign: "center",
 								p: 2,
 							}}
 						>
-							No materials listed.
+							Your store is empty!
 						</Box>
 					) : (
-						paginatedMaterials.map((material: OrderItem) => (
+						sortedMaterials.map((material: OrderItem) => (
 							<OrderItemRow
 								key={material.frontendId || material.materialticker}
 								material={material}
@@ -207,27 +226,6 @@ const MaterialTable: React.FC<MaterialTableProps> = memo(
 						))
 					)}
 				</Box>
-
-				{count > 1 && (
-					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "center",
-							pt: 1,
-							mt: "auto",
-							borderTop: `1px solid ${theme.palette.divider}`,
-							pb: 1,
-						}}
-					>
-						<Pagination
-							count={count}
-							page={page}
-							onChange={handlePageChange}
-							color="primary"
-							size="small"
-						/>
-					</Box>
-				)}
 			</Paper>
 		);
 	},

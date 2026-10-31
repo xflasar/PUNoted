@@ -119,6 +119,12 @@ const VendorCreationModal: React.FC<{
 
 			// Extract the complete vendor store object from the server response
 			const newVendorStore = result.vendor_store;
+			Object.entries({
+				companyName: trimmedCompanyName,
+				companyCode: trimmedCompanyCode,
+				corporationName: trimmedCorpName,
+				displayName: trimmedGameName,
+			}).forEach(([key, value]) => localStorage.setItem(key, value));
 
 			// Use the complete, server-generated data to update the state.
 			onVendorCreated(newVendorStore);
@@ -157,14 +163,14 @@ const VendorCreationModal: React.FC<{
 			>
 				<TextField
 					fullWidth
-					label="Company Name"
+					label="User Name"
 					variant="outlined"
 					size="small"
-					value={localCompanyName}
-					error={invalidFields.has("companyName")}
+					value={localGameName}
+					error={invalidFields.has("gameName")}
 					onChange={(e) => {
-						setLocalCompanyName(e.target.value);
-						clearInvalidField("companyName");
+						setLocalGameName(e.target.value);
+						clearInvalidField("gameName");
 					}}
 					sx={{
 						"& .MuiOutlinedInput-root": {
@@ -187,14 +193,14 @@ const VendorCreationModal: React.FC<{
 				/>
 				<TextField
 					fullWidth
-					label="Game Name"
+					label="Company Name"
 					variant="outlined"
 					size="small"
-					value={localGameName}
-					error={invalidFields.has("gameName")}
+					value={localCompanyName}
+					error={invalidFields.has("companyName")}
 					onChange={(e) => {
-						setLocalGameName(e.target.value);
-						clearInvalidField("gameName");
+						setLocalCompanyName(e.target.value);
+						clearInvalidField("companyName");
 					}}
 					sx={{
 						"& .MuiOutlinedInput-root": {
@@ -247,7 +253,7 @@ const VendorCreationModal: React.FC<{
 				/>
 				<TextField
 					fullWidth
-					label="Corp Name"
+					label="Corporation Name"
 					variant="outlined"
 					size="small"
 					value={localCorpName}
@@ -273,6 +279,7 @@ const VendorCreationModal: React.FC<{
 					variant="outlined"
 					size="small"
 					error={invalidFields.has("cx")}
+					sx={{ display: "none" }}
 				>
 					<InputLabel
 						id="cx-select-label"

@@ -34,6 +34,7 @@ export const Modal: React.FC<ModalProps> = ({
 		onClose={onClose}
 		maxWidth="sm"
 		fullWidth
+		sx={{ zIndex: 10000 }}
 		slotProps={{
 			paper: {
 				sx: {

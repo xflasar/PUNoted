@@ -45,7 +45,11 @@ import MaterialBadge from "../components/materialbadge";
 import { formatAmount } from "../../utils/formaters";
 import type { Location, OrderItem, VendorStore } from "./types";
 import { getDiffStats } from "./utils/pricecomparison";
-import { formatLocation } from "./utils/formatlocation";
+import {
+	formatLocation,
+	loadLocationSystemNames,
+	useLocationFormatVersion,
+} from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
 import LocationFilter, {
 	ALL_LOCATIONS_ID,
@@ -355,6 +359,7 @@ const VendorCard = React.memo(
 		preparedVendor: ReturnType<typeof prepareVendorStore>;
 	}) => {
 		const theme = useTheme();
+		useLocationFormatVersion();
 		const { vendorStore, buyOrders, sellOrders } = preparedVendor;
 		const vendor = vendorStore.vendor;
 
@@ -813,6 +818,7 @@ const VendorsList = ({
 	const theme = useTheme();
 	const { searchQuery, exactMatch, setSearchQuery, toggleExactMatch } =
 		useMaterialSearch();
+	const locationFormatVersion = useLocationFormatVersion();
 	const [marketOptions] = useState(getStoredMarketOptions);
 	const [vendorViewMode, setVendorViewMode] = useState<"grid" | "table">(
 		marketOptions.view,
@@ -897,6 +903,7 @@ const VendorsList = ({
 				const [storesResponse, pricesResponse] = await Promise.all([
 					fetch(`${API_BASE_URL}vendor_stores`),
 					fetch(`${API_BASE_URL}market_price_all`),
+					loadLocationSystemNames(),
 				]);
 				if (storesResponse.ok) {
 					const data = await storesResponse.json();
@@ -1220,7 +1227,7 @@ const VendorsList = ({
 							},
 						);
 			});
-	}, [preparedFilteredVendors]);
+	}, [preparedFilteredVendors, locationFormatVersion]);
 
 	const tableColumns = useMemo<GridColDef[]>(
 		() => [
