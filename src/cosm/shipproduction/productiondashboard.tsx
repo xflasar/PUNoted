@@ -5,6 +5,7 @@ import {
 	ToggleButtonGroup,
 	ToggleButton,
 	Stack,
+	CircularProgress,
 } from "@mui/material";
 import { fetchClient } from "../../utils/apiclient";
 import { addDays } from "date-fns";
@@ -307,6 +308,7 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 	isMobile,
 }) => {
 	const [apiShipOrders, setApiShipOrders] = useState<ShipOrder[]>([]);
+	const [isLoadingShipOrders, setIsLoadingShipOrders] = useState(true);
 	const [storageItems, setStorageItems] = useState<Part[]>([]);
 	const [selectedShipTypes, setSelectedShipTypes] = useState<string[]>(["all"]);
 	const [mockRole, setMockRole] = useState<"ADMIN" | "USER" | "GUEST">("GUEST");
@@ -422,6 +424,8 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 			}
 		} catch (error) {
 			console.error("Failed to fetch ship production data:", error);
+		} finally {
+			setIsLoadingShipOrders(false);
 		}
 	}, []);
 
@@ -604,73 +608,88 @@ const ProductionDashboard: React.FC<ProductionDashboardProps> = ({
 				gap: 2,
 			}}
 		>
-			<Stack
-				direction="row"
-				justifyContent="flex-end"
-				alignItems="center"
-				spacing={2}
-				sx={{
-					p: 0.5,
-					flexShrink: 0,
-				}}
-			>
-				<Stack direction="row" alignItems="center" spacing={1}>
-					<Typography
-						variant="caption"
-						sx={{ fontWeight: "bold", color: "rgba(255,255,255,0.4)" }}
-					>
-						Release Mode:
-					</Typography>
-					<ToggleButtonGroup
-						color="primary"
-						value={viewMode}
-						exclusive
-						onChange={(_, mode) => mode && setViewMode(mode)}
-						size="small"
+			{isLoadingShipOrders ? (
+				<Box
+					sx={{
+						flexGrow: 1,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<CircularProgress color="primary" />
+				</Box>
+			) : (
+				<>
+					<Stack
+						direction="row"
+						justifyContent="flex-end"
+						alignItems="center"
+						spacing={2}
 						sx={{
-							height: 24,
-							background: "rgba(255,255,255,0.05)",
-							"& .MuiToggleButton-root": {
-								color: "rgba(255,255,255,0.5)",
-								borderColor: "rgba(255,255,255,0.1)",
-								fontWeight: "bold",
-								fontSize: "10px",
-								py: 0,
-								px: 1.5,
-								"&.Mui-selected": {
-									color: "#7b68ee",
-									backgroundColor: "rgba(123, 104, 238, 0.15)",
-								},
-							},
+							p: 0.5,
+							flexShrink: 0,
 						}}
 					>
-						<ToggleButton value="MAIN">Main</ToggleButton>
-						<ToggleButton value="DEMO">Demo</ToggleButton>
-					</ToggleButtonGroup>
-				</Stack>
-			</Stack>
+						<Stack direction="row" alignItems="center" spacing={1}>
+							<Typography
+								variant="caption"
+								sx={{ fontWeight: "bold", color: "rgba(255,255,255,0.4)" }}
+							>
+								Release Mode:
+							</Typography>
+							<ToggleButtonGroup
+								color="primary"
+								value={viewMode}
+								exclusive
+								onChange={(_, mode) => mode && setViewMode(mode)}
+								size="small"
+								sx={{
+									height: 24,
+									background: "rgba(255,255,255,0.05)",
+									"& .MuiToggleButton-root": {
+										color: "rgba(255,255,255,0.5)",
+										borderColor: "rgba(255,255,255,0.1)",
+										fontWeight: "bold",
+										fontSize: "10px",
+										py: 0,
+										px: 1.5,
+										"&.Mui-selected": {
+											color: "#7b68ee",
+											backgroundColor: "rgba(123, 104, 238, 0.15)",
+										},
+									},
+								}}
+							>
+								<ToggleButton value="MAIN">Main</ToggleButton>
+								<ToggleButton value="DEMO">Demo</ToggleButton>
+							</ToggleButtonGroup>
+						</Stack>
+					</Stack>
 
-			{/* Main Workspace Tabs */}
-			<Box sx={{ flexGrow: 1, minHeight: 0 }}>
-				<ShipProductionTabs
-					MOCK_SHIP_TYPES={MOCK_SHIP_TYPES}
-					handleFilterClick={handleFilterClick}
-					selectedShipTypes={selectedShipTypes}
-					partNames={partNames}
-					summaryData={summaryData}
-					isMobile={isMobile}
-					processedOrders={processedOrders}
-					mockRole={mockRole}
-					editingOrderId={editingOrderId}
-					onEditOrder={handleEditOrder}
-					onCancelEdit={handleCancelEdit}
-					onOrderCreated={handleOrderCreated}
-					onDeleteOrder={handleDeleteOrder}
-					onUpdateStatus={handleUpdateStatus}
-					materialBalance={materialBalance}
-					disableActions={viewMode === "MAIN"}
-				/>
-			</Box>
+					{/* Main Workspace Tabs */}
+					<Box sx={{ flexGrow: 1, minHeight: 0 }}>
+						<ShipProductionTabs
+							MOCK_SHIP_TYPES={MOCK_SHIP_TYPES}
+							handleFilterClick={handleFilterClick}
+							selectedShipTypes={selectedShipTypes}
+							partNames={partNames}
+							summaryData={summaryData}
+							isMobile={isMobile}
+							processedOrders={processedOrders}
+							mockRole={mockRole}
+							editingOrderId={editingOrderId}
+							onEditOrder={handleEditOrder}
+							onCancelEdit={handleCancelEdit}
+							onOrderCreated={handleOrderCreated}
+							onDeleteOrder={handleDeleteOrder}
+							onUpdateStatus={handleUpdateStatus}
+							materialBalance={materialBalance}
+							disableActions={viewMode === "MAIN"}
+						/>
+					</Box>
+				</>
+			)}
 		</Box>
 	);
 };

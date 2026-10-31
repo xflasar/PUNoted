@@ -22,12 +22,12 @@ import {
 	Tooltip,
 	useTheme,
 	IconButton,
+	CircularProgress,
+	Button,
 	alpha,
 } from "@mui/material";
 import {
 	Search,
-	Store,
-	ShoppingBasket,
 	MapPin,
 	Warehouse,
 	Globe,
@@ -38,7 +38,6 @@ import {
 	X,
 } from "lucide-react";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import { useSearchParams } from "react-router-dom";
 import VendorCreationModal from "./createvendorstoremodal";
 import EditVendorStoreModal from "./editvendorstoremodal";
 import ShoppingListModal from "./shoppinglistmodal";
@@ -101,7 +100,7 @@ const DEFAULT_MARKET_OPTIONS: MarketOptions = {
 	view: "table",
 	location: HORTUS_LOCATION_CODE,
 	side: "ask",
-	hideUnavailable: false,
+	hideUnavailable: true,
 };
 
 const getStoredMarketOptions = (): MarketOptions => {
@@ -121,7 +120,7 @@ const getStoredMarketOptions = (): MarketOptions => {
 				hideUnavailable:
 					typeof (options as MarketOptions).hideUnavailable === "boolean"
 						? (options as MarketOptions).hideUnavailable
-						: false,
+						: true,
 			};
 		}
 	} catch {
@@ -801,10 +800,20 @@ const VendorCard = React.memo(
  * @param {boolean} props.loggedIn - Indicates if the user is currently logged in.
  * @returns {React.ReactElement} The vendors list component.
  */
-const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
+const VendorsList = ({
+	loggedIn,
+	activeTab,
+	onLoginRequest,
+}: {
+	loggedIn: boolean;
+	activeTab: "vendors" | "cart" | "store";
+	onLoginRequest: () => void;
+}) => {
 	const theme = useTheme();
-	const [searchParams, setSearchParams] = useSearchParams();
 	const [marketOptions] = useState(getStoredMarketOptions);
+	const [vendorViewMode, setVendorViewMode] = useState<"grid" | "table">(
+		marketOptions.view,
+	);
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [exactMatch, setExactMatch] = useState<boolean>(false);
 	const [hideUnavailable, setHideUnavailable] = useState(
@@ -817,34 +826,19 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		"ASK" | "BID" | "BOTH"
 	>(marketOptions.side.toUpperCase() as "ASK" | "BID" | "BOTH");
 	const searchInputRef = useRef<HTMLInputElement>(null);
-	const querySubtab = searchParams.get("subtab");
-	const vendorViewMode: "grid" | "table" =
-		(isVendorViewMode(querySubtab) ? querySubtab : null) || marketOptions.view;
-
-	// Modal States
-	const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
-	const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-	const [isShoppingListModalOpen, setIsShoppingListModalOpen] = useState(false);
-
 	// Data States
-	const [hasVendorStore, setHasVendorStore] = useState<boolean | null>(null);
-	const [isCheckingStore, setIsCheckingStore] = useState<boolean>(true);
 	const [vendorStores, setVendorStores] = useState<VendorStore[]>([]);
 	const [isLoadingVendors, setIsLoadingVendors] = useState<boolean>(true);
 	const [cxPriceLookup, setCxPriceLookup] = useState<CxPriceLookup>({});
-	const [userVendorStore, setUserVendorStore] = useState<VendorStore | null>(
-		null,
-	);
+	const [userVendorStore, setUserVendorStore] = useState<
+		VendorStore | null | undefined
+	>(loggedIn ? undefined : null);
 	const [vendorsRefreshTick, setVendorsRefreshTick] = useState(0);
+	const [hasVisitedStore, setHasVisitedStore] = useState(activeTab === "store");
 
 	useEffect(() => {
-		if (querySubtab === vendorViewMode) {
-			return;
-		}
-		const nextParams = new URLSearchParams(searchParams);
-		nextParams.set("subtab", vendorViewMode);
-		setSearchParams(nextParams, { replace: true });
-	}, [querySubtab, searchParams, setSearchParams, vendorViewMode]);
+		if (activeTab === "store") setHasVisitedStore(true);
+	}, [activeTab]);
 
 	useEffect(() => {
 		localStorage.setItem(
@@ -867,7 +861,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 
 	// Initial Data Fetch
 	useEffect(() => {
-		if (!loggedIn) return;
+		if (!loggedIn) {
+			setUserVendorStore(null);
+			return;
+		}
+
+		setUserVendorStore(undefined);
 		const checkVendorStore = async () => {
 			try {
 				const response = await fetch(`${API_BASE_URL}user_vendor_store`, {
@@ -879,17 +878,12 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				});
 				if (response.ok) {
 					const data = await response.json();
-					if (data.data) setHasVendorStore(true);
 					setUserVendorStore(data.data);
 				} else {
-					setHasVendorStore(false);
 					setUserVendorStore(null);
 				}
 			} catch {
-				setHasVendorStore(false);
 				setUserVendorStore(null);
-			} finally {
-				setIsCheckingStore(false);
 			}
 		};
 		checkVendorStore();
@@ -936,31 +930,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 	}, [vendorsRefreshTick]);
 
 	// Handlers
-	const handleOpenCreateModal = useCallback(
-		() => setIsCreateModalOpen(true),
-		[],
-	);
-	const handleCloseCreateModal = useCallback(
-		() => setIsCreateModalOpen(false),
-		[],
-	);
-	const handleOpenEditModal = useCallback(() => setIsEditModalOpen(true), []);
-	const handleCloseEditModal = useCallback(() => setIsEditModalOpen(false), []);
-	const handleOpenShoppingListModal = useCallback(
-		() => setIsShoppingListModalOpen(true),
-		[],
-	);
-	const handleCloseShoppingListModal = useCallback(
-		() => setIsShoppingListModalOpen(false),
-		[],
-	);
 	const handleViewModeChange = useCallback(
-		(newValue: "grid" | "table") => {
-			const nextParams = new URLSearchParams(searchParams);
-			nextParams.set("subtab", newValue);
-			setSearchParams(nextParams);
-		},
-		[searchParams, setSearchParams],
+		(newValue: "grid" | "table") => setVendorViewMode(newValue),
+		[],
 	);
 
 	const handleOnVendorChanged = useCallback(
@@ -970,12 +942,9 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		},
 		[],
 	);
-
 	const handleOnVendorCreated = useCallback((newVendorStore: VendorStore) => {
 		setVendorStores((prevStores) => [newVendorStore, ...prevStores]);
 		setUserVendorStore(newVendorStore);
-		setHasVendorStore(true);
-		setIsEditModalOpen(true);
 	}, []);
 
 	const handleOnStoreDeleted = useCallback((deletedVendorId: string) => {
@@ -983,7 +952,6 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 			prevStores.filter((store) => store.vendor.vendorid !== deletedVendorId),
 		);
 		setUserVendorStore(null);
-		setHasVendorStore(false);
 	}, []);
 
 	const sortedVendors = useMemo(() => {
@@ -1504,8 +1472,76 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 		/>
 	);
 
-	return (
+	const store = (activeTab === "store" || hasVisitedStore) && (
 		<Box
+			key="store"
+			sx={{
+				display: activeTab === "store" ? "block" : "none",
+				height: "100%",
+			}}
+		>
+			{!loggedIn ? (
+				<Box
+					sx={{
+						height: "100%",
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						justifyContent: "center",
+						gap: 2,
+						textAlign: "center",
+					}}
+				>
+					<Typography variant="h6">
+						Create your own store and list materials on the PUNoted Market
+					</Typography>
+					<Button variant="contained" onClick={onLoginRequest}>
+						Login / Register
+					</Button>
+				</Box>
+			) : userVendorStore === undefined ? (
+				<Box
+					sx={{
+						height: "100%",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					<CircularProgress color="primary" />
+				</Box>
+			) : userVendorStore ? (
+				<EditVendorStoreModal
+					vendorStore={userVendorStore}
+					onStoreDeleted={handleOnStoreDeleted}
+					onVendorChanged={handleOnVendorChanged}
+				/>
+			) : (
+				<VendorCreationModal onVendorCreated={handleOnVendorCreated} />
+			)}
+		</Box>
+	);
+
+	if (activeTab === "cart") {
+		return [
+			store,
+			<ShoppingListModal
+				key="cart"
+				isLoading={isLoadingVendors}
+				vendors={vendorStores}
+				cxPriceLookup={cxPriceLookup}
+			/>,
+		];
+	}
+
+	if (activeTab === "store") {
+		return [store];
+	}
+
+	return [
+		store,
+		<Box
+			key="market"
 			sx={{
 				boxSizing: "border-box",
 				margin: { xs: 0, sm: "0 0rem" },
@@ -1519,396 +1555,353 @@ const VendorsList = ({ loggedIn }: { loggedIn: boolean }) => {
 				},
 			}}
 		>
-			{/* Search and Action Bar */}
-			<Box sx={{ mb: 2, pt: 1, mx: 1 }}>
+			{isLoadingVendors ? (
 				<Box
 					sx={{
-						width: "100%",
-						display: "grid",
-						gridTemplateColumns: {
-							xs: "minmax(0, 1fr)",
-							lg: "auto auto minmax(0, 1fr) minmax(0, 1fr) auto auto",
-						},
+						flexGrow: 1,
+						display: "flex",
 						alignItems: "center",
-						gap: 1.5,
+						justifyContent: "center",
 					}}
 				>
-					<Box
-						sx={{
-							display: { xs: "flex", lg: "contents" },
-							alignItems: "center",
-							gap: 1.5,
-						}}
-					>
+					<CircularProgress color="primary" />
+				</Box>
+			) : (
+				<>
+					{/* Search and Filter Bar */}
+					<Box sx={{ mb: 2, pt: 1 }}>
 						<Box
 							sx={{
-								display: "flex",
+								width: "100%",
+								display: "grid",
+								gridTemplateColumns: {
+									xs: "minmax(0, 1fr)",
+									lg: "auto auto minmax(0, 1fr) minmax(0, 1fr) auto",
+								},
+								alignItems: "center",
+								gap: 1.5,
 							}}
 						>
-							<ToggleButtonGroup
-								value={vendorViewMode}
-								exclusive
-								onChange={(_event, newValue: "grid" | "table" | null) => {
-									if (newValue) {
-										handleViewModeChange(newValue);
-									}
-								}}
-								size="small"
-								aria-label="Vendor view mode"
+							<Box
 								sx={{
-									height: 40,
-									borderRadius: "12px",
-									"& .MuiToggleButtonGroup-grouped": {
-										"&:hover": {
-											background: alpha(theme.palette.primary.main, 0.5),
-										},
-										"&.Mui-selected": {
-											background: alpha(theme.palette.background.default, 0.8),
-											color: theme.palette.primary.light,
-											pointerEvents: "none",
-											"&:hover": {
-												background: alpha(
-													theme.palette.background.default,
-													0.9,
-												),
-											},
-										},
-									},
+									display: { xs: "flex", lg: "contents" },
+									alignItems: "center",
+									gap: 1.5,
 								}}
 							>
-								<ToggleButton
-									value="grid"
-									size="small"
-									aria-label="Grid view"
-									sx={{ px: 1.5, textTransform: "none" }}
-								>
-									Grid
-								</ToggleButton>
-								<ToggleButton
-									value="table"
-									size="small"
-									aria-label="Table view"
-									sx={{ px: 1.5, textTransform: "none" }}
-								>
-									Table
-								</ToggleButton>
-							</ToggleButtonGroup>
-						</Box>
-						<Box sx={{ display: "flex" }}>
-							<ToggleButtonGroup
-								value={orderTypeFilter}
-								exclusive
-								onChange={(_event, newValue: "ASK" | "BID" | "BOTH" | null) => {
-									if (newValue) setOrderTypeFilter(newValue);
-								}}
-								size="small"
-								aria-label="Order type filter"
-								sx={{
-									height: 40,
-									borderRadius: "12px",
-									"& .MuiToggleButtonGroup-grouped": {
-										"&:hover": {
-											background: alpha(theme.palette.primary.main, 0.5),
-										},
-										"&.Mui-selected": {
-											background: alpha(theme.palette.background.default, 0.8),
-											color: theme.palette.primary.light,
-											"&:hover": {
-												background: alpha(theme.palette.background.default, 1),
-											},
-										},
-									},
-								}}
-							>
-								<Tooltip title="Asks and Bids together">
-									<ToggleButton
-										value="BOTH"
-										size="small"
-										aria-label="Show both ask and bid"
-										sx={{ px: 1.5, textTransform: "none" }}
-									>
-										All
-									</ToggleButton>
-								</Tooltip>
-								<Tooltip title="You buy from the vendor">
-									<ToggleButton
-										value="ASK"
-										size="small"
-										aria-label="Show only ask"
-										sx={{ px: 1.5, textTransform: "none" }}
-									>
-										Ask
-									</ToggleButton>
-								</Tooltip>
-								<Tooltip title="You sell to the vendor">
-									<ToggleButton
-										value="BID"
-										size="small"
-										aria-label="Show only bid"
-										sx={{ px: 1.5, textTransform: "none" }}
-									>
-										Bid
-									</ToggleButton>
-								</Tooltip>
-							</ToggleButtonGroup>
-						</Box>
-						<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
-							<LocationFilter
-								locations={allLocations}
-								value={selectedLocation}
-								onChange={setSelectedLocation}
-								sx={{ width: "100%" }}
-							/>
-						</Box>
-					</Box>
-					<Box
-						sx={{
-							display: { xs: "flex", lg: "contents" },
-							alignItems: "center",
-							gap: 1.5,
-						}}
-					>
-						<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
-							<TextField
-								fullWidth
-								variant="outlined"
-								size="small"
-								inputRef={searchInputRef}
-								placeholder="Search…"
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								sx={{
-									"& .MuiOutlinedInput-root": {
-										height: 40,
-										bgcolor: alpha(theme.palette.background.default, 0.5),
-										backdropFilter: "blur(5px)",
-										borderRadius: "12px",
-										"& fieldset": {
-											borderColor: alpha(theme.palette.common.white, 0.1),
-										},
-										"&:hover fieldset": {
-											borderColor: theme.palette.primary.main,
-										},
-										"&.Mui-focused fieldset": {
-											borderColor: theme.palette.primary.main,
-										},
-										color: theme.palette.text.primary,
-									},
-								}}
-								slotProps={{
-									input: {
-										startAdornment: (
-											<InputAdornment position="start">
-												<Search
-													className="inline-icon"
-													color={theme.palette.primary.main}
-												/>
-											</InputAdornment>
-										),
-										endAdornment: (
-											<InputAdornment position="end">
-												<Box
-													sx={{
-														display: "flex",
-														alignItems: "center",
-														gap: 0.5,
-													}}
-												>
-													{searchQuery ? (
-														<>
-															<Tooltip title="Clear Search">
-																<IconButton
-																	size="small"
-																	aria-label="Clear material search"
-																	onClick={() => setSearchQuery("")}
-																>
-																	<X className="inline-icon" />
-																</IconButton>
-															</Tooltip>
-														</>
-													) : null}
-													<Tooltip
-														title={
-															exactMatch
-																? "Exact Match: ON"
-																: "Exact Match: OFF"
-														}
-													>
-														<IconButton
-															size="small"
-															onClick={() => setExactMatch((prev) => !prev)}
-															sx={{
-																color: exactMatch
-																	? "primary.main"
-																	: "text.secondary",
-																bgcolor: exactMatch
-																	? alpha(theme.palette.primary.main, 0.15)
-																	: "transparent",
-															}}
-														>
-															<CenterFocusStrongIcon className="inline-icon" />
-														</IconButton>
-													</Tooltip>
-												</Box>
-											</InputAdornment>
-										),
-									},
-								}}
-							/>
-						</Box>
-						<Box>
-							<Tooltip title="Hide materials if vendor has/wants 0">
-								<ToggleButton
-									value="hide-unavailable"
-									selected={hideUnavailable}
-									onChange={() => setHideUnavailable((prev) => !prev)}
-									aria-label="Hide Unavailable"
+								<Box
 									sx={{
-										height: 40,
-										px: 1.5,
-										textTransform: "none",
-										gap: 0.5,
-										whiteSpace: "nowrap",
-										"&.Mui-selected": {
-											color: theme.palette.primary.light,
-											backgroundColor: "transparent",
-											"&:hover": { backgroundColor: "transparent" },
-										},
+										display: "flex",
 									}}
 								>
-									{hideUnavailable ? (
-										<SquareCheck className="inline-icon" />
-									) : (
-										<Square className="inline-icon" />
-									)}
-									Hide Unavailable
-								</ToggleButton>
-							</Tooltip>
-						</Box>
-
-						<Box
-							sx={{
-								display: "flex",
-								gap: 1,
-								justifyContent: "flex-end",
-							}}
-						>
-							<Tooltip title="Shopping List">
-								<IconButton
-									onClick={handleOpenShoppingListModal}
-									sx={{
-										height: 40,
-										width: 40,
-										borderRadius: "50%",
-										color: "white",
-										bgcolor: "primary.main",
-										boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-										"&:hover": { bgcolor: "primary.dark" },
-									}}
-								>
-									<ShoppingBasket className="inline-icon" />
-								</IconButton>
-							</Tooltip>
-							{loggedIn && (
-								<Tooltip title="Your Store">
-									<IconButton
-										onClick={
-											hasVendorStore
-												? handleOpenEditModal
-												: handleOpenCreateModal
-										}
-										disabled={isCheckingStore}
+									<ToggleButtonGroup
+										value={vendorViewMode}
+										exclusive
+										onChange={(_event, newValue: "grid" | "table" | null) => {
+											if (newValue) {
+												handleViewModeChange(newValue);
+											}
+										}}
+										size="small"
+										aria-label="Vendor view mode"
 										sx={{
 											height: 40,
-											width: 40,
-											borderRadius: "50%",
-											color: "white",
-											bgcolor: "primary.main",
-											boxShadow: "0 4px 10px rgba(0,0,0,0.5)",
-											"&:hover": { bgcolor: "primary.dark" },
-											"&.Mui-disabled": {
-												bgcolor: alpha(theme.palette.primary.main, 0.5),
+											borderRadius: "12px",
+											"& .MuiToggleButtonGroup-grouped": {
+												"&:hover": {
+													background: alpha(theme.palette.primary.main, 0.5),
+												},
+												"&.Mui-selected": {
+													background: alpha(
+														theme.palette.background.default,
+														0.8,
+													),
+													color: theme.palette.primary.light,
+													pointerEvents: "none",
+													"&:hover": {
+														background: alpha(
+															theme.palette.background.default,
+															0.9,
+														),
+													},
+												},
 											},
 										}}
 									>
-										<Store className="inline-icon" />
-									</IconButton>
-								</Tooltip>
-							)}
-						</Box>
-					</Box>
-				</Box>
-			</Box>
-
-			{/* Vendor List Area */}
-			<Box
-				id="vendors"
-				sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 0, pb: 2 }}
-			>
-				{vendorViewMode === "table" ? (
-					<Box sx={{ height: "100%", width: "100%" }}>
-						<Box sx={{ display: { xs: "block", md: "none" }, height: "100%" }}>
-							{renderTable(narrowTableColumns)}
-						</Box>
-						<Box
-							sx={{
-								display: { xs: "none", md: "block", lg: "none" },
-								height: "100%",
-							}}
-						>
-							{renderTable(compactTableColumns)}
-						</Box>
-						<Box sx={{ display: { xs: "none", lg: "block" }, height: "100%" }}>
-							{renderTable(tableColumns)}
-						</Box>
-					</Box>
-				) : (
-					<>
-						{preparedFilteredVendors.length > 0 ? (
-							<Masonry
-								columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xll: 6 }}
-								spacing={2}
-							>
-								{preparedFilteredVendors.map((preparedVendor) => (
-									<VendorCard
-										key={preparedVendor.vendorStore.vendor.companycode}
-										preparedVendor={preparedVendor}
+										<ToggleButton
+											value="grid"
+											size="small"
+											aria-label="Grid view"
+											sx={{ px: 1.5, textTransform: "none" }}
+										>
+											Grid
+										</ToggleButton>
+										<ToggleButton
+											value="table"
+											size="small"
+											aria-label="Table view"
+											sx={{ px: 1.5, textTransform: "none" }}
+										>
+											Table
+										</ToggleButton>
+									</ToggleButtonGroup>
+								</Box>
+								<Box sx={{ display: "flex" }}>
+									<ToggleButtonGroup
+										value={orderTypeFilter}
+										exclusive
+										onChange={(
+											_event,
+											newValue: "ASK" | "BID" | "BOTH" | null,
+										) => {
+											if (newValue) setOrderTypeFilter(newValue);
+										}}
+										size="small"
+										aria-label="Order type filter"
+										sx={{
+											height: 40,
+											borderRadius: "12px",
+											"& .MuiToggleButtonGroup-grouped": {
+												"&:hover": {
+													background: alpha(theme.palette.primary.main, 0.5),
+												},
+												"&.Mui-selected": {
+													background: alpha(
+														theme.palette.background.default,
+														0.8,
+													),
+													color: theme.palette.primary.light,
+													"&:hover": {
+														background: alpha(
+															theme.palette.background.default,
+															1,
+														),
+													},
+												},
+											},
+										}}
+									>
+										<Tooltip title="Asks and Bids together">
+											<ToggleButton
+												value="BOTH"
+												size="small"
+												aria-label="Show both ask and bid"
+												sx={{ px: 1.5, textTransform: "none" }}
+											>
+												All
+											</ToggleButton>
+										</Tooltip>
+										<Tooltip title="You buy from the vendor">
+											<ToggleButton
+												value="ASK"
+												size="small"
+												aria-label="Show only ask"
+												sx={{ px: 1.5, textTransform: "none" }}
+											>
+												Ask
+											</ToggleButton>
+										</Tooltip>
+										<Tooltip title="You sell to the vendor">
+											<ToggleButton
+												value="BID"
+												size="small"
+												aria-label="Show only bid"
+												sx={{ px: 1.5, textTransform: "none" }}
+											>
+												Bid
+											</ToggleButton>
+										</Tooltip>
+									</ToggleButtonGroup>
+								</Box>
+								<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
+									<LocationFilter
+										locations={allLocations}
+										value={selectedLocation}
+										onChange={setSelectedLocation}
+										sx={{ width: "100%" }}
 									/>
-								))}
-							</Masonry>
-						) : (
-							<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
-								<Typography variant="h6">
-									{isLoadingVendors ? "Loading…" : "No results"}
-								</Typography>
+								</Box>
 							</Box>
-						)}
-					</>
-				)}
-			</Box>
+							<Box
+								sx={{
+									display: { xs: "flex", lg: "contents" },
+									alignItems: "center",
+									gap: 1.5,
+								}}
+							>
+								<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
+									<TextField
+										fullWidth
+										variant="outlined"
+										size="small"
+										inputRef={searchInputRef}
+										placeholder="Search…"
+										value={searchQuery}
+										onChange={(e) => setSearchQuery(e.target.value)}
+										sx={{
+											"& .MuiOutlinedInput-root": {
+												height: 40,
+												bgcolor: alpha(theme.palette.background.default, 0.5),
+												backdropFilter: "blur(5px)",
+												borderRadius: "12px",
+												"& fieldset": {
+													borderColor: alpha(theme.palette.common.white, 0.1),
+												},
+												"&:hover fieldset": {
+													borderColor: theme.palette.primary.main,
+												},
+												"&.Mui-focused fieldset": {
+													borderColor: theme.palette.primary.main,
+												},
+												color: theme.palette.text.primary,
+											},
+										}}
+										slotProps={{
+											input: {
+												startAdornment: (
+													<InputAdornment position="start">
+														<Search
+															className="inline-icon"
+															color={theme.palette.primary.main}
+														/>
+													</InputAdornment>
+												),
+												endAdornment: (
+													<InputAdornment position="end">
+														<Box
+															sx={{
+																display: "flex",
+																alignItems: "center",
+																gap: 0.5,
+															}}
+														>
+															{searchQuery ? (
+																<>
+																	<Tooltip title="Clear Search">
+																		<IconButton
+																			size="small"
+																			aria-label="Clear material search"
+																			onClick={() => setSearchQuery("")}
+																		>
+																			<X className="inline-icon" />
+																		</IconButton>
+																	</Tooltip>
+																</>
+															) : null}
+															<Tooltip
+																title={
+																	exactMatch
+																		? "Exact Match: ON"
+																		: "Exact Match: OFF"
+																}
+															>
+																<IconButton
+																	size="small"
+																	onClick={() => setExactMatch((prev) => !prev)}
+																	sx={{
+																		color: exactMatch
+																			? "primary.main"
+																			: "text.secondary",
+																		bgcolor: exactMatch
+																			? alpha(theme.palette.primary.main, 0.15)
+																			: "transparent",
+																	}}
+																>
+																	<CenterFocusStrongIcon className="inline-icon" />
+																</IconButton>
+															</Tooltip>
+														</Box>
+													</InputAdornment>
+												),
+											},
+										}}
+									/>
+								</Box>
+								<Box>
+									<Tooltip title="Hide materials if vendor has/wants 0">
+										<ToggleButton
+											value="hide-unavailable"
+											selected={hideUnavailable}
+											onChange={() => setHideUnavailable((prev) => !prev)}
+											aria-label="Hide Unavailable"
+											sx={{
+												height: 40,
+												px: 1.5,
+												textTransform: "none",
+												gap: 0.5,
+												whiteSpace: "nowrap",
+												"&.Mui-selected": {
+													color: theme.palette.primary.light,
+													backgroundColor: "transparent",
+													"&:hover": { backgroundColor: "transparent" },
+												},
+											}}
+										>
+											{hideUnavailable ? (
+												<SquareCheck className="inline-icon" />
+											) : (
+												<Square className="inline-icon" />
+											)}
+											Hide Unavailable
+										</ToggleButton>
+									</Tooltip>
+								</Box>
+							</Box>
+						</Box>
+					</Box>
 
-			<VendorCreationModal
-				open={isCreateModalOpen}
-				handleClose={handleCloseCreateModal}
-				onVendorCreated={handleOnVendorCreated}
-				vendorStore={null}
-			/>
-			<EditVendorStoreModal
-				open={isEditModalOpen}
-				handleClose={handleCloseEditModal}
-				vendorStore={userVendorStore}
-				onStoreDeleted={handleOnStoreDeleted}
-				onVendorChanged={handleOnVendorChanged}
-			/>
-			<ShoppingListModal
-				open={isShoppingListModalOpen}
-				handleClose={handleCloseShoppingListModal}
-				vendors={vendorStores}
-				isLoggedIn={loggedIn}
-				cxPriceLookup={cxPriceLookup}
-			/>
-		</Box>
-	);
+					{/* Vendor List Area */}
+					<Box
+						id="vendors"
+						sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 0, pb: 2 }}
+					>
+						{vendorViewMode === "table" ? (
+							<Box sx={{ height: "100%", width: "100%" }}>
+								<Box
+									sx={{ display: { xs: "block", md: "none" }, height: "100%" }}
+								>
+									{renderTable(narrowTableColumns)}
+								</Box>
+								<Box
+									sx={{
+										display: { xs: "none", md: "block", lg: "none" },
+										height: "100%",
+									}}
+								>
+									{renderTable(compactTableColumns)}
+								</Box>
+								<Box
+									sx={{ display: { xs: "none", lg: "block" }, height: "100%" }}
+								>
+									{renderTable(tableColumns)}
+								</Box>
+							</Box>
+						) : (
+							<>
+								{preparedFilteredVendors.length > 0 ? (
+									<Masonry
+										columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xll: 6 }}
+										spacing={2}
+									>
+										{preparedFilteredVendors.map((preparedVendor) => (
+											<VendorCard
+												key={preparedVendor.vendorStore.vendor.companycode}
+												preparedVendor={preparedVendor}
+											/>
+										))}
+									</Masonry>
+								) : (
+									<Box sx={{ textAlign: "center", py: 8, opacity: 0.6 }}>
+										<Typography variant="h6">No results</Typography>
+									</Box>
+								)}
+							</>
+						)}
+					</Box>
+				</>
+			)}
+		</Box>,
+	];
 };
 
 export default VendorsList;

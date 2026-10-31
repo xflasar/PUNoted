@@ -5,12 +5,7 @@ import React, {
 	useCallback,
 	useRef,
 } from "react";
-import { createPortal } from "react-dom";
 import {
-	Dialog,
-	DialogTitle,
-	DialogContent,
-	Alert,
 	Box,
 	Link,
 	Typography,
@@ -22,8 +17,8 @@ import {
 	Tooltip,
 	useTheme,
 	useMediaQuery,
+	CircularProgress,
 	Drawer,
-	Snackbar,
 	Collapse,
 	alpha,
 } from "@mui/material";
@@ -54,6 +49,7 @@ import {
 	type ImportedShoppingListItem,
 } from "./utils/shoppinglistimport";
 import MaterialBadge from "../components/materialbadge";
+import { Toast } from "./toast";
 import LocationFilter, {
 	HORTUS_LOCATION_CODE,
 	matchesLocationFilter,
@@ -962,9 +958,17 @@ const OrderSummaryPanel: React.FC<{
 	groups: SummaryLocationGroup[];
 	onCopyContract: (locationCode: string, items: ShoppingSummaryItem[]) => void;
 	onClose?: () => void;
+	onHelp: () => void;
 	insufficientStock: boolean;
 	grandTotal: number;
-}> = ({ groups, onCopyContract, onClose, insufficientStock, grandTotal }) => {
+}> = ({
+	groups,
+	onCopyContract,
+	onClose,
+	onHelp,
+	insufficientStock,
+	grandTotal,
+}) => {
 	const theme = useTheme();
 
 	return (
@@ -997,17 +1001,28 @@ const OrderSummaryPanel: React.FC<{
 				>
 					CONTRACT DETAILS
 				</Typography>
-				{onClose && (
+				<Box sx={{ display: "flex", gap: 1 }}>
 					<Button
 						size="small"
 						variant="outlined"
-						startIcon={<X className="inline-icon" />}
-						onClick={onClose}
+						startIcon={<CircleHelp className="inline-icon" />}
+						onClick={onHelp}
 						sx={{ fontWeight: "bold" }}
 					>
-						CLOSE
+						HELP
 					</Button>
-				)}
+					{onClose && (
+						<Button
+							size="small"
+							variant="outlined"
+							startIcon={<X className="inline-icon" />}
+							onClick={onClose}
+							sx={{ fontWeight: "bold" }}
+						>
+							CLOSE
+						</Button>
+					)}
+				</Box>
 			</Box>
 			<Box sx={{ flex: 1, overflowY: "auto", p: 1.5, minHeight: "100px" }}>
 				{groups.length > 0 ? (
@@ -1286,8 +1301,8 @@ const AvailableMaterialsPanel: React.FC<{
 		const [importSnackbar, setImportSnackbar] = useState<{
 			open: boolean;
 			message: string;
-			severity: "success" | "error";
-		}>({ open: false, message: "", severity: "success" });
+			color: "success" | "error";
+		}>({ open: false, message: "", color: "success" });
 		const importInputRef = useRef<HTMLTextAreaElement>(null);
 		const pendingImportRef = useRef(false);
 
@@ -1316,13 +1331,13 @@ const AvailableMaterialsPanel: React.FC<{
 				setImportSnackbar({
 					open: true,
 					message: `Imported ${importedMaterials.length} materials`,
-					severity: "success",
+					color: "success",
 				});
 			} catch (error) {
 				setImportSnackbar({
 					open: true,
 					message: error instanceof Error ? error.message : "Invalid input",
-					severity: "error",
+					color: "error",
 				});
 			}
 		}, [handleCloseImport, importText, onImport, validMaterialTickers]);
@@ -1498,28 +1513,14 @@ const AvailableMaterialsPanel: React.FC<{
 						Example
 					</Link>
 				</Modal>
-				{createPortal(
-					<Snackbar
-						open={importSnackbar.open}
-						autoHideDuration={3000}
-						anchorOrigin={{ vertical: "top", horizontal: "right" }}
-						onClose={() =>
-							setImportSnackbar((current) => ({ ...current, open: false }))
-						}
-						sx={{ zIndex: (theme) => theme.zIndex.modal + 2 }}
-					>
-						<Alert
-							onClose={() =>
-								setImportSnackbar((current) => ({ ...current, open: false }))
-							}
-							severity={importSnackbar.severity}
-							variant="filled"
-						>
-							{importSnackbar.message}
-						</Alert>
-					</Snackbar>,
-					document.body,
-				)}
+				<Toast
+					open={importSnackbar.open}
+					message={importSnackbar.message}
+					color={importSnackbar.color}
+					onClose={() =>
+						setImportSnackbar((current) => ({ ...current, open: false }))
+					}
+				/>
 			</Box>
 		);
 	},
@@ -1531,17 +1532,14 @@ const AvailableMaterialsPanel: React.FC<{
  * Computes optimal sourcing and summarizes costs automatically.
  *
  * @param {object} props - Component props.
- * @param {boolean} props.open - Whether the modal is visible.
- * @param {() => void} props.handleClose - Callback to close the modal.
  * @param {VendorStore[]} props.vendors - The list of all known vendor stores to source from.
  * @returns {React.ReactElement} The shopping list modal component.
  */
 const ShoppingListModal: React.FC<{
-	open: boolean;
-	handleClose: () => void;
+	isLoading: boolean;
 	vendors: VendorStore[];
 	cxPriceLookup: CxPriceLookup;
-}> = ({ open, handleClose, vendors, cxPriceLookup }) => {
+}> = ({ isLoading, vendors, cxPriceLookup }) => {
 	const theme = useTheme();
 	const { materialData, isMaterialDataLoaded } = useGlobalData();
 	const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
@@ -1917,382 +1915,330 @@ const ShoppingListModal: React.FC<{
 
 	const grandTotal = shoppingSummary.reduce((s, i) => s + i.totalPrice, 0);
 
+	if (isLoading || !isMaterialDataLoaded) {
+		return (
+			<Box
+				sx={{
+					height: "100%",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+				}}
+			>
+				<CircularProgress color="primary" />
+			</Box>
+		);
+	}
+
 	return (
-		<Dialog
-			open={open}
-			onClose={handleClose}
-			maxWidth={false}
-			fullScreen
-			PaperProps={{
-				sx: {
-					background: theme.palette.background.paper,
-					backgroundImage: "none",
-				},
+		<Box
+			sx={{
+				p: 0,
+				display: "flex",
+				flexDirection: "column",
+				alignItems: "center",
+				height: "100%",
+				overflow: "hidden",
 			}}
 		>
 			<Box
 				sx={{
-					position: "absolute",
+					display: "flex",
+					flexDirection: isMobile ? "column" : "row",
+					gap: isMobile ? 0 : 1,
+					p: isMobile ? 0 : 1,
 					width: "100%",
 					height: "100%",
-					bgcolor: "rgba(0,0,0,0.2)",
-					backdropFilter: "blur(2px)",
-					zIndex: 1,
-				}}
-			/>
-
-			<DialogTitle
-				sx={{
-					p: 1.5,
-					display: "flex",
-					justifyContent: "space-between",
-					borderBottom: `1px solid ${theme.palette.divider}`,
-					zIndex: 2,
-					background: theme.palette.background.paper,
-				}}
-			>
-				<Box
-					sx={{
-						display: "flex",
-						alignItems: "center",
-						gap: 1,
-						color: theme.palette.primary.main,
-					}}
-				>
-					<ShoppingBasket className="inline-icon" />
-					<Typography variant="h6">Shopping List</Typography>
-				</Box>
-				<Box sx={{ display: "flex", gap: 1 }}>
-					<Button
-						variant="outlined"
-						size="small"
-						startIcon={<CircleHelp className="inline-icon" />}
-						onClick={() => setShowHelp(true)}
-						sx={{ fontWeight: "bold" }}
-					>
-						HELP
-					</Button>
-					<Button
-						variant="outlined"
-						size="small"
-						startIcon={<X className="inline-icon" />}
-						onClick={handleClose}
-						sx={{ fontWeight: "bold" }}
-					>
-						CLOSE
-					</Button>
-				</Box>
-			</DialogTitle>
-
-			<DialogContent
-				sx={{
-					p: 0,
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "center",
-					zIndex: 2,
 					overflow: "hidden",
 				}}
 			>
+				{/* LEFT COLUMN */}
 				<Box
 					sx={{
-						display: "flex",
-						flexDirection: isMobile ? "column" : "row",
-						gap: isMobile ? 0 : 1,
-						p: isMobile ? 0 : 1,
-						width: "100%",
-						height: "100%",
-						overflow: "hidden",
+						flex: 1,
+						display: isMobile ? "flex" : "contents",
+						flexDirection: "column",
+						p: isMobile ? 1 : 0,
+						gap: isMobile ? 1 : 0,
+						minHeight: 0,
+						maxWidth: "100%",
 					}}
 				>
-					{/* LEFT COLUMN */}
-					<Box
+					{/* SELECTION */}
+					<Paper
 						sx={{
-							flex: 1,
-							display: isMobile ? "flex" : "contents",
-							flexDirection: "column",
-							p: isMobile ? 1 : 0,
-							gap: isMobile ? 1 : 0,
+							flex: isMobile ? 1 : "1 1 0",
+							order: isMobile ? 0 : 2,
+							minWidth: 0,
+							height: "100%",
 							minHeight: 0,
-							maxWidth: "100%",
+							background: theme.palette.background.paper,
+							border: `1px solid ${theme.palette.divider}`,
+							display: "flex",
+							flexDirection: "column",
+							overflow: "hidden",
+							borderRadius: 2,
 						}}
 					>
-						{/* SELECTION */}
-						<Paper
-							sx={{
-								flex: isMobile ? 1 : "1 1 0",
-								order: isMobile ? 0 : 2,
-								minWidth: 0,
-								height: "100%",
-								minHeight: 0,
-								background: theme.palette.background.paper,
-								border: `1px solid ${theme.palette.divider}`,
-								display: "flex",
-								flexDirection: "column",
-								overflow: "hidden",
-								borderRadius: 2,
-							}}
-						>
-							<Box
-								sx={{
-									p: 1.5,
-									display: "flex",
-									alignItems: "center",
-									justifyContent: "space-between",
-									borderBottom: `1px solid ${theme.palette.divider}`,
-									bgcolor: "rgba(0,0,0,0.05)",
-								}}
-							>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Typography
-										variant="subtitle2"
-										sx={{ color: "text.primary", fontWeight: "bold" }}
-									>
-										YOUR MATERIALS
-									</Typography>
-									{isCompact && (
-										<Button
-											size="small"
-											variant="contained"
-											startIcon={<PlusCircle className="inline-icon" />}
-											onClick={() => setShowAddItems(true)}
-										>
-											ADD
-										</Button>
-									)}
-								</Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									{isMobile && (
-										<Button
-											size="small"
-											variant="contained"
-											startIcon={<Handshake className="inline-icon" />}
-											onClick={() => setShowSummary(true)}
-										>
-											CONTRACTS
-										</Button>
-									)}
-									<InlineConfirmButton
-										buttonText="CLEAR"
-										icon={<Trash2 className="inline-icon" />}
-										color="error"
-										action={() => setShoppingList([])}
-										disabled={shoppingList.length === 0}
-									/>
-								</Box>
-							</Box>
-							<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
-								{shoppingList.length === 0 ? (
-									<Box sx={{ p: 4, textAlign: "center", opacity: 0.5, mt: 4 }}>
-										<ShoppingBasket className="inline-icon" />
-										<Typography variant="body1">
-											Your Shopping List is empty
-										</Typography>
-										<Typography variant="caption">
-											{isCompact
-												? "Use ADD above"
-												: "Add materials on the left"}
-										</Typography>
-									</Box>
-								) : (
-									shoppingList.map((item) => (
-										<CompactListItem
-											key={item.frontendId}
-											item={item}
-											availableVendors={inventoryMap[item.materialticker] || []}
-											onUpdateQty={(q) => handleUpdateQty(item.frontendId, q)}
-											onRemove={() => handleRemove(item.frontendId)}
-											onUpdatePriority={(p) =>
-												handleUpdatePriority(item.frontendId, p)
-											}
-										/>
-									))
-								)}
-							</Box>
-						</Paper>
-
-						{/* SUMMARY */}
-						{!isMobile && (
-							<Box
-								sx={{
-									flex: "0 0 380px",
-									order: 3,
-									minWidth: 0,
-									height: "100%",
-									display: "flex",
-								}}
-							>
-								<OrderSummaryPanel
-									groups={groupedSummary}
-									onCopyContract={handleCopyContract}
-									insufficientStock={insufficientStock}
-									grandTotal={grandTotal}
-								/>
-							</Box>
-						)}
-					</Box>
-
-					{/* RIGHT COLUMN */}
-					{!isCompact && (
 						<Box
 							sx={{
-								width: 380,
-								flex: "0 0 380px",
-								order: 1,
-								p: 0,
+								p: 1.5,
 								display: "flex",
-								flexDirection: "column",
+								alignItems: "center",
+								justifyContent: "space-between",
+								borderBottom: `1px solid ${theme.palette.divider}`,
+								bgcolor: "rgba(0,0,0,0.05)",
 							}}
 						>
-							<Paper
-								sx={{
-									flex: 1,
-									background: theme.palette.background.paper,
-									border: `1px solid ${theme.palette.divider}`,
-									overflow: "hidden",
-									borderRadius: 2,
-								}}
-							>
-								<AvailableMaterialsPanel
-									materials={availableMaterials}
-									selectedTickers={selectedTickers}
-									onAdd={handleAdd}
-									onImport={handleImport}
-									validMaterialTickers={validMaterialTickers}
-									isMaterialDataLoaded={isMaterialDataLoaded}
-									allLocations={allLocations}
-									selectedLocation={selectedLocation}
-									onChangeLocation={setSelectedLocation}
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								<Typography
+									variant="subtitle2"
+									sx={{ color: "text.primary", fontWeight: "bold" }}
+								>
+									YOUR MATERIALS
+								</Typography>
+								{isCompact && (
+									<Button
+										size="small"
+										variant="contained"
+										startIcon={<PlusCircle className="inline-icon" />}
+										onClick={() => setShowAddItems(true)}
+									>
+										ADD
+									</Button>
+								)}
+							</Box>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+								{isMobile && (
+									<Button
+										size="small"
+										variant="contained"
+										startIcon={<Handshake className="inline-icon" />}
+										onClick={() => setShowSummary(true)}
+									>
+										CONTRACTS
+									</Button>
+								)}
+								<InlineConfirmButton
+									buttonText="CLEAR"
+									icon={<Trash2 className="inline-icon" />}
+									color="error"
+									action={() => setShoppingList([])}
+									disabled={shoppingList.length === 0}
 								/>
-							</Paper>
+							</Box>
+						</Box>
+						<Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
+							{shoppingList.length === 0 ? (
+								<Box sx={{ p: 4, textAlign: "center", opacity: 0.5, mt: 4 }}>
+									<ShoppingBasket className="inline-icon" />
+									<Typography variant="body1">
+										Your Shopping List is empty
+									</Typography>
+									<Typography variant="caption">
+										{isCompact ? "Use ADD above" : "Add materials on the left"}
+									</Typography>
+								</Box>
+							) : (
+								shoppingList.map((item) => (
+									<CompactListItem
+										key={item.frontendId}
+										item={item}
+										availableVendors={inventoryMap[item.materialticker] || []}
+										onUpdateQty={(q) => handleUpdateQty(item.frontendId, q)}
+										onRemove={() => handleRemove(item.frontendId)}
+										onUpdatePriority={(p) =>
+											handleUpdatePriority(item.frontendId, p)
+										}
+									/>
+								))
+							)}
+						</Box>
+					</Paper>
+
+					{/* SUMMARY */}
+					{!isMobile && (
+						<Box
+							sx={{
+								flex: "0 0 380px",
+								order: 3,
+								minWidth: 0,
+								height: "100%",
+								display: "flex",
+							}}
+						>
+							<OrderSummaryPanel
+								groups={groupedSummary}
+								onCopyContract={handleCopyContract}
+								onHelp={() => setShowHelp(true)}
+								insufficientStock={insufficientStock}
+								grandTotal={grandTotal}
+							/>
 						</Box>
 					)}
 				</Box>
 
-				{/* ADD MATERIALS DRAWER */}
-				<Drawer
-					anchor="bottom"
-					open={showAddItems}
-					onClose={() => setShowAddItems(false)}
-					slotProps={{
-						paper: {
-							sx: {
-								height: "100%",
-								borderTopLeftRadius: 16,
-								borderTopRightRadius: 16,
+				{/* RIGHT COLUMN */}
+				{!isCompact && (
+					<Box
+						sx={{
+							width: 380,
+							flex: "0 0 380px",
+							order: 1,
+							p: 0,
+							display: "flex",
+							flexDirection: "column",
+						}}
+					>
+						<Paper
+							sx={{
+								flex: 1,
 								background: theme.palette.background.paper,
-								backgroundImage: "none",
-								borderTop: `1px solid ${theme.palette.divider}`,
-							},
+								border: `1px solid ${theme.palette.divider}`,
+								overflow: "hidden",
+								borderRadius: 2,
+							}}
+						>
+							<AvailableMaterialsPanel
+								materials={availableMaterials}
+								selectedTickers={selectedTickers}
+								onAdd={handleAdd}
+								onImport={handleImport}
+								validMaterialTickers={validMaterialTickers}
+								isMaterialDataLoaded={isMaterialDataLoaded}
+								allLocations={allLocations}
+								selectedLocation={selectedLocation}
+								onChangeLocation={setSelectedLocation}
+							/>
+						</Paper>
+					</Box>
+				)}
+			</Box>
+
+			{/* ADD MATERIALS DRAWER */}
+			<Drawer
+				anchor="bottom"
+				open={showAddItems}
+				onClose={() => setShowAddItems(false)}
+				slotProps={{
+					paper: {
+						sx: {
+							height: "100%",
+							borderTopLeftRadius: 16,
+							borderTopRightRadius: 16,
+							background: theme.palette.background.paper,
+							backgroundImage: "none",
+							borderTop: `1px solid ${theme.palette.divider}`,
 						},
-						backdrop: {
-							sx: { backgroundColor: theme.palette.background.default },
+					},
+					backdrop: {
+						sx: { backgroundColor: theme.palette.background.default },
+					},
+				}}
+				sx={{ zIndex: 9999 }}
+			>
+				<AvailableMaterialsPanel
+					materials={availableMaterials}
+					selectedTickers={selectedTickers}
+					onAdd={handleAdd}
+					onImport={handleImport}
+					validMaterialTickers={validMaterialTickers}
+					isMaterialDataLoaded={isMaterialDataLoaded}
+					allLocations={allLocations}
+					selectedLocation={selectedLocation}
+					onChangeLocation={setSelectedLocation}
+					isMobile
+					onCloseMobile={() => setShowAddItems(false)}
+				/>
+			</Drawer>
+			<Drawer
+				anchor="bottom"
+				open={isMobile && showSummary}
+				onClose={() => setShowSummary(false)}
+				slotProps={{
+					paper: {
+						sx: {
+							height: "100%",
+							borderTopLeftRadius: 16,
+							borderTopRightRadius: 16,
+							background: theme.palette.background.paper,
+							backgroundImage: "none",
+							borderTop: `1px solid ${theme.palette.divider}`,
 						},
-					}}
-					sx={{ zIndex: 9999 }}
-				>
-					<AvailableMaterialsPanel
-						materials={availableMaterials}
-						selectedTickers={selectedTickers}
-						onAdd={handleAdd}
-						onImport={handleImport}
-						validMaterialTickers={validMaterialTickers}
-						isMaterialDataLoaded={isMaterialDataLoaded}
-						allLocations={allLocations}
-						selectedLocation={selectedLocation}
-						onChangeLocation={setSelectedLocation}
-						isMobile
-						onCloseMobile={() => setShowAddItems(false)}
-					/>
-				</Drawer>
-				<Drawer
-					anchor="bottom"
-					open={isMobile && showSummary}
+					},
+					backdrop: {
+						sx: { backgroundColor: theme.palette.background.default },
+					},
+				}}
+				sx={{ zIndex: 9999 }}
+			>
+				<OrderSummaryPanel
+					groups={groupedSummary}
+					onCopyContract={handleCopyContract}
+					onHelp={() => setShowHelp(true)}
 					onClose={() => setShowSummary(false)}
-					slotProps={{
-						paper: {
-							sx: {
-								height: "100%",
-								borderTopLeftRadius: 16,
-								borderTopRightRadius: 16,
-								background: theme.palette.background.paper,
-								backgroundImage: "none",
-								borderTop: `1px solid ${theme.palette.divider}`,
-							},
-						},
-						backdrop: {
-							sx: { backgroundColor: theme.palette.background.default },
-						},
-					}}
-					sx={{ zIndex: 9999 }}
-				>
-					<OrderSummaryPanel
-						groups={groupedSummary}
-						onCopyContract={handleCopyContract}
-						onClose={() => setShowSummary(false)}
-						insufficientStock={insufficientStock}
-						grandTotal={grandTotal}
-					/>
-				</Drawer>
-				<Modal
-					open={showHelp}
-					onClose={() => setShowHelp(false)}
-					title="How to use the Shopping List"
-					cancelLabel="CLOSE"
-				>
-					<Typography>
-						<ol>
-							<li>
-								Click{" "}
-								<PlusCircle
-									className="inline-icon"
-									color={theme.palette.success.main}
-								/>{" "}
-								to select materials:
-								<Box
-									component="img"
-									src={shoppingListHelp1}
-									alt="Selecting materials"
-									sx={helpImageSx}
-								/>
-							</li>
-							<li>
-								Enter the required quantities then check Vendors and Locations:
-								<Box
-									component="img"
-									src={shoppingListHelp2}
-									alt="Setting quantities and sourcing priority"
-									sx={helpImageSx}
-								/>
-							</li>
-							<li>
-								Contract details will be updated automatically:
-								<Box
-									component="img"
-									src={shoppingListHelp3}
-									alt="Order summary"
-									sx={helpImageSx}
-								/>
-								<strong>💡 Pro Tip</strong>: Click{" "}
-								<ContentCopy className="inline-icon" /> <strong>COPY</strong>{" "}
-								and paste into the <strong>Sheets/Excel</strong> input in{" "}
-								<code>
-									<strong>CONTD</strong>
-								</code>{" "}
-								for easy contract creation (requires{" "}
-								<a
-									href="https://com.prosperousuniverse.com/t/refined-prun-qol-extension-for-prosperous-universe/6760"
-									target="_blank"
-								>
-									Refined PrUn
-								</a>
-								).
-							</li>
-						</ol>
-					</Typography>
-				</Modal>
-			</DialogContent>
-		</Dialog>
+					insufficientStock={insufficientStock}
+					grandTotal={grandTotal}
+				/>
+			</Drawer>
+			<Modal
+				open={showHelp}
+				onClose={() => setShowHelp(false)}
+				title="How to use the Shopping List"
+				cancelLabel="CLOSE"
+			>
+				<Typography>
+					<ol>
+						<li>
+							Click{" "}
+							<PlusCircle
+								className="inline-icon"
+								color={theme.palette.success.main}
+							/>{" "}
+							to select materials:
+							<Box
+								component="img"
+								src={shoppingListHelp1}
+								alt="Selecting materials"
+								sx={helpImageSx}
+							/>
+						</li>
+						<li>
+							Enter the required quantities then check Vendors and Locations:
+							<Box
+								component="img"
+								src={shoppingListHelp2}
+								alt="Setting quantities and sourcing priority"
+								sx={helpImageSx}
+							/>
+						</li>
+						<li>
+							Contract details will be updated automatically:
+							<Box
+								component="img"
+								src={shoppingListHelp3}
+								alt="Order summary"
+								sx={helpImageSx}
+							/>
+							<strong>💡 Pro Tip</strong>: Click{" "}
+							<ContentCopy className="inline-icon" /> <strong>COPY</strong> and
+							paste into the <strong>Sheets/Excel</strong> input in{" "}
+							<code>
+								<strong>CONTD</strong>
+							</code>{" "}
+							for easy contract creation (requires{" "}
+							<a
+								href="https://com.prosperousuniverse.com/t/refined-prun-qol-extension-for-prosperous-universe/6760"
+								target="_blank"
+							>
+								Refined PrUn
+							</a>
+							).
+						</li>
+					</ol>
+				</Typography>
+			</Modal>
+		</Box>
 	);
 };
 

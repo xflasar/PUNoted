@@ -1,43 +1,51 @@
-import React from "react";
-import {
-	Typography,
-	Box,
-	Paper,
-	Button,
-	Tabs,
-	Tab,
-	Container,
-	useMediaQuery,
-} from "@mui/material";
-import { alpha, maxHeight, minHeight, useTheme, width } from "@mui/system";
+import React, { useState } from "react";
+import { Box, Paper, Tabs, Tab, Container, useMediaQuery } from "@mui/material";
+import { alpha, useTheme } from "@mui/system";
 import ProductionDashboard from "./shipproduction/productiondashboard";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import VendorsList from "./vendors/vendorlist";
-import { DollarSign, Rocket, Store, Truck } from "lucide-react";
+import { DollarSign, Rocket, ShoppingBasket, Store } from "lucide-react";
+import StorefrontIcon from "@mui/icons-material/Storefront";
 import MainDashboard from "./pricelist/maindashboard";
 import ShippingMap from "./shipping/shippingmap";
-import { minutesInHour } from "date-fns/constants";
+import AuthenticationBox from "../landingpage/auth/authenticationbox";
 //import ShippingBoard from './shipping/shippingboard';
 
-const TabPanel = (props: any) => {
-	const { children, value, index, ...other } = props;
+const VENDOR_TABS = ["vendors", "cart", "store"] as const;
+
+type VendorTab = (typeof VENDOR_TABS)[number];
+
+const isVendorTab = (tab: string): tab is VendorTab =>
+	VENDOR_TABS.includes(tab as VendorTab);
+
+const TabPanel = ({
+	children,
+	value,
+	index,
+	keepMounted,
+	...other
+}: {
+	children: React.ReactNode;
+	value: string;
+	index: string;
+	keepMounted: boolean;
+}) => {
+	const isActive = value === index;
 	return (
 		<Box
 			role="tabpanel"
-			hidden={value !== index}
+			hidden={!isActive}
 			id={`tabpanel-${index}`}
 			aria-labelledby={`tab-${index}`}
 			sx={{ height: "100%", maxHeight: "100%" }}
 			{...other}
 		>
-			{value === index && <Box sx={{ height: "100%" }}>{children}</Box>}
+			{(isActive || keepMounted) && (
+				<Box sx={{ height: "100%" }}>{children}</Box>
+			)}
 		</Box>
 	);
-};
-
-const VendorsTab = ({ isLoggedIn }: { isLoggedIn: boolean }) => {
-	return <VendorsList loggedIn={isLoggedIn} />;
 };
 
 const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
@@ -56,26 +64,41 @@ const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
 	);
 };
 
-const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
+const CosmPage = ({
+	isLoggedIn = false,
+	onLoginSuccess,
+}: {
+	isLoggedIn?: boolean;
+	onLoginSuccess: () => void;
+}) => {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+	const [showAuthentication, setShowAuthentication] = useState(false);
 
-	// Get the current tab value from the URL or set a default
-	const tabValue =
-		searchParams.get("tab") || (isLoggedIn ? "vendors" : "production");
+	// Get the current tab value from the URL or default to Market.
+	const tabValue = searchParams.get("tab") || "vendors";
+	const activePanel = isVendorTab(tabValue) ? "vendors" : tabValue;
+	const [visitedPanels, setVisitedPanels] = useState(
+		() => new Set([activePanel]),
+	);
 
 	const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
 		if (newValue === "homepage") {
 			navigate("/");
 		} else {
+			const panel = isVendorTab(newValue) ? "vendors" : newValue;
+			setVisitedPanels((panels) =>
+				panels.has(panel) ? panels : new Set(panels).add(panel),
+			);
 			setSearchParams({ tab: newValue });
 		}
 	};
 
 	// Shared hover styles for all tabs
 	const tabHoverStyles = {
+		minHeight: 56,
 		transition: "background-color 0.2s ease",
 		"&:hover": {
 			backgroundColor: alpha(theme.palette.primary.main, 0.1),
@@ -99,7 +122,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 			<Paper
 				square
 				sx={{
-					bgcolor: alpha(theme.palette.background.default, 1),
+					bgcolor: alpha(theme.palette.common.white, 0.06),
 					border: "none",
 					boxShadow: "none",
 					borderRadius: "16px",
@@ -122,13 +145,14 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					}}
 				>
 					<Tab
-						label="Homepage"
+						label="Home"
 						icon={<FaArrowLeft />}
+						iconPosition="start"
 						value="homepage"
 						sx={{
 							...tabHoverStyles,
 							flexGrow: 0,
-							minWidth: 100,
+							minWidth: 120,
 							px: { xs: 2, sm: 3 },
 						}}
 					/>
@@ -140,7 +164,21 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 						sx={tabHoverStyles}
 					/>
 					<Tab
-						label="Price List"
+						label="Cart"
+						icon={<ShoppingBasket />}
+						iconPosition="start"
+						value="cart"
+						sx={tabHoverStyles}
+					/>
+					<Tab
+						label="Store"
+						icon={<StorefrontIcon />}
+						iconPosition="start"
+						value="store"
+						sx={tabHoverStyles}
+					/>
+					<Tab
+						label="Prices"
 						icon={<DollarSign />}
 						iconPosition="start"
 						value="priceList"
@@ -148,7 +186,7 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					/>
 					{/* <Tab label="Shipping" icon={<Truck />} iconPosition="start" value="shipping" sx={tabHoverStyles} /> */}
 					<Tab
-						label="Ship Production"
+						label="Ships"
 						icon={<Rocket />}
 						iconPosition="start"
 						value="production"
@@ -168,19 +206,45 @@ const CosmPage = ({ isLoggedIn = false }: { isLoggedIn?: boolean }) => {
 					width: { xs: "100%", sm: "100%" },
 				}}
 			>
-				<TabPanel value={tabValue} index="vendors">
-					<VendorsTab isLoggedIn={isLoggedIn} />
+				<TabPanel
+					value={activePanel}
+					index="vendors"
+					keepMounted={visitedPanels.has("vendors")}
+				>
+					<VendorsList
+						loggedIn={isLoggedIn}
+						activeTab={isVendorTab(tabValue) ? tabValue : "vendors"}
+						onLoginRequest={() => setShowAuthentication(true)}
+					/>
 				</TabPanel>
-				<TabPanel value={tabValue} index="priceList">
+				<TabPanel
+					value={activePanel}
+					index="priceList"
+					keepMounted={visitedPanels.has("priceList")}
+				>
 					<MainDashboard />
 				</TabPanel>
-				<TabPanel value={tabValue} index="production">
+				<TabPanel
+					value={activePanel}
+					index="production"
+					keepMounted={visitedPanels.has("production")}
+				>
 					<ShipProductionTab isMobile={isMobile} />
 				</TabPanel>
-				<TabPanel value={tabValue} index="shipping">
+				<TabPanel
+					value={activePanel}
+					index="shipping"
+					keepMounted={visitedPanels.has("shipping")}
+				>
 					<ShippingMap />
 				</TabPanel>
 			</Box>
+			{showAuthentication && (
+				<AuthenticationBox
+					onLoginSuccess={onLoginSuccess}
+					onBackToLanding={() => setShowAuthentication(false)}
+				/>
+			)}
 		</Container>
 	);
 };
