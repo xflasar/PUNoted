@@ -87,7 +87,12 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-	const mapState = useBaseStarMapData({ mode, overrideShips, focusTarget, contracts });
+	const mapState = useBaseStarMapData({
+		mode,
+		overrideShips,
+		focusTarget,
+		contracts,
+	});
 
 	const handleZoomIn = React.useCallback(() => {
 		const step = 0.5;
@@ -193,7 +198,7 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 				/>
 
 				{mapState.hoveredInfo &&
-					mapState.hoveredInfo.object.type === "planet" ? (
+				mapState.hoveredInfo.object.type === "planet" ? (
 					<PlanetHoverTooltip
 						object={mapState.hoveredInfo.object}
 						x={mapState.hoveredInfo.x}
@@ -236,29 +241,31 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					/>
 				)}
 
-				{mode !== "shipping" && mapState.isSystemPanelOpen && mapState.centeredSystem && (
-					<SystemDetailPanel
-						system={mapState.centeredSystem}
-						onClose={() => {
-							mapState.setIsSystemPanelOpen(false);
-						}}
-						onEnterSystemView={() => mapState.setCurrentViewMode("system")}
-						isGalaxyView={mapState.currentViewMode === "galaxy"}
-						selectedPlanetId={mapState.selectedPlanetId}
-						onSelectPlanet={mapState.setSelectedPlanetId}
-						selectedStationId={mapState.selectedStationId}
-						onSelectStation={mapState.setSelectedStationId}
-						onEnterPlanetView={mapState.handleSelectPlanet}
-						allPlanetsData={mapState.allPlanetsData}
-						allStationsData={mapState.allStationsData}
-						ownerShips={mapState.ownShips}
-						otherShips={mapState.effectiveOtherShips}
-						activeFlightPlans={mapState.effectiveFlightPlans}
-						storageState={mapState.storageState}
-						productionData={mapState.productionData}
-						onSelectShip={(id) => mapState.handleShipSelect(id, false)}
-					/>
-				)}
+				{mode !== "shipping" &&
+					mapState.isSystemPanelOpen &&
+					mapState.centeredSystem && (
+						<SystemDetailPanel
+							system={mapState.centeredSystem}
+							onClose={() => {
+								mapState.setIsSystemPanelOpen(false);
+							}}
+							onEnterSystemView={() => mapState.setCurrentViewMode("system")}
+							isGalaxyView={mapState.currentViewMode === "galaxy"}
+							selectedPlanetId={mapState.selectedPlanetId}
+							onSelectPlanet={mapState.setSelectedPlanetId}
+							selectedStationId={mapState.selectedStationId}
+							onSelectStation={mapState.setSelectedStationId}
+							onEnterPlanetView={mapState.handleSelectPlanet}
+							allPlanetsData={mapState.allPlanetsData}
+							allStationsData={mapState.allStationsData}
+							ownerShips={mapState.ownShips}
+							otherShips={mapState.effectiveOtherShips}
+							activeFlightPlans={mapState.effectiveFlightPlans}
+							storageState={mapState.storageState}
+							productionData={mapState.productionData}
+							onSelectShip={(id) => mapState.handleShipSelect(id, false)}
+						/>
+					)}
 
 				{mode !== "shipping" &&
 					!mapState.centeredSystem &&
@@ -279,7 +286,9 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					<Button
 						variant="contained"
 						size="small"
-						startIcon={<ArrowBack sx={{ color: theme.palette.secondary.main }} />}
+						startIcon={
+							<ArrowBack sx={{ color: theme.palette.secondary.main }} />
+						}
 						onClick={mapState.handleExitSystemView}
 						sx={{
 							position: "absolute",

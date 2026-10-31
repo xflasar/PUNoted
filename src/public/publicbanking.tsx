@@ -90,9 +90,26 @@ export const PublicBanking: React.FC = () => {
 			/>
 
 			{/* Main Content Area */}
-			<Container maxWidth="xl" sx={{ py: 3, flex: 1, display: "flex", flexDirection: "column", gap: 2.5 }}>
+			<Container
+				maxWidth="xl"
+				sx={{
+					py: 3,
+					flex: 1,
+					display: "flex",
+					flexDirection: "column",
+					gap: 2.5,
+				}}
+			>
 				{/* Mode Switcher Tabs: Borrow (Loan Finder) vs Invest (Deposit Calculator) */}
-				<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						flexWrap: "wrap",
+						gap: 1.5,
+					}}
+				>
 					<ToggleButtonGroup
 						size="small"
 						exclusive
@@ -137,8 +154,12 @@ export const PublicBanking: React.FC = () => {
 						</ToggleButton>
 					</ToggleButtonGroup>
 
-					<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.74rem" }}>
-						Showing <strong>{filteredBanks.length}</strong> {filteredBanks.length === 1 ? "bank" : "banks"} available
+					<Typography
+						variant="caption"
+						sx={{ color: "text.secondary", fontSize: "0.74rem" }}
+					>
+						Showing <strong>{filteredBanks.length}</strong>{" "}
+						{filteredBanks.length === 1 ? "bank" : "banks"} available
 					</Typography>
 				</Box>
 
@@ -172,11 +193,27 @@ export const PublicBanking: React.FC = () => {
 				)}
 
 				{loading ? (
-					<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, py: 12 }}>
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							flex: 1,
+							py: 12,
+						}}
+					>
 						<CircularProgress size={36} color="primary" />
 					</Box>
 				) : error ? (
-					<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, py: 12 }}>
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							flex: 1,
+							py: 12,
+						}}
+					>
 						<Paper
 							sx={{
 								p: 4,
@@ -188,16 +225,33 @@ export const PublicBanking: React.FC = () => {
 								width: "100%",
 							}}
 						>
-							<Typography color="error" variant="body2" sx={{ fontWeight: 700, mb: 1.5 }}>
+							<Typography
+								color="error"
+								variant="body2"
+								sx={{ fontWeight: 700, mb: 1.5 }}
+							>
 								{error}
 							</Typography>
-							<Button size="small" variant="outlined" onClick={loadPublicBanks} sx={{ textTransform: "none" }}>
+							<Button
+								size="small"
+								variant="outlined"
+								onClick={loadPublicBanks}
+								sx={{ textTransform: "none" }}
+							>
 								Retry
 							</Button>
 						</Paper>
 					</Box>
 				) : filteredBanks.length === 0 ? (
-					<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, py: 12 }}>
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							flex: 1,
+							py: 12,
+						}}
+					>
 						<Paper
 							sx={{
 								p: 5,
@@ -213,11 +267,24 @@ export const PublicBanking: React.FC = () => {
 								justifyContent: "center",
 							}}
 						>
-							<AccountBalanceIcon sx={{ fontSize: 44, color: "text.secondary", mb: 1.5, opacity: 0.4 }} />
-							<Typography variant="h6" sx={{ fontWeight: 800, fontSize: "1rem" }}>
+							<AccountBalanceIcon
+								sx={{
+									fontSize: 44,
+									color: "text.secondary",
+									mb: 1.5,
+									opacity: 0.4,
+								}}
+							/>
+							<Typography
+								variant="h6"
+								sx={{ fontWeight: 800, fontSize: "1rem" }}
+							>
 								No Banks Found
 							</Typography>
-							<Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5 }}>
+							<Typography
+								variant="caption"
+								sx={{ color: "text.secondary", mt: 0.5 }}
+							>
 								No registered banks match your search or filters.
 							</Typography>
 						</Paper>
@@ -226,7 +293,11 @@ export const PublicBanking: React.FC = () => {
 					<Box
 						sx={{
 							display: "grid",
-							gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" },
+							gridTemplateColumns: {
+								xs: "1fr",
+								sm: "repeat(2, 1fr)",
+								lg: "repeat(3, 1fr)",
+							},
 							gap: 2,
 						}}
 					>
@@ -235,8 +306,16 @@ export const PublicBanking: React.FC = () => {
 								key={bank.id}
 								bank={bank}
 								onInspect={setInspectingBank}
-								loanComparison={calculatorMode === "BORROW" ? bankComparisonsMap.get(bank.id) : null}
-								depositComparison={calculatorMode === "INVEST" ? depositComparisonsMap.get(bank.id) : null}
+								loanComparison={
+									calculatorMode === "BORROW"
+										? bankComparisonsMap.get(bank.id)
+										: null
+								}
+								depositComparison={
+									calculatorMode === "INVEST"
+										? depositComparisonsMap.get(bank.id)
+										: null
+								}
 							/>
 						))}
 					</Box>

@@ -24,7 +24,10 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import type { LoanFinderCriteria } from "../types";
 import type { OverallLoanSummary } from "../helpers";
 import { formatAmount } from "../helpers";
-import { HelpOutlineOutlined, PersonOutlineOutlined } from "@mui/icons-material";
+import {
+	HelpOutlineOutlined,
+	PersonOutlineOutlined,
+} from "@mui/icons-material";
 import { LoanFinderGuide } from "./loanfinderguide";
 
 interface LoanFinderBarProps {
@@ -51,7 +54,8 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 	const theme = useTheme();
 	const [showGuide, setShowGuide] = useState(false);
 
-	const hasActiveSearch = criteria.loanAmount !== "" || criteria.dailyProfit !== "";
+	const hasActiveSearch =
+		criteria.loanAmount !== "" || criteria.dailyProfit !== "";
 	const currentAllocation = criteria.maxProfitAllocationPercent || 50;
 
 	const [inputPct, setInputPct] = useState<string>(String(currentAllocation));
@@ -98,16 +102,29 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 			}}
 		>
 			{/* Top Bar: Clean, Compact Single-Row Header */}
-			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					flexWrap: "wrap",
+					gap: 1,
+				}}
+			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					<CalculateIcon sx={{ fontSize: 18, color: "primary.main" }} />
-					<Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: "0.85rem", letterSpacing: 0.3 }}>
+					<Typography
+						variant="subtitle2"
+						sx={{ fontWeight: 800, fontSize: "0.85rem", letterSpacing: 0.3 }}
+					>
 						Loan Finder &amp; Feasibility
 					</Typography>
 					<Button
 						size="small"
 						variant="outlined"
-						startIcon={<HelpOutlineOutlined sx={{ fontSize: "14px !important" }} />}
+						startIcon={
+							<HelpOutlineOutlined sx={{ fontSize: "14px !important" }} />
+						}
 						onClick={() => setShowGuide(!showGuide)}
 						sx={{
 							height: 22,
@@ -117,8 +134,12 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 							textTransform: "none",
 							py: 0,
 							px: 1,
-							borderColor: showGuide ? "primary.main" : alpha(theme.palette.divider, 0.25),
-							bgcolor: showGuide ? alpha(theme.palette.primary.main, 0.12) : "transparent",
+							borderColor: showGuide
+								? "primary.main"
+								: alpha(theme.palette.divider, 0.25),
+							bgcolor: showGuide
+								? alpha(theme.palette.primary.main, 0.12)
+								: "transparent",
 							color: showGuide ? "primary.main" : "text.secondary",
 							"&:hover": {
 								borderColor: "primary.main",
@@ -132,9 +153,24 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 				</Box>
 
 				{/* Allocation Budget Chips + Manual Input, Matches Switch & Reset */}
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1.2, flexWrap: "wrap" }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1.2,
+						flexWrap: "wrap",
+					}}
+				>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
-						<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem", whiteSpace: "nowrap" }}>
+						<Typography
+							variant="caption"
+							sx={{
+								color: "text.secondary",
+								fontWeight: 700,
+								fontSize: "0.7rem",
+								whiteSpace: "nowrap",
+							}}
+						>
 							Repay Budget:
 						</Typography>
 						{[25, 33, 50, 75].map((pct) => (
@@ -169,7 +205,14 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 									input: {
 										endAdornment: (
 											<InputAdornment position="end" sx={{ mr: -0.5 }}>
-												<Typography variant="caption" sx={{ fontSize: "0.68rem", fontWeight: 800, color: "text.secondary" }}>
+												<Typography
+													variant="caption"
+													sx={{
+														fontSize: "0.68rem",
+														fontWeight: 800,
+														color: "text.secondary",
+													}}
+												>
 													%
 												</Typography>
 											</InputAdornment>
@@ -220,7 +263,14 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 							/>
 						}
 						label={
-							<Typography variant="caption" sx={{ fontWeight: 700, userSelect: "none", fontSize: "0.72rem" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									fontWeight: 700,
+									userSelect: "none",
+									fontSize: "0.72rem",
+								}}
+							>
 								Only Matches
 							</Typography>
 						}
@@ -233,7 +283,14 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 							variant="text"
 							startIcon={<ClearIcon sx={{ fontSize: "14px !important" }} />}
 							onClick={onReset}
-							sx={{ color: "text.secondary", textTransform: "none", fontSize: "0.72rem", py: 0, px: 0.8, minWidth: "auto" }}
+							sx={{
+								color: "text.secondary",
+								textTransform: "none",
+								fontSize: "0.72rem",
+								py: 0,
+								px: 0.8,
+								minWidth: "auto",
+							}}
 						>
 							Reset
 						</Button>
@@ -270,7 +327,9 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 						input: {
 							startAdornment: (
 								<InputAdornment position="start">
-									<PersonOutlineOutlined sx={{ fontSize: 18, color: "text.secondary" }} />
+									<PersonOutlineOutlined
+										sx={{ fontSize: 18, color: "text.secondary" }}
+									/>
 								</InputAdornment>
 							),
 							endAdornment: isSyncedUser ? (
@@ -301,7 +360,9 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 					onChange={(val) => onChange("loanAmount", val)}
 					placeholder="e.g. 100,000"
 					unit="ICA"
-					icon={<AttachMoneyIcon sx={{ fontSize: 18, color: "primary.main" }} />}
+					icon={
+						<AttachMoneyIcon sx={{ fontSize: 18, color: "primary.main" }} />
+					}
 				/>
 
 				{/* 3. Company Daily Net Profit */}
@@ -311,7 +372,11 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 					onChange={(val) => onChange("dailyProfit", val)}
 					placeholder="e.g. 5,000"
 					unit="ICA/d"
-					icon={<TrendingUpIcon sx={{ fontSize: 18, color: theme.palette.success.light }} />}
+					icon={
+						<TrendingUpIcon
+							sx={{ fontSize: 18, color: theme.palette.success.light }}
+						/>
+					}
 				/>
 			</Box>
 
@@ -326,8 +391,22 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 				}}
 			>
 				{/* Loan Duration (Weeks) */}
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-					<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 800, fontSize: "0.68rem" }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1,
+						flexWrap: "wrap",
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{
+							color: "text.secondary",
+							fontWeight: 800,
+							fontSize: "0.68rem",
+						}}
+					>
 						LOAN LENGTH:
 					</Typography>
 					<Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
@@ -343,16 +422,31 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 								size="small"
 								onClick={() => onChange("termWeeks", item.val)}
 								color={criteria.termWeeks === item.val ? "primary" : "default"}
-								variant={criteria.termWeeks === item.val ? "filled" : "outlined"}
-								sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, cursor: "pointer" }}
+								variant={
+									criteria.termWeeks === item.val ? "filled" : "outlined"
+								}
+								sx={{
+									height: 22,
+									fontSize: "0.65rem",
+									fontWeight: 800,
+									cursor: "pointer",
+								}}
 							/>
 						))}
 						<TextField
 							size="small"
 							type="number"
-							value={typeof criteria.termWeeks === "number" && ![2, 4, 8].includes(criteria.termWeeks) ? criteria.termWeeks : ""}
+							value={
+								typeof criteria.termWeeks === "number" &&
+								![2, 4, 8].includes(criteria.termWeeks)
+									? criteria.termWeeks
+									: ""
+							}
 							onChange={(e) => {
-								const v = e.target.value === "" ? "" : Math.max(1, Number(e.target.value));
+								const v =
+									e.target.value === ""
+										? ""
+										: Math.max(1, Number(e.target.value));
 								onChange("termWeeks", v);
 							}}
 							placeholder="Wks"
@@ -360,7 +454,13 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 								htmlInput: {
 									min: 1,
 									max: 52,
-									style: { width: 32, padding: "2px 4px", fontSize: "0.72rem", textAlign: "center", fontWeight: 800 },
+									style: {
+										width: 32,
+										padding: "2px 4px",
+										fontSize: "0.72rem",
+										textAlign: "center",
+										fontWeight: 800,
+									},
 								},
 							}}
 							sx={{
@@ -372,8 +472,22 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 				</Box>
 
 				{/* Repayment Interval */}
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: { xs: "flex-start", sm: "flex-end" } }}>
-					<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 800, fontSize: "0.68rem" }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1,
+						justifyContent: { xs: "flex-start", sm: "flex-end" },
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{
+							color: "text.secondary",
+							fontWeight: 800,
+							fontSize: "0.68rem",
+						}}
+					>
 						PAYMENT INTERVAL:
 					</Typography>
 					<Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
@@ -386,17 +500,38 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 								label={item.label}
 								size="small"
 								onClick={() => onChange("intervalDays", item.val)}
-								color={(criteria.intervalDays || 7) === item.val ? "primary" : "default"}
-								variant={(criteria.intervalDays || 7) === item.val ? "filled" : "outlined"}
-								sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, cursor: "pointer" }}
+								color={
+									(criteria.intervalDays || 7) === item.val
+										? "primary"
+										: "default"
+								}
+								variant={
+									(criteria.intervalDays || 7) === item.val
+										? "filled"
+										: "outlined"
+								}
+								sx={{
+									height: 22,
+									fontSize: "0.65rem",
+									fontWeight: 800,
+									cursor: "pointer",
+								}}
 							/>
 						))}
 						<TextField
 							size="small"
 							type="number"
-							value={typeof criteria.intervalDays === "number" && ![7, 14].includes(criteria.intervalDays) ? criteria.intervalDays : ""}
+							value={
+								typeof criteria.intervalDays === "number" &&
+								![7, 14].includes(criteria.intervalDays)
+									? criteria.intervalDays
+									: ""
+							}
 							onChange={(e) => {
-								const v = e.target.value === "" ? 7 : Math.max(1, Number(e.target.value));
+								const v =
+									e.target.value === ""
+										? 7
+										: Math.max(1, Number(e.target.value));
 								onChange("intervalDays", v);
 							}}
 							placeholder="Days"
@@ -404,7 +539,13 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 								htmlInput: {
 									min: 1,
 									max: 365,
-									style: { width: 34, padding: "2px 4px", fontSize: "0.72rem", textAlign: "center", fontWeight: 800 },
+									style: {
+										width: 34,
+										padding: "2px 4px",
+										fontSize: "0.72rem",
+										textAlign: "center",
+										fontWeight: 800,
+									},
 								},
 							}}
 							sx={{
@@ -442,7 +583,14 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 					}}
 				>
 					{/* Left: Optimal Plan Headline & Retained Budget Pill */}
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 1,
+							flexWrap: "wrap",
+						}}
+					>
 						{summary.isUserProfitMatch ? (
 							<CheckCircleIcon sx={{ color: "#34d399", fontSize: 18 }} />
 						) : (
@@ -450,7 +598,14 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 						)}
 						{criteria.dailyProfit !== "" && Number(criteria.dailyProfit) > 0 ? (
 							<>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.72rem" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontWeight: 700,
+										fontSize: "0.72rem",
+									}}
+								>
 									OPTIMAL PLAN:
 								</Typography>
 								<Typography
@@ -462,8 +617,16 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 									}}
 								>
 									{summary.optimalLengthWeeks}W Payoff
-									<span style={{ fontSize: "0.7rem", opacity: 0.8, fontWeight: 600, marginLeft: 4 }}>
-										({summary.optimalPayoffDays}d @ {summary.allocationPercent}% budget)
+									<span
+										style={{
+											fontSize: "0.7rem",
+											opacity: 0.8,
+											fontWeight: 600,
+											marginLeft: 4,
+										}}
+									>
+										({summary.optimalPayoffDays}d @ {summary.allocationPercent}%
+										budget)
 									</span>
 								</Typography>
 
@@ -481,7 +644,14 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 							</>
 						) : (
 							<>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.72rem" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontWeight: 700,
+										fontSize: "0.72rem",
+									}}
+								>
 									TARGET PROFIT (4W):
 								</Typography>
 								<Typography
@@ -510,7 +680,14 @@ export const LoanFinderBar: React.FC<LoanFinderBarProps> = ({
 					</Box>
 
 					{/* Right: Quick Stat Chips */}
-					<Box sx={{ display: "flex", alignItems: "center", gap: 0.8, flexWrap: "wrap" }}>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 0.8,
+							flexWrap: "wrap",
+						}}
+					>
 						<Chip
 							icon={<SpeedIcon sx={{ fontSize: "12px !important" }} />}
 							label={`Safe Installment: ~${formatAmount(summary.safeWeeklyInstallment)} / week`}

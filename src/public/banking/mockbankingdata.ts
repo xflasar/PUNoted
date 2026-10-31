@@ -2,26 +2,58 @@ import type { Bank } from "../../dashboard/banking/types";
 import type { BankLedgerResponse, LedgerRecord } from "./types";
 
 const MOCK_BORROWERS = [
-	"Hazzaah", "Deckss", "Insula_Crisium", "Okawari", "evayoo",
-	"Shrewdsun1", "Finest_One", "REALMRAKER", "jcheung9941", "Akyan",
-	"Some_Dude", "rwinner16", "Dyeus_Phter", "Bobzor", "nanoengineer",
-	"superbadsounds", "RATGORWESBAR", "Umbers", "liliDragon"
+	"Hazzaah",
+	"Deckss",
+	"Insula_Crisium",
+	"Okawari",
+	"evayoo",
+	"Shrewdsun1",
+	"Finest_One",
+	"REALMRAKER",
+	"jcheung9941",
+	"Akyan",
+	"Some_Dude",
+	"rwinner16",
+	"Dyeus_Phter",
+	"Bobzor",
+	"nanoengineer",
+	"superbadsounds",
+	"RATGORWESBAR",
+	"Umbers",
+	"liliDragon",
 ];
 
 const MOCK_LENDERS = [
-	"Archiel", "lowstrife", "allocater", "sidepipe", "jvaler",
-	"Roh", "CoinCrafter23", "Hal98", "Hectorino", "CptColeslaw",
-	"Evolvolution", "Pxlfox", "OptimizedFuncti", "SilentReaper", "SurvivorBob",
-	"Marshmallows72"
+	"Archiel",
+	"lowstrife",
+	"allocater",
+	"sidepipe",
+	"jvaler",
+	"Roh",
+	"CoinCrafter23",
+	"Hal98",
+	"Hectorino",
+	"CptColeslaw",
+	"Evolvolution",
+	"Pxlfox",
+	"OptimizedFuncti",
+	"SilentReaper",
+	"SurvivorBob",
+	"Marshmallows72",
 ];
 
-const generateMockHistory = (currency: string, baseRate: number): LedgerRecord[] => {
+const generateMockHistory = (
+	currency: string,
+	baseRate: number,
+): LedgerRecord[] => {
 	const now = new Date();
 	const records: LedgerRecord[] = [];
 	let idCounter = 1001;
 
 	const createDate = (daysAgo: number, hoursAgo = 0) => {
-		const d = new Date(now.getTime() - (daysAgo * 86400000 + hoursAgo * 3600000));
+		const d = new Date(
+			now.getTime() - (daysAgo * 86400000 + hoursAgo * 3600000),
+		);
 		return d.toISOString();
 	};
 
@@ -178,7 +210,10 @@ const generateMockHistory = (currency: string, baseRate: number): LedgerRecord[]
 		});
 	});
 
-	return records.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+	return records.sort(
+		(a, b) =>
+			new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+	);
 };
 
 /**
@@ -232,7 +267,8 @@ export const MOCK_DEMO_BANK: Bank = {
 	id: -99,
 	name: "Apex Frontier Reserve (Demo)",
 	owner_username: "ApexConsortium",
-	headline: "Premier Commercial & Industrial Creditor across Benten & Moros Systems",
+	headline:
+		"Premier Commercial & Industrial Creditor across Benten & Moros Systems",
 	description: `Fully capitalized reserve bank offering low-interest commercial credit lines, ship construction financing, and liquidity backing for deep-space industrial ventures. All loans backed by verifiable escrow contracts.
 
 ### Lending Requirements

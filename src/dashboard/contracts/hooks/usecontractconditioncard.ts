@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import type { Condition, VendorOrder } from "../types";
-import { MATERIAL_CONDITION_TYPES, isPickupCondition } from "./usecontractdetail";
+import {
+	MATERIAL_CONDITION_TYPES,
+	isPickupCondition,
+} from "./usecontractdetail";
 
 export interface UseContractConditionCardProps {
 	cond: Condition;

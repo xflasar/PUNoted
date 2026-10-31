@@ -91,7 +91,11 @@ export const PublicBankingToolbar: React.FC<PublicBankingToolbarProps> = ({
 							),
 							endAdornment: searchQuery ? (
 								<InputAdornment position="end">
-									<IconButton size="small" onClick={() => onSearchChange("")} edge="end">
+									<IconButton
+										size="small"
+										onClick={() => onSearchChange("")}
+										edge="end"
+									>
 										<ClearIcon sx={{ fontSize: 14 }} />
 									</IconButton>
 								</InputAdornment>

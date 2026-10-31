@@ -40,9 +40,20 @@ export const DepositCalculatorBar: React.FC<DepositCalculatorBarProps> = ({
 
 	// Aggregated stats across accepting banks
 	const accepting = comparisons.filter((c) => c.canAcceptDeposit);
-	const bestMonthlyRate = accepting.length > 0 ? Math.max(...accepting.map((c) => c.monthlyYieldRate ?? c.weeklyYieldRate * 4)) : 0;
-	const bestWeeklyRate = accepting.length > 0 ? Math.max(...accepting.map((c) => c.weeklyYieldRate)) : 0;
-	const bestMonthlyPayout = accepting.length > 0 ? Math.max(...accepting.map((c) => c.monthlyPayout)) : 0;
+	const bestMonthlyRate =
+		accepting.length > 0
+			? Math.max(
+					...accepting.map((c) => c.monthlyYieldRate ?? c.weeklyYieldRate * 4),
+				)
+			: 0;
+	const bestWeeklyRate =
+		accepting.length > 0
+			? Math.max(...accepting.map((c) => c.weeklyYieldRate))
+			: 0;
+	const bestMonthlyPayout =
+		accepting.length > 0
+			? Math.max(...accepting.map((c) => c.monthlyPayout))
+			: 0;
 	const lowestRiskCount = accepting.filter((c) => c.riskTier === "LOW").length;
 
 	return (
@@ -61,10 +72,21 @@ export const DepositCalculatorBar: React.FC<DepositCalculatorBarProps> = ({
 			}}
 		>
 			{/* Top Bar: Title & Quick Filters */}
-			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					flexWrap: "wrap",
+					gap: 1,
+				}}
+			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					<SavingsOutlinedIcon sx={{ fontSize: 18, color: "#34d399" }} />
-					<Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: "0.85rem", letterSpacing: 0.3 }}>
+					<Typography
+						variant="subtitle2"
+						sx={{ fontWeight: 800, fontSize: "0.85rem", letterSpacing: 0.3 }}
+					>
 						Depositor Yield Calculator
 					</Typography>
 					<Chip
@@ -80,7 +102,14 @@ export const DepositCalculatorBar: React.FC<DepositCalculatorBarProps> = ({
 					/>
 				</Box>
 
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1.5,
+						flexWrap: "wrap",
+					}}
+				>
 					<FormControlLabel
 						control={
 							<Switch
@@ -92,7 +121,14 @@ export const DepositCalculatorBar: React.FC<DepositCalculatorBarProps> = ({
 							/>
 						}
 						label={
-							<Typography variant="caption" sx={{ fontWeight: 700, userSelect: "none", fontSize: "0.72rem" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									fontWeight: 700,
+									userSelect: "none",
+									fontSize: "0.72rem",
+								}}
+							>
 								Accepting Only
 							</Typography>
 						}
@@ -105,7 +141,14 @@ export const DepositCalculatorBar: React.FC<DepositCalculatorBarProps> = ({
 							variant="text"
 							startIcon={<ClearIcon sx={{ fontSize: "14px !important" }} />}
 							onClick={onReset}
-							sx={{ color: "text.secondary", textTransform: "none", fontSize: "0.72rem", py: 0, px: 0.8, minWidth: "auto" }}
+							sx={{
+								color: "text.secondary",
+								textTransform: "none",
+								fontSize: "0.72rem",
+								py: 0,
+								px: 0.8,
+								minWidth: "auto",
+							}}
 						>
 							Reset
 						</Button>
@@ -114,7 +157,14 @@ export const DepositCalculatorBar: React.FC<DepositCalculatorBarProps> = ({
 			</Box>
 
 			{/* Input Row */}
-			<Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1.3fr 2fr" }, gap: 1.5, alignItems: "center" }}>
+			<Box
+				sx={{
+					display: "grid",
+					gridTemplateColumns: { xs: "1fr", sm: "1.3fr 2fr" },
+					gap: 1.5,
+					alignItems: "center",
+				}}
+			>
 				<FormattedNumberInput
 					label="Willing to Deposit"
 					size="small"
@@ -139,44 +189,110 @@ export const DepositCalculatorBar: React.FC<DepositCalculatorBarProps> = ({
 						}}
 					>
 						<Box>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.6rem", fontWeight: 800, display: "block" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "text.secondary",
+									fontSize: "0.6rem",
+									fontWeight: 800,
+									display: "block",
+								}}
+							>
 								MAX 1-MO YIELD
 							</Typography>
-							<Typography variant="body2" sx={{ fontWeight: 900, color: "#34d399", fontSize: "0.85rem", lineHeight: 1.2 }}>
+							<Typography
+								variant="body2"
+								sx={{
+									fontWeight: 900,
+									color: "#34d399",
+									fontSize: "0.85rem",
+									lineHeight: 1.2,
+								}}
+							>
 								{bestMonthlyRate}% / mo
 							</Typography>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem" }}>
-								({(bestMonthlyRate / 4).toFixed(2)}%/wk &bull; {bestMonthlyRate * 12}% APR)
+							<Typography
+								variant="caption"
+								sx={{ color: "text.secondary", fontSize: "0.58rem" }}
+							>
+								({(bestMonthlyRate / 4).toFixed(2)}%/wk &bull;{" "}
+								{bestMonthlyRate * 12}% APR)
 							</Typography>
 						</Box>
 
 						<Box>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.6rem", fontWeight: 800, display: "block" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "text.secondary",
+									fontSize: "0.6rem",
+									fontWeight: 800,
+									display: "block",
+								}}
+							>
 								MAX 1-MO RETURN
 							</Typography>
-							<Typography variant="body2" sx={{ fontWeight: 900, color: theme.palette.text.primary, fontSize: "0.85rem", lineHeight: 1.2 }}>
+							<Typography
+								variant="body2"
+								sx={{
+									fontWeight: 900,
+									color: theme.palette.text.primary,
+									fontSize: "0.85rem",
+									lineHeight: 1.2,
+								}}
+							>
 								+{formatAmount(bestMonthlyPayout)} ICA
 							</Typography>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem" }}>
+							<Typography
+								variant="caption"
+								sx={{ color: "text.secondary", fontSize: "0.58rem" }}
+							>
 								(+{formatAmount(Math.round(bestMonthlyPayout / 4))} / wk)
 							</Typography>
 						</Box>
 
 						<Box sx={{ display: { xs: "none", sm: "block" } }}>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.6rem", fontWeight: 800, display: "block" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "text.secondary",
+									fontSize: "0.6rem",
+									fontWeight: 800,
+									display: "block",
+								}}
+							>
 								LOW RISK VAULTS
 							</Typography>
-							<Typography variant="body2" sx={{ fontWeight: 900, color: "#34d399", fontSize: "0.85rem", lineHeight: 1.2 }}>
+							<Typography
+								variant="body2"
+								sx={{
+									fontWeight: 900,
+									color: "#34d399",
+									fontSize: "0.85rem",
+									lineHeight: 1.2,
+								}}
+							>
 								{lowestRiskCount} banks
 							</Typography>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem" }}>
+							<Typography
+								variant="caption"
+								sx={{ color: "text.secondary", fontSize: "0.58rem" }}
+							>
 								Active loan cash flow
 							</Typography>
 						</Box>
 					</Box>
 				) : (
-					<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.75rem", fontStyle: "italic" }}>
-						Enter an amount you'd like to deposit to compare weekly accounted dividends, solvency risks, and accepting banks in real-time.
+					<Typography
+						variant="caption"
+						sx={{
+							color: "text.secondary",
+							fontSize: "0.75rem",
+							fontStyle: "italic",
+						}}
+					>
+						Enter an amount you'd like to deposit to compare weekly accounted
+						dividends, solvency risks, and accepting banks in real-time.
 					</Typography>
 				)}
 			</Box>

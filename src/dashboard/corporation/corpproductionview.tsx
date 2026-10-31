@@ -273,13 +273,13 @@ export const CorpProductionView = React.memo(
 			Array<{
 				type: "header" | "row";
 				data:
-				| ProductionSummaryItem
-				| {
-					category: string;
-					count: number;
-					id?: string;
-					isDrilldown?: boolean;
-				};
+					| ProductionSummaryItem
+					| {
+							category: string;
+							count: number;
+							id?: string;
+							isDrilldown?: boolean;
+					  };
 				drillType?: "prod" | "cons";
 				isDrilldown?: boolean;
 			}>
@@ -539,13 +539,13 @@ export const CorpProductionView = React.memo(
 				const list: Array<{
 					type: "header" | "row";
 					data:
-					| ProductionSummaryItem
-					| {
-						category: string;
-						count: number;
-						id?: string;
-						isDrilldown?: boolean;
-					};
+						| ProductionSummaryItem
+						| {
+								category: string;
+								count: number;
+								id?: string;
+								isDrilldown?: boolean;
+						  };
 					drillType?: "prod" | "cons";
 					isDrilldown?: boolean;
 				}> = [];
@@ -710,8 +710,8 @@ export const CorpProductionView = React.memo(
 															p: 0.5,
 															color:
 																filterOpen ||
-																	!selectedCategories.includes("ALL") ||
-																	selectedMembers.length > 0
+																!selectedCategories.includes("ALL") ||
+																selectedMembers.length > 0
 																	? "primary.main"
 																	: "text.secondary",
 															bgcolor: filterOpen
@@ -1156,7 +1156,7 @@ export const CorpProductionView = React.memo(
 									</TableRow>
 								)}
 								itemContent={(_index, data) => {
-									console.log("itemContent", data)
+									console.log("itemContent", data);
 									if (data.type === "header") {
 										return (
 											<CategoryHeaderRow

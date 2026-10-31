@@ -68,9 +68,7 @@ export default function ContractsBank() {
 			const bData = bRes.ok ? await bRes.json() : [];
 			setBanks(bData);
 
-			const rlRes = await fetchClient(
-				"/internal/banking/loans/requested",
-			);
+			const rlRes = await fetchClient("/internal/banking/loans/requested");
 			const rlData = rlRes.ok ? await rlRes.json() : [];
 			setRequestedLoans(rlData);
 

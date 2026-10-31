@@ -8,7 +8,10 @@ import {
 	calculateBankDepositComparison,
 	type OverallLoanSummary,
 } from "../../dashboard/banking/helpers";
-import type { BankLoanComparison, BankDepositComparison } from "../../dashboard/banking/types";
+import type {
+	BankLoanComparison,
+	BankDepositComparison,
+} from "../../dashboard/banking/types";
 
 export interface UsePublicBankingDataReturn {
 	banks: Bank[];
@@ -67,7 +70,9 @@ export const usePublicBankingData = (): UsePublicBankingDataReturn => {
 	const [selectedCurrency, setSelectedCurrency] = useState<string>("ALL");
 
 	// Mode switch
-	const [calculatorMode, setCalculatorMode] = useState<"BORROW" | "INVEST">("BORROW");
+	const [calculatorMode, setCalculatorMode] = useState<"BORROW" | "INVEST">(
+		"BORROW",
+	);
 
 	// Loan Finder & Feasibility criteria
 	const [loanAmount, setLoanAmount] = useState<number | "">("");
@@ -79,7 +84,8 @@ export const usePublicBankingData = (): UsePublicBankingDataReturn => {
 
 	// Depositor Yield Calculator criteria
 	const [depositAmount, setDepositAmount] = useState<number | "">("");
-	const [onlyAcceptingDeposits, setOnlyAcceptingDeposits] = useState<boolean>(false);
+	const [onlyAcceptingDeposits, setOnlyAcceptingDeposits] =
+		useState<boolean>(false);
 
 	// Selected bank for modal inspection
 	const [inspectingBank, setInspectingBank] = useState<Bank | null>(null);
@@ -157,16 +163,44 @@ export const usePublicBankingData = (): UsePublicBankingDataReturn => {
 		for (const b of banks) {
 			map.set(
 				b.id,
-				calculateBankLoanComparison(b, loanAmountNum, dailyProfitNum, maxAllocationPercent, termWeeks, intervalDays),
+				calculateBankLoanComparison(
+					b,
+					loanAmountNum,
+					dailyProfitNum,
+					maxAllocationPercent,
+					termWeeks,
+					intervalDays,
+				),
 			);
 		}
 		return map;
-	}, [banks, loanAmountNum, dailyProfitNum, maxAllocationPercent, termWeeks, intervalDays]);
+	}, [
+		banks,
+		loanAmountNum,
+		dailyProfitNum,
+		maxAllocationPercent,
+		termWeeks,
+		intervalDays,
+	]);
 
 	// Cross-bank overall statistics summary
 	const overallLoanSummary = useMemo(() => {
-		return calculateOverallLoanStats(banks, loanAmountNum, dailyProfitNum, maxAllocationPercent, termWeeks, intervalDays);
-	}, [banks, loanAmountNum, dailyProfitNum, maxAllocationPercent, termWeeks, intervalDays]);
+		return calculateOverallLoanStats(
+			banks,
+			loanAmountNum,
+			dailyProfitNum,
+			maxAllocationPercent,
+			termWeeks,
+			intervalDays,
+		);
+	}, [
+		banks,
+		loanAmountNum,
+		dailyProfitNum,
+		maxAllocationPercent,
+		termWeeks,
+		intervalDays,
+	]);
 
 	const handleResetLoanFinder = useCallback(() => {
 		setLoanAmount("");
@@ -183,9 +217,12 @@ export const usePublicBankingData = (): UsePublicBankingDataReturn => {
 	}, []);
 
 	// Per-bank calculations map (Investor / Depositor view)
-	const depositAmountNum = typeof depositAmount === "number" ? depositAmount : 0;
+	const depositAmountNum =
+		typeof depositAmount === "number" ? depositAmount : 0;
 	const depositComparisonsList = useMemo(() => {
-		return banks.map((b) => calculateBankDepositComparison(b, depositAmountNum));
+		return banks.map((b) =>
+			calculateBankDepositComparison(b, depositAmountNum),
+		);
 	}, [banks, depositAmountNum]);
 
 	const depositComparisonsMap = useMemo(() => {
@@ -203,11 +240,14 @@ export const usePublicBankingData = (): UsePublicBankingDataReturn => {
 				searchQuery === "" ||
 				b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				b.owner_username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(b.headline && b.headline.toLowerCase().includes(searchQuery.toLowerCase())) ||
-				(b.description && b.description.toLowerCase().includes(searchQuery.toLowerCase()));
+				(b.headline &&
+					b.headline.toLowerCase().includes(searchQuery.toLowerCase())) ||
+				(b.description &&
+					b.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
 			const matchesCurrency =
-				selectedCurrency === "ALL" || (b.currency || "ICA") === selectedCurrency;
+				selectedCurrency === "ALL" ||
+				(b.currency || "ICA") === selectedCurrency;
 
 			return matchesSearch && matchesCurrency;
 		});
@@ -248,22 +288,39 @@ export const usePublicBankingData = (): UsePublicBankingDataReturn => {
 					if (compA.isProfitMatch !== compB.isProfitMatch) {
 						return compA.isProfitMatch ? -1 : 1;
 					}
-					return (a.default_interest_rate || 5) - (b.default_interest_rate || 5);
+					return (
+						(a.default_interest_rate || 5) - (b.default_interest_rate || 5)
+					);
 				}
 				return 0;
 			});
 		}
 
 		return list;
-	}, [banks, searchQuery, selectedCurrency, calculatorMode, onlyAcceptingDeposits, depositAmountNum, depositComparisonsMap, onlyShowMatches, loanAmountNum, bankComparisonsMap]);
+	}, [
+		banks,
+		searchQuery,
+		selectedCurrency,
+		calculatorMode,
+		onlyAcceptingDeposits,
+		depositAmountNum,
+		depositComparisonsMap,
+		onlyShowMatches,
+		loanAmountNum,
+		bankComparisonsMap,
+	]);
 
 	// Segregated records for tabs
 	const loanRecords = useMemo(() => {
-		return (ledgerData?.history || []).filter((r) => r.transaction_type === "LOAN");
+		return (ledgerData?.history || []).filter(
+			(r) => r.transaction_type === "LOAN",
+		);
 	}, [ledgerData]);
 
 	const depositRecords = useMemo(() => {
-		return (ledgerData?.history || []).filter((r) => r.transaction_type !== "LOAN");
+		return (ledgerData?.history || []).filter(
+			(r) => r.transaction_type !== "LOAN",
+		);
 	}, [ledgerData]);
 
 	return {

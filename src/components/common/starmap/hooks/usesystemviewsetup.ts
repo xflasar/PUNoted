@@ -241,7 +241,11 @@ export const useSystemViewSetup = (
 
 		const rawSid = centeredSystem.originalSystemId || centeredSystem.id || "";
 		const cleanSid = String(rawSid).toLowerCase().replace(/^sys-/, "");
-		let planets = allPlanetsData[cleanSid] || allPlanetsData[rawSid] || allPlanetsData[`sys-${cleanSid}`] || [];
+		let planets =
+			allPlanetsData[cleanSid] ||
+			allPlanetsData[rawSid] ||
+			allPlanetsData[`sys-${cleanSid}`] ||
+			[];
 		if (planets.length === 0 && cleanSid) {
 			for (const [k, v] of Object.entries(allPlanetsData || {})) {
 				if (k.toLowerCase().replace(/^sys-/, "") === cleanSid) {
@@ -254,7 +258,11 @@ export const useSystemViewSetup = (
 			.slice()
 			.sort((a, b) => (a.semimajoraxis ?? 0) - (b.semimajoraxis ?? 0));
 
-		let stations = allStationsData[cleanSid] || allStationsData[rawSid] || allStationsData[`sys-${cleanSid}`] || [];
+		let stations =
+			allStationsData[cleanSid] ||
+			allStationsData[rawSid] ||
+			allStationsData[`sys-${cleanSid}`] ||
+			[];
 		if (stations.length === 0 && cleanSid) {
 			for (const [k, v] of Object.entries(allStationsData || {})) {
 				if (k.toLowerCase().replace(/^sys-/, "") === cleanSid) {

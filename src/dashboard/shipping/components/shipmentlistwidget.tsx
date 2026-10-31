@@ -153,7 +153,9 @@ const ContractRow = React.memo(
 					border: isSelected
 						? `1.5px solid ${accentColor}`
 						: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-					boxShadow: isSelected ? `0 0 12px ${alpha(accentColor, 0.35)}` : "none",
+					boxShadow: isSelected
+						? `0 0 12px ${alpha(accentColor, 0.35)}`
+						: "none",
 					transition: "all 0.2s",
 					"&:hover": {
 						bgcolor: alpha(accentColor, 0.22),
@@ -294,14 +296,16 @@ export const ShipmentListWidget: React.FC<Props> = ({
 	const [showRecent, setShowRecent] = useState(false);
 
 	// Load recent searches from localStorage
-	const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>(() => {
-		try {
-			const saved = localStorage.getItem(STORAGE_KEY);
-			return saved ? JSON.parse(saved) : [];
-		} catch {
-			return [];
-		}
-	});
+	const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>(
+		() => {
+			try {
+				const saved = localStorage.getItem(STORAGE_KEY);
+				return saved ? JSON.parse(saved) : [];
+			} catch {
+				return [];
+			}
+		},
+	);
 
 	// Save recent searches to localStorage
 	const saveRecentSearches = useCallback((items: RecentSearchItem[]) => {
@@ -317,8 +321,13 @@ export const ShipmentListWidget: React.FC<Props> = ({
 		const trimmed = query.trim();
 		if (!trimmed) return;
 		setRecentSearches((prev) => {
-			const filtered = prev.filter((item) => item.query.toLowerCase() !== trimmed.toLowerCase());
-			const updated = [{ query: trimmed, timestamp: Date.now() }, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+			const filtered = prev.filter(
+				(item) => item.query.toLowerCase() !== trimmed.toLowerCase(),
+			);
+			const updated = [
+				{ query: trimmed, timestamp: Date.now() },
+				...filtered,
+			].slice(0, MAX_RECENT_SEARCHES);
 			try {
 				localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 			} catch {}
@@ -373,7 +382,9 @@ export const ShipmentListWidget: React.FC<Props> = ({
 
 		return {
 			// Using 'role' as requested
-			outbound: filtered.filter((c) => (c as any).role === "CARRIER" || !c.role),
+			outbound: filtered.filter(
+				(c) => (c as any).role === "CARRIER" || !c.role,
+			),
 			inbound: filtered.filter((c) => (c as any).role === "CLIENT"),
 		};
 	}, [contracts, searchTerm]);
@@ -451,7 +462,11 @@ export const ShipmentListWidget: React.FC<Props> = ({
 					boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
 				}}
 			>
-				<IconButton onClick={() => setIsMinimized(false)} color="primary" size={isMobile ? "small" : "medium"}>
+				<IconButton
+					onClick={() => setIsMinimized(false)}
+					color="primary"
+					size={isMobile ? "small" : "medium"}
+				>
 					<Inventory fontSize={isMobile ? "small" : "medium"} />
 				</IconButton>
 			</Paper>
@@ -495,7 +510,10 @@ export const ShipmentListWidget: React.FC<Props> = ({
 			<Box
 				sx={{
 					p: 1.5,
-					borderBottom: !isPublicMode || notFoundIds.length > 0 ? `1px solid ${theme.palette.divider}` : "none",
+					borderBottom:
+						!isPublicMode || notFoundIds.length > 0
+							? `1px solid ${theme.palette.divider}`
+							: "none",
 					bgcolor: alpha(theme.palette.background.default, 0.4),
 					flexShrink: 0,
 				}}
@@ -541,11 +559,16 @@ export const ShipmentListWidget: React.FC<Props> = ({
 							sx={{ fontSize: 16, color: theme.palette.text.disabled, mr: 1 }}
 						/>
 						<InputBase
-							placeholder={isPublicMode ? "{LocalID}:{CompanyCode} (e.g. SHIP-001:ABC)" : "Search contracts..."}
+							placeholder={
+								isPublicMode
+									? "{LocalID}:{CompanyCode} (e.g. SHIP-001:ABC)"
+									: "Search contracts..."
+							}
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 							onFocus={() => {
-								if (isPublicMode && recentSearches.length > 0) setShowRecent(true);
+								if (isPublicMode && recentSearches.length > 0)
+									setShowRecent(true);
 							}}
 							sx={{
 								ml: 1,
@@ -562,7 +585,9 @@ export const ShipmentListWidget: React.FC<Props> = ({
 									sx={{
 										p: 0.4,
 										mr: 0.5,
-										color: showRecent ? theme.palette.primary.main : theme.palette.text.secondary,
+										color: showRecent
+											? theme.palette.primary.main
+											: theme.palette.text.secondary,
 									}}
 								>
 									<History sx={{ fontSize: 16 }} />
@@ -570,7 +595,10 @@ export const ShipmentListWidget: React.FC<Props> = ({
 							</Tooltip>
 						)}
 						{loading && (
-							<CircularProgress size={16} sx={{ color: theme.palette.primary.main, mr: 0.5 }} />
+							<CircularProgress
+								size={16}
+								sx={{ color: theme.palette.primary.main, mr: 0.5 }}
+							/>
 						)}
 					</Box>
 				</form>
@@ -584,22 +612,43 @@ export const ShipmentListWidget: React.FC<Props> = ({
 							borderTop: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
 						}}
 					>
-						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-							<Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 700, fontSize: "0.65rem" }}>
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								mb: 0.5,
+							}}
+						>
+							<Typography
+								variant="caption"
+								sx={{
+									color: theme.palette.text.secondary,
+									fontWeight: 700,
+									fontSize: "0.65rem",
+								}}
+							>
 								RECENT SEARCHES
 							</Typography>
 							<Tooltip title="Clear history">
 								<IconButton
 									size="small"
 									onClick={clearRecentSearches}
-									sx={{ p: 0.2, color: theme.palette.text.disabled, "&:hover": { color: theme.palette.error.main } }}
+									sx={{
+										p: 0.2,
+										color: theme.palette.text.disabled,
+										"&:hover": { color: theme.palette.error.main },
+									}}
 								>
 									<DeleteSweep sx={{ fontSize: 14 }} />
 								</IconButton>
 							</Tooltip>
 						</Box>
 
-						<Stack spacing={0.5} sx={{ maxHeight: "160px", overflowY: "auto", pr: 0.5 }}>
+						<Stack
+							spacing={0.5}
+							sx={{ maxHeight: "160px", overflowY: "auto", pr: 0.5 }}
+						>
 							{recentSearches.map((item) => {
 								// Determine if query is found in contracts or in notFoundIds
 								const cleanQ = item.query.trim().toLowerCase();
@@ -618,10 +667,16 @@ export const ShipmentListWidget: React.FC<Props> = ({
 										lid.split(":")[0].trim() === qLocal
 									);
 								});
-								const isNotFound = !isFound && notFoundIds.some((id) => {
-									const nid = id.toLowerCase();
-									return nid === cleanQ || nid === qLocal || nid.split(":")[0].trim() === qLocal;
-								});
+								const isNotFound =
+									!isFound &&
+									notFoundIds.some((id) => {
+										const nid = id.toLowerCase();
+										return (
+											nid === cleanQ ||
+											nid === qLocal ||
+											nid.split(":")[0].trim() === qLocal
+										);
+									});
 
 								let statusColor: "success" | "error" | "default" = "default";
 								let statusLabel = "RECENT";
@@ -671,7 +726,15 @@ export const ShipmentListWidget: React.FC<Props> = ({
 											},
 										}}
 									>
-										<Box sx={{ display: "flex", alignItems: "center", gap: 0.8, overflow: "hidden", mr: 1 }}>
+										<Box
+											sx={{
+												display: "flex",
+												alignItems: "center",
+												gap: 0.8,
+												overflow: "hidden",
+												mr: 1,
+											}}
+										>
 											<StatusIcon
 												sx={{
 													fontSize: 13,
@@ -699,12 +762,23 @@ export const ShipmentListWidget: React.FC<Props> = ({
 											</Typography>
 										</Box>
 
-										<Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+										<Box
+											sx={{
+												display: "flex",
+												alignItems: "center",
+												gap: 0.5,
+												flexShrink: 0,
+											}}
+										>
 											<Chip
 												label={statusLabel}
 												size="small"
 												color={statusColor}
-												sx={{ height: 16, fontSize: "0.55rem", fontWeight: 700 }}
+												sx={{
+													height: 16,
+													fontSize: "0.55rem",
+													fontWeight: 700,
+												}}
 											/>
 											<IconButton
 												size="small"
@@ -712,7 +786,11 @@ export const ShipmentListWidget: React.FC<Props> = ({
 													e.stopPropagation();
 													removeRecentSearch(item.query);
 												}}
-												sx={{ p: 0.2, color: theme.palette.text.disabled, "&:hover": { color: theme.palette.error.main } }}
+												sx={{
+													p: 0.2,
+													color: theme.palette.text.disabled,
+													"&:hover": { color: theme.palette.error.main },
+												}}
 											>
 												<Close sx={{ fontSize: 12 }} />
 											</IconButton>
@@ -727,8 +805,17 @@ export const ShipmentListWidget: React.FC<Props> = ({
 
 			{/* NOT FOUND ITEMS LIST */}
 			{notFoundIds.length > 0 && (
-				<Box sx={{ px: 1.5, py: 1, borderBottom: `1px solid ${theme.palette.divider}` }}>
-					<Typography variant="caption" sx={{ color: theme.palette.error.main, fontWeight: 700 }}>
+				<Box
+					sx={{
+						px: 1.5,
+						py: 1,
+						borderBottom: `1px solid ${theme.palette.divider}`,
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{ color: theme.palette.error.main, fontWeight: 700 }}
+					>
 						NOT FOUND SHIPMENTS:
 					</Typography>
 					<Stack spacing={0.5} sx={{ mt: 0.5 }}>
@@ -745,7 +832,10 @@ export const ShipmentListWidget: React.FC<Props> = ({
 									bgcolor: alpha(theme.palette.error.main, 0.08),
 								}}
 							>
-								<Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
+								<Typography
+									variant="caption"
+									sx={{ fontFamily: "monospace", fontWeight: 700 }}
+								>
 									{id}
 								</Typography>
 								<Chip
@@ -770,173 +860,173 @@ export const ShipmentListWidget: React.FC<Props> = ({
 						flexDirection: "column",
 					}}
 				>
-				{/* 1. OUTBOUND */}
-				<Box
-					sx={{
-						display: "flex",
-						flexDirection: "column",
-						flexShrink: 0,
-						flex: outboundExpanded ? 1 : 0,
-						minHeight: "48px",
-						transition: "flex 0.3s ease",
-						bgcolor: alpha(theme.palette.background.default, 0.7),
-						borderBottom: `1px solid ${theme.palette.divider}`,
-						overflow: "hidden",
-					}}
-				>
-					<ListItem
-						onClick={() => setOutboundExpanded(!outboundExpanded)}
+					{/* 1. OUTBOUND */}
+					<Box
 						sx={{
-							bgcolor: alpha(outboundColor, 0.15),
-							py: 0.5,
-							px: 1.5,
-							height: "48px",
+							display: "flex",
+							flexDirection: "column",
 							flexShrink: 0,
+							flex: outboundExpanded ? 1 : 0,
+							minHeight: "48px",
+							transition: "flex 0.3s ease",
+							bgcolor: alpha(theme.palette.background.default, 0.7),
+							borderBottom: `1px solid ${theme.palette.divider}`,
+							overflow: "hidden",
 						}}
 					>
-						<Stack
+						<ListItem
+							onClick={() => setOutboundExpanded(!outboundExpanded)}
 							sx={{
-								direction: "row",
-								alignItems: "center",
-								spacing: 1,
-								flex: 1
+								bgcolor: alpha(outboundColor, 0.15),
+								py: 0.5,
+								px: 1.5,
+								height: "48px",
+								flexShrink: 0,
 							}}
 						>
-							<ArrowUpward sx={{ fontSize: 16, color: outboundColor }} />
-							<ListItemText
-								primary="OUTBOUND"
-								secondary={`${outbound.length} active`}
-								slotProps={{
-									primary: {
-										sx: {
-											color: theme.palette.primary.main,
+							<Stack
+								sx={{
+									direction: "row",
+									alignItems: "center",
+									spacing: 1,
+									flex: 1,
+								}}
+							>
+								<ArrowUpward sx={{ fontSize: 16, color: outboundColor }} />
+								<ListItemText
+									primary="OUTBOUND"
+									secondary={`${outbound.length} active`}
+									slotProps={{
+										primary: {
+											sx: {
+												color: theme.palette.primary.main,
+												variant: "subtitle2",
+												fontWeight: 700,
+												fontSize: "0.8rem",
+											},
+										},
+										secondary: {
+											sx: {
+												color: alpha(theme.palette.primary.main, 0.7),
+												variant: "caption",
+											},
+										},
+									}}
+									sx={{ my: 0 }}
+								/>
+							</Stack>
+							{outboundExpanded ? (
+								<ExpandLess sx={{ color: outboundColor }} />
+							) : (
+								<ExpandMore sx={{ color: outboundColor }} />
+							)}
+						</ListItem>
+
+						{outboundExpanded && (
+							<Box
+								sx={{
+									flex: 1,
+									minHeight: 0,
+									bgcolor: alpha(theme.palette.common.black, 0.1),
+								}}
+							>
+								{outbound.length > 0 ? (
+									<Virtuoso
+										data={outbound}
+										itemContent={renderOutboundRow}
+										style={{ height: "100%" }}
+									/>
+								) : (
+									<Box sx={{ p: 3, textAlign: "center", opacity: 0.5 }}>
+										<Typography variant="caption">
+											No active outbound contracts
+										</Typography>
+									</Box>
+								)}
+							</Box>
+						)}
+					</Box>
+
+					{/* 2. INBOUND */}
+					<Box
+						sx={{
+							display: "flex",
+							flexDirection: "column",
+							flex: inboundExpanded ? 1 : 0,
+							minHeight: "48px",
+							transition: "flex 0.3s ease",
+							overflow: "hidden",
+						}}
+					>
+						<ListItem
+							onClick={() => setInboundExpanded(!inboundExpanded)}
+							sx={{
+								bgcolor: alpha(inboundColor, 0.15),
+								py: 0.5,
+								px: 1.5,
+								height: "48px",
+								flexShrink: 0,
+							}}
+						>
+							<Stack
+								direction="row"
+								sx={{ flex: 1, gap: 1, alignItems: "center" }}
+							>
+								<ArrowDownward sx={{ fontSize: 16, color: inboundColor }} />
+								<ListItemText
+									primary="INBOUND"
+									secondary={`${inbound.length} active`}
+									slotProps={{
+										primary: {
+											sx: {
+												color: inboundColor,
+												fontWeight: 700,
+												fontSize: "0.8rem",
+											},
 											variant: "subtitle2",
-											fontWeight: 700,
-											fontSize: "0.8rem",
-										}
-									},
-									secondary: {
-										sx: {
-											color: alpha(theme.palette.primary.main, 0.7),
+										},
+										secondary: {
+											sx: {
+												color: alpha(inboundColor, 0.7),
+											},
 											variant: "caption",
-										}
-									}
-								}}
-								sx={{ my: 0 }}
-							/>
-						</Stack>
-						{outboundExpanded ? (
-							<ExpandLess sx={{ color: outboundColor }} />
-						) : (
-							<ExpandMore sx={{ color: outboundColor }} />
-						)}
-					</ListItem>
-
-					{outboundExpanded && (
-						<Box
-							sx={{
-								flex: 1,
-								minHeight: 0,
-								bgcolor: alpha(theme.palette.common.black, 0.1),
-							}}
-						>
-							{outbound.length > 0 ? (
-								<Virtuoso
-									data={outbound}
-									itemContent={renderOutboundRow}
-									style={{ height: "100%" }}
-								/>
-							) : (
-								<Box sx={{ p: 3, textAlign: "center", opacity: 0.5 }}>
-									<Typography variant="caption">
-										No active outbound contracts
-									</Typography>
-								</Box>
-							)}
-						</Box>
-					)}
-				</Box>
-
-				{/* 2. INBOUND */}
-				<Box
-					sx={{
-						display: "flex",
-						flexDirection: "column",
-						flex: inboundExpanded ? 1 : 0,
-						minHeight: "48px",
-						transition: "flex 0.3s ease",
-						overflow: "hidden",
-					}}
-				>
-					<ListItem
-						onClick={() => setInboundExpanded(!inboundExpanded)}
-						sx={{
-							bgcolor: alpha(inboundColor, 0.15),
-							py: 0.5,
-							px: 1.5,
-							height: "48px",
-							flexShrink: 0,
-						}}
-					>
-						<Stack
-							direction="row"
-							sx={{ flex: 1, gap: 1, alignItems: "center" }}
-						>
-							<ArrowDownward sx={{ fontSize: 16, color: inboundColor }} />
-							<ListItemText
-								primary="INBOUND"
-								secondary={`${inbound.length} active`}
-								slotProps={{
-									primary: {
-										sx: {
-											color: inboundColor,
-											fontWeight: 700,
-											fontSize: "0.8rem",
 										},
-										variant: "subtitle2",
-									},
-									secondary: {
-										sx: {
-											color: alpha(inboundColor, 0.7),
-										},
-										variant: "caption",
-									},
-								}}
-								sx={{ my: 0 }}
-							/>
-						</Stack>
-						{inboundExpanded ? (
-							<ExpandLess sx={{ color: inboundColor }} />
-						) : (
-							<ExpandMore sx={{ color: inboundColor }} />
-						)}
-					</ListItem>
-
-					{inboundExpanded && (
-						<Box
-							sx={{
-								flex: 1,
-								minHeight: 0,
-								bgcolor: alpha(theme.palette.common.black, 0.05),
-							}}
-						>
-							{inbound.length > 0 ? (
-								<Virtuoso
-									data={inbound}
-									itemContent={renderInboundRow}
-									style={{ height: "100%" }}
+									}}
+									sx={{ my: 0 }}
 								/>
+							</Stack>
+							{inboundExpanded ? (
+								<ExpandLess sx={{ color: inboundColor }} />
 							) : (
-								<Box sx={{ p: 3, textAlign: "center", opacity: 0.5 }}>
-									<Typography variant="caption">
-										No active inbound contracts
-									</Typography>
-								</Box>
+								<ExpandMore sx={{ color: inboundColor }} />
 							)}
-						</Box>
-					)}
+						</ListItem>
+
+						{inboundExpanded && (
+							<Box
+								sx={{
+									flex: 1,
+									minHeight: 0,
+									bgcolor: alpha(theme.palette.common.black, 0.05),
+								}}
+							>
+								{inbound.length > 0 ? (
+									<Virtuoso
+										data={inbound}
+										itemContent={renderInboundRow}
+										style={{ height: "100%" }}
+									/>
+								) : (
+									<Box sx={{ p: 3, textAlign: "center", opacity: 0.5 }}>
+										<Typography variant="caption">
+											No active inbound contracts
+										</Typography>
+									</Box>
+								)}
+							</Box>
+						)}
+					</Box>
 				</Box>
-			</Box>
 			)}
 		</Paper>
 	);

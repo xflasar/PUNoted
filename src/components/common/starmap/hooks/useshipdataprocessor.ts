@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import type { AnimatedShipData } from "../types/maptypes";
-import { parseFlightTimestamp, getFlightArrivalMs } from "../utils/timestamputils";
+import {
+	parseFlightTimestamp,
+	getFlightArrivalMs,
+} from "../utils/timestamputils";
 
 export const useShipDataProcessor = (
 	ownerShips: AnimatedShipData[],
@@ -54,8 +57,13 @@ export const useShipDataProcessor = (
 				inFlightShips.push(mapShip);
 			} else {
 				// Ship has arrived or is stationary: adopt destination location if flight completed
-				if (arrivalMs > 0 && now >= arrivalMs && mapShip.plan?.segments?.length) {
-					const lastSeg = mapShip.plan.segments[mapShip.plan.segments.length - 1];
+				if (
+					arrivalMs > 0 &&
+					now >= arrivalMs &&
+					mapShip.plan?.segments?.length
+				) {
+					const lastSeg =
+						mapShip.plan.segments[mapShip.plan.segments.length - 1];
 					if (lastSeg.destination_system_id) {
 						mapShip.addresssystemid = lastSeg.destination_system_id;
 					}

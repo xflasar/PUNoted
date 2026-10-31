@@ -135,7 +135,14 @@ export const useViewNavigation = ({
 				transitionToGalaxyView();
 			}
 		},
-		[currentViewMode, mode, setCenteredSystem, setCurrentViewMode, transitionToSystemView, transitionToGalaxyView],
+		[
+			currentViewMode,
+			mode,
+			setCenteredSystem,
+			setCurrentViewMode,
+			transitionToSystemView,
+			transitionToGalaxyView,
+		],
 	);
 
 	// --- View State Logic ---

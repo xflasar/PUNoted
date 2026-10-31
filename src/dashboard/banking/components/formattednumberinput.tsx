@@ -107,13 +107,18 @@ export const FormattedNumberInput: React.FC<FormattedNumberInputProps> = ({
 			slotProps={{
 				input: {
 					startAdornment: icon ? (
-						<InputAdornment position="start">
-							{icon}
-						</InputAdornment>
+						<InputAdornment position="start">{icon}</InputAdornment>
 					) : undefined,
 					endAdornment: unit ? (
 						<InputAdornment position="end">
-							<Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									fontWeight: 700,
+									color: "text.secondary",
+									fontSize: "0.7rem",
+								}}
+							>
 								{unit}
 							</Typography>
 						</InputAdornment>

@@ -53,7 +53,9 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 	const [loadingLoans, setLoadingLoans] = useState(true);
 	const [metrics, setMetrics] = useState<BankYieldMetrics | null>(null);
 	const [depositorsCount, setDepositorsCount] = useState<number | null>(null);
-	const [viewTab, setViewTab] = useState<"LEDGER" | "DEPOSITORS" | "PNL">("LEDGER");
+	const [viewTab, setViewTab] = useState<"LEDGER" | "DEPOSITORS" | "PNL">(
+		"LEDGER",
+	);
 
 	// Modals
 	const [linkDialogOpen, setLinkDialogOpen] = useState(false);
@@ -64,7 +66,9 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 	const loadLoans = useCallback(async () => {
 		setLoadingLoans(true);
 		try {
-			const res = await fetchClient(`/internal/banking/loans/received?bank_id=${bank.id}`);
+			const res = await fetchClient(
+				`/internal/banking/loans/received?bank_id=${bank.id}`,
+			);
 			const data: BankLoanRecord[] = res.ok ? await res.json() : [];
 			const seen = new Set<number>();
 			const unique = (data || []).filter((item) => {
@@ -82,7 +86,9 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 
 	const loadMetrics = useCallback(async () => {
 		try {
-			const res = await fetchClient(`/internal/banking/depositors?bank_id=${bank.id}`);
+			const res = await fetchClient(
+				`/internal/banking/depositors?bank_id=${bank.id}`,
+			);
 			if (res.ok) {
 				const data = await res.json();
 				if (data && data.metrics) {
@@ -104,38 +110,62 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 
 	// Compute metrics
 	const currentMoney = bank.liquidity || 0;
-	const loanItems = loans.filter((l) => (l.transaction_type || "LOAN") === "LOAN");
-	const lentCount = loanItems.length > 0 ? loanItems.length : (bank.total_loans_count ?? bank.active_loans_count ?? 0);
-	const totalLentAmount = loanItems.length > 0
-		? loanItems.reduce((acc, l) => acc + (l.amount || 0), 0)
-		: (bank.total_lent_amount ?? 0);
+	const loanItems = loans.filter(
+		(l) => (l.transaction_type || "LOAN") === "LOAN",
+	);
+	const lentCount =
+		loanItems.length > 0
+			? loanItems.length
+			: (bank.total_loans_count ?? bank.active_loans_count ?? 0);
+	const totalLentAmount =
+		loanItems.length > 0
+			? loanItems.reduce((acc, l) => acc + (l.amount || 0), 0)
+			: (bank.total_lent_amount ?? 0);
 
-	const isSettled = (st: string) => st === "APPROVED" || st === "REPAID" || st === "FULFILLED";
-	const isClient = (u: string) => (u || "").toLowerCase() !== (bank.owner_username || "").toLowerCase();
+	const isSettled = (st: string) =>
+		st === "APPROVED" || st === "REPAID" || st === "FULFILLED";
+	const isClient = (u: string) =>
+		(u || "").toLowerCase() !== (bank.owner_username || "").toLowerCase();
 
-	const deposits = loans.filter((l) => l.transaction_type === "DEPOSIT" && isSettled(l.status));
+	const deposits = loans.filter(
+		(l) => l.transaction_type === "DEPOSIT" && isSettled(l.status),
+	);
 	const clientDeposits = deposits.filter((l) => isClient(l.requester_username));
-	const clientWithdrawals = loans.filter((l) => l.transaction_type === "WITHDRAWAL" && isSettled(l.status) && isClient(l.requester_username));
+	const clientWithdrawals = loans.filter(
+		(l) =>
+			l.transaction_type === "WITHDRAWAL" &&
+			isSettled(l.status) &&
+			isClient(l.requester_username),
+	);
 
-	const grossClientDeposited = clientDeposits.reduce((acc, l) => acc + (l.amount || 0), 0);
-	const grossClientWithdrawn = clientWithdrawals.reduce((acc, l) => acc + (l.amount || 0), 0);
+	const grossClientDeposited = clientDeposits.reduce(
+		(acc, l) => acc + (l.amount || 0),
+		0,
+	);
+	const grossClientWithdrawn = clientWithdrawals.reduce(
+		(acc, l) => acc + (l.amount || 0),
+		0,
+	);
 
-	const netCustomerDeposits = metrics?.client_deposits !== undefined
-		? metrics.client_deposits
-		: Math.max(0, grossClientDeposited - grossClientWithdrawn);
+	const netCustomerDeposits =
+		metrics?.client_deposits !== undefined
+			? metrics.client_deposits
+			: Math.max(0, grossClientDeposited - grossClientWithdrawn);
 
 	// Profit & Solvency Summary
-	const loanOnlyList = loans.filter((l) => (l.transaction_type || "LOAN") === "LOAN");
+	const loanOnlyList = loans.filter(
+		(l) => (l.transaction_type || "LOAN") === "LOAN",
+	);
 	const repaidLoans = loanOnlyList.filter((l) => l.status === "REPAID");
 	const activeLoans = loanOnlyList.filter((l) => l.status === "APPROVED");
 
 	const collectedInterest = repaidLoans.reduce((sum, l) => {
-		const r = l.interest_rate ?? (bank.default_interest_rate ?? 1.5);
+		const r = l.interest_rate ?? bank.default_interest_rate ?? 1.5;
 		return sum + (l.amount || 0) * (r / 100.0);
 	}, 0);
 
 	const weeklyInterestRunRate = activeLoans.reduce((sum, l) => {
-		const r = l.interest_rate ?? (bank.default_interest_rate ?? 1.5);
+		const r = l.interest_rate ?? bank.default_interest_rate ?? 1.5;
 		const termDays = l.term_days || 14;
 		const weeks = Math.max(1, termDays / 7);
 		return sum + ((l.amount || 0) * (r / 100.0)) / weeks;
@@ -147,7 +177,15 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 	return (
 		<Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, pb: 2 }}>
 			{/* Top Bar with Back Button & Action Controls */}
-			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					flexWrap: "wrap",
+					gap: 1,
+				}}
+			>
 				<Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
 					<Button
 						startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
@@ -184,14 +222,25 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 				</Box>
 
 				{isMyBank && (
-					<Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+					<Box
+						sx={{
+							display: "flex",
+							gap: 1,
+							alignItems: "center",
+							flexWrap: "wrap",
+						}}
+					>
 						<Button
 							size="small"
 							variant="outlined"
 							color="info"
 							startIcon={<UploadFileIcon sx={{ fontSize: 15 }} />}
 							onClick={() => setImportDialogOpen(true)}
-							sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.75rem" }}
+							sx={{
+								textTransform: "none",
+								fontWeight: 700,
+								fontSize: "0.75rem",
+							}}
 						>
 							Import CSV Ledger
 						</Button>
@@ -201,7 +250,11 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 							color="primary"
 							startIcon={<EditIcon sx={{ fontSize: 15 }} />}
 							onClick={() => setEditVaultOpen(true)}
-							sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.75rem" }}
+							sx={{
+								textTransform: "none",
+								fontWeight: 700,
+								fontSize: "0.75rem",
+							}}
 						>
 							Configure Vault
 						</Button>
@@ -211,7 +264,11 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 							color="primary"
 							startIcon={<SavingsOutlinedIcon sx={{ fontSize: 15 }} />}
 							onClick={() => setManualDepositOpen(true)}
-							sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.75rem" }}
+							sx={{
+								textTransform: "none",
+								fontWeight: 700,
+								fontSize: "0.75rem",
+							}}
 						>
 							Manual Deposit
 						</Button>
@@ -221,7 +278,11 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 							color="primary"
 							startIcon={<AddLinkIcon sx={{ fontSize: 15 }} />}
 							onClick={() => setLinkDialogOpen(true)}
-							sx={{ textTransform: "none", fontWeight: 800, fontSize: "0.75rem" }}
+							sx={{
+								textTransform: "none",
+								fontWeight: 800,
+								fontSize: "0.75rem",
+							}}
 						>
 							Link Contract
 						</Button>
@@ -250,7 +311,16 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 						bgcolor: alpha(theme.palette.background.default, 0.6),
 					}}
 				>
-					<Box sx={{ display: "flex", alignItems: "center", justifyCenter: "center", gap: 1.5, flexWrap: "wrap", justifyContent: "center" }}>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							justifyCenter: "center",
+							gap: 1.5,
+							flexWrap: "wrap",
+							justifyContent: "center",
+						}}
+					>
 						<Typography
 							variant="h4"
 							sx={{
@@ -275,7 +345,10 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 					</Box>
 
 					{bank.headline && (
-						<Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 700, mt: 0.3 }}>
+						<Typography
+							variant="subtitle2"
+							sx={{ color: "primary.main", fontWeight: 700, mt: 0.3 }}
+						>
 							"{bank.headline}"
 						</Typography>
 					)}
@@ -286,11 +359,25 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 							bank.owner_is_synchronized !== false,
 						);
 						return (
-							<Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.75, mt: 0.3, flexWrap: "wrap" }}>
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+									gap: 0.75,
+									mt: 0.3,
+									flexWrap: "wrap",
+								}}
+							>
 								<Typography variant="caption" sx={{ color: "text.secondary" }}>
-									Operator: <strong style={{ color: theme.palette.text.primary }}>{bank.owner_username}</strong>
+									Operator:{" "}
+									<strong style={{ color: theme.palette.text.primary }}>
+										{bank.owner_username}
+									</strong>
 								</Typography>
-								<Tooltip title={`Banker Status: ${ownerActivity.label} (Synced: ${bank.owner_is_synchronized !== false ? "Yes" : "No"})`}>
+								<Tooltip
+									title={`Banker Status: ${ownerActivity.label} (Synced: ${bank.owner_is_synchronized !== false ? "Yes" : "No"})`}
+								>
 									<Box
 										sx={{
 											display: "inline-flex",
@@ -303,7 +390,9 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 											border: `1px solid ${alpha(ownerActivity.dotColor, 0.25)}`,
 										}}
 									>
-										<CircleIcon sx={{ fontSize: 6, color: ownerActivity.dotColor }} />
+										<CircleIcon
+											sx={{ fontSize: 6, color: ownerActivity.dotColor }}
+										/>
 										<Typography
 											variant="caption"
 											sx={{
@@ -322,7 +411,10 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 					})()}
 
 					{/* Lending Policies Accordion */}
-					<BankDescriptionViewer description={bank.description} bankName={bank.name} />
+					<BankDescriptionViewer
+						description={bank.description}
+						bankName={bank.name}
+					/>
 				</Box>
 
 				{/* Modular Vault Metrics Component */}
@@ -341,7 +433,10 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 							py: 1.25,
 							px: 2.5,
 							borderBottom: `1.5px solid ${alpha(theme.palette.divider, 0.15)}`,
-							bgcolor: netWeeklySpread >= 0 ? alpha("#10b981", 0.06) : alpha("#ef4444", 0.06),
+							bgcolor:
+								netWeeklySpread >= 0
+									? alpha("#10b981", 0.06)
+									: alpha("#ef4444", 0.06),
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "space-between",
@@ -357,23 +452,40 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 							)}
 							<Box>
 								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Typography variant="subtitle2" sx={{ fontWeight: 900, fontSize: "0.88rem" }}>
-										Net Spread: {netWeeklySpread >= 0 ? "+" : ""}{formatAmount(netWeeklySpread)} {bank.currency || "ICA"} / wk
+									<Typography
+										variant="subtitle2"
+										sx={{ fontWeight: 900, fontSize: "0.88rem" }}
+									>
+										Net Spread: {netWeeklySpread >= 0 ? "+" : ""}
+										{formatAmount(netWeeklySpread)} {bank.currency || "ICA"} /
+										wk
 									</Typography>
 									<Chip
-										label={netWeeklySpread >= 0 ? "PROFITABLE SPREAD" : "NET CASH DEFICIT"}
+										label={
+											netWeeklySpread >= 0
+												? "PROFITABLE SPREAD"
+												: "NET CASH DEFICIT"
+										}
 										size="small"
 										sx={{
 											fontWeight: 800,
 											fontSize: "0.62rem",
 											height: 18,
-											bgcolor: netWeeklySpread >= 0 ? alpha("#10b981", 0.2) : alpha("#ef4444", 0.2),
+											bgcolor:
+												netWeeklySpread >= 0
+													? alpha("#10b981", 0.2)
+													: alpha("#ef4444", 0.2),
 											color: netWeeklySpread >= 0 ? "#34d399" : "#f87171",
 										}}
 									/>
 								</Box>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem" }}>
-									+{formatAmount(collectedInterest)} {bank.currency || "ICA"}{" "}collected profit &bull; -{formatAmount(weeklyClientYieldCost)} {bank.currency || "ICA"}/wk depositor yield cost
+								<Typography
+									variant="caption"
+									sx={{ color: "text.secondary", fontSize: "0.72rem" }}
+								>
+									+{formatAmount(collectedInterest)} {bank.currency || "ICA"}{" "}
+									collected profit &bull; -{formatAmount(weeklyClientYieldCost)}{" "}
+									{bank.currency || "ICA"}/wk depositor yield cost
 								</Typography>
 							</Box>
 						</Box>
@@ -391,21 +503,41 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 								borderColor: alpha(theme.palette.divider, 0.3),
 							}}
 						>
-							{viewTab === "PNL" ? "Viewing Full P&L & Simulator" : "Open Full P&L & Simulator"}
+							{viewTab === "PNL"
+								? "Viewing Full P&L & Simulator"
+								: "Open Full P&L & Simulator"}
 						</Button>
 					</Box>
 				)}
 
 				{/* View Navigation Tabs: Ledger vs Depositors vs Profit & Solvency */}
-				<Box sx={{ borderBottom: `1.5px solid ${alpha(theme.palette.divider, 0.15)}`, px: 2, bgcolor: alpha(theme.palette.background.default, 0.5) }}>
+				<Box
+					sx={{
+						borderBottom: `1.5px solid ${alpha(theme.palette.divider, 0.15)}`,
+						px: 2,
+						bgcolor: alpha(theme.palette.background.default, 0.5),
+					}}
+				>
 					<Tabs
 						value={viewTab}
 						onChange={(_, val) => setViewTab(val)}
 						textColor="primary"
 						indicatorColor="primary"
-						sx={{ minHeight: 38, "& .MuiTab-root": { minHeight: 38, py: 0.5, fontWeight: 800, textTransform: "none", fontSize: "0.82rem" } }}
+						sx={{
+							minHeight: 38,
+							"& .MuiTab-root": {
+								minHeight: 38,
+								py: 0.5,
+								fontWeight: 800,
+								textTransform: "none",
+								fontSize: "0.82rem",
+							},
+						}}
 					>
-						<Tab label={`Transaction Ledger (${loans.length})`} value="LEDGER" />
+						<Tab
+							label={`Transaction Ledger (${loans.length})`}
+							value="LEDGER"
+						/>
 						{isMyBank && (
 							<Tab
 								label={`Depositors & Capital Growth (${depositorsCount ?? bank.depositors_count ?? (deposits.length > 0 ? new Set(deposits.map((d) => d.requester_username)).size : 0)})`}

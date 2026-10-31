@@ -30,7 +30,10 @@ export interface UseBankingDataResult {
 	isSyncing: boolean;
 	// Form State matching Create Bank Wireframe
 	form: CreateBankFormState;
-	setFormField: <K extends keyof CreateBankFormState>(field: K, value: CreateBankFormState[K]) => void;
+	setFormField: <K extends keyof CreateBankFormState>(
+		field: K,
+		value: CreateBankFormState[K],
+	) => void;
 	resetForm: () => void;
 	creating: boolean;
 	createError: string | null;
@@ -65,7 +68,10 @@ export const useBankingData = (): UseBankingDataResult => {
 	const [createError, setCreateError] = useState<string | null>(null);
 
 	const setFormField = useCallback(
-		<K extends keyof CreateBankFormState>(field: K, value: CreateBankFormState[K]) => {
+		<K extends keyof CreateBankFormState>(
+			field: K,
+			value: CreateBankFormState[K],
+		) => {
 			setForm((prev) => ({ ...prev, [field]: value }));
 		},
 		[],
@@ -157,9 +163,11 @@ export const useBankingData = (): UseBankingDataResult => {
 					headline: form.headline.trim() || null,
 					description: form.description.trim(),
 					liquidity: form.liquidity === "" ? 0 : Number(form.liquidity),
-					default_interest_rate: form.interestRate === "" ? 0 : Number(form.interestRate),
+					default_interest_rate:
+						form.interestRate === "" ? 0 : Number(form.interestRate),
 					currency: form.currency || "ICA",
-					default_repay_days: form.repayDays === "" ? 0 : Number(form.repayDays),
+					default_repay_days:
+						form.repayDays === "" ? 0 : Number(form.repayDays),
 					default_interval: String(form.interval === "" ? 0 : form.interval),
 					min_loan_amount: form.minLoan === "" ? 0 : Number(form.minLoan),
 					max_loan_amount: form.maxLoan === "" ? 0 : Number(form.maxLoan),

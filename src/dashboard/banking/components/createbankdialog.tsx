@@ -29,7 +29,10 @@ interface CreateBankDialogProps {
 	creating: boolean;
 	createError: string | null;
 	onClose: () => void;
-	onChange: <K extends keyof CreateBankFormState>(field: K, value: CreateBankFormState[K]) => void;
+	onChange: <K extends keyof CreateBankFormState>(
+		field: K,
+		value: CreateBankFormState[K],
+	) => void;
 	onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -88,19 +91,34 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 						Establish Bank
 					</Typography>
 				</Box>
-				<IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+				<IconButton
+					size="small"
+					onClick={onClose}
+					sx={{ color: "text.secondary" }}
+				>
 					<CloseIcon sx={{ fontSize: 18 }} />
 				</IconButton>
 			</DialogTitle>
 
 			<DialogContent sx={{ pt: "14px !important", px: 2.5, pb: 2.5 }}>
 				{createError && (
-					<Alert severity="error" sx={{ mb: 1.5, py: 0.5, borderRadius: 1.5, fontSize: "0.8rem" }}>
+					<Alert
+						severity="error"
+						sx={{ mb: 1.5, py: 0.5, borderRadius: 1.5, fontSize: "0.8rem" }}
+					>
 						{createError}
 					</Alert>
 				)}
 
-				<form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 4 }}>
+				<form
+					onSubmit={onSubmit}
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						gap: 14,
+						paddingTop: 4,
+					}}
+				>
 					{/* 1. Bank Name */}
 					<TextField
 						label="Bank Name"
@@ -130,7 +148,14 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 							input: {
 								endAdornment: (
 									<InputAdornment position="end">
-										<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontWeight: 700 }}>
+										<Typography
+											variant="caption"
+											sx={{
+												color: "text.secondary",
+												fontSize: "0.65rem",
+												fontWeight: 700,
+											}}
+										>
 											{form.headline.length}/100
 										</Typography>
 									</InputAdornment>
@@ -145,12 +170,20 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 					/>
 
 					{/* Vault Cash Guidance Note */}
-					<Alert severity="info" sx={{ fontSize: "0.74rem", py: 0.5, borderRadius: 1.5 }}>
-						Vault cash starts at <strong>0 {form.currency}</strong>. Seed your bank capital after establishment via <strong>Record Deposit</strong>, <strong>Link Verified Contract</strong>, or <strong>CSV Ledger Import</strong>.
+					<Alert
+						severity="info"
+						sx={{ fontSize: "0.74rem", py: 0.5, borderRadius: 1.5 }}
+					>
+						Vault cash starts at <strong>0 {form.currency}</strong>. Seed your
+						bank capital after establishment via <strong>Record Deposit</strong>
+						, <strong>Link Verified Contract</strong>, or{" "}
+						<strong>CSV Ledger Import</strong>.
 					</Alert>
 
 					{/* 3. Row: Currency & Interest Rate % */}
-					<Box sx={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 1.2 }}>
+					<Box
+						sx={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 1.2 }}
+					>
 						<TextField
 							select
 							size="small"
@@ -165,11 +198,18 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 							}}
 						>
 							{PRUN_CURRENCIES.map((curr) => (
-								<MenuItem key={curr.code} value={curr.code} sx={{ fontSize: "0.82rem" }}>
+								<MenuItem
+									key={curr.code}
+									value={curr.code}
+									sx={{ fontSize: "0.82rem" }}
+								>
 									<Box component="span" sx={{ fontWeight: 800, mr: 1 }}>
 										{curr.code}
 									</Box>
-									<Box component="span" sx={{ color: "text.secondary", fontSize: "0.78rem" }}>
+									<Box
+										component="span"
+										sx={{ color: "text.secondary", fontSize: "0.78rem" }}
+									>
 										— {curr.name}
 									</Box>
 								</MenuItem>
@@ -181,13 +221,25 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 							size="small"
 							type="number"
 							value={form.interestRate}
-							onChange={(e) => onChange("interestRate", e.target.value === "" ? "" : Number(e.target.value))}
+							onChange={(e) =>
+								onChange(
+									"interestRate",
+									e.target.value === "" ? "" : Number(e.target.value),
+								)
+							}
 							placeholder="5.0"
 							slotProps={{
 								input: {
 									endAdornment: (
 										<InputAdornment position="end">
-											<Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem" }}>
+											<Typography
+												variant="caption"
+												sx={{
+													fontWeight: 700,
+													color: "text.secondary",
+													fontSize: "0.7rem",
+												}}
+											>
 												%
 											</Typography>
 										</InputAdornment>
@@ -204,19 +256,33 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 					</Box>
 
 					{/* 4. Row: Repay Duration & Payment Interval */}
-					<Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.2 }}>
+					<Box
+						sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.2 }}
+					>
 						<TextField
 							label="Repay Term"
 							size="small"
 							type="number"
 							value={form.repayDays}
-							onChange={(e) => onChange("repayDays", e.target.value === "" ? "" : Number(e.target.value))}
+							onChange={(e) =>
+								onChange(
+									"repayDays",
+									e.target.value === "" ? "" : Number(e.target.value),
+								)
+							}
 							placeholder="14"
 							slotProps={{
 								input: {
 									endAdornment: (
 										<InputAdornment position="end">
-											<Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem" }}>
+											<Typography
+												variant="caption"
+												sx={{
+													fontWeight: 700,
+													color: "text.secondary",
+													fontSize: "0.7rem",
+												}}
+											>
 												Days
 											</Typography>
 										</InputAdornment>
@@ -236,13 +302,25 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 							size="small"
 							type="number"
 							value={form.interval}
-							onChange={(e) => onChange("interval", e.target.value === "" ? "" : Number(e.target.value))}
+							onChange={(e) =>
+								onChange(
+									"interval",
+									e.target.value === "" ? "" : Number(e.target.value),
+								)
+							}
 							placeholder="7"
 							slotProps={{
 								input: {
 									endAdornment: (
 										<InputAdornment position="end">
-											<Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", fontSize: "0.7rem" }}>
+											<Typography
+												variant="caption"
+												sx={{
+													fontWeight: 700,
+													color: "text.secondary",
+													fontSize: "0.7rem",
+												}}
+											>
 												Days
 											</Typography>
 										</InputAdornment>
@@ -259,14 +337,20 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 					</Box>
 
 					{/* 5. Row: Min & Max Loan Amounts (Compact 2-columns with comma formatting) */}
-					<Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.2 }}>
+					<Box
+						sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.2 }}
+					>
 						<FormattedNumberInput
 							label="Min Loan Amount"
 							value={form.minLoan}
 							onChange={(val) => onChange("minLoan", val)}
 							placeholder="e.g. 5,000"
 							unit={form.currency}
-							icon={<AttachMoneyIcon sx={{ fontSize: 16, color: "text.secondary" }} />}
+							icon={
+								<AttachMoneyIcon
+									sx={{ fontSize: 16, color: "text.secondary" }}
+								/>
+							}
 						/>
 
 						<FormattedNumberInput
@@ -275,7 +359,9 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 							onChange={(val) => onChange("maxLoan", val)}
 							placeholder="e.g. 500,000"
 							unit={form.currency}
-							icon={<AttachMoneyIcon sx={{ fontSize: 16, color: "primary.main" }} />}
+							icon={
+								<AttachMoneyIcon sx={{ fontSize: 16, color: "primary.main" }} />
+							}
 						/>
 					</Box>
 
@@ -287,7 +373,9 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 						minRows={2.5}
 						maxRows={8}
 						value={form.description}
-						onChange={(e) => onChange("description", e.target.value.slice(0, 2000))}
+						onChange={(e) =>
+							onChange("description", e.target.value.slice(0, 2000))
+						}
 						placeholder="Mission, collateral requirements, notes... (optional)"
 						helperText={`${form.description.length}/2,000 characters`}
 						fullWidth
@@ -322,10 +410,20 @@ export const CreateBankDialog: React.FC<CreateBankDialogProps> = ({
 						}}
 					>
 						<Box>
-							<Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.82rem" }}>
+							<Typography
+								variant="body2"
+								sx={{ fontWeight: 800, fontSize: "0.82rem" }}
+							>
 								Enable Public API & Directory Listing
 							</Typography>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem", display: "block" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "text.secondary",
+									fontSize: "0.72rem",
+									display: "block",
+								}}
+							>
 								{form.isPublic
 									? "Your bank will be discoverable by other players in the Public Directory and Public API."
 									: "Private / Unlisted: Accessible ONLY to you in your dashboard and Protected API."}

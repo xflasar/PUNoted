@@ -290,7 +290,6 @@ export const LandingPageHeader: React.FC<LandingPageHeaderProps> = ({
 						<FaLandmark style={{ marginRight: "0.5rem" }} /> Banks Directory
 					</NavButton>
 
-
 					{isLoggedIn && (
 						<NavButton
 							variant="outlined"

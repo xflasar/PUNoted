@@ -110,10 +110,11 @@ export const ShipTooltip: React.FC<ShipTooltipProps> = ({
 						}}
 					>
 						{object.ships.map((s: any) => {
-							const reg =
-								s.registration || s.shipid || s.id || "Unknown";
+							const reg = s.registration || s.shipid || s.id || "Unknown";
 							const type = s.ship_type || s.type || "LCB";
-							const owner = s.isOwn ? "You" : s.displayname || s.display_name || "Unknown";
+							const owner = s.isOwn
+								? "You"
+								: s.displayname || s.display_name || "Unknown";
 							const status = s.plan ? "In Transit" : "Stationary";
 							const shipKey = s.shipid || s.id;
 							return (

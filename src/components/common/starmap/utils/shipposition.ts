@@ -5,7 +5,10 @@ import { parseFlightTimestamp as parseTimestamp } from "./timestamputils";
 const SCALE_FACTOR_DEFAULT = 5000000000;
 
 export function cleanId(val: any): string {
-	return String(val ?? "").toLowerCase().replace(/^(planet-|station-|sys-)/, "").trim();
+	return String(val ?? "")
+		.toLowerCase()
+		.replace(/^(planet-|station-|sys-)/, "")
+		.trim();
 }
 
 export function matchesLocation(obj: any, targetId: any): boolean {
@@ -21,7 +24,9 @@ export function matchesLocation(obj: any, targetId: any): boolean {
 		obj.station_id,
 		obj.name,
 	];
-	return candidates.some((c) => c !== undefined && c !== null && cleanId(c) === cleanTarget);
+	return candidates.some(
+		(c) => c !== undefined && c !== null && cleanId(c) === cleanTarget,
+	);
 }
 
 export function matchesSystem(sys: MapPoint, sysId: any): boolean {
@@ -35,7 +40,9 @@ export function matchesSystem(sys: MapPoint, sysId: any): boolean {
 		(sys as any).label,
 		(sys as any).name,
 	];
-	return candidates.some((c) => c !== undefined && c !== null && cleanId(c) === cleanTarget);
+	return candidates.some(
+		(c) => c !== undefined && c !== null && cleanId(c) === cleanTarget,
+	);
 }
 
 export function calculateShipPositionInSystem(
@@ -47,7 +54,11 @@ export function calculateShipPositionInSystem(
 	scaleFactor = SCALE_FACTOR_DEFAULT,
 ): [number, number, number] | null {
 	const currentSysId = currentSystem?.originalSystemId || currentSystem?.id;
-	const shipSysId = ship.addresssystemid || ship.systemid || ship.system_id || ship.address_system_id;
+	const shipSysId =
+		ship.addresssystemid ||
+		ship.systemid ||
+		ship.system_id ||
+		ship.address_system_id;
 
 	if (!plan || !Array.isArray(plan.segments) || plan.segments.length === 0) {
 		const targetId =
@@ -59,7 +70,11 @@ export function calculateShipPositionInSystem(
 			ship.stationid;
 		if (targetId) {
 			const target = activePlanets.find((p) => matchesLocation(p, targetId));
-			if (target && typeof target.x === "number" && typeof target.y === "number")
+			if (
+				target &&
+				typeof target.x === "number" &&
+				typeof target.y === "number"
+			)
 				return [target.x, target.y, ship.bearing || 0];
 		}
 
@@ -83,10 +98,16 @@ export function calculateShipPositionInSystem(
 	if (activeSegment) {
 		const segType = (activeSegment.segment_type || "").toUpperCase();
 		const segOrigSys = String(
-			activeSegment.origin_system_id || activeSegment.origin_system || activeSegment.originsystemid || "",
+			activeSegment.origin_system_id ||
+				activeSegment.origin_system ||
+				activeSegment.originsystemid ||
+				"",
 		).toLowerCase();
 		const segDestSys = String(
-			activeSegment.destination_system_id || activeSegment.destination_system || activeSegment.destinationsystemid || "",
+			activeSegment.destination_system_id ||
+				activeSegment.destination_system ||
+				activeSegment.destinationsystemid ||
+				"",
 		).toLowerCase();
 		const curSys = String(currentSysId || "").toLowerCase();
 
@@ -100,7 +121,13 @@ export function calculateShipPositionInSystem(
 		}
 
 		// If current segment is in another system entirely
-		if (curSys && segOrigSys && segDestSys && cleanId(segOrigSys) !== cleanId(curSys) && cleanId(segDestSys) !== cleanId(curSys)) {
+		if (
+			curSys &&
+			segOrigSys &&
+			segDestSys &&
+			cleanId(segOrigSys) !== cleanId(curSys) &&
+			cleanId(segDestSys) !== cleanId(curSys)
+		) {
 			return null;
 		}
 	} else {
@@ -113,7 +140,12 @@ export function calculateShipPositionInSystem(
 		if (firstDep > 0 && currentTime < firstDep) {
 			// Ship hasn't departed yet: check if origin is in this system
 			const origSysId = String(
-				firstSeg?.originsystemid || firstSeg?.origin_system_id || firstSeg?.origin_system || plan?.originsystemid || shipSysId || "",
+				firstSeg?.originsystemid ||
+					firstSeg?.origin_system_id ||
+					firstSeg?.origin_system ||
+					plan?.originsystemid ||
+					shipSysId ||
+					"",
 			).toLowerCase();
 			const curSys = String(currentSysId || "").toLowerCase();
 			if (curSys && origSysId && cleanId(origSysId) !== cleanId(curSys)) {
@@ -132,7 +164,11 @@ export function calculateShipPositionInSystem(
 				ship.address_planet_id ||
 				ship.address_station_id;
 			const origObj = activePlanets.find((p) => matchesLocation(p, origId));
-			if (origObj && typeof origObj.x === "number" && typeof origObj.y === "number") {
+			if (
+				origObj &&
+				typeof origObj.x === "number" &&
+				typeof origObj.y === "number"
+			) {
 				return [origObj.x, origObj.y, ship.bearing || 0];
 			}
 			if (currentSystem && cleanId(origSysId) === cleanId(curSys)) {
@@ -144,7 +180,11 @@ export function calculateShipPositionInSystem(
 		if (lastArr > 0 && currentTime >= lastArr) {
 			// Flight completed: check if destination is in this system
 			const destSysId = String(
-				lastSeg?.destinationsystemid || lastSeg?.destination_system_id || lastSeg?.destination_system || plan?.destinationsystemid || "",
+				lastSeg?.destinationsystemid ||
+					lastSeg?.destination_system_id ||
+					lastSeg?.destination_system ||
+					plan?.destinationsystemid ||
+					"",
 			).toLowerCase();
 			const curSys = String(currentSysId || "").toLowerCase();
 			if (curSys && destSysId && cleanId(destSysId) !== cleanId(curSys)) {
@@ -163,7 +203,11 @@ export function calculateShipPositionInSystem(
 				ship.address_planet_id ||
 				ship.address_station_id;
 			const destObj = activePlanets.find((p) => matchesLocation(p, destId));
-			if (destObj && typeof destObj.x === "number" && typeof destObj.y === "number") {
+			if (
+				destObj &&
+				typeof destObj.x === "number" &&
+				typeof destObj.y === "number"
+			) {
 				return [destObj.x, destObj.y, ship.bearing || 0];
 			}
 			if (currentSystem && cleanId(destSysId) === cleanId(curSys)) {
@@ -173,12 +217,22 @@ export function calculateShipPositionInSystem(
 		}
 
 		// Between segments during flight: find the next segment or previous segment
-		const upcomingSeg = plan.segments.find((s: any) => parseTimestamp(s.departure) > currentTime);
+		const upcomingSeg = plan.segments.find(
+			(s: any) => parseTimestamp(s.departure) > currentTime,
+		);
 		if (upcomingSeg) {
 			const upcomingType = (upcomingSeg.segment_type || "").toUpperCase();
-			const upOrigSys = String(upcomingSeg.originsystemid || upcomingSeg.origin_system_id || upcomingSeg.origin_system || "").toLowerCase();
+			const upOrigSys = String(
+				upcomingSeg.originsystemid ||
+					upcomingSeg.origin_system_id ||
+					upcomingSeg.origin_system ||
+					"",
+			).toLowerCase();
 			const curSys = String(currentSysId || "").toLowerCase();
-			if (upcomingType === "JUMP" || (curSys && upOrigSys && cleanId(upOrigSys) !== cleanId(curSys))) {
+			if (
+				upcomingType === "JUMP" ||
+				(curSys && upOrigSys && cleanId(upOrigSys) !== cleanId(curSys))
+			) {
 				return null;
 			}
 		}
@@ -291,7 +345,9 @@ export function calculateShipPositionGalaxy(
 ): [number, number, number] | null {
 	if (!plan || !Array.isArray(plan.segments) || plan.segments.length === 0) {
 		const sysId = ship.addresssystemid || ship.systemid || ship.system_id;
-		const currentSystemPoint = systemsPoints.find((p) => matchesSystem(p, sysId));
+		const currentSystemPoint = systemsPoints.find((p) =>
+			matchesSystem(p, sysId),
+		);
 		return currentSystemPoint
 			? [currentSystemPoint.x, currentSystemPoint.y, ship.bearing || 0]
 			: null;
@@ -379,11 +435,21 @@ export function calculateShipPositionGalaxy(
 	return [currentX, currentY, bearing];
 }
 
-export function getShipFlightStatus(ship: any, plan: any, currentTime = Date.now()) {
-	if (!plan || !plan.segments || !Array.isArray(plan.segments) || plan.segments.length === 0) {
+export function getShipFlightStatus(
+	ship: any,
+	plan: any,
+	currentTime = Date.now(),
+) {
+	if (
+		!plan ||
+		!plan.segments ||
+		!Array.isArray(plan.segments) ||
+		plan.segments.length === 0
+	) {
 		return {
 			isInterSystem: false,
-			systemId: ship?.addresssystemid || ship?.systemid || ship?.system_id || null,
+			systemId:
+				ship?.addresssystemid || ship?.systemid || ship?.system_id || null,
 		};
 	}
 
@@ -466,7 +532,7 @@ export function getShipFlightStatus(ship: any, plan: any, currentTime = Date.now
 
 	return {
 		isInterSystem: false,
-		systemId: ship?.addresssystemid || ship?.systemid || ship?.system_id || null,
+		systemId:
+			ship?.addresssystemid || ship?.systemid || ship?.system_id || null,
 	};
 }
-

@@ -47,7 +47,11 @@ export const BankDescriptionViewer: React.FC<BankDescriptionViewerProps> = ({
 			}}
 		>
 			<AccordionSummary
-				expandIcon={<ExpandMoreIcon sx={{ color: theme.palette.primary.main, fontSize: 18 }} />}
+				expandIcon={
+					<ExpandMoreIcon
+						sx={{ color: theme.palette.primary.main, fontSize: 18 }}
+					/>
+				}
 				sx={{
 					px: 1.5,
 					py: 0.2,
@@ -65,7 +69,10 @@ export const BankDescriptionViewer: React.FC<BankDescriptionViewerProps> = ({
 			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
 					<PolicyIcon sx={{ fontSize: 16, color: "primary.main" }} />
-					<Typography variant="caption" sx={{ fontWeight: 800, fontSize: "0.76rem", letterSpacing: 0.4 }}>
+					<Typography
+						variant="caption"
+						sx={{ fontWeight: 800, fontSize: "0.76rem", letterSpacing: 0.4 }}
+					>
 						BANK TERMS &amp; LENDING POLICIES
 					</Typography>
 				</Box>

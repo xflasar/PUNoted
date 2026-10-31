@@ -55,35 +55,76 @@ export const BANK_LEDGER_SYSTEM_FIELDS: SystemField[] = [
 		label: "Amount",
 		required: true,
 		description: "Principal or transaction amount in ICA",
-		aliases: ["amount", "capital", "value", "sum", "principal", "ica", "money", "loan", "total"],
+		aliases: [
+			"amount",
+			"capital",
+			"value",
+			"sum",
+			"principal",
+			"ica",
+			"money",
+			"loan",
+			"total",
+		],
 	},
 	{
 		key: "type",
 		label: "Transaction Type",
 		required: false,
 		description: "LOAN, DEPOSIT, or WITHDRAWAL (defaults to LOAN)",
-		aliases: ["type", "transaction_type", "trans_type", "category", "kind", "action"],
+		aliases: [
+			"type",
+			"transaction_type",
+			"trans_type",
+			"category",
+			"kind",
+			"action",
+		],
 	},
 	{
 		key: "interest_rate",
 		label: "Interest Rate (%)",
 		required: false,
 		description: "Interest percentage (defaults to bank default rate)",
-		aliases: ["interest_rate", "interest", "rate", "apr", "interest%", "rate%", "fee"],
+		aliases: [
+			"interest_rate",
+			"interest",
+			"rate",
+			"apr",
+			"interest%",
+			"rate%",
+			"fee",
+		],
 	},
 	{
 		key: "term_days",
 		label: "Term (Days)",
 		required: false,
 		description: "Loan duration in days (defaults to bank default term)",
-		aliases: ["term_days", "term", "days", "duration", "period", "weeks", "length"],
+		aliases: [
+			"term_days",
+			"term",
+			"days",
+			"duration",
+			"period",
+			"weeks",
+			"length",
+		],
 	},
 	{
 		key: "contract_localid",
 		label: "Contract Local ID",
 		required: false,
 		description: "In-game contract ID (e.g. PRUN-12345) to auto-verify",
-		aliases: ["contract_localid", "contract_id", "contract", "localid", "id", "contract_code", "local_id"],
+		aliases: [
+			"contract_localid",
+			"contract_id",
+			"contract",
+			"localid",
+			"id",
+			"contract_code",
+			"local_id",
+		],
 	},
 	{
 		key: "status",
@@ -97,7 +138,14 @@ export const BANK_LEDGER_SYSTEM_FIELDS: SystemField[] = [
 		label: "Date",
 		required: false,
 		description: "Transaction date (e.g. 2026-08-01)",
-		aliases: ["date", "timestamp", "created_at", "time", "datetime", "date_created"],
+		aliases: [
+			"date",
+			"timestamp",
+			"created_at",
+			"time",
+			"datetime",
+			"date_created",
+		],
 	},
 ];
 
@@ -193,7 +241,12 @@ export function buildStandardizedCsv(
 				return "";
 			}
 			const val = row[headerIndices[mappedHeader]] || "";
-			if (val.includes(",") || val.includes('"') || val.includes("\n") || val.includes(";")) {
+			if (
+				val.includes(",") ||
+				val.includes('"') ||
+				val.includes("\n") ||
+				val.includes(";")
+			) {
 				return `"${val.replace(/"/g, '""')}"`;
 			}
 			return val;
@@ -215,17 +268,23 @@ export function autoDetectMapping(
 	const usedHeaders = new Set<string>();
 
 	for (const field of systemFields) {
-		const normalizedAliases = field.aliases.map((a) => a.toLowerCase().replace(/[^a-z0-9]/g, ""));
+		const normalizedAliases = field.aliases.map((a) =>
+			a.toLowerCase().replace(/[^a-z0-9]/g, ""),
+		);
 
 		let bestMatch = "";
 		let bestScore = 0;
 
 		for (const rawHeader of userHeaders) {
 			if (usedHeaders.has(rawHeader)) continue;
-			const normalizedHeader = rawHeader.toLowerCase().replace(/[^a-z0-9]/g, "");
+			const normalizedHeader = rawHeader
+				.toLowerCase()
+				.replace(/[^a-z0-9]/g, "");
 
 			// Exact match on key or alias
-			if (normalizedHeader === field.key.toLowerCase().replace(/[^a-z0-9]/g, "")) {
+			if (
+				normalizedHeader === field.key.toLowerCase().replace(/[^a-z0-9]/g, "")
+			) {
 				bestMatch = rawHeader;
 				bestScore = 100;
 				break;
@@ -274,7 +333,9 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 	const theme = useTheme();
 
 	// Check if required fields are satisfied
-	const missingRequired = systemFields.filter((f) => f.required && !mapping[f.key]);
+	const missingRequired = systemFields.filter(
+		(f) => f.required && !mapping[f.key],
+	);
 
 	// Build map of header index for fast preview lookup
 	const headerIndexMap = React.useMemo(() => {
@@ -289,18 +350,36 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 		<Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
 			{/* Instructions Header */}
 			<Box>
-				<Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: "0.85rem", color: "text.primary" }}>
+				<Typography
+					variant="subtitle2"
+					sx={{ fontWeight: 800, fontSize: "0.85rem", color: "text.primary" }}
+				>
 					Column Assignment Checker
 				</Typography>
-				<Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.4, display: "block" }}>
-					Match your spreadsheet columns on the right to our system's expected fields on the left. Unmapped optional fields will use their default values.
+				<Typography
+					variant="caption"
+					sx={{ color: "text.secondary", lineHeight: 1.4, display: "block" }}
+				>
+					Match your spreadsheet columns on the right to our system's expected
+					fields on the left. Unmapped optional fields will use their default
+					values.
 				</Typography>
 			</Box>
 
 			{missingRequired.length > 0 && (
-				<Alert severity="warning" sx={{ py: 0.5, bgcolor: alpha("#fbbf24", 0.1), color: "#fbbf24", border: "1px solid rgba(251, 191, 36, 0.3)" }}>
+				<Alert
+					severity="warning"
+					sx={{
+						py: 0.5,
+						bgcolor: alpha("#fbbf24", 0.1),
+						color: "#fbbf24",
+						border: "1px solid rgba(251, 191, 36, 0.3)",
+					}}
+				>
 					<Typography variant="caption" sx={{ fontWeight: 700 }}>
-						Required columns not mapped: {missingRequired.map((f) => f.label).join(", ")}. Please assign a column from your CSV.
+						Required columns not mapped:{" "}
+						{missingRequired.map((f) => f.label).join(", ")}. Please assign a
+						column from your CSV.
 					</Typography>
 				</Alert>
 			)}
@@ -339,13 +418,15 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 								gap: 1.5,
 								p: 1,
 								borderRadius: 1.5,
-								bgcolor: isAssigned ? alpha(theme.palette.background.paper, 0.5) : alpha(theme.palette.background.paper, 0.2),
+								bgcolor: isAssigned
+									? alpha(theme.palette.background.paper, 0.5)
+									: alpha(theme.palette.background.paper, 0.2),
 								border: `1px solid ${
 									field.required && !isAssigned
 										? alpha("#f59e0b", 0.4)
 										: isAssigned
-										? alpha(theme.palette.primary.main, 0.25)
-										: alpha(theme.palette.divider, 0.1)
+											? alpha(theme.palette.primary.main, 0.25)
+											: alpha(theme.palette.divider, 0.1)
 								}`,
 								transition: "all 0.15s ease",
 							}}
@@ -353,7 +434,14 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 							{/* Left: System Target Field */}
 							<Box sx={{ minWidth: 200, flex: 1 }}>
 								<Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-									<Typography variant="caption" sx={{ fontWeight: 800, fontSize: "0.78rem", color: "text.primary" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											fontWeight: 800,
+											fontSize: "0.78rem",
+											color: "text.primary",
+										}}
+									>
 										{field.label}
 									</Typography>
 									{field.required ? (
@@ -368,17 +456,34 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 											label="OPTIONAL"
 											size="small"
 											variant="outlined"
-											sx={{ height: 16, fontSize: "0.55rem", color: "text.secondary" }}
+											sx={{
+												height: 16,
+												fontSize: "0.55rem",
+												color: "text.secondary",
+											}}
 										/>
 									)}
 								</Box>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.68rem",
+										display: "block",
+									}}
+								>
 									{field.description}
 								</Typography>
 							</Box>
 
 							{/* Arrow */}
-							<ArrowForwardIcon sx={{ fontSize: 16, color: isAssigned ? "primary.main" : "text.secondary", opacity: 0.7 }} />
+							<ArrowForwardIcon
+								sx={{
+									fontSize: 16,
+									color: isAssigned ? "primary.main" : "text.secondary",
+									opacity: 0.7,
+								}}
+							/>
 
 							{/* Right: User's CSV Column Selector */}
 							<Box sx={{ width: 220, flexShrink: 0 }}>
@@ -397,15 +502,28 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 												color: isAssigned ? "text.primary" : "text.secondary",
 											},
 											"& fieldset": {
-												borderColor: isAssigned ? alpha(theme.palette.primary.main, 0.4) : alpha(theme.palette.divider, 0.2),
+												borderColor: isAssigned
+													? alpha(theme.palette.primary.main, 0.4)
+													: alpha(theme.palette.divider, 0.2),
 											},
 										}}
 									>
-										<MenuItem value="" sx={{ fontSize: "0.78rem", color: "text.secondary", fontStyle: "italic" }}>
+										<MenuItem
+											value=""
+											sx={{
+												fontSize: "0.78rem",
+												color: "text.secondary",
+												fontStyle: "italic",
+											}}
+										>
 											-- Not Mapped (Skip / Default) --
 										</MenuItem>
 										{userHeaders.map((header) => (
-											<MenuItem key={header} value={header} sx={{ fontSize: "0.78rem" }}>
+											<MenuItem
+												key={header}
+												value={header}
+												sx={{ fontSize: "0.78rem" }}
+											>
 												{header}
 											</MenuItem>
 										))}
@@ -422,7 +540,15 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 				<Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
 						<TableViewIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-						<Typography variant="caption" sx={{ fontWeight: 800, color: "text.secondary", fontSize: "0.72rem", textTransform: "uppercase" }}>
+						<Typography
+							variant="caption"
+							sx={{
+								fontWeight: 800,
+								color: "text.secondary",
+								fontSize: "0.72rem",
+								textTransform: "uppercase",
+							}}
+						>
 							Data Preview (Mapped First {Math.min(previewRows.length, 3)} Rows)
 						</Typography>
 					</Box>
@@ -436,16 +562,35 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 							borderColor: alpha(theme.palette.divider, 0.15),
 						}}
 					>
-						<Table size="small" sx={{ "& th, & td": { py: 0.5, px: 1, fontSize: "0.7rem" } }}>
+						<Table
+							size="small"
+							sx={{ "& th, & td": { py: 0.5, px: 1, fontSize: "0.7rem" } }}
+						>
 							<TableHead>
-								<TableRow sx={{ bgcolor: alpha(theme.palette.background.paper, 0.6) }}>
+								<TableRow
+									sx={{ bgcolor: alpha(theme.palette.background.paper, 0.6) }}
+								>
 									{systemFields.map((f) => {
 										const mappedCol = mapping[f.key];
 										return (
-											<TableCell key={f.key} sx={{ fontWeight: 800, color: mappedCol ? "primary.main" : "text.secondary" }}>
+											<TableCell
+												key={f.key}
+												sx={{
+													fontWeight: 800,
+													color: mappedCol ? "primary.main" : "text.secondary",
+												}}
+											>
 												{f.label}
 												{mappedCol && (
-													<Typography variant="caption" sx={{ display: "block", fontSize: "0.58rem", color: "text.secondary", fontWeight: 500 }}>
+													<Typography
+														variant="caption"
+														sx={{
+															display: "block",
+															fontSize: "0.58rem",
+															color: "text.secondary",
+															fontWeight: 500,
+														}}
+													>
 														from "{mappedCol}"
 													</Typography>
 												)}
@@ -460,9 +605,16 @@ export const CsvColumnMapper: React.FC<CsvColumnMapperProps> = ({
 										{systemFields.map((f) => {
 											const mappedCol = mapping[f.key];
 											const colIdx = mappedCol ? headerIndexMap[mappedCol] : -1;
-											const val = colIdx !== undefined && colIdx >= 0 ? row[colIdx] : "";
+											const val =
+												colIdx !== undefined && colIdx >= 0 ? row[colIdx] : "";
 											return (
-												<TableCell key={f.key} sx={{ color: val ? "text.primary" : "text.secondary", fontStyle: val ? "normal" : "italic" }}>
+												<TableCell
+													key={f.key}
+													sx={{
+														color: val ? "text.primary" : "text.secondary",
+														fontStyle: val ? "normal" : "italic",
+													}}
+												>
 													{val || "—"}
 												</TableCell>
 											);

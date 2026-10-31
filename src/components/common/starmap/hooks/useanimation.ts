@@ -160,7 +160,7 @@ export const useAnimation = (
 						isGalaxyView,
 					},
 				});
-			} catch { }
+			} catch {}
 		}
 	}, [
 		animationEnabled,
@@ -191,7 +191,7 @@ export const useAnimation = (
 				},
 			});
 			systemsSentRef.current = systemsPoints.length;
-		} catch { }
+		} catch {}
 	}, [animationEnabled, animationWorker, systemsPoints, isGalaxyView]);
 
 	// ============================================================
@@ -209,14 +209,13 @@ export const useAnimation = (
 			const planKey = s.plan?.id ?? s.shipid ?? s.id;
 			const plan =
 				activeFlightPlans.find(
-					(p) =>
-						p.id === planKey ||
-						p.shipid === shipId ||
-						p.id === s.plan?.id,
+					(p) => p.id === planKey || p.shipid === shipId || p.id === s.plan?.id,
 				) ?? s.plan;
 
 			const flightStatus = getShipFlightStatus(s, plan, now);
-			const positionMode: "galaxy" | "system" = flightStatus.isInterSystem ? "galaxy" : "system";
+			const positionMode: "galaxy" | "system" = flightStatus.isInterSystem
+				? "galaxy"
+				: "system";
 			const shipSysId = flightStatus.systemId;
 
 			let initPos: [number, number] | null = null;
@@ -231,13 +230,19 @@ export const useAnimation = (
 			} else {
 				// Ship is in a system
 				const targetSysId = shipSysId || centeredSystem?.originalSystemId;
-				const cleanSysKey = String(targetSysId || "").toLowerCase().replace(/^sys-/, "");
+				const cleanSysKey = String(targetSysId || "")
+					.toLowerCase()
+					.replace(/^sys-/, "");
 				const targetSys = targetSysId
 					? systemsPoints.find((p) => {
-							const pOrig = String(p.originalSystemId || "").toLowerCase().replace(/^sys-/, "");
-							const pId = String(p.id || "").toLowerCase().replace(/^sys-/, "");
+							const pOrig = String(p.originalSystemId || "")
+								.toLowerCase()
+								.replace(/^sys-/, "");
+							const pId = String(p.id || "")
+								.toLowerCase()
+								.replace(/^sys-/, "");
 							return pOrig === cleanSysKey || pId === cleanSysKey;
-					  }) || centeredSystem
+						}) || centeredSystem
 					: centeredSystem;
 				const sysForCalc = targetSys || centeredSystem;
 				const rawPlanets = targetSysId
@@ -246,16 +251,26 @@ export const useAnimation = (
 				const rawStations = targetSysId
 					? allStationsData[cleanSysKey] || allStationsData[targetSysId] || []
 					: [];
-				const computedPlanets = (targetSysId && targetSysId === centeredSystem?.originalSystemId && poolRef.current.planets.length > 0)
-					? poolRef.current.planets
-					: sysForCalc
-						? rawPlanets.map((p) => calculateMovingPlanetPosition(sysForCalc, p, now))
-						: [];
-				const computedStations = (targetSysId && targetSysId === centeredSystem?.originalSystemId && poolRef.current.stations.length > 0)
-					? poolRef.current.stations
-					: sysForCalc
-						? rawStations.map((st) => calculateMovingStationPosition(sysForCalc, st, now))
-						: [];
+				const computedPlanets =
+					targetSysId &&
+					targetSysId === centeredSystem?.originalSystemId &&
+					poolRef.current.planets.length > 0
+						? poolRef.current.planets
+						: sysForCalc
+							? rawPlanets.map((p) =>
+									calculateMovingPlanetPosition(sysForCalc, p, now),
+								)
+							: [];
+				const computedStations =
+					targetSysId &&
+					targetSysId === centeredSystem?.originalSystemId &&
+					poolRef.current.stations.length > 0
+						? poolRef.current.stations
+						: sysForCalc
+							? rawStations.map((st) =>
+									calculateMovingStationPosition(sysForCalc, st, now),
+								)
+							: [];
 				const targetObjects = [...computedPlanets, ...computedStations];
 
 				const res = calculateShipPositionInSystem(
@@ -278,13 +293,20 @@ export const useAnimation = (
 			if (isGalaxyView) {
 				isVisible = positionMode === "galaxy";
 			} else if (centeredSystem) {
-				const curSys = String(centeredSystem.originalSystemId || centeredSystem.id || "").toLowerCase();
+				const curSys = String(
+					centeredSystem.originalSystemId || centeredSystem.id || "",
+				).toLowerCase();
 				const tgtSys = String(shipSysId || "").toLowerCase();
 				isVisible = positionMode === "system" && (!tgtSys || tgtSys === curSys);
 			}
 
 			const prev = shipPoolMapRef.current.get(shipId);
-			if (prev && !systemChanged && prev.isGalaxyView === isGalaxyView && initPos !== null) {
+			if (
+				prev &&
+				!systemChanged &&
+				prev.isGalaxyView === isGalaxyView &&
+				initPos !== null
+			) {
 				newPool.set(shipId, {
 					...s,
 					id: shipId,
@@ -317,7 +339,8 @@ export const useAnimation = (
 		const shipSignature = animatedShipData
 			.map((s) => s.shipid || s.id)
 			.join("|");
-		const currentSysKey = centeredSystem?.originalSystemId || centeredSystem?.id || "none";
+		const currentSysKey =
+			centeredSystem?.originalSystemId || centeredSystem?.id || "none";
 		const signature = `${isGalaxyView ? "G" : "S"}_${currentSysKey}_${shipSignature}`;
 
 		console.log("Animated Data:", animatedShipData);
@@ -336,7 +359,10 @@ export const useAnimation = (
 
 		if (isInitialOrChanged) {
 			lastShipSignatureRef.current = signature;
-			console.log("[StarMap Debug][useAnimation] Setting updatedShips immediately to newPool size:", newPool.size);
+			console.log(
+				"[StarMap Debug][useAnimation] Setting updatedShips immediately to newPool size:",
+				newPool.size,
+			);
 			setUpdatedShips(Array.from(newPool.values()));
 		}
 
@@ -356,7 +382,7 @@ export const useAnimation = (
 						systemsPoints,
 					},
 				});
-			} catch { }
+			} catch {}
 			lastWorkerPostTime.current = Date.now();
 			scheduledPostRef.current = null;
 		};

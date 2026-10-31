@@ -28,8 +28,16 @@ import { BankDetailView } from "./components/bankdetailview";
 import { CreateBankDialog } from "./components/createbankdialog";
 import { LoanFinderBar } from "./components/loanfinderbar";
 import { DepositCalculatorBar } from "./components/depositcalculatorbar";
-import type { LoanFinderCriteria, BankLoanComparison, BankDepositComparison } from "./types";
-import { calculateBankLoanComparison, calculateOverallLoanStats, calculateBankDepositComparison } from "./helpers";
+import type {
+	LoanFinderCriteria,
+	BankLoanComparison,
+	BankDepositComparison,
+} from "./types";
+import {
+	calculateBankLoanComparison,
+	calculateOverallLoanStats,
+	calculateBankDepositComparison,
+} from "./helpers";
 
 const BankingPage: React.FC = () => {
 	const theme = useTheme();
@@ -66,11 +74,16 @@ const BankingPage: React.FC = () => {
 	const [onlyShowMatches, setOnlyShowMatches] = useState(false);
 
 	// Calculator Mode: "BORROW" (Loan Finder) vs "INVEST" (Deposit Yield Calculator)
-	const [calculatorMode, setCalculatorMode] = useState<"BORROW" | "INVEST">("BORROW");
+	const [calculatorMode, setCalculatorMode] = useState<"BORROW" | "INVEST">(
+		"BORROW",
+	);
 	const [depositCalcAmount, setDepositCalcAmount] = useState<number | "">("");
 	const [onlyAcceptingDeposits, setOnlyAcceptingDeposits] = useState(false);
 
-	const handleCriteriaChange = (field: keyof LoanFinderCriteria, value: any) => {
+	const handleCriteriaChange = (
+		field: keyof LoanFinderCriteria,
+		value: any,
+	) => {
 		setLoanCriteria((prev) => ({ ...prev, [field]: value }));
 	};
 
@@ -88,8 +101,10 @@ const BankingPage: React.FC = () => {
 		setOnlyAcceptingDeposits(false);
 	};
 
-	const loanAmountNum = typeof loanCriteria.loanAmount === "number" ? loanCriteria.loanAmount : 0;
-	const dailyProfitNum = typeof loanCriteria.dailyProfit === "number" ? loanCriteria.dailyProfit : 0;
+	const loanAmountNum =
+		typeof loanCriteria.loanAmount === "number" ? loanCriteria.loanAmount : 0;
+	const dailyProfitNum =
+		typeof loanCriteria.dailyProfit === "number" ? loanCriteria.dailyProfit : 0;
 	const allocationPct = loanCriteria.maxProfitAllocationPercent || 50;
 	const termWeeks = loanCriteria.termWeeks;
 	const intervalDays = loanCriteria.intervalDays || 7;
@@ -97,23 +112,57 @@ const BankingPage: React.FC = () => {
 	// Overall loan feasibility benchmarks across all banks
 	const overallSummary = useMemo(() => {
 		if (loanAmountNum <= 0) return null;
-		return calculateOverallLoanStats(allBanks, loanAmountNum, dailyProfitNum, allocationPct, termWeeks, intervalDays);
-	}, [allBanks, loanAmountNum, dailyProfitNum, allocationPct, termWeeks, intervalDays]);
+		return calculateOverallLoanStats(
+			allBanks,
+			loanAmountNum,
+			dailyProfitNum,
+			allocationPct,
+			termWeeks,
+			intervalDays,
+		);
+	}, [
+		allBanks,
+		loanAmountNum,
+		dailyProfitNum,
+		allocationPct,
+		termWeeks,
+		intervalDays,
+	]);
 
 	// Per-bank calculations map (Borrower view)
 	const bankComparisonsMap = useMemo(() => {
 		const map = new Map<number, BankLoanComparison>();
 		if (loanAmountNum <= 0) return map;
 		for (const b of allBanks) {
-			map.set(b.id, calculateBankLoanComparison(b, loanAmountNum, dailyProfitNum, allocationPct, termWeeks, intervalDays));
+			map.set(
+				b.id,
+				calculateBankLoanComparison(
+					b,
+					loanAmountNum,
+					dailyProfitNum,
+					allocationPct,
+					termWeeks,
+					intervalDays,
+				),
+			);
 		}
 		return map;
-	}, [allBanks, loanAmountNum, dailyProfitNum, allocationPct, termWeeks, intervalDays]);
+	}, [
+		allBanks,
+		loanAmountNum,
+		dailyProfitNum,
+		allocationPct,
+		termWeeks,
+		intervalDays,
+	]);
 
 	// Per-bank calculations map (Investor / Depositor view)
-	const depositAmountNum = typeof depositCalcAmount === "number" ? depositCalcAmount : 0;
+	const depositAmountNum =
+		typeof depositCalcAmount === "number" ? depositCalcAmount : 0;
 	const depositComparisonsList = useMemo(() => {
-		return allBanks.map((b) => calculateBankDepositComparison(b, depositAmountNum));
+		return allBanks.map((b) =>
+			calculateBankDepositComparison(b, depositAmountNum),
+		);
 	}, [allBanks, depositAmountNum]);
 
 	const depositComparisonsMap = useMemo(() => {
@@ -127,7 +176,10 @@ const BankingPage: React.FC = () => {
 	// Find the selected bank
 	const selectedBank = useMemo(() => {
 		if (!selectedBankId) return null;
-		return allBanks.find((b) => b.id === selectedBankId) || (myBank?.id === selectedBankId ? myBank : null);
+		return (
+			allBanks.find((b) => b.id === selectedBankId) ||
+			(myBank?.id === selectedBankId ? myBank : null)
+		);
 	}, [selectedBankId, allBanks, myBank]);
 
 	// Filter and sort banks based on search input, loan criteria, or deposit criteria
@@ -181,15 +233,26 @@ const BankingPage: React.FC = () => {
 					if (compA.isProfitMatch !== compB.isProfitMatch) {
 						return compA.isProfitMatch ? -1 : 1;
 					}
-					return (a.default_interest_rate || 5) - (b.default_interest_rate || 5);
+					return (
+						(a.default_interest_rate || 5) - (b.default_interest_rate || 5)
+					);
 				}
 				return 0;
 			});
 		}
 
 		return list;
-	}, [allBanks, searchQuery, calculatorMode, onlyAcceptingDeposits, depositAmountNum, depositComparisonsMap, onlyShowMatches, loanAmountNum, bankComparisonsMap]);
-
+	}, [
+		allBanks,
+		searchQuery,
+		calculatorMode,
+		onlyAcceptingDeposits,
+		depositAmountNum,
+		depositComparisonsMap,
+		onlyShowMatches,
+		loanAmountNum,
+		bankComparisonsMap,
+	]);
 
 	const onBankCreated = async (e: React.FormEvent) => {
 		const success = await handleCreateBank(e);
@@ -201,7 +264,10 @@ const BankingPage: React.FC = () => {
 	if (loading) {
 		return (
 			<Box sx={{ position: "relative", minHeight: "100vh", width: "100%" }}>
-				<GlobalLoadingOverlay loading={true} statusText="ACCESSING BANKING LEDGER & VAULTS..." />
+				<GlobalLoadingOverlay
+					loading={true}
+					statusText="ACCESSING BANKING LEDGER & VAULTS..."
+				/>
 			</Box>
 		);
 	}
@@ -236,7 +302,14 @@ const BankingPage: React.FC = () => {
 				}}
 			>
 				{/* Left Side: Optional Quick Shortcuts or Bank Counter */}
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: { md: 240 } }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1.5,
+						minWidth: { md: 240 },
+					}}
+				>
 					{myBank ? (
 						<Chip
 							icon={<AccountBalanceIcon sx={{ fontSize: "16px !important" }} />}
@@ -276,7 +349,15 @@ const BankingPage: React.FC = () => {
 				</Typography>
 
 				{/* Right Side: Sync Button & Search Input with (x) Clear Button */}
-				<Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1, minWidth: { md: 240 } }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "flex-end",
+						gap: 1,
+						minWidth: { md: 240 },
+					}}
+				>
 					<Tooltip title="Synchronize Loan Repayments & Liquidity">
 						<span>
 							<IconButton
@@ -288,7 +369,9 @@ const BankingPage: React.FC = () => {
 									borderRadius: 2,
 									p: 1,
 									border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-									"&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.1) },
+									"&:hover": {
+										bgcolor: alpha(theme.palette.primary.main, 0.1),
+									},
 								}}
 							>
 								<SyncIcon
@@ -313,12 +396,18 @@ const BankingPage: React.FC = () => {
 							input: {
 								startAdornment: (
 									<InputAdornment position="start">
-										<SearchIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+										<SearchIcon
+											sx={{ fontSize: 18, color: "text.secondary" }}
+										/>
 									</InputAdornment>
 								),
 								endAdornment: searchQuery ? (
 									<InputAdornment position="end">
-										<IconButton size="small" onClick={() => setSearchQuery("")} edge="end">
+										<IconButton
+											size="small"
+											onClick={() => setSearchQuery("")}
+											edge="end"
+										>
 											<ClearIcon sx={{ fontSize: 16 }} />
 										</IconButton>
 									</InputAdornment>
@@ -362,7 +451,15 @@ const BankingPage: React.FC = () => {
 					/* Banks Grid View (Sketch 1: 3 Columns) */
 					<Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
 						{/* Mode Switcher Tabs: Borrow (Loan Finder) vs Invest (Deposit Calculator) */}
-						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								flexWrap: "wrap",
+								gap: 1.5,
+							}}
+						>
 							<ToggleButtonGroup
 								size="small"
 								exclusive
@@ -407,8 +504,12 @@ const BankingPage: React.FC = () => {
 								</ToggleButton>
 							</ToggleButtonGroup>
 
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.74rem" }}>
-								Showing <strong>{filteredBanks.length}</strong> {filteredBanks.length === 1 ? "bank" : "banks"} available
+							<Typography
+								variant="caption"
+								sx={{ color: "text.secondary", fontSize: "0.74rem" }}
+							>
+								Showing <strong>{filteredBanks.length}</strong>{" "}
+								{filteredBanks.length === 1 ? "bank" : "banks"} available
 							</Typography>
 						</Box>
 
@@ -445,8 +546,18 @@ const BankingPage: React.FC = () => {
 									border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
 								}}
 							>
-								<AccountBalanceIcon sx={{ fontSize: 56, color: "text.secondary", opacity: 0.4, mb: 1.5 }} />
-								<Typography variant="h6" sx={{ fontWeight: 800, color: "text.secondary" }}>
+								<AccountBalanceIcon
+									sx={{
+										fontSize: 56,
+										color: "text.secondary",
+										opacity: 0.4,
+										mb: 1.5,
+									}}
+								/>
+								<Typography
+									variant="h6"
+									sx={{ fontWeight: 800, color: "text.secondary" }}
+								>
 									{calculatorMode === "BORROW" && onlyShowMatches
 										? "No banks match your profit and loan criteria"
 										: calculatorMode === "INVEST" && onlyAcceptingDeposits
@@ -455,7 +566,10 @@ const BankingPage: React.FC = () => {
 												? "No banks matched your search"
 												: "No banks registered yet"}
 								</Typography>
-								<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5, mb: 3 }}>
+								<Typography
+									variant="body2"
+									sx={{ color: "text.secondary", mt: 0.5, mb: 3 }}
+								>
 									{calculatorMode === "BORROW" && onlyShowMatches
 										? "Try toggling off 'Only Matches' or adjust your daily profit and loan amount."
 										: calculatorMode === "INVEST" && onlyAcceptingDeposits
@@ -493,8 +607,16 @@ const BankingPage: React.FC = () => {
 										key={bank.id}
 										bank={bank}
 										isMyBank={myBank?.id === bank.id}
-										loanComparison={calculatorMode === "BORROW" ? bankComparisonsMap.get(bank.id) : null}
-										depositComparison={calculatorMode === "INVEST" ? depositComparisonsMap.get(bank.id) : null}
+										loanComparison={
+											calculatorMode === "BORROW"
+												? bankComparisonsMap.get(bank.id)
+												: null
+										}
+										depositComparison={
+											calculatorMode === "INVEST"
+												? depositComparisonsMap.get(bank.id)
+												: null
+										}
 										onClick={() => setSelectedBankId(bank.id)}
 									/>
 								))}
@@ -502,7 +624,6 @@ const BankingPage: React.FC = () => {
 						)}
 					</Box>
 				)}
-
 			</Box>
 
 			{/* Create Bank Dialog (matching wireframe) */}

@@ -212,11 +212,15 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 	useEffect(() => {
 		let cancelled = false;
-		console.log("[StarMap Debug][useMapLayers] Starting buildStarAtlas(STAR_ICONS)...");
+		console.log(
+			"[StarMap Debug][useMapLayers] Starting buildStarAtlas(STAR_ICONS)...",
+		);
 		buildStarAtlas(STAR_ICONS)
 			.then((d) => {
 				if (cancelled) {
-					console.log("[StarMap Debug][useMapLayers] STAR_ICONS atlas loaded but cancelled.");
+					console.log(
+						"[StarMap Debug][useMapLayers] STAR_ICONS atlas loaded but cancelled.",
+					);
 					try {
 						(d.atlas as any)?.close?.();
 					} catch {
@@ -224,12 +228,17 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					}
 					return;
 				}
-				console.log("[StarMap Debug][useMapLayers] STAR_ICONS atlas loaded successfully.");
+				console.log(
+					"[StarMap Debug][useMapLayers] STAR_ICONS atlas loaded successfully.",
+				);
 				setStarAtlas(d.atlas);
 				setStarMapping(d.mapping);
 			})
 			.catch((err) => {
-				console.error("[StarMap Debug][useMapLayers] Failed to build STAR_ICONS atlas:", err);
+				console.error(
+					"[StarMap Debug][useMapLayers] Failed to build STAR_ICONS atlas:",
+					err,
+				);
 			});
 		return () => {
 			cancelled = true;
@@ -279,11 +288,15 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 	useEffect(() => {
 		let cancelled = false;
-		console.log("[StarMap Debug][useMapLayers] Starting buildStarAtlas(SHIP_ICONS)...");
+		console.log(
+			"[StarMap Debug][useMapLayers] Starting buildStarAtlas(SHIP_ICONS)...",
+		);
 		buildStarAtlas(SHIP_ICONS)
 			.then((d) => {
 				if (cancelled) {
-					console.log("[StarMap Debug][useMapLayers] SHIP_ICONS atlas loaded but cancelled.");
+					console.log(
+						"[StarMap Debug][useMapLayers] SHIP_ICONS atlas loaded but cancelled.",
+					);
 					try {
 						(d.atlas as any)?.close?.();
 					} catch {
@@ -291,12 +304,17 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					}
 					return;
 				}
-				console.log("[StarMap Debug][useMapLayers] SHIP_ICONS atlas loaded successfully.");
+				console.log(
+					"[StarMap Debug][useMapLayers] SHIP_ICONS atlas loaded successfully.",
+				);
 				setShipAtlas(d.atlas);
 				setShipMapping(d.mapping);
 			})
 			.catch((err) => {
-				console.error("[StarMap Debug][useMapLayers] Failed to build SHIP_ICONS atlas:", err);
+				console.error(
+					"[StarMap Debug][useMapLayers] Failed to build SHIP_ICONS atlas:",
+					err,
+				);
 			});
 		return () => {
 			cancelled = true;
@@ -448,7 +466,15 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		return systemsPoints.filter(
 			(p) => p.originalSystemId && systemIds.has(p.originalSystemId),
 		);
-	}, [mode, productionData, props.shipmentState, props.animatedShipData, planetToSystemMap, systemsPoints, isGalaxyView]);
+	}, [
+		mode,
+		productionData,
+		props.shipmentState,
+		props.animatedShipData,
+		planetToSystemMap,
+		systemsPoints,
+		isGalaxyView,
+	]);
 
 	const debouncedZoom = useDebouncedZoom(galaxyViewState.zoom, 150);
 
@@ -461,9 +487,7 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			return updatedShips.filter((s: any) => {
 				if (s.visible === false) return false;
 				const sysId = String(
-					s.addresssystemid ||
-					s.currentSystemId ||
-					s.systemId || "",
+					s.addresssystemid || s.currentSystemId || s.systemId || "",
 				).toLowerCase();
 
 				const plan = s.plan;
@@ -478,9 +502,19 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					});
 					if (activeSeg) {
 						const segType = (activeSeg.segment_type || "").toUpperCase();
-						const orig = String(activeSeg.origin_system_id || activeSeg.origin_system || "").toLowerCase();
-						const dest = String(activeSeg.destination_system_id || activeSeg.destination_system || "").toLowerCase();
-						if (segType === "JUMP" || segType === "CHARGE" || (orig && dest && orig !== dest)) {
+						const orig = String(
+							activeSeg.origin_system_id || activeSeg.origin_system || "",
+						).toLowerCase();
+						const dest = String(
+							activeSeg.destination_system_id ||
+								activeSeg.destination_system ||
+								"",
+						).toLowerCase();
+						if (
+							segType === "JUMP" ||
+							segType === "CHARGE" ||
+							(orig && dest && orig !== dest)
+						) {
 							return false; // In FTL jump between systems
 						}
 						return orig === curSys || dest === curSys;
@@ -489,15 +523,23 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					// Not in an active segment: check if entire flight is finished or not started
 					const firstSeg = segments[0];
 					const lastSeg = segments[segments.length - 1];
-					const firstDep = firstSeg?.departure ? new Date(firstSeg.departure).getTime() : 0;
-					const lastArr = lastSeg?.arrival ? new Date(lastSeg.arrival).getTime() : 0;
+					const firstDep = firstSeg?.departure
+						? new Date(firstSeg.departure).getTime()
+						: 0;
+					const lastArr = lastSeg?.arrival
+						? new Date(lastSeg.arrival).getTime()
+						: 0;
 
 					if (firstDep > 0 && now < firstDep) {
-						const orig = String(firstSeg.origin_system_id || firstSeg.origin_system || sysId).toLowerCase();
+						const orig = String(
+							firstSeg.origin_system_id || firstSeg.origin_system || sysId,
+						).toLowerCase();
 						return orig === curSys;
 					}
 					if (lastArr > 0 && now >= lastArr) {
-						const dest = String(lastSeg.destination_system_id || lastSeg.destination_system || "").toLowerCase();
+						const dest = String(
+							lastSeg.destination_system_id || lastSeg.destination_system || "",
+						).toLowerCase();
 						return dest === curSys;
 					}
 					// Mid-flight between segments
@@ -530,7 +572,12 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 	}, [ownFlightPlans, corpFlightPlans]);
 
 	const flightPathLayers = useMemo(() => {
-		if (mode === "public" || !visiblePathShipIds || visiblePathShipIds.size === 0) return [];
+		if (
+			mode === "public" ||
+			!visiblePathShipIds ||
+			visiblePathShipIds.size === 0
+		)
+			return [];
 		const paths: any[] = [];
 		const now = Date.now();
 
@@ -562,18 +609,33 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				}
 			} else {
 				// System view flight paths
-				const currentSysId = String(currentSystem.originalSystemId || currentSystem.id || "").toLowerCase();
+				const currentSysId = String(
+					currentSystem.originalSystemId || currentSystem.id || "",
+				).toLowerCase();
 				const systemCenter = { x: currentSystem.x, y: currentSystem.y };
 
 				for (let j = 0; j < plan.segments.length; j++) {
 					const seg = plan.segments[j];
-					const origSys = String(seg.origin_system_id || seg.origin_system || "").toLowerCase();
-					const destSys = String(seg.destination_system_id || seg.destination_system || "").toLowerCase();
-					if (origSys && destSys && origSys !== currentSysId && destSys !== currentSysId) continue;
+					const origSys = String(
+						seg.origin_system_id || seg.origin_system || "",
+					).toLowerCase();
+					const destSys = String(
+						seg.destination_system_id || seg.destination_system || "",
+					).toLowerCase();
+					if (
+						origSys &&
+						destSys &&
+						origSys !== currentSysId &&
+						destSys !== currentSysId
+					)
+						continue;
 					if (origSys && !destSys && origSys !== currentSysId) continue;
 
 					if (seg.transferellipse) {
-						const coords = calculateTransferPath(seg.transferellipse, systemCenter);
+						const coords = calculateTransferPath(
+							seg.transferellipse,
+							systemCenter,
+						);
 						if (coords && coords.length > 1) {
 							paths.push({
 								path: coords,
@@ -587,16 +649,43 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 					}
 
 					// Linear fallback in system between origin and destination objects
-					const origObjId = String(seg.origin_location_id || seg.origin_planet_id || seg.origin_station_id || "").toLowerCase();
-					const destObjId = String(seg.destination_location_id || seg.destination_planet_id || seg.destination_station_id || "").toLowerCase();
-					const startObj = activePlanets.find((p: any) => String(p.planetid || p.id || "").toLowerCase() === origObjId) ||
-						activeStations.find((s: any) => String(s.stationid || s.id || "").toLowerCase() === origObjId);
-					const endObj = activePlanets.find((p: any) => String(p.planetid || p.id || "").toLowerCase() === destObjId) ||
-						activeStations.find((s: any) => String(s.stationid || s.id || "").toLowerCase() === destObjId);
+					const origObjId = String(
+						seg.origin_location_id ||
+							seg.origin_planet_id ||
+							seg.origin_station_id ||
+							"",
+					).toLowerCase();
+					const destObjId = String(
+						seg.destination_location_id ||
+							seg.destination_planet_id ||
+							seg.destination_station_id ||
+							"",
+					).toLowerCase();
+					const startObj =
+						activePlanets.find(
+							(p: any) =>
+								String(p.planetid || p.id || "").toLowerCase() === origObjId,
+						) ||
+						activeStations.find(
+							(s: any) =>
+								String(s.stationid || s.id || "").toLowerCase() === origObjId,
+						);
+					const endObj =
+						activePlanets.find(
+							(p: any) =>
+								String(p.planetid || p.id || "").toLowerCase() === destObjId,
+						) ||
+						activeStations.find(
+							(s: any) =>
+								String(s.stationid || s.id || "").toLowerCase() === destObjId,
+						);
 
 					if (startObj && endObj) {
 						paths.push({
-							path: [[startObj.x, startObj.y], [endObj.x, endObj.y]],
+							path: [
+								[startObj.x, startObj.y],
+								[endObj.x, endObj.y],
+							],
 							id: `${plan.id}-${seg.segment_index ?? j}`,
 							shipId: shipId,
 							color: plan.color || [255, 255, 0, 150],
@@ -700,7 +789,10 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		}
 
 		// 1. Group for Galaxy View: by system
-		const sysMap = new Map<string, { id: string; x: number; y: number; name: string; count: number }>();
+		const sysMap = new Map<
+			string,
+			{ id: string; x: number; y: number; name: string; count: number }
+		>();
 		storedItems.forEach((item) => {
 			let sysId = item.systemid;
 			if (!sysId && item.planetid) {
@@ -728,7 +820,17 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		});
 
 		// 2. Group for System View: by station or planet in the current system
-		const nodeMap = new Map<string, { id: string; x: number; y: number; name: string; type: "STATION" | "PLANET"; count: number }>();
+		const nodeMap = new Map<
+			string,
+			{
+				id: string;
+				x: number;
+				y: number;
+				name: string;
+				type: "STATION" | "PLANET";
+				count: number;
+			}
+		>();
 		if (isPlanetModeActive && props.currentSystemId) {
 			storedItems.forEach((item) => {
 				let sysId = item.systemid;
@@ -743,7 +845,8 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 						(s: any) =>
 							s.stationid === item.location_name ||
 							s.id === item.location_name ||
-							(s.name && s.name.toLowerCase() === item.location_name.toLowerCase()),
+							(s.name &&
+								s.name.toLowerCase() === item.location_name.toLowerCase()),
 					);
 					if (st) {
 						const key = `st-${st.stationid || st.id}`;
@@ -765,7 +868,9 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 				}
 
 				// Check planet / site
-				const planetId = item.planetid || (item.location_type === "SITE" ? item.location_name : null);
+				const planetId =
+					item.planetid ||
+					(item.location_type === "SITE" ? item.location_name : null);
 				if (planetId) {
 					const pl = activePlanets.find(
 						(p: any) =>
@@ -928,8 +1033,19 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 
 	const layers = useMemo(() => {
 		if (!props.viewportInstance) return [];
-		return [...sectorLayer, ...staticGalaxyLayers, ...flightPathLayers, ...dynamicLayers];
-	}, [staticGalaxyLayers, sectorLayer, flightPathLayers, dynamicLayers, props.viewportInstance]);
+		return [
+			...sectorLayer,
+			...staticGalaxyLayers,
+			...flightPathLayers,
+			...dynamicLayers,
+		];
+	}, [
+		staticGalaxyLayers,
+		sectorLayer,
+		flightPathLayers,
+		dynamicLayers,
+		props.viewportInstance,
+	]);
 
 	const isShipLayerReady = useMemo(() => {
 		if (!shipAtlas || !starAtlas) return false;
@@ -963,7 +1079,8 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			layersCount === 0 && "layers array is empty",
 			!hasStarAtlas && "starAtlas not loaded yet",
 			!hasShipAtlas && "shipAtlas not loaded yet",
-			!shipsUpdatedOk && `animatedShipData has ${props.animatedShipData?.length} ships, but updatedShips is empty (worker hasn't synced ships yet)`,
+			!shipsUpdatedOk &&
+				`animatedShipData has ${props.animatedShipData?.length} ships, but updatedShips is empty (worker hasn't synced ships yet)`,
 		].filter(Boolean);
 
 		console.log("[StarMap Debug][useMapLayers] isLayersReady check:", {
@@ -981,7 +1098,10 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		});
 
 		if (!ready) {
-			console.warn("[StarMap Debug][BLOCKER keeping map in loading state]:", blockers.join(" | "));
+			console.warn(
+				"[StarMap Debug][BLOCKER keeping map in loading state]:",
+				blockers.join(" | "),
+			);
 		}
 
 		return ready;

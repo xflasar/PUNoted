@@ -115,7 +115,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
 				left: "50%",
 				transform: "translateX(-50%)",
 				zIndex: 1001,
-				width: { xs: "calc(100% - 24px)", sm: "380px", md: "460px", lg: "520px" },
+				width: {
+					xs: "calc(100% - 24px)",
+					sm: "380px",
+					md: "460px",
+					lg: "520px",
+				},
 				maxWidth: 520,
 			}}
 		>

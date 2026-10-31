@@ -275,15 +275,15 @@ export interface FlightPlan {
 	expired?: boolean;
 }
 
-export interface WorkerFlightPlan extends FlightPlan { }
+export interface WorkerFlightPlan extends FlightPlan {}
 
 export interface ShipData {
 	shipid: string;
 	userid?: string | null;
 	name: string | null;
 	registration: string;
-	type: string;                    // Base hull natural ID (e.g. "WSP")
-	ship_type: string;               // Cargo class ('HCB' | 'VCB' | 'WCB' | 'LCB' | 'TINY' | 'UNKNOWN')
+	type: string; // Base hull natural ID (e.g. "WSP")
+	ship_type: string; // Cargo class ('HCB' | 'VCB' | 'WCB' | 'LCB' | 'TINY' | 'UNKNOWN')
 
 	// Addressing / Location
 	addressplanetid?: string | null;

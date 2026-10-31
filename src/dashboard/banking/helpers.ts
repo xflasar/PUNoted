@@ -18,10 +18,13 @@ export const getCurrencyFullName = (code?: string): string => {
 export const formatPaymentInterval = (val?: string | number | null): string => {
 	if (!val && val !== 0) return "At Maturity";
 	const str = String(val).trim();
-	if (!str || str === "0" || str.toLowerCase() === "at maturity") return "At Maturity";
+	if (!str || str === "0" || str.toLowerCase() === "at maturity")
+		return "At Maturity";
 	if (str.toUpperCase() === "WEEKLY" || str === "7") return "7 Days (Weekly)";
-	if (str.toUpperCase() === "BIWEEKLY" || str === "14") return "14 Days (Bi-weekly)";
-	if (str.toUpperCase() === "MONTHLY" || str === "28") return "28 Days (4 Weeks)";
+	if (str.toUpperCase() === "BIWEEKLY" || str === "14")
+		return "14 Days (Bi-weekly)";
+	if (str.toUpperCase() === "MONTHLY" || str === "28")
+		return "28 Days (4 Weeks)";
 	if (/^\d+$/.test(str)) {
 		const num = parseInt(str, 10);
 		if (num === 0) return "At Maturity";
@@ -34,10 +37,13 @@ export const formatPaymentInterval = (val?: string | number | null): string => {
 	return str;
 };
 
-export const formatPaymentIntervalShort = (val?: string | number | null): string => {
+export const formatPaymentIntervalShort = (
+	val?: string | number | null,
+): string => {
 	if (!val && val !== 0) return "At Maturity";
 	const str = String(val).trim();
-	if (!str || str === "0" || str.toLowerCase() === "at maturity") return "At Maturity";
+	if (!str || str === "0" || str.toLowerCase() === "at maturity")
+		return "At Maturity";
 	if (str.toUpperCase() === "WEEKLY" || str === "7") return "7d (Weekly)";
 	if (str.toUpperCase() === "BIWEEKLY" || str === "14") return "14d (2w)";
 	if (str.toUpperCase() === "MONTHLY" || str === "28") return "28d (4w)";
@@ -159,11 +165,19 @@ export const calculateVaultMetrics = (
 	bank: Bank | null,
 	loans: BankLoanRecord[],
 ): VaultMetrics => {
-	const loanTransactions = loans.filter((l) => (l.transaction_type || "LOAN") === "LOAN");
+	const loanTransactions = loans.filter(
+		(l) => (l.transaction_type || "LOAN") === "LOAN",
+	);
 	const activeLoans = loanTransactions.filter((l) => l.status === "APPROVED");
-	const activeCapitalOut = activeLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
+	const activeCapitalOut = activeLoans.reduce(
+		(sum, l) => sum + (l.amount || 0),
+		0,
+	);
 	const repaidLoans = loanTransactions.filter((l) => l.status === "REPAID");
-	const totalRepaidCapital = repaidLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
+	const totalRepaidCapital = repaidLoans.reduce(
+		(sum, l) => sum + (l.amount || 0),
+		0,
+	);
 
 	const verifiedLentCapital = loanTransactions
 		.filter((l) => l.is_verified)
@@ -172,10 +186,17 @@ export const calculateVaultMetrics = (
 		.filter((l) => !l.is_verified)
 		.reduce((sum, l) => sum + (l.amount || 0), 0);
 
-	const deposits = loans.filter((l) => l.transaction_type === "DEPOSIT" && l.status !== "REJECTED");
-	const withdrawals = loans.filter((l) => l.transaction_type === "WITHDRAWAL" && l.status !== "REJECTED");
+	const deposits = loans.filter(
+		(l) => l.transaction_type === "DEPOSIT" && l.status !== "REJECTED",
+	);
+	const withdrawals = loans.filter(
+		(l) => l.transaction_type === "WITHDRAWAL" && l.status !== "REJECTED",
+	);
 	const totalDeposits = deposits.reduce((sum, l) => sum + (l.amount || 0), 0);
-	const totalWithdrawals = withdrawals.reduce((sum, l) => sum + (l.amount || 0), 0);
+	const totalWithdrawals = withdrawals.reduce(
+		(sum, l) => sum + (l.amount || 0),
+		0,
+	);
 	const netDeposits = Math.max(0, totalDeposits - totalWithdrawals);
 
 	const availableLendingCapacity = Math.max(
@@ -215,7 +236,10 @@ export const formatBankDate = (dateStr?: string | null): string => {
 export const getLoanStatusChipProps = (
 	status: string,
 	transactionType?: string,
-): { label: string; color: "success" | "warning" | "info" | "error" | "default" | "primary" } => {
+): {
+	label: string;
+	color: "success" | "warning" | "info" | "error" | "default" | "primary";
+} => {
 	const t = transactionType?.toUpperCase();
 	switch (status) {
 		case "REPAID":
@@ -225,8 +249,10 @@ export const getLoanStatusChipProps = (
 			if (t === "WITHDRAWAL") return { label: "DISBURSED", color: "error" };
 			return { label: "ACTIVE", color: "primary" };
 		case "PENDING":
-			if (t === "DEPOSIT") return { label: "PENDING PAYMENT", color: "warning" };
-			if (t === "WITHDRAWAL") return { label: "PENDING PAYOUT", color: "warning" };
+			if (t === "DEPOSIT")
+				return { label: "PENDING PAYMENT", color: "warning" };
+			if (t === "WITHDRAWAL")
+				return { label: "PENDING PAYOUT", color: "warning" };
 			return { label: "PENDING", color: "warning" };
 		case "REJECTED":
 			return { label: "REJECTED", color: "error" };
@@ -298,7 +324,10 @@ export const calculateBankLoanComparison = (
 	const totalInterest = loanAmount * (rate / 100);
 	const totalRepayment = loanAmount + totalInterest;
 
-	const allocationFactor = Math.max(0.1, Math.min(1.0, (maxAllocationPercent || 50) / 100));
+	const allocationFactor = Math.max(
+		0.1,
+		Math.min(1.0, (maxAllocationPercent || 50) / 100),
+	);
 	const retainedPercent = Math.round((1 - allocationFactor) * 100);
 
 	const intervalDays = customIntervalDays > 0 ? customIntervalDays : 7;
@@ -314,7 +343,10 @@ export const calculateBankLoanComparison = (
 	let userProfitSharePercent: number;
 	let retainedDailyProfit: number;
 
-	const specifiedWeeks = typeof customTermWeeks === "number" && customTermWeeks > 0 ? customTermWeeks : null;
+	const specifiedWeeks =
+		typeof customTermWeeks === "number" && customTermWeeks > 0
+			? customTermWeeks
+			: null;
 
 	if (specifiedWeeks) {
 		// User explicitly selected loan duration in weeks
@@ -325,7 +357,8 @@ export const calculateBankLoanComparison = (
 		dailyRepaymentDemand = installmentPerInterval / intervalDays;
 
 		if (dailyProfit > 0) {
-			userProfitSharePercent = Math.round((dailyRepaymentDemand / dailyProfit) * 1000) / 10;
+			userProfitSharePercent =
+				Math.round((dailyRepaymentDemand / dailyProfit) * 1000) / 10;
 			optimalDailyProfit = dailyProfit;
 			retainedDailyProfit = Math.max(0, dailyProfit - dailyRepaymentDemand);
 		} else {
@@ -336,19 +369,26 @@ export const calculateBankLoanComparison = (
 	} else if (dailyProfit > 0) {
 		// Auto-calculated duration based on player profit & budget allocation
 		const dailyRepayBudget = dailyProfit * allocationFactor;
-		optimalLengthDays = Math.max(7, Math.ceil(totalRepayment / dailyRepayBudget));
+		optimalLengthDays = Math.max(
+			7,
+			Math.ceil(totalRepayment / dailyRepayBudget),
+		);
 		optimalLengthWeeks = Math.max(1, Math.ceil(optimalLengthDays / 7));
 		optimalLengthDays = optimalLengthWeeks * 7;
 
 		const totalIntervals = Math.max(1, optimalLengthDays / intervalDays);
 		installmentPerInterval = Math.round(totalRepayment / totalIntervals);
 		dailyRepaymentDemand = installmentPerInterval / intervalDays;
-		userProfitSharePercent = Math.round((dailyRepaymentDemand / dailyProfit) * 1000) / 10;
+		userProfitSharePercent =
+			Math.round((dailyRepaymentDemand / dailyProfit) * 1000) / 10;
 		optimalDailyProfit = dailyProfit;
 		retainedDailyProfit = Math.max(0, dailyProfit - dailyRepaymentDemand);
 	} else {
 		// Default duration: use bank's default_repay_days or standard 4-week benchmark
-		const defaultDays = bank.default_repay_days && bank.default_repay_days > 0 ? bank.default_repay_days : 28;
+		const defaultDays =
+			bank.default_repay_days && bank.default_repay_days > 0
+				? bank.default_repay_days
+				: 28;
 		optimalLengthWeeks = Math.max(1, Math.round(defaultDays / 7));
 		optimalLengthDays = optimalLengthWeeks * 7;
 
@@ -390,7 +430,8 @@ export const calculateBankLoanComparison = (
 		statusExplanation = `Fast payoff in ${optimalLengthWeeks}W (${optimalLengthDays}d) at ${maxAllocationPercent}% profit (~${formatAmount(installmentPerInterval)}/W). Leaves ~${formatAmount(retainedDailyProfit)}/d (${retainedPercent}%) for rest.`;
 	}
 
-	const isProfitMatch = statusTier === "COMFORTABLE" && withinMinMax && hasSufficientLiquidity;
+	const isProfitMatch =
+		statusTier === "COMFORTABLE" && withinMinMax && hasSufficientLiquidity;
 	const profitCoveragePercent =
 		optimalDailyProfit > 0 && dailyProfit > 0
 			? Math.round((dailyProfit / optimalDailyProfit) * 100)
@@ -459,7 +500,14 @@ export const calculateOverallLoanStats = (
 	if (!banks.length || loanAmount <= 0) return null;
 
 	const comparisons = banks.map((b) =>
-		calculateBankLoanComparison(b, loanAmount, dailyProfit, maxAllocationPercent, customTermWeeks, customIntervalDays),
+		calculateBankLoanComparison(
+			b,
+			loanAmount,
+			dailyProfit,
+			maxAllocationPercent,
+			customTermWeeks,
+			customIntervalDays,
+		),
 	);
 	const qualifying = comparisons.filter((c) => c.isProfitMatch);
 
@@ -473,11 +521,15 @@ export const calculateOverallLoanStats = (
 			lowestBankName = b.name;
 		}
 	}
-	const effectiveRate = lowestRate !== Infinity && lowestRate >= 0 ? lowestRate : 5.0;
+	const effectiveRate =
+		lowestRate !== Infinity && lowestRate >= 0 ? lowestRate : 5.0;
 	const totalInterest = loanAmount * (effectiveRate / 100);
 	const totalRepayment = loanAmount + totalInterest;
 
-	const allocationFactor = Math.max(0.1, Math.min(1.0, (maxAllocationPercent || 50) / 100));
+	const allocationFactor = Math.max(
+		0.1,
+		Math.min(1.0, (maxAllocationPercent || 50) / 100),
+	);
 	const retainedPercent = Math.round((1 - allocationFactor) * 100);
 
 	const intervalDays = customIntervalDays > 0 ? customIntervalDays : 7;
@@ -492,7 +544,10 @@ export const calculateOverallLoanStats = (
 	let minOptimalDailyProfit: number;
 	let minRequiredDailyProfit: number;
 
-	const specifiedWeeks = typeof customTermWeeks === "number" && customTermWeeks > 0 ? customTermWeeks : null;
+	const specifiedWeeks =
+		typeof customTermWeeks === "number" && customTermWeeks > 0
+			? customTermWeeks
+			: null;
 
 	if (specifiedWeeks) {
 		optimalLengthWeeks = specifiedWeeks;
@@ -503,7 +558,8 @@ export const calculateOverallLoanStats = (
 		const dailyDemand = safeWeeklyInstallment / intervalDays;
 		minRequiredDailyProfit = Math.round(dailyDemand);
 		minOptimalDailyProfit = Math.round(dailyDemand / allocationFactor);
-		retainedDailyProfit = dailyProfit > 0 ? Math.max(0, dailyProfit - dailyDemand) : 0;
+		retainedDailyProfit =
+			dailyProfit > 0 ? Math.max(0, dailyProfit - dailyDemand) : 0;
 	} else if (dailyProfit > 0) {
 		const dailyBudget = dailyProfit * allocationFactor;
 		optimalPayoffDays = Math.max(7, Math.ceil(totalRepayment / dailyBudget));
@@ -513,7 +569,7 @@ export const calculateOverallLoanStats = (
 		safeWeeklyInstallment = Math.round(totalRepayment / totalIntervals);
 		const dailyDemand = safeWeeklyInstallment / intervalDays;
 		retainedDailyProfit = Math.max(0, dailyProfit - dailyDemand);
-		minOptimalDailyProfit = Math.round((totalRepayment / 28) / allocationFactor);
+		minOptimalDailyProfit = Math.round(totalRepayment / 28 / allocationFactor);
 		minRequiredDailyProfit = Math.round(dailyDemand);
 	} else {
 		optimalLengthWeeks = 4;
@@ -529,7 +585,8 @@ export const calculateOverallLoanStats = (
 
 	const dailyDemands = comparisons.map((c) => c.dailyRepaymentDemand);
 	const maxRequired = Math.max(...dailyDemands);
-	const avgRequired = dailyDemands.reduce((s, p) => s + p, 0) / dailyDemands.length;
+	const avgRequired =
+		dailyDemands.reduce((s, p) => s + p, 0) / dailyDemands.length;
 
 	const isUserProfitMatch =
 		dailyProfit > 0 ? optimalLengthWeeks <= 26 && qualifying.length > 0 : false;
@@ -600,18 +657,22 @@ export const calculateBankDepositComparison = (
 	} else if (activeLoansCount === 0 && totalLent === 0) {
 		riskTier = "HIGH";
 		riskLabel = "High Risk (Unproven / 0 Loans)";
-		riskExplanation = "Bank has 0 active loans. Yield relies solely on owner equity subsidies.";
+		riskExplanation =
+			"Bank has 0 active loans. Yield relies solely on owner equity subsidies.";
 	} else if (activeLoansCount <= 2 || isNearCap) {
 		riskTier = "MODERATE";
 		riskLabel = "Moderate Risk (Growing)";
-		riskExplanation = "Limited active borrowers or bank is nearing its deposit capacity.";
+		riskExplanation =
+			"Limited active borrowers or bank is nearing its deposit capacity.";
 	}
 
 	return {
 		bank,
 		depositAmount,
 		weeklyYieldRate: Number(weeklyRate.toFixed(3)),
-		maxWeeklyYieldRate: maxWeeklyRate ? Number(maxWeeklyRate.toFixed(3)) : undefined,
+		maxWeeklyYieldRate: maxWeeklyRate
+			? Number(maxWeeklyRate.toFixed(3))
+			: undefined,
 		monthlyYieldRate: monthlyRate,
 		maxMonthlyYieldRate: maxMonthlyRate,
 		weeklyPayout,
@@ -624,6 +685,3 @@ export const calculateBankDepositComparison = (
 		rejectionReason,
 	};
 };
-
-
-

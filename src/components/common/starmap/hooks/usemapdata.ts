@@ -114,24 +114,15 @@ export const processMapDataSingleton = async (mapDataFromContext: any) => {
 					orbit?.semi_major_axis ??
 					st.semimajoraxis ??
 					0;
-				const eccentricity =
-					orbit?.eccentricity ??
-					st.eccentricity ??
-					0;
-				const inclination =
-					orbit?.inclination ??
-					st.inclination ??
-					0;
+				const eccentricity = orbit?.eccentricity ?? st.eccentricity ?? 0;
+				const inclination = orbit?.inclination ?? st.inclination ?? 0;
 				const rightAscension =
 					orbit?.rightAscension ??
 					orbit?.rightascension ??
 					orbit?.right_ascension ??
 					st.rightascension ??
 					0;
-				const periapsis =
-					orbit?.periapsis ??
-					st.periapsis ??
-					0;
+				const periapsis = orbit?.periapsis ?? st.periapsis ?? 0;
 
 				const stationData: StationData = {
 					stationid: String(st.stationid),
@@ -563,11 +554,16 @@ export const useMapDataInternal = (mapDataFromContext: any = null) => {
 		let mounted = true;
 		const fetchData = async () => {
 			if (processedDataCache) {
-				console.log("[StarMap Debug][useMapData] Using cached processedDataCache, skipping fetch. isLoading:", isLoading);
+				console.log(
+					"[StarMap Debug][useMapData] Using cached processedDataCache, skipping fetch. isLoading:",
+					isLoading,
+				);
 				if (isLoading) setIsLoading(false);
 				return;
 			}
-			console.log("[StarMap Debug][useMapData] Fetching/processing map data singleton... Setting isLoading = true");
+			console.log(
+				"[StarMap Debug][useMapData] Fetching/processing map data singleton... Setting isLoading = true",
+			);
 			setIsLoading(true);
 			setFetchError(null);
 			try {
@@ -576,7 +572,9 @@ export const useMapDataInternal = (mapDataFromContext: any = null) => {
 				const processed = await processMapDataSingleton(mapDataFromContext);
 
 				if (!mounted) {
-					console.log("[StarMap Debug][useMapData] Hook unmounted before data processed.");
+					console.log(
+						"[StarMap Debug][useMapData] Hook unmounted before data processed.",
+					);
 					return;
 				}
 
@@ -592,15 +590,22 @@ export const useMapDataInternal = (mapDataFromContext: any = null) => {
 				setContentBounds(processed.contentBounds);
 				setRawConnections(processed.rawConnections || []);
 
-				console.log("[StarMap Debug][useMapData] Map data loaded successfully. Setting isLoading = false.", {
-					systemsPointsCount: processed.systemsPoints?.length,
-					sectorsCount: processed.sectors?.length,
-					planetsSystemsCount: Object.keys(processed.allPlanetsData || {}).length,
-					stationsCount: Object.keys(processed.allStationsData || {}).length,
-				});
+				console.log(
+					"[StarMap Debug][useMapData] Map data loaded successfully. Setting isLoading = false.",
+					{
+						systemsPointsCount: processed.systemsPoints?.length,
+						sectorsCount: processed.sectors?.length,
+						planetsSystemsCount: Object.keys(processed.allPlanetsData || {})
+							.length,
+						stationsCount: Object.keys(processed.allStationsData || {}).length,
+					},
+				);
 				setIsLoading(false);
 			} catch (err: any) {
-				console.error("[StarMap Debug][useMapData] Map fetch/process error:", err);
+				console.error(
+					"[StarMap Debug][useMapData] Map fetch/process error:",
+					err,
+				);
 				if (mounted) {
 					setFetchError(String(err?.message ?? err));
 					setIsLoading(false);
