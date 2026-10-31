@@ -53,6 +53,7 @@ import LocationFilter, {
 	matchesLocationFilter,
 	type LocationOption,
 } from "./components/locationfilter";
+import { useMaterialSearch } from "../hooks/usematerialsearch";
 
 type CxPriceLookup = Record<string, Record<string, unknown>>;
 type MarketOptions = {
@@ -810,12 +811,12 @@ const VendorsList = ({
 	onLoginRequest: () => void;
 }) => {
 	const theme = useTheme();
+	const { searchQuery, exactMatch, setSearchQuery, toggleExactMatch } =
+		useMaterialSearch();
 	const [marketOptions] = useState(getStoredMarketOptions);
 	const [vendorViewMode, setVendorViewMode] = useState<"grid" | "table">(
 		marketOptions.view,
 	);
-	const [searchQuery, setSearchQuery] = useState<string>("");
-	const [exactMatch, setExactMatch] = useState<boolean>(false);
 	const [hideUnavailable, setHideUnavailable] = useState(
 		marketOptions.hideUnavailable,
 	);
@@ -1797,7 +1798,7 @@ const VendorsList = ({
 															>
 																<IconButton
 																	size="small"
-																	onClick={() => setExactMatch((prev) => !prev)}
+																	onClick={toggleExactMatch}
 																	sx={{
 																		color: exactMatch
 																			? "primary.main"
