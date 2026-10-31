@@ -27,7 +27,10 @@ import {
 	buildStandardizedCsv,
 	type ParsedCsvData,
 } from "./csvcolumnmapper";
-import { CheckCircleOutlineOutlined, HelpOutlineOutlined } from "@mui/icons-material";
+import {
+	CheckCircleOutlineOutlined,
+	HelpOutlineOutlined,
+} from "@mui/icons-material";
 
 interface ImportLedgerDialogProps {
 	open: boolean;
@@ -88,15 +91,22 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 			try {
 				const parsed = parseCsv(text);
 				if (!parsed.headers || parsed.headers.length === 0) {
-					throw new Error("No column headers detected in the uploaded CSV file.");
+					throw new Error(
+						"No column headers detected in the uploaded CSV file.",
+					);
 				}
 				if (!parsed.rows || parsed.rows.length === 0) {
-					throw new Error("The uploaded CSV has column headers but contains no transaction rows.");
+					throw new Error(
+						"The uploaded CSV has column headers but contains no transaction rows.",
+					);
 				}
 
 				setParsedData(parsed);
 				// Auto-detect initial column mappings
-				const detected = autoDetectMapping(BANK_LEDGER_SYSTEM_FIELDS, parsed.headers);
+				const detected = autoDetectMapping(
+					BANK_LEDGER_SYSTEM_FIELDS,
+					parsed.headers,
+				);
 				setMapping(detected);
 			} catch (err: any) {
 				setError(err.message || "Failed to parse CSV file.");
@@ -134,9 +144,13 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 		}
 
 		// Validate required fields
-		const missing = BANK_LEDGER_SYSTEM_FIELDS.filter((f) => f.required && !mapping[f.key]);
+		const missing = BANK_LEDGER_SYSTEM_FIELDS.filter(
+			(f) => f.required && !mapping[f.key],
+		);
 		if (missing.length > 0) {
-			setError(`Please assign columns for: ${missing.map((f) => f.label).join(", ")}`);
+			setError(
+				`Please assign columns for: ${missing.map((f) => f.label).join(", ")}`,
+			);
 			return;
 		}
 
@@ -191,7 +205,8 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 				paper: {
 					sx: {
 						borderRadius: 3,
-						background: "linear-gradient(135deg, rgba(20, 24, 38, 0.98) 0%, rgba(12, 14, 24, 0.98) 100%)",
+						background:
+							"linear-gradient(135deg, rgba(20, 24, 38, 0.98) 0%, rgba(12, 14, 24, 0.98) 100%)",
 						border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
 						backdropFilter: "blur(20px)",
 						color: "#fff",
@@ -199,13 +214,23 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 				},
 			}}
 		>
-			<DialogTitle sx={{ pb: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+			<DialogTitle
+				sx={{
+					pb: 1,
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+				}}
+			>
 				<Box>
 					<Typography variant="h6" sx={{ fontWeight: 800 }}>
 						Import Ledger CSV
 					</Typography>
 					<Typography variant="caption" sx={{ color: "text.secondary" }}>
-						Bank: <strong style={{ color: theme.palette.primary.main }}>{bankName}</strong>
+						Bank:{" "}
+						<strong style={{ color: theme.palette.primary.main }}>
+							{bankName}
+						</strong>
 					</Typography>
 				</Box>
 				<Button
@@ -217,16 +242,26 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 						fontSize: "0.75rem",
 						borderColor: alpha(theme.palette.primary.main, 0.4),
 						color: theme.palette.primary.light,
-						"&:hover": { borderColor: theme.palette.primary.main, bgcolor: alpha(theme.palette.primary.main, 0.1) },
+						"&:hover": {
+							borderColor: theme.palette.primary.main,
+							bgcolor: alpha(theme.palette.primary.main, 0.1),
+						},
 					}}
 				>
 					Sample CSV
 				</Button>
 			</DialogTitle>
 
-			<DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-				<Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.5 }}>
-					Upload your spreadsheet to import historical loans, deposits, and withdrawals. In-game contracts matching local IDs will be auto-verified.
+			<DialogContent
+				sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+			>
+				<Typography
+					variant="body2"
+					sx={{ color: "text.secondary", lineHeight: 1.5 }}
+				>
+					Upload your spreadsheet to import historical loans, deposits, and
+					withdrawals. In-game contracts matching local IDs will be
+					auto-verified.
 				</Typography>
 
 				{/* Step 1: Upload Dropzone (if no file parsed yet) */}
@@ -258,12 +293,18 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 								style={{ display: "none" }}
 								onChange={handleFileSelect}
 							/>
-							<UploadFileIcon sx={{ fontSize: 44, color: theme.palette.primary.main, mb: 1 }} />
+							<UploadFileIcon
+								sx={{ fontSize: 44, color: theme.palette.primary.main, mb: 1 }}
+							/>
 							<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
 								Click or drag to select a CSV file
 							</Typography>
-							<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-								Supports comma (,), semicolon (;), or tab delimiters with any column order
+							<Typography
+								variant="caption"
+								sx={{ color: "text.secondary", display: "block", mt: 0.5 }}
+							>
+								Supports comma (,), semicolon (;), or tab delimiters with any
+								column order
 							</Typography>
 						</Paper>
 
@@ -279,13 +320,28 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 								alignItems: "flex-start",
 							}}
 						>
-							<HelpOutlineOutlined sx={{ fontSize: 18, color: "#818cf8", mt: 0.2, flexShrink: 0 }} />
+							<HelpOutlineOutlined
+								sx={{ fontSize: 18, color: "#818cf8", mt: 0.2, flexShrink: 0 }}
+							/>
 							<Box>
-								<Typography variant="caption" sx={{ fontWeight: 800, color: "#818cf8", display: "block" }}>
+								<Typography
+									variant="caption"
+									sx={{ fontWeight: 800, color: "#818cf8", display: "block" }}
+								>
 									Flexible Column Mapping:
 								</Typography>
-								<Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.4, display: "block", mt: 0.25 }}>
-									Your spreadsheet doesn't need exact column names. Once uploaded, you can link your columns (e.g. "Borrower", "Capital", "Interest Rate") directly to system fields.
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										lineHeight: 1.4,
+										display: "block",
+										mt: 0.25,
+									}}
+								>
+									Your spreadsheet doesn't need exact column names. Once
+									uploaded, you can link your columns (e.g. "Borrower",
+									"Capital", "Interest Rate") directly to system fields.
 								</Typography>
 							</Box>
 						</Box>
@@ -310,8 +366,13 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 							}}
 						>
 							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-								<UploadFileIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
-								<Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: "0.85rem" }}>
+								<UploadFileIcon
+									sx={{ fontSize: 20, color: theme.palette.primary.main }}
+								/>
+								<Typography
+									variant="subtitle2"
+									sx={{ fontWeight: 800, fontSize: "0.85rem" }}
+								>
 									{file?.name}
 								</Typography>
 								<Chip
@@ -336,7 +397,11 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 									resetState();
 									setTimeout(() => fileInputRef.current?.click(), 50);
 								}}
-								sx={{ color: "text.secondary", textTransform: "none", fontSize: "0.72rem" }}
+								sx={{
+									color: "text.secondary",
+									textTransform: "none",
+									fontSize: "0.72rem",
+								}}
 							>
 								Choose Different File
 							</Button>
@@ -360,7 +425,10 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 				)}
 
 				{error && (
-					<Alert severity="error" sx={{ bgcolor: alpha("#ef4444", 0.1), color: "#f87171" }}>
+					<Alert
+						severity="error"
+						sx={{ bgcolor: alpha("#ef4444", 0.1), color: "#f87171" }}
+					>
 						{error}
 					</Alert>
 				)}
@@ -380,11 +448,14 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 						</Typography>
 						<Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
 							🛡️ {result.verified} verified with in-game contract snapshots
-							<br />
-							📋 {result.unverified} recorded as self-reported spreadsheet entries
+							<br />📋 {result.unverified} recorded as self-reported spreadsheet
+							entries
 						</Typography>
 						{result.errors.length > 0 && (
-							<Typography variant="caption" sx={{ color: "#fbbf24", display: "block", mt: 0.5 }}>
+							<Typography
+								variant="caption"
+								sx={{ color: "#fbbf24", display: "block", mt: 0.5 }}
+							>
 								Warnings: {result.errors.slice(0, 3).join(", ")}
 							</Typography>
 						)}
@@ -409,7 +480,13 @@ export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 						color="primary"
 						disabled={!hasRequiredMapped || loading}
 						onClick={handleImport}
-						startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <UploadFileIcon />}
+						startIcon={
+							loading ? (
+								<CircularProgress size={16} color="inherit" />
+							) : (
+								<UploadFileIcon />
+							)
+						}
 						sx={{
 							fontWeight: 800,
 							boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,

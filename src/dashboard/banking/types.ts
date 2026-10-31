@@ -129,7 +129,6 @@ export interface BankDepositorsResponse {
 	depositors: DepositorSummary[];
 }
 
-
 export interface LoanFinderCriteria {
 	loanAmount: number | "";
 	dailyProfit: number | "";

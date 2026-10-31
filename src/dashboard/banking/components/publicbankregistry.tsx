@@ -34,7 +34,8 @@ export const PublicBankRegistry: React.FC<PublicBankRegistryProps> = ({
 					p: 3,
 					borderRadius: 2,
 					border: `1px solid ${alpha(theme.palette.primary.main, 0.25)}`,
-					background: "linear-gradient(135deg, rgba(20, 24, 40, 0.85) 0%, rgba(26, 32, 54, 0.85) 100%)",
+					background:
+						"linear-gradient(135deg, rgba(20, 24, 40, 0.85) 0%, rgba(26, 32, 54, 0.85) 100%)",
 					backdropFilter: "blur(12px)",
 					display: "flex",
 					alignItems: "center",
@@ -44,14 +45,22 @@ export const PublicBankRegistry: React.FC<PublicBankRegistryProps> = ({
 				}}
 			>
 				<Box sx={{ maxWidth: 700 }}>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}>
+					<Box
+						sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 0.5 }}
+					>
 						<VerifiedUserIcon sx={{ color: "primary.main", fontSize: 24 }} />
 						<Typography variant="h6" sx={{ fontWeight: 800 }}>
 							Public Solvency & Bank Transparency Registry
 						</Typography>
 					</Box>
-					<Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.5 }}>
-						PrUn banking depends on trust and mutual transparency. This registry publishes registered player vaults, stated liquidity reserves, and standard lending terms so prospective borrowers can verify bank solvency before executing high-value trade transfers.
+					<Typography
+						variant="body2"
+						sx={{ color: "text.secondary", lineHeight: 1.5 }}
+					>
+						PrUn banking depends on trust and mutual transparency. This registry
+						publishes registered player vaults, stated liquidity reserves, and
+						standard lending terms so prospective borrowers can verify bank
+						solvency before executing high-value trade transfers.
 					</Typography>
 				</Box>
 
@@ -75,19 +84,29 @@ export const PublicBankRegistry: React.FC<PublicBankRegistryProps> = ({
 						border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
 					}}
 				>
-					<AccountBalanceIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.5 }} />
-					<Typography variant="h6" sx={{ fontWeight: 700, color: "text.secondary" }}>
+					<AccountBalanceIcon
+						sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.5 }}
+					/>
+					<Typography
+						variant="h6"
+						sx={{ fontWeight: 700, color: "text.secondary" }}
+					>
 						No Public Banks Registered Yet
 					</Typography>
 					<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-						Be the first player to establish a recognized player bank in the Banker's Office tab!
+						Be the first player to establish a recognized player bank in the
+						Banker's Office tab!
 					</Typography>
 				</Paper>
 			) : (
 				<Box
 					sx={{
 						display: "grid",
-						gridTemplateColumns: { xs: "1fr", md: "1fr 1fr", lg: "1fr 1fr 1fr" },
+						gridTemplateColumns: {
+							xs: "1fr",
+							md: "1fr 1fr",
+							lg: "1fr 1fr 1fr",
+						},
 						gap: 2.5,
 					}}
 				>
@@ -110,14 +129,40 @@ export const PublicBankRegistry: React.FC<PublicBankRegistryProps> = ({
 								},
 							}}
 						>
-							<CardContent sx={{ p: 2.5, display: "flex", flexDirection: "column", gap: 2 }}>
-								<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+							<CardContent
+								sx={{
+									p: 2.5,
+									display: "flex",
+									flexDirection: "column",
+									gap: 2,
+								}}
+							>
+								<Box
+									sx={{
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "flex-start",
+									}}
+								>
 									<Box>
-										<Typography variant="subtitle1" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+										<Typography
+											variant="subtitle1"
+											sx={{ fontWeight: 800, lineHeight: 1.2 }}
+										>
 											{bank.name}
 										</Typography>
-										<Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
-											Banker: <strong style={{ color: theme.palette.text.primary }}>{bank.owner_username}</strong>
+										<Typography
+											variant="caption"
+											sx={{
+												color: "text.secondary",
+												mt: 0.5,
+												display: "block",
+											}}
+										>
+											Banker:{" "}
+											<strong style={{ color: theme.palette.text.primary }}>
+												{bank.owner_username}
+											</strong>
 										</Typography>
 									</Box>
 
@@ -138,19 +183,41 @@ export const PublicBankRegistry: React.FC<PublicBankRegistryProps> = ({
 										lineHeight: 1.4,
 									}}
 								>
-									{bank.description || "Player-run bank offering customized trade liquidity and financing."}
+									{bank.description ||
+										"Player-run bank offering customized trade liquidity and financing."}
 								</Typography>
 
-								<Divider sx={{ borderColor: alpha(theme.palette.divider, 0.1) }} />
+								<Divider
+									sx={{ borderColor: alpha(theme.palette.divider, 0.1) }}
+								/>
 
-								<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+								<Box
+									sx={{
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "center",
+									}}
+								>
 									<Box>
-										<Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+										<Typography
+											variant="caption"
+											sx={{ color: "text.secondary", display: "block" }}
+										>
 											PLEDGED RESERVES
 										</Typography>
-										<Typography variant="body1" sx={{ fontWeight: 800, color: "text.primary" }}>
+										<Typography
+											variant="body1"
+											sx={{ fontWeight: 800, color: "text.primary" }}
+										>
 											{bank.liquidity.toLocaleString()}{" "}
-											<span style={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>ICA</span>
+											<span
+												style={{
+													fontSize: "0.75rem",
+													color: theme.palette.text.secondary,
+												}}
+											>
+												ICA
+											</span>
 										</Typography>
 									</Box>
 								</Box>

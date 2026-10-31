@@ -150,12 +150,8 @@ const SystemDetailPanel: React.FC<SystemDetailPanelProps> = ({
 		if (!isLoggedIn) return { own: [], others: [] };
 		const ownList = Array.isArray(ownerShips) ? ownerShips : [];
 		const othersList = Array.isArray(otherShips) ? otherShips : [];
-		const own = ownList.filter(
-			(s) => s.addresssystemid === systemId,
-		);
-		const others = othersList.filter(
-			(s) => s.addresssystemid === systemId,
-		);
+		const own = ownList.filter((s) => s.addresssystemid === systemId);
+		const others = othersList.filter((s) => s.addresssystemid === systemId);
 		return { own, others };
 	}, [isLoggedIn, ownerShips, otherShips, systemId]);
 

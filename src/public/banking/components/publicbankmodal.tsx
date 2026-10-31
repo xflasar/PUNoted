@@ -19,7 +19,11 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CircleIcon from "@mui/icons-material/Circle";
 
 import type { Bank, BankLedgerResponse, LedgerRecord } from "../types";
-import { formatAmount, formatPaymentInterval, getOwnerActiveStatus } from "../../../dashboard/banking/helpers";
+import {
+	formatAmount,
+	formatPaymentInterval,
+	getOwnerActiveStatus,
+} from "../../../dashboard/banking/helpers";
 import { PublicLoanLedger } from "./publicloanledger";
 import { PublicDepositLedger } from "./publicdepositledger";
 
@@ -75,9 +79,24 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 		>
 			{/* Header */}
 			<DialogTitle sx={{ pb: 1, pt: 2, px: 2.5, flexShrink: 0 }}>
-				<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						flexWrap: "wrap",
+						gap: 1,
+					}}
+				>
 					<Box>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 1,
+								flexWrap: "wrap",
+							}}
+						>
 							<Typography variant="h6" sx={{ fontWeight: 900 }}>
 								{inspectingBank.name}
 							</Typography>
@@ -125,11 +144,26 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 								inspectingBank.owner_is_synchronized !== false,
 							);
 							return (
-								<Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
-									<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700 }}>
-										Banker: <strong style={{ color: theme.palette.text.primary }}>{inspectingBank.owner_username}</strong>
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										gap: 0.75,
+										flexWrap: "wrap",
+									}}
+								>
+									<Typography
+										variant="caption"
+										sx={{ color: "text.secondary", fontWeight: 700 }}
+									>
+										Banker:{" "}
+										<strong style={{ color: theme.palette.text.primary }}>
+											{inspectingBank.owner_username}
+										</strong>
 									</Typography>
-									<Tooltip title={`Banker Status: ${ownerActivity.label} (Synced: ${inspectingBank.owner_is_synchronized !== false ? "Yes" : "No"})`}>
+									<Tooltip
+										title={`Banker Status: ${ownerActivity.label} (Synced: ${inspectingBank.owner_is_synchronized !== false ? "Yes" : "No"})`}
+									>
 										<Box
 											sx={{
 												display: "inline-flex",
@@ -142,7 +176,9 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 												border: `1px solid ${alpha(ownerActivity.dotColor, 0.25)}`,
 											}}
 										>
-											<CircleIcon sx={{ fontSize: 6, color: ownerActivity.dotColor }} />
+											<CircleIcon
+												sx={{ fontSize: 6, color: ownerActivity.dotColor }}
+											/>
 											<Typography
 												variant="caption"
 												sx={{
@@ -160,7 +196,14 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 							);
 						})()}
 					</Box>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 0.75,
+							flexWrap: "wrap",
+						}}
+					>
 						<Chip
 							label={currency}
 							color="primary"
@@ -170,7 +213,9 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 						/>
 						<Chip
 							label={
-								inspectingBank.max_interest_rate && inspectingBank.max_interest_rate > (inspectingBank.default_interest_rate || 0)
+								inspectingBank.max_interest_rate &&
+								inspectingBank.max_interest_rate >
+									(inspectingBank.default_interest_rate || 0)
 									? `${inspectingBank.default_interest_rate}% - ${inspectingBank.max_interest_rate}% / interval`
 									: `${inspectingBank.default_interest_rate}% / interval`
 							}
@@ -296,7 +341,8 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 										fontSize: "0.85rem",
 									}}
 								>
-									{inspectingBank.description || "No specific terms and conditions specified by this institution."}
+									{inspectingBank.description ||
+										"No specific terms and conditions specified by this institution."}
 								</Typography>
 							</Paper>
 						</Box>
@@ -315,15 +361,39 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 								flexShrink: 0,
 							}}
 						>
-							<InfoOutlinedIcon sx={{ color: "primary.main", fontSize: 18, mt: 0.2, flexShrink: 0 }} />
+							<InfoOutlinedIcon
+								sx={{
+									color: "primary.main",
+									fontSize: 18,
+									mt: 0.2,
+									flexShrink: 0,
+								}}
+							/>
 							<Box>
-								<Typography variant="caption" sx={{ fontWeight: 800, color: "primary.light", display: "block" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										fontWeight: 800,
+										color: "primary.light",
+										display: "block",
+									}}
+								>
 									HOW TO BORROW OR DEPOSIT
 								</Typography>
-								<Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.4, display: "block", mt: 0.25 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										lineHeight: 1.4,
+										display: "block",
+										mt: 0.25,
+									}}
+								>
 									Arrange transactions directly with{" "}
-									<strong style={{ color: theme.palette.text.primary }}>{inspectingBank.owner_username}</strong> in-game
-									via APEX or by initiating a loan request.
+									<strong style={{ color: theme.palette.text.primary }}>
+										{inspectingBank.owner_username}
+									</strong>{" "}
+									in-game via APEX or by initiating a loan request.
 								</Typography>
 							</Box>
 						</Paper>
@@ -357,57 +427,126 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 								}}
 							>
 								<Box>
-									<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "text.secondary",
+											fontWeight: 700,
+											fontSize: "0.7rem",
+										}}
+									>
 										VAULT LIQUIDITY
 									</Typography>
-									<Typography variant="body1" sx={{ fontWeight: 900, color: "#10B981" }}>
+									<Typography
+										variant="body1"
+										sx={{ fontWeight: 900, color: "#10B981" }}
+									>
 										{formatAmount(inspectingBank.liquidity || 0)} {currency}
 									</Typography>
 								</Box>
 								<Box>
-									<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "text.secondary",
+											fontWeight: 700,
+											fontSize: "0.7rem",
+										}}
+									>
 										LOAN INTEREST
 									</Typography>
-									<Typography variant="body1" sx={{ fontWeight: 900, color: theme.palette.primary.main }}>
-										{inspectingBank.max_interest_rate && inspectingBank.max_interest_rate > (inspectingBank.default_interest_rate || 0)
+									<Typography
+										variant="body1"
+										sx={{ fontWeight: 900, color: theme.palette.primary.main }}
+									>
+										{inspectingBank.max_interest_rate &&
+										inspectingBank.max_interest_rate >
+											(inspectingBank.default_interest_rate || 0)
 											? `${inspectingBank.default_interest_rate}% - ${inspectingBank.max_interest_rate}%`
 											: `${inspectingBank.default_interest_rate}%`}
-										<span style={{ fontSize: "0.68rem", fontWeight: 600, color: theme.palette.text.secondary }}> / interval</span>
+										<span
+											style={{
+												fontSize: "0.68rem",
+												fontWeight: 600,
+												color: theme.palette.text.secondary,
+											}}
+										>
+											{" "}
+											/ interval
+										</span>
 									</Typography>
 								</Box>
 								<Box>
-									<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "text.secondary",
+											fontWeight: 700,
+											fontSize: "0.7rem",
+										}}
+									>
 										1-MONTH YIELD
 									</Typography>
-									<Typography variant="body1" sx={{ fontWeight: 900, color: "#34d399" }}>
+									<Typography
+										variant="body1"
+										sx={{ fontWeight: 900, color: "#34d399" }}
+									>
 										{inspectingBank.max_weekly_yield_rate
 											? `${inspectingBank.weekly_yield_rate || 1.0}% - ${inspectingBank.max_weekly_yield_rate}%/mo`
 											: `${inspectingBank.weekly_yield_rate || 1.0}%/mo`}
 									</Typography>
-									<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.6rem" }}>
+									<Typography
+										variant="caption"
+										sx={{ color: "text.secondary", fontSize: "0.6rem" }}
+									>
 										Accounted weekly (1/4th)
 									</Typography>
 								</Box>
 								<Box>
-									<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "text.secondary",
+											fontWeight: 700,
+											fontSize: "0.7rem",
+										}}
+									>
 										MIN LOAN
 									</Typography>
 									<Typography variant="body2" sx={{ fontWeight: 700 }}>
-										{inspectingBank.min_loan_amount ? formatAmount(inspectingBank.min_loan_amount) : "0"}{" "}
+										{inspectingBank.min_loan_amount
+											? formatAmount(inspectingBank.min_loan_amount)
+											: "0"}{" "}
 										{currency}
 									</Typography>
 								</Box>
 								<Box>
-									<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "text.secondary",
+											fontWeight: 700,
+											fontSize: "0.7rem",
+										}}
+									>
 										MAX LOAN
 									</Typography>
 									<Typography variant="body2" sx={{ fontWeight: 700 }}>
-										{inspectingBank.max_loan_amount ? formatAmount(inspectingBank.max_loan_amount) : "No Max"}{" "}
+										{inspectingBank.max_loan_amount
+											? formatAmount(inspectingBank.max_loan_amount)
+											: "No Max"}{" "}
 										{currency}
 									</Typography>
 								</Box>
 								<Box>
-									<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem" }}>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "text.secondary",
+											fontWeight: 700,
+											fontSize: "0.7rem",
+										}}
+									>
 										DEFAULT TERM
 									</Typography>
 									<Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -422,7 +561,9 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 						</Paper>
 
 						{/* Ledger Tabs */}
-						<Box sx={{ borderBottom: 1, borderColor: "divider", flexShrink: 0 }}>
+						<Box
+							sx={{ borderBottom: 1, borderColor: "divider", flexShrink: 0 }}
+						>
 							<Tabs
 								value={activeLedgerTab}
 								onChange={(_, val) => onTabChange(val)}
@@ -438,7 +579,9 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 								}}
 							>
 								<Tab label={`Loan History (${loanRecords.length})`} />
-								<Tab label={`Deposits & Withdrawals (${depositRecords.length})`} />
+								<Tab
+									label={`Deposits & Withdrawals (${depositRecords.length})`}
+								/>
 							</Tabs>
 						</Box>
 
@@ -465,7 +608,9 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 				</Box>
 			</DialogContent>
 
-			<DialogActions sx={{ p: 1.5, px: 2.5, justifyContent: "flex-end", flexShrink: 0 }}>
+			<DialogActions
+				sx={{ p: 1.5, px: 2.5, justifyContent: "flex-end", flexShrink: 0 }}
+			>
 				<Button
 					variant="outlined"
 					size="small"

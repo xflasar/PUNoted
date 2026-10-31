@@ -38,7 +38,9 @@ export const MapLegend: React.FC<MapLegendProps> = ({
 	mode,
 }) => {
 	const theme = useTheme();
-	const [mobileAnchorEl, setMobileAnchorEl] = useState<HTMLElement | null>(null);
+	const [mobileAnchorEl, setMobileAnchorEl] = useState<HTMLElement | null>(
+		null,
+	);
 	const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
 	const isMobileOpen = Boolean(mobileAnchorEl);
 

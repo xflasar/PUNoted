@@ -63,7 +63,9 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 }) => {
 	const theme = useTheme();
 	const [showGuide, setShowGuide] = React.useState(false);
-	const [inputPct, setInputPct] = React.useState<string>(String(maxAllocationPercent));
+	const [inputPct, setInputPct] = React.useState<string>(
+		String(maxAllocationPercent),
+	);
 
 	React.useEffect(() => {
 		setInputPct(String(maxAllocationPercent));
@@ -109,16 +111,29 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 			}}
 		>
 			{/* Top Bar: Clean Header + Repay Budget + Matches Toggle + Reset */}
-			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					flexWrap: "wrap",
+					gap: 1,
+				}}
+			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					<CalculateIcon sx={{ fontSize: 18, color: "primary.main" }} />
-					<Typography variant="subtitle2" sx={{ fontWeight: 800, fontSize: "0.85rem", letterSpacing: 0.3 }}>
+					<Typography
+						variant="subtitle2"
+						sx={{ fontWeight: 800, fontSize: "0.85rem", letterSpacing: 0.3 }}
+					>
 						Loan Finder &amp; Feasibility Calculator
 					</Typography>
 					<Button
 						size="small"
 						variant="outlined"
-						startIcon={<HelpOutlineOutlined sx={{ fontSize: "14px !important" }} />}
+						startIcon={
+							<HelpOutlineOutlined sx={{ fontSize: "14px !important" }} />
+						}
 						onClick={() => setShowGuide(!showGuide)}
 						sx={{
 							height: 22,
@@ -128,8 +143,12 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 							textTransform: "none",
 							py: 0,
 							px: 1,
-							borderColor: showGuide ? "primary.main" : alpha(theme.palette.divider, 0.25),
-							bgcolor: showGuide ? alpha(theme.palette.primary.main, 0.12) : "transparent",
+							borderColor: showGuide
+								? "primary.main"
+								: alpha(theme.palette.divider, 0.25),
+							bgcolor: showGuide
+								? alpha(theme.palette.primary.main, 0.12)
+								: "transparent",
 							color: showGuide ? "primary.main" : "text.secondary",
 							"&:hover": {
 								borderColor: "primary.main",
@@ -143,9 +162,24 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 				</Box>
 
 				{/* Allocation Budget Chips + Manual Input, Matches Switch & Reset */}
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1.2, flexWrap: "wrap" }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1.2,
+						flexWrap: "wrap",
+					}}
+				>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
-						<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.7rem", whiteSpace: "nowrap" }}>
+						<Typography
+							variant="caption"
+							sx={{
+								color: "text.secondary",
+								fontWeight: 700,
+								fontSize: "0.7rem",
+								whiteSpace: "nowrap",
+							}}
+						>
 							Repay Budget:
 						</Typography>
 						{[25, 33, 50, 75].map((pct) => (
@@ -180,7 +214,14 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 									input: {
 										endAdornment: (
 											<InputAdornment position="end" sx={{ mr: -0.5 }}>
-												<Typography variant="caption" sx={{ fontSize: "0.68rem", fontWeight: 800, color: "text.secondary" }}>
+												<Typography
+													variant="caption"
+													sx={{
+														fontSize: "0.68rem",
+														fontWeight: 800,
+														color: "text.secondary",
+													}}
+												>
 													%
 												</Typography>
 											</InputAdornment>
@@ -231,7 +272,14 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 							/>
 						}
 						label={
-							<Typography variant="caption" sx={{ fontWeight: 700, userSelect: "none", fontSize: "0.72rem" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									fontWeight: 700,
+									userSelect: "none",
+									fontSize: "0.72rem",
+								}}
+							>
 								Only Matches
 							</Typography>
 						}
@@ -244,7 +292,14 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 							variant="text"
 							startIcon={<ClearIcon sx={{ fontSize: "14px !important" }} />}
 							onClick={onReset}
-							sx={{ color: "text.secondary", textTransform: "none", fontSize: "0.72rem", py: 0, px: 0.8, minWidth: "auto" }}
+							sx={{
+								color: "text.secondary",
+								textTransform: "none",
+								fontSize: "0.72rem",
+								py: 0,
+								px: 0.8,
+								minWidth: "auto",
+							}}
 						>
 							Reset
 						</Button>
@@ -276,7 +331,9 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 					onChange={onLoanAmountChange}
 					placeholder="e.g. 100,000"
 					unit="ICA"
-					icon={<AttachMoneyIcon sx={{ fontSize: 18, color: "primary.main" }} />}
+					icon={
+						<AttachMoneyIcon sx={{ fontSize: 18, color: "primary.main" }} />
+					}
 				/>
 
 				{/* 2. Company Daily Net Profit (Borrower Cash Flow) */}
@@ -301,8 +358,22 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 				}}
 			>
 				{/* Loan Duration (Weeks) */}
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-					<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 800, fontSize: "0.68rem" }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1,
+						flexWrap: "wrap",
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{
+							color: "text.secondary",
+							fontWeight: 800,
+							fontSize: "0.68rem",
+						}}
+					>
 						LOAN LENGTH:
 					</Typography>
 					<Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
@@ -319,15 +390,27 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 								onClick={() => onTermWeeksChange && onTermWeeksChange(item.val)}
 								color={termWeeks === item.val ? "primary" : "default"}
 								variant={termWeeks === item.val ? "filled" : "outlined"}
-								sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, cursor: "pointer" }}
+								sx={{
+									height: 22,
+									fontSize: "0.65rem",
+									fontWeight: 800,
+									cursor: "pointer",
+								}}
 							/>
 						))}
 						<TextField
 							size="small"
 							type="number"
-							value={typeof termWeeks === "number" && ![2, 4, 8].includes(termWeeks) ? termWeeks : ""}
+							value={
+								typeof termWeeks === "number" && ![2, 4, 8].includes(termWeeks)
+									? termWeeks
+									: ""
+							}
 							onChange={(e) => {
-								const v = e.target.value === "" ? "" : Math.max(1, Number(e.target.value));
+								const v =
+									e.target.value === ""
+										? ""
+										: Math.max(1, Number(e.target.value));
 								if (onTermWeeksChange) onTermWeeksChange(v);
 							}}
 							placeholder="Wks"
@@ -335,7 +418,13 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 								htmlInput: {
 									min: 1,
 									max: 52,
-									style: { width: 32, padding: "2px 4px", fontSize: "0.72rem", textAlign: "center", fontWeight: 800 },
+									style: {
+										width: 32,
+										padding: "2px 4px",
+										fontSize: "0.72rem",
+										textAlign: "center",
+										fontWeight: 800,
+									},
 								},
 							}}
 							sx={{
@@ -347,8 +436,22 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 				</Box>
 
 				{/* Repayment Interval */}
-				<Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: { xs: "flex-start", sm: "flex-end" } }}>
-					<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 800, fontSize: "0.68rem" }}>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						gap: 1,
+						justifyContent: { xs: "flex-start", sm: "flex-end" },
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{
+							color: "text.secondary",
+							fontWeight: 800,
+							fontSize: "0.68rem",
+						}}
+					>
 						PAYMENT INTERVAL:
 					</Typography>
 					<Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
@@ -360,18 +463,35 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 								key={item.label}
 								label={item.label}
 								size="small"
-								onClick={() => onIntervalDaysChange && onIntervalDaysChange(item.val)}
+								onClick={() =>
+									onIntervalDaysChange && onIntervalDaysChange(item.val)
+								}
 								color={(intervalDays || 7) === item.val ? "primary" : "default"}
-								variant={(intervalDays || 7) === item.val ? "filled" : "outlined"}
-								sx={{ height: 22, fontSize: "0.65rem", fontWeight: 800, cursor: "pointer" }}
+								variant={
+									(intervalDays || 7) === item.val ? "filled" : "outlined"
+								}
+								sx={{
+									height: 22,
+									fontSize: "0.65rem",
+									fontWeight: 800,
+									cursor: "pointer",
+								}}
 							/>
 						))}
 						<TextField
 							size="small"
 							type="number"
-							value={typeof intervalDays === "number" && ![7, 14].includes(intervalDays) ? intervalDays : ""}
+							value={
+								typeof intervalDays === "number" &&
+								![7, 14].includes(intervalDays)
+									? intervalDays
+									: ""
+							}
 							onChange={(e) => {
-								const v = e.target.value === "" ? 7 : Math.max(1, Number(e.target.value));
+								const v =
+									e.target.value === ""
+										? 7
+										: Math.max(1, Number(e.target.value));
 								if (onIntervalDaysChange) onIntervalDaysChange(v);
 							}}
 							placeholder="Days"
@@ -379,7 +499,13 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 								htmlInput: {
 									min: 1,
 									max: 365,
-									style: { width: 34, padding: "2px 4px", fontSize: "0.72rem", textAlign: "center", fontWeight: 800 },
+									style: {
+										width: 34,
+										padding: "2px 4px",
+										fontSize: "0.72rem",
+										textAlign: "center",
+										fontWeight: 800,
+									},
 								},
 							}}
 							sx={{
@@ -417,7 +543,14 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 					}}
 				>
 					{/* Left: Optimal Plan Headline & Retained Budget Pill */}
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 1,
+							flexWrap: "wrap",
+						}}
+					>
 						{summary.isUserProfitMatch ? (
 							<CheckCircleIcon sx={{ color: "#34d399", fontSize: 18 }} />
 						) : (
@@ -425,7 +558,14 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 						)}
 						{dailyProfit !== "" && Number(dailyProfit) > 0 ? (
 							<>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.72rem" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontWeight: 700,
+										fontSize: "0.72rem",
+									}}
+								>
 									OPTIMAL PLAN:
 								</Typography>
 								<Typography
@@ -437,8 +577,16 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 									}}
 								>
 									{summary.optimalLengthWeeks}W Payoff
-									<span style={{ fontSize: "0.7rem", opacity: 0.8, fontWeight: 600, marginLeft: 4 }}>
-										({summary.optimalPayoffDays}d @ {summary.allocationPercent}% budget)
+									<span
+										style={{
+											fontSize: "0.7rem",
+											opacity: 0.8,
+											fontWeight: 600,
+											marginLeft: 4,
+										}}
+									>
+										({summary.optimalPayoffDays}d @ {summary.allocationPercent}%
+										budget)
 									</span>
 								</Typography>
 
@@ -456,7 +604,14 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 							</>
 						) : (
 							<>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.72rem" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontWeight: 700,
+										fontSize: "0.72rem",
+									}}
+								>
 									TARGET PROFIT (4W):
 								</Typography>
 								<Typography
@@ -485,7 +640,14 @@ export const PublicLoanFinder: React.FC<PublicLoanFinderProps> = ({
 					</Box>
 
 					{/* Right: Quick Stat Chips */}
-					<Box sx={{ display: "flex", alignItems: "center", gap: 0.8, flexWrap: "wrap" }}>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 0.8,
+							flexWrap: "wrap",
+						}}
+					>
 						<Chip
 							icon={<SpeedIcon sx={{ fontSize: "12px !important" }} />}
 							label={`Safe Installment: ~${formatAmount(summary.safeWeeklyInstallment)} / week`}

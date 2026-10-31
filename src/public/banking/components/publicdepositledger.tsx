@@ -71,7 +71,13 @@ export const PublicDepositLedger: React.FC<PublicDepositLedgerProps> = ({
 					<Typography variant="caption" sx={{ color: "text.secondary" }}>
 						Net Pledged:{" "}
 						<strong style={{ color: "text.primary" }}>
-							{formatAmount(Math.max(0, (ledgerData.total_deposits || 0) - (ledgerData.total_withdrawals || 0)))}{" "}
+							{formatAmount(
+								Math.max(
+									0,
+									(ledgerData.total_deposits || 0) -
+										(ledgerData.total_withdrawals || 0),
+								),
+							)}{" "}
 							{currency}
 						</strong>
 					</Typography>
@@ -79,10 +85,19 @@ export const PublicDepositLedger: React.FC<PublicDepositLedgerProps> = ({
 			)}
 
 			{loading ? (
-				<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, py: 4 }}>
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "center",
+						alignItems: "center",
+						flex: 1,
+						py: 4,
+					}}
+				>
 					<CircularProgress size={24} />
 				</Box>
-			) : (ledgerData?.public_show_deposits === false && ledgerData?.public_show_withdrawals === false) ? (
+			) : ledgerData?.public_show_deposits === false &&
+			  ledgerData?.public_show_withdrawals === false ? (
 				<Paper
 					elevation={0}
 					sx={{
@@ -99,11 +114,15 @@ export const PublicDepositLedger: React.FC<PublicDepositLedgerProps> = ({
 						gap: 1,
 					}}
 				>
-					<Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary" }}>
+					<Typography
+						variant="body2"
+						sx={{ fontWeight: 700, color: "text.secondary" }}
+					>
 						Deposits & Withdrawals Private
 					</Typography>
 					<Typography variant="caption" sx={{ color: "text.secondary" }}>
-						The bank owner has configured deposit and withdrawal records to be private for public viewers.
+						The bank owner has configured deposit and withdrawal records to be
+						private for public viewers.
 					</Typography>
 				</Paper>
 			) : depositRecords.length === 0 ? (
@@ -149,32 +168,95 @@ export const PublicDepositLedger: React.FC<PublicDepositLedgerProps> = ({
 					<Table size="small" stickyHeader sx={{ minWidth: 460 }}>
 						<TableHead>
 							<TableRow>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>DATE</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>TYPE</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>USER</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>AMOUNT</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>STATUS</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }} align="right">VERIFIED</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									DATE
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									TYPE
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									USER
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									AMOUNT
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									STATUS
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+									align="right"
+								>
+									VERIFIED
+								</TableCell>
 							</TableRow>
 						</TableHead>
 						<TableBody>
 							{depositRecords.map((tx) => {
 								const isDeposit = tx.transaction_type === "DEPOSIT";
-								const typeColor = isDeposit ? theme.palette.success.light : theme.palette.error.light;
-								const isAnonymous = !tx.requester_username || tx.requester_username === "Anonymous";
+								const typeColor = isDeposit
+									? theme.palette.success.light
+									: theme.palette.error.light;
+								const isAnonymous =
+									!tx.requester_username ||
+									tx.requester_username === "Anonymous";
 
 								return (
 									<TableRow key={tx.id} hover>
-										<TableCell sx={{ fontSize: "0.7rem", color: "text.secondary", py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												color: "text.secondary",
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{new Date(tx.created_at).toLocaleDateString()}
 										</TableCell>
-										<TableCell sx={{ fontSize: "0.7rem", fontWeight: 800, color: typeColor, py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												fontWeight: 800,
+												color: typeColor,
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{tx.transaction_type}
 										</TableCell>
-										<TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: isAnonymous ? "text.secondary" : "text.primary", py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												fontWeight: 700,
+												color: isAnonymous ? "text.secondary" : "text.primary",
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{tx.requester_username || "Anonymous"}
 										</TableCell>
-										<TableCell sx={{ fontSize: "0.7rem", fontWeight: 800, py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												fontWeight: 800,
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{formatAmount(tx.amount)} {tx.currency}
 										</TableCell>
 										<TableCell sx={{ py: 0.75, px: 1 }}>
@@ -185,8 +267,16 @@ export const PublicDepositLedger: React.FC<PublicDepositLedgerProps> = ({
 													fontSize: "0.62rem",
 													height: 18,
 													fontWeight: 800,
-													color: tx.status === "APPROVED" || tx.status === "REPAID" ? "#10B981" : "#F59E0B",
-													bgcolor: alpha(tx.status === "APPROVED" || tx.status === "REPAID" ? "#10B981" : "#F59E0B", 0.12),
+													color:
+														tx.status === "APPROVED" || tx.status === "REPAID"
+															? "#10B981"
+															: "#F59E0B",
+													bgcolor: alpha(
+														tx.status === "APPROVED" || tx.status === "REPAID"
+															? "#10B981"
+															: "#F59E0B",
+														0.12,
+													),
 													border: `1px solid ${alpha(tx.status === "APPROVED" || tx.status === "REPAID" ? "#10B981" : "#F59E0B", 0.25)}`,
 												}}
 											/>
@@ -194,15 +284,26 @@ export const PublicDepositLedger: React.FC<PublicDepositLedgerProps> = ({
 										<TableCell align="right" sx={{ py: 0.75, px: 1 }}>
 											{tx.is_verified ? (
 												<Chip
-													icon={<CheckCircleIcon sx={{ fontSize: "11px !important" }} />}
+													icon={
+														<CheckCircleIcon
+															sx={{ fontSize: "11px !important" }}
+														/>
+													}
 													label="Contract"
 													size="small"
 													color="success"
 													variant="outlined"
-													sx={{ fontSize: "0.62rem", height: 18, fontWeight: 700 }}
+													sx={{
+														fontSize: "0.62rem",
+														height: 18,
+														fontWeight: 700,
+													}}
 												/>
 											) : (
-												<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.62rem" }}>
+												<Typography
+													variant="caption"
+													sx={{ color: "text.secondary", fontSize: "0.62rem" }}
+												>
 													Manual
 												</Typography>
 											)}

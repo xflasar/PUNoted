@@ -217,9 +217,9 @@ export function useContractDetail(
 			return canFulfillAll
 				? { label: "Ready to Fulfill ✓ (In Stock)", color: "success" as const }
 				: {
-					label: "Action Blocked ⚠️ (Insufficient Stock)",
-					color: "warning" as const,
-				};
+						label: "Action Blocked ⚠️ (Insufficient Stock)",
+						color: "warning" as const,
+					};
 		})();
 
 		return {

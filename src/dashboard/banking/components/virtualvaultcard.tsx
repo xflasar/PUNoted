@@ -80,7 +80,8 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 				p: 3,
 				borderRadius: 2,
 				border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-				background: "linear-gradient(135deg, rgba(20, 22, 36, 0.9) 0%, rgba(28, 30, 50, 0.9) 100%)",
+				background:
+					"linear-gradient(135deg, rgba(20, 22, 36, 0.9) 0%, rgba(28, 30, 50, 0.9) 100%)",
 				backdropFilter: "blur(12px)",
 				display: "flex",
 				flexDirection: "column",
@@ -88,7 +89,15 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 			}}
 		>
 			{/* Top Header */}
-			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "flex-start",
+					flexWrap: "wrap",
+					gap: 2,
+				}}
+			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
 					<Box
 						sx={{
@@ -107,7 +116,10 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 					</Box>
 					<Box>
 						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-							<Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 0.5 }}>
+							<Typography
+								variant="h6"
+								sx={{ fontWeight: 800, letterSpacing: 0.5 }}
+							>
 								{bank.name}
 							</Typography>
 							<Chip
@@ -118,7 +130,10 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 								sx={{ fontSize: "0.65rem", fontWeight: 700, height: 20 }}
 							/>
 						</Box>
-						<Typography variant="body2" sx={{ color: "text.secondary", mt: 0.2 }}>
+						<Typography
+							variant="body2"
+							sx={{ color: "text.secondary", mt: 0.2 }}
+						>
 							{bank.description || "Official player-run lending institution."}
 						</Typography>
 					</Box>
@@ -154,8 +169,14 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 				}}
 			>
 				<ShieldIcon sx={{ color: "info.main", fontSize: 20, flexShrink: 0 }} />
-				<Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
-					<strong>Isolated Virtual Vault:</strong> PrUn accounts share a single cash balance. PUNoted rings-fences your pledged bank capital ({bank.liquidity.toLocaleString()} ICA) so you never accidentally over-lend operating cash needed for factory upkeep or shipping fuel.
+				<Typography
+					variant="caption"
+					sx={{ color: "text.secondary", lineHeight: 1.4 }}
+				>
+					<strong>Isolated Virtual Vault:</strong> PrUn accounts share a single
+					cash balance. PUNoted rings-fences your pledged bank capital (
+					{bank.liquidity.toLocaleString()} ICA) so you never accidentally
+					over-lend operating cash needed for factory upkeep or shipping fuel.
 				</Typography>
 			</Box>
 
@@ -165,7 +186,11 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 			<Box
 				sx={{
 					display: "grid",
-					gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr 1fr" },
+					gridTemplateColumns: {
+						xs: "1fr",
+						sm: "1fr 1fr",
+						md: "1fr 1fr 1fr 1fr",
+					},
 					gap: 2,
 				}}
 			>
@@ -179,13 +204,30 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 						border: `1px solid ${alpha(theme.palette.divider, 0.15)}`,
 					}}
 				>
-					<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+					<Typography
+						variant="caption"
+						sx={{ color: "text.secondary", fontWeight: 600 }}
+					>
 						PLEDGED VAULT CAPITAL
 					</Typography>
-					<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: theme.palette.text.primary }}>
-						{bank.liquidity.toLocaleString()} <span style={{ fontSize: "0.8rem", color: theme.palette.text.secondary }}>ICA</span>
+					<Typography
+						variant="h5"
+						sx={{ fontWeight: 800, mt: 0.5, color: theme.palette.text.primary }}
+					>
+						{bank.liquidity.toLocaleString()}{" "}
+						<span
+							style={{
+								fontSize: "0.8rem",
+								color: theme.palette.text.secondary,
+							}}
+						>
+							ICA
+						</span>
 					</Typography>
-					<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+					<Typography
+						variant="caption"
+						sx={{ color: "text.secondary", display: "block", mt: 0.5 }}
+					>
 						Allocated bank reserves
 					</Typography>
 				</Paper>
@@ -200,14 +242,25 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 						border: `1px solid ${alpha(theme.palette.warning.main, 0.25)}`,
 					}}
 				>
-					<Typography variant="caption" sx={{ color: "warning.main", fontWeight: 600 }}>
+					<Typography
+						variant="caption"
+						sx={{ color: "warning.main", fontWeight: 600 }}
+					>
 						ACTIVE CAPITAL LENT
 					</Typography>
-					<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: "warning.main" }}>
-						{activeCapitalOut.toLocaleString()} <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>ICA</span>
+					<Typography
+						variant="h5"
+						sx={{ fontWeight: 800, mt: 0.5, color: "warning.main" }}
+					>
+						{activeCapitalOut.toLocaleString()}{" "}
+						<span style={{ fontSize: "0.8rem", opacity: 0.8 }}>ICA</span>
 					</Typography>
-					<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-						{activeLoans.length} active loan{activeLoans.length === 1 ? "" : "s"} outstanding
+					<Typography
+						variant="caption"
+						sx={{ color: "text.secondary", display: "block", mt: 0.5 }}
+					>
+						{activeLoans.length} active loan
+						{activeLoans.length === 1 ? "" : "s"} outstanding
 					</Typography>
 				</Paper>
 
@@ -221,13 +274,23 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 						border: `1px solid ${alpha(theme.palette.success.main, 0.25)}`,
 					}}
 				>
-					<Typography variant="caption" sx={{ color: "success.main", fontWeight: 600 }}>
+					<Typography
+						variant="caption"
+						sx={{ color: "success.main", fontWeight: 600 }}
+					>
 						AVAILABLE TO LEND
 					</Typography>
-					<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: "success.main" }}>
-						{availableLendingCapacity.toLocaleString()} <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>ICA</span>
+					<Typography
+						variant="h5"
+						sx={{ fontWeight: 800, mt: 0.5, color: "success.main" }}
+					>
+						{availableLendingCapacity.toLocaleString()}{" "}
+						<span style={{ fontSize: "0.8rem", opacity: 0.8 }}>ICA</span>
 					</Typography>
-					<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+					<Typography
+						variant="caption"
+						sx={{ color: "text.secondary", display: "block", mt: 0.5 }}
+					>
 						Safe to disburse right now
 					</Typography>
 				</Paper>
@@ -242,22 +305,40 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 						border: `1px solid ${alpha(theme.palette.primary.main, 0.25)}`,
 					}}
 				>
-					<Typography variant="caption" sx={{ color: "primary.main", fontWeight: 600 }}>
+					<Typography
+						variant="caption"
+						sx={{ color: "primary.main", fontWeight: 600 }}
+					>
 						DEFAULT INTEREST RATE
 					</Typography>
-					<Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5, color: "primary.main" }}>
+					<Typography
+						variant="h5"
+						sx={{ fontWeight: 800, mt: 0.5, color: "primary.main" }}
+					>
 						{bank.default_interest_rate}%
 					</Typography>
-					<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+					<Typography
+						variant="caption"
+						sx={{ color: "text.secondary", display: "block", mt: 0.5 }}
+					>
 						Repaid to date: {totalRepaidCapital.toLocaleString()} ICA
 					</Typography>
 				</Paper>
 			</Box>
 
 			{/* Edit Vault Dialog */}
-			<Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="xs" fullWidth>
-				<DialogTitle sx={{ fontWeight: 800 }}>Configure Virtual Vault</DialogTitle>
-				<DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
+			<Dialog
+				open={editOpen}
+				onClose={() => setEditOpen(false)}
+				maxWidth="xs"
+				fullWidth
+			>
+				<DialogTitle sx={{ fontWeight: 800 }}>
+					Configure Virtual Vault
+				</DialogTitle>
+				<DialogContent
+					sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}
+				>
 					<TextField
 						label="Pledged Bank Liquidity (ICA)"
 						type="number"
@@ -288,7 +369,12 @@ export const VirtualVaultCard: React.FC<VirtualVaultCardProps> = ({
 					<Button onClick={() => setEditOpen(false)} color="inherit">
 						Cancel
 					</Button>
-					<Button onClick={handleSave} variant="contained" color="primary" disabled={saving}>
+					<Button
+						onClick={handleSave}
+						variant="contained"
+						color="primary"
+						disabled={saving}
+					>
 						{saving ? "Saving..." : "Save Settings"}
 					</Button>
 				</DialogActions>

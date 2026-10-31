@@ -44,7 +44,9 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 }) => {
 	const theme = useTheme();
 
-	const [transactionType, setTransactionType] = useState<"DEPOSIT" | "WITHDRAWAL">("DEPOSIT");
+	const [transactionType, setTransactionType] = useState<
+		"DEPOSIT" | "WITHDRAWAL"
+	>("DEPOSIT");
 	const [amount, setAmount] = useState<number | "">("");
 	const [username, setUsername] = useState<string>(bank.owner_username || "");
 	const [note, setNote] = useState<string>("");
@@ -98,7 +100,9 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 
 			if (!res.ok) {
 				const errData = await res.json().catch(() => ({}));
-				throw new Error(errData.detail || "Failed to record manual transaction");
+				throw new Error(
+					errData.detail || "Failed to record manual transaction",
+				);
 			}
 
 			const data = await res.json();
@@ -143,34 +147,79 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 				}}
 			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
-					<AccountBalanceWalletOutlinedIcon sx={{ color: isDeposit ? theme.palette.success.main : theme.palette.error.main, fontSize: 24 }} />
+					<AccountBalanceWalletOutlinedIcon
+						sx={{
+							color: isDeposit
+								? theme.palette.success.main
+								: theme.palette.error.main,
+							fontSize: 24,
+						}}
+					/>
 					<Box>
-						<Typography variant="h6" sx={{ fontWeight: 800, fontSize: "1.05rem", lineHeight: 1.2 }}>
+						<Typography
+							variant="h6"
+							sx={{ fontWeight: 800, fontSize: "1.05rem", lineHeight: 1.2 }}
+						>
 							Record Manual Deposit / Capital
 						</Typography>
-						<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem" }}>
-							Bank: <strong style={{ color: theme.palette.text.primary }}>{bank.name}</strong>
+						<Typography
+							variant="caption"
+							sx={{ color: "text.secondary", fontSize: "0.72rem" }}
+						>
+							Bank:{" "}
+							<strong style={{ color: theme.palette.text.primary }}>
+								{bank.name}
+							</strong>
 						</Typography>
 					</Box>
 				</Box>
-				<IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+				<IconButton
+					size="small"
+					onClick={onClose}
+					sx={{ color: "text.secondary" }}
+				>
 					<CloseIcon fontSize="small" />
 				</IconButton>
 			</DialogTitle>
 
-			<DialogContent sx={{ pt: 2.5, pb: 2, px: 2.5, display: "flex", flexDirection: "column", gap: 2.5 }}>
+			<DialogContent
+				sx={{
+					pt: 2.5,
+					pb: 2,
+					px: 2.5,
+					display: "flex",
+					flexDirection: "column",
+					gap: 2.5,
+				}}
+			>
 				{error && (
-					<Alert severity="error" onClose={() => setError(null)} sx={{ fontSize: "0.82rem" }}>
+					<Alert
+						severity="error"
+						onClose={() => setError(null)}
+						sx={{ fontSize: "0.82rem" }}
+					>
 						{error}
 					</Alert>
 				)}
 
 				{/* Transaction Type Segmented Toggle */}
 				<Box>
-					<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, textTransform: "uppercase", fontSize: "0.68rem", mb: 0.8, display: "block" }}>
+					<Typography
+						variant="caption"
+						sx={{
+							color: "text.secondary",
+							fontWeight: 700,
+							textTransform: "uppercase",
+							fontSize: "0.68rem",
+							mb: 0.8,
+							display: "block",
+						}}
+					>
 						Transaction Direction
 					</Typography>
-					<Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+					<Box
+						sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}
+					>
 						<Button
 							variant={isDeposit ? "contained" : "outlined"}
 							color={isDeposit ? "success" : "inherit"}
@@ -181,11 +230,19 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 								fontWeight: 800,
 								py: 1.2,
 								fontSize: "0.85rem",
-								bgcolor: isDeposit ? alpha(theme.palette.success.main, 0.18) : "transparent",
-								color: isDeposit ? theme.palette.success.light : "text.secondary",
-								borderColor: isDeposit ? theme.palette.success.main : alpha(theme.palette.divider, 0.2),
+								bgcolor: isDeposit
+									? alpha(theme.palette.success.main, 0.18)
+									: "transparent",
+								color: isDeposit
+									? theme.palette.success.light
+									: "text.secondary",
+								borderColor: isDeposit
+									? theme.palette.success.main
+									: alpha(theme.palette.divider, 0.2),
 								"&:hover": {
-									bgcolor: isDeposit ? alpha(theme.palette.success.main, 0.28) : alpha(theme.palette.action.hover, 0.08),
+									bgcolor: isDeposit
+										? alpha(theme.palette.success.main, 0.28)
+										: alpha(theme.palette.action.hover, 0.08),
 								},
 							}}
 						>
@@ -202,11 +259,19 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 								fontWeight: 800,
 								py: 1.2,
 								fontSize: "0.85rem",
-								bgcolor: !isDeposit ? alpha(theme.palette.error.main, 0.18) : "transparent",
-								color: !isDeposit ? theme.palette.error.light : "text.secondary",
-								borderColor: !isDeposit ? theme.palette.error.main : alpha(theme.palette.divider, 0.2),
+								bgcolor: !isDeposit
+									? alpha(theme.palette.error.main, 0.18)
+									: "transparent",
+								color: !isDeposit
+									? theme.palette.error.light
+									: "text.secondary",
+								borderColor: !isDeposit
+									? theme.palette.error.main
+									: alpha(theme.palette.divider, 0.2),
 								"&:hover": {
-									bgcolor: !isDeposit ? alpha(theme.palette.error.main, 0.28) : alpha(theme.palette.action.hover, 0.08),
+									bgcolor: !isDeposit
+										? alpha(theme.palette.error.main, 0.28)
+										: alpha(theme.palette.action.hover, 0.08),
 								},
 							}}
 						>
@@ -217,8 +282,23 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 
 				{/* Contributor / Depositor Username */}
 				<Box>
-					<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.8 }}>
-						<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, textTransform: "uppercase", fontSize: "0.68rem" }}>
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+							mb: 0.8,
+						}}
+					>
+						<Typography
+							variant="caption"
+							sx={{
+								color: "text.secondary",
+								fontWeight: 700,
+								textTransform: "uppercase",
+								fontSize: "0.68rem",
+							}}
+						>
 							Contributor / Depositor Username
 						</Typography>
 						{username !== bank.owner_username && (
@@ -258,8 +338,19 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 					/>
 
 					{/* Quick amount addition pills */}
-					<Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8, mt: 1, alignItems: "center" }}>
-						<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", mr: 0.5 }}>
+					<Box
+						sx={{
+							display: "flex",
+							flexWrap: "wrap",
+							gap: 0.8,
+							mt: 1,
+							alignItems: "center",
+						}}
+					>
+						<Typography
+							variant="caption"
+							sx={{ color: "text.secondary", fontSize: "0.68rem", mr: 0.5 }}
+						>
 							Quick Add:
 						</Typography>
 						{QUICK_AMOUNTS.map((q) => (
@@ -276,8 +367,12 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 									height: 22,
 									borderColor: alpha(theme.palette.divider, 0.2),
 									"&:hover": {
-										borderColor: isDeposit ? theme.palette.success.main : theme.palette.error.main,
-										bgcolor: isDeposit ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1),
+										borderColor: isDeposit
+											? theme.palette.success.main
+											: theme.palette.error.main,
+										bgcolor: isDeposit
+											? alpha(theme.palette.success.main, 0.1)
+											: alpha(theme.palette.error.main, 0.1),
 									},
 								}}
 							/>
@@ -289,7 +384,11 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 								variant="outlined"
 								clickable
 								onClick={() => setAmount("")}
-								sx={{ fontSize: "0.65rem", height: 22, color: "text.secondary" }}
+								sx={{
+									fontSize: "0.65rem",
+									height: 22,
+									color: "text.secondary",
+								}}
 							/>
 						)}
 					</Box>
@@ -333,10 +432,20 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 						}
 						label={
 							<Box>
-								<Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.82rem" }}>
+								<Typography
+									variant="body2"
+									sx={{ fontWeight: 700, fontSize: "0.82rem" }}
+								>
 									Update Bank Liquidity Reserves (Current Money)
 								</Typography>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem", display: "block" }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.7rem",
+										display: "block",
+									}}
+								>
 									{isDeposit
 										? `Immediately add +${typeof amount === "number" ? amount.toLocaleString() : "0"} ${currency} to bank's available reserve balance.`
 										: `Immediately deduct -${typeof amount === "number" ? amount.toLocaleString() : "0"} ${currency} from bank's available reserve balance.`}
@@ -347,12 +456,26 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 				</Box>
 
 				<Alert severity="info" sx={{ fontSize: "0.74rem", py: 0.5 }}>
-					Manual transactions are marked as <strong>Manual</strong> in the ledger since they are not linked to an in-game contract. They fully participate in depositor history, total deposits, and liquidity calculations.
+					Manual transactions are marked as <strong>Manual</strong> in the
+					ledger since they are not linked to an in-game contract. They fully
+					participate in depositor history, total deposits, and liquidity
+					calculations.
 				</Alert>
 			</DialogContent>
 
-			<DialogActions sx={{ p: 2, px: 2.5, borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
-				<Button onClick={onClose} color="inherit" disabled={submitting} sx={{ fontWeight: 700, textTransform: "none" }}>
+			<DialogActions
+				sx={{
+					p: 2,
+					px: 2.5,
+					borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+				}}
+			>
+				<Button
+					onClick={onClose}
+					color="inherit"
+					disabled={submitting}
+					sx={{ fontWeight: 700, textTransform: "none" }}
+				>
 					Cancel
 				</Button>
 				<Button
@@ -360,7 +483,13 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 					variant="contained"
 					color={isDeposit ? "success" : "error"}
 					disabled={submitting || amount === "" || Number(amount) <= 0}
-					startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <SavingsOutlinedIcon sx={{ fontSize: 18 }} />}
+					startIcon={
+						submitting ? (
+							<CircularProgress size={16} color="inherit" />
+						) : (
+							<SavingsOutlinedIcon sx={{ fontSize: 18 }} />
+						)
+					}
 					sx={{
 						fontWeight: 800,
 						textTransform: "none",
@@ -370,8 +499,8 @@ export const ManualDepositDialog: React.FC<ManualDepositDialogProps> = ({
 					{submitting
 						? "Saving..."
 						: isDeposit
-						? "Record Deposit"
-						: "Record Withdrawal"}
+							? "Record Deposit"
+							: "Record Withdrawal"}
 				</Button>
 			</DialogActions>
 		</Dialog>

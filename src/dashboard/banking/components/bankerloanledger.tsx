@@ -31,7 +31,11 @@ import type { Bank, BankLoanRecord } from "../types";
 import { LinkContractDialog } from "./linkcontractdialog";
 import { ImportLedgerDialog } from "./importledgerdialog";
 import { CheckCircleOutlineOutlined } from "@mui/icons-material";
-import { formatAmount, formatBankDate, getTransactionTypeChipProps } from "../helpers";
+import {
+	formatAmount,
+	formatBankDate,
+	getTransactionTypeChipProps,
+} from "../helpers";
 
 interface BankerLoanLedgerProps {
 	bank: Bank;
@@ -48,7 +52,9 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 	const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 	const [importDialogOpen, setImportDialogOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [filterTab, setFilterTab] = useState<"ALL" | "LOANS" | "DEPOSITS" | "WITHDRAWALS">("ALL");
+	const [filterTab, setFilterTab] = useState<
+		"ALL" | "LOANS" | "DEPOSITS" | "WITHDRAWALS"
+	>("ALL");
 	const [copiedId, setCopiedId] = useState<string | null>(null);
 
 	const handleCopy = (text: string) => {
@@ -75,9 +81,15 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 		);
 	});
 
-	const loansCount = loans.filter((l) => (l.transaction_type || "LOAN") === "LOAN").length;
-	const depositsCount = loans.filter((l) => l.transaction_type === "DEPOSIT").length;
-	const withdrawalsCount = loans.filter((l) => l.transaction_type === "WITHDRAWAL").length;
+	const loansCount = loans.filter(
+		(l) => (l.transaction_type || "LOAN") === "LOAN",
+	).length;
+	const depositsCount = loans.filter(
+		(l) => l.transaction_type === "DEPOSIT",
+	).length;
+	const withdrawalsCount = loans.filter(
+		(l) => l.transaction_type === "WITHDRAWAL",
+	).length;
 
 	return (
 		<Paper
@@ -86,7 +98,8 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 				p: 3,
 				borderRadius: 2,
 				border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-				background: "linear-gradient(135deg, rgba(18, 20, 32, 0.8) 0%, rgba(24, 26, 44, 0.8) 100%)",
+				background:
+					"linear-gradient(135deg, rgba(18, 20, 32, 0.8) 0%, rgba(24, 26, 44, 0.8) 100%)",
 				backdropFilter: "blur(12px)",
 				display: "flex",
 				flexDirection: "column",
@@ -108,7 +121,8 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 						Bank Ledger &amp; Transactions
 					</Typography>
 					<Typography variant="body2" sx={{ color: "text.secondary" }}>
-						Historical and live ledger with verified in-game contract snapshots and spreadsheet imports.
+						Historical and live ledger with verified in-game contract snapshots
+						and spreadsheet imports.
 					</Typography>
 				</Box>
 
@@ -168,12 +182,18 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 					onChange={(_, val) => setFilterTab(val)}
 					textColor="primary"
 					indicatorColor="primary"
-					sx={{ minHeight: 36, "& .MuiTab-root": { minHeight: 36, py: 0.5, fontWeight: 700 } }}
+					sx={{
+						minHeight: 36,
+						"& .MuiTab-root": { minHeight: 36, py: 0.5, fontWeight: 700 },
+					}}
 				>
 					<Tab label={`All (${loans.length})`} value="ALL" />
 					<Tab label={`Loans (${loansCount})`} value="LOANS" />
 					<Tab label={`Deposits (${depositsCount})`} value="DEPOSITS" />
-					<Tab label={`Withdrawals (${withdrawalsCount})`} value="WITHDRAWALS" />
+					<Tab
+						label={`Withdrawals (${withdrawalsCount})`}
+						value="WITHDRAWALS"
+					/>
 				</Tabs>
 
 				<TextField
@@ -194,25 +214,54 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 				/>
 			</Box>
 
-
 			{/* Table */}
-			<TableContainer sx={{ maxHeight: 520, borderRadius: 1.5, border: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+			<TableContainer
+				sx={{
+					maxHeight: 520,
+					borderRadius: 1.5,
+					border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+				}}
+			>
 				<Table stickyHeader size="small">
 					<TableHead>
 						<TableRow>
-							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper", width: 110 }}>TYPE</TableCell>
-							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>COUNTERPARTY</TableCell>
-							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>AMOUNT</TableCell>
-							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>TERMS</TableCell>
-							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>CONTRACT LINK</TableCell>
-							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>STATUS &amp; AUDIT</TableCell>
-							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>DATE / DUE</TableCell>
+							<TableCell
+								sx={{
+									fontWeight: 800,
+									bgcolor: "background.paper",
+									width: 110,
+								}}
+							>
+								TYPE
+							</TableCell>
+							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>
+								COUNTERPARTY
+							</TableCell>
+							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>
+								AMOUNT
+							</TableCell>
+							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>
+								TERMS
+							</TableCell>
+							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>
+								CONTRACT LINK
+							</TableCell>
+							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>
+								STATUS &amp; AUDIT
+							</TableCell>
+							<TableCell sx={{ fontWeight: 800, bgcolor: "background.paper" }}>
+								DATE / DUE
+							</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
 						{filteredLoans.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
+								<TableCell
+									colSpan={7}
+									align="center"
+									sx={{ py: 6, color: "text.secondary" }}
+								>
 									{loans.length === 0
 										? "No ledger transactions recorded yet. Use 'Import CSV Ledger' to import your existing sheet or 'Record / Link Contract' for in-game contracts."
 										: "No transactions matched your filter."}
@@ -225,10 +274,17 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 								const amount = loan.amount || 0;
 								const currency = loan.currency || "ICA";
 								const contractId = loan.contract_id || "N/A";
-								const typeProps = getTransactionTypeChipProps(loan.transaction_type, theme);
+								const typeProps = getTransactionTypeChipProps(
+									loan.transaction_type,
+									theme,
+								);
 
 								return (
-									<TableRow key={loan.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+									<TableRow
+										key={loan.id}
+										hover
+										sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+									>
 										{/* Type */}
 										<TableCell>
 											<Chip
@@ -252,7 +308,10 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 													{loan.partner_name || loan.requester_username}
 												</Typography>
 												{loan.partner_name && loan.partner_code && (
-													<Typography variant="caption" sx={{ color: "text.secondary" }}>
+													<Typography
+														variant="caption"
+														sx={{ color: "text.secondary" }}
+													>
 														User: {loan.requester_username}
 													</Typography>
 												)}
@@ -261,8 +320,19 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 
 										{/* Amount */}
 										<TableCell>
-											<Typography variant="body2" sx={{ fontWeight: 800, color: typeProps.color }}>
-												{amount.toLocaleString()} <span style={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>{currency}</span>
+											<Typography
+												variant="body2"
+												sx={{ fontWeight: 800, color: typeProps.color }}
+											>
+												{amount.toLocaleString()}{" "}
+												<span
+													style={{
+														fontSize: "0.75rem",
+														color: theme.palette.text.secondary,
+													}}
+												>
+													{currency}
+												</span>
 											</Typography>
 										</TableCell>
 
@@ -273,12 +343,18 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 													<Typography variant="body2" sx={{ fontWeight: 600 }}>
 														{loan.interest_rate}%
 													</Typography>
-													<Typography variant="caption" sx={{ color: "text.secondary" }}>
+													<Typography
+														variant="caption"
+														sx={{ color: "text.secondary" }}
+													>
 														{loan.term_days ? `${loan.term_days} days` : "Open"}
 													</Typography>
 												</>
 											) : (
-												<Typography variant="caption" sx={{ color: "text.secondary" }}>
+												<Typography
+													variant="caption"
+													sx={{ color: "text.secondary" }}
+												>
 													Standard (0%)
 												</Typography>
 											)}
@@ -287,7 +363,13 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 										{/* Contract Link */}
 										<TableCell>
 											{contractId !== "N/A" ? (
-												<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+												<Box
+													sx={{
+														display: "flex",
+														alignItems: "center",
+														gap: 0.5,
+													}}
+												>
 													<Chip
 														label={contractId}
 														size="small"
@@ -297,22 +379,44 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 															fontWeight: 700,
 															fontSize: "0.75rem",
 															bgcolor: alpha(theme.palette.primary.main, 0.08),
-															borderColor: alpha(theme.palette.primary.main, 0.25),
+															borderColor: alpha(
+																theme.palette.primary.main,
+																0.25,
+															),
 														}}
 													/>
-													<Tooltip title={copiedId === contractId ? "Copied!" : "Copy Local ID"}>
-														<IconButton size="small" onClick={() => handleCopy(contractId)}>
+													<Tooltip
+														title={
+															copiedId === contractId
+																? "Copied!"
+																: "Copy Local ID"
+														}
+													>
+														<IconButton
+															size="small"
+															onClick={() => handleCopy(contractId)}
+														>
 															<ContentCopyIcon sx={{ fontSize: 14 }} />
 														</IconButton>
 													</Tooltip>
 												</Box>
 											) : (
-												<Typography variant="caption" sx={{ color: "text.secondary" }}>
+												<Typography
+													variant="caption"
+													sx={{ color: "text.secondary" }}
+												>
 													No contract
 												</Typography>
 											)}
 											{loan.contract_status && (
-												<Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.2 }}>
+												<Typography
+													variant="caption"
+													sx={{
+														color: "text.secondary",
+														display: "block",
+														mt: 0.2,
+													}}
+												>
 													PrUn: {loan.contract_status}
 												</Typography>
 											)}
@@ -320,29 +424,58 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 
 										{/* Status & Audit */}
 										<TableCell>
-											<Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, alignItems: "flex-start" }}>
+											<Box
+												sx={{
+													display: "flex",
+													flexDirection: "column",
+													gap: 0.5,
+													alignItems: "flex-start",
+												}}
+											>
 												{isRepaid ? (
 													<Chip
-														icon={<CheckCircleOutlineOutlined sx={{ fontSize: "14px !important" }} />}
+														icon={
+															<CheckCircleOutlineOutlined
+																sx={{ fontSize: "14px !important" }}
+															/>
+														}
 														label="REPAID"
 														size="small"
 														color="success"
-														sx={{ fontWeight: 700, fontSize: "0.68rem", height: 22 }}
+														sx={{
+															fontWeight: 700,
+															fontSize: "0.68rem",
+															height: 22,
+														}}
 													/>
 												) : isApproved ? (
 													<Chip
-														icon={<HourglassTopIcon sx={{ fontSize: "14px !important" }} />}
+														icon={
+															<HourglassTopIcon
+																sx={{ fontSize: "14px !important" }}
+															/>
+														}
 														label="ACTIVE"
 														size="small"
 														color="warning"
-														sx={{ fontWeight: 700, fontSize: "0.68rem", height: 22 }}
+														sx={{
+															fontWeight: 700,
+															fontSize: "0.68rem",
+															height: 22,
+														}}
 													/>
 												) : (
 													<Chip
 														label={loan.status}
 														size="small"
-														color={loan.status === "REJECTED" ? "error" : "info"}
-														sx={{ fontWeight: 700, fontSize: "0.68rem", height: 22 }}
+														color={
+															loan.status === "REJECTED" ? "error" : "info"
+														}
+														sx={{
+															fontWeight: 700,
+															fontSize: "0.68rem",
+															height: 22,
+														}}
 													/>
 												)}
 
@@ -350,7 +483,14 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 												{loan.is_verified ? (
 													<Tooltip title="Verified: Backed by in-game contract snapshot in PUNoted">
 														<Chip
-															icon={<VerifiedUserIcon sx={{ fontSize: "12px !important", color: "#34d399 !important" }} />}
+															icon={
+																<VerifiedUserIcon
+																	sx={{
+																		fontSize: "12px !important",
+																		color: "#34d399 !important",
+																	}}
+																/>
+															}
 															label="Verified"
 															size="small"
 															variant="outlined"
@@ -366,7 +506,14 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 												) : (
 													<Tooltip title="Self-Reported: Imported from spreadsheet or recorded without verified contract snapshot">
 														<Chip
-															icon={<HistoryEduIcon sx={{ fontSize: "12px !important", color: "#94a3b8 !important" }} />}
+															icon={
+																<HistoryEduIcon
+																	sx={{
+																		fontSize: "12px !important",
+																		color: "#94a3b8 !important",
+																	}}
+																/>
+															}
 															label="Self-Reported"
 															size="small"
 															variant="outlined"
@@ -385,15 +532,24 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 
 										{/* Created / Due */}
 										<TableCell>
-											<Typography variant="caption" sx={{ display: "block", color: "text.primary" }}>
+											<Typography
+												variant="caption"
+												sx={{ display: "block", color: "text.primary" }}
+											>
 												{formatBankDate(loan.created_at)}
 											</Typography>
 											{loan.contract_duedate ? (
-												<Typography variant="caption" sx={{ color: "warning.main", display: "block" }}>
+												<Typography
+													variant="caption"
+													sx={{ color: "warning.main", display: "block" }}
+												>
 													Due: {formatBankDate(loan.contract_duedate)}
 												</Typography>
 											) : loan.term_days ? (
-												<Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+												<Typography
+													variant="caption"
+													sx={{ color: "text.secondary", display: "block" }}
+												>
 													Term: {loan.term_days}d
 												</Typography>
 											) : null}
@@ -429,4 +585,3 @@ export const BankerLoanLedger: React.FC<BankerLoanLedgerProps> = ({
 		</Paper>
 	);
 };
-

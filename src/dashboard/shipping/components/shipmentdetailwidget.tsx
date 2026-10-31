@@ -76,7 +76,13 @@ const formatRemainingTime = (ms: number): string => {
 export interface ExpectedDeliveryInfo {
 	label: string;
 	detail?: string;
-	state: "DELIVERED" | "SOON" | "IN_FLIGHT" | "DEADLINE" | "PENDING_PICKUP" | "UNKNOWN";
+	state:
+		| "DELIVERED"
+		| "SOON"
+		| "IN_FLIGHT"
+		| "DEADLINE"
+		| "PENDING_PICKUP"
+		| "UNKNOWN";
 	colorType: "success" | "warning" | "info" | "primary" | "default";
 	arrivalMs?: number;
 }
@@ -132,7 +138,8 @@ export const checkIsAtDestination = (
 					const cleanFlightDest = cleanLocation(flightDest);
 					if (
 						cleanFlightDest &&
-						(cleanDest.includes(cleanFlightDest) || cleanFlightDest.includes(cleanDest))
+						(cleanDest.includes(cleanFlightDest) ||
+							cleanFlightDest.includes(cleanDest))
 					) {
 						return true;
 					}
@@ -148,11 +155,17 @@ export const checkIsAtDestination = (
 		const cleanOrigin = cleanLocation(item.origin_label);
 
 		// If it's still at origin, it is not at destination
-		if (cleanOrigin && (cleanOrigin.includes(cleanLocName) || cleanLocName.includes(cleanOrigin))) {
+		if (
+			cleanOrigin &&
+			(cleanOrigin.includes(cleanLocName) || cleanLocName.includes(cleanOrigin))
+		) {
 			return false;
 		}
 
-		if (cleanLocName && (cleanDest.includes(cleanLocName) || cleanLocName.includes(cleanDest))) {
+		if (
+			cleanLocName &&
+			(cleanDest.includes(cleanLocName) || cleanLocName.includes(cleanDest))
+		) {
 			return true;
 		}
 		if (cleanSysName && cleanDest.includes(cleanSysName)) {
@@ -230,7 +243,9 @@ export const getPackageExpectedDelivery = (
 	if (contract.deadline) {
 		const deadlineDate = new Date(contract.deadline);
 		const isLate = isBefore(deadlineDate, new Date());
-		const distanceStr = formatDistanceToNowStrict(deadlineDate, { addSuffix: true });
+		const distanceStr = formatDistanceToNowStrict(deadlineDate, {
+			addSuffix: true,
+		});
 		const deadlineFormatted = deadlineDate.toLocaleDateString([], {
 			month: "short",
 			day: "numeric",
@@ -309,7 +324,9 @@ export const getContractExpectedDelivery = (
 	});
 
 	// Filter out packages that are already completed
-	const pendingDeliveries = itemDeliveries.filter((d) => d.state !== "DELIVERED");
+	const pendingDeliveries = itemDeliveries.filter(
+		(d) => d.state !== "DELIVERED",
+	);
 	const isMulti = itemDeliveries.length > 1;
 	const deliveredCount = itemDeliveries.length - pendingDeliveries.length;
 	const progressSuffix =
@@ -321,7 +338,9 @@ export const getContractExpectedDelivery = (
 	if (pendingDeliveries.length === 0) {
 		return {
 			label: "Delivered",
-			detail: isMulti ? `All ${itemDeliveries.length} packages delivered` : "Package delivered",
+			detail: isMulti
+				? `All ${itemDeliveries.length} packages delivered`
+				: "Package delivered",
 			state: "DELIVERED",
 			colorType: "success",
 		};
@@ -341,7 +360,9 @@ export const getContractExpectedDelivery = (
 
 	// 3. If any pending items are in flight:
 	// For multiple in-flight packages, the shipment completes when the final ship lands.
-	const inFlightItems = pendingDeliveries.filter((d) => d.state === "IN_FLIGHT");
+	const inFlightItems = pendingDeliveries.filter(
+		(d) => d.state === "IN_FLIGHT",
+	);
 	const hasUnscheduled = pendingDeliveries.some(
 		(d) => d.state === "DEADLINE" || d.state === "PENDING_PICKUP",
 	);
@@ -366,7 +387,9 @@ export const getContractExpectedDelivery = (
 		};
 	}
 
-	const pendingPickup = pendingDeliveries.find((d) => d.state === "PENDING_PICKUP");
+	const pendingPickup = pendingDeliveries.find(
+		(d) => d.state === "PENDING_PICKUP",
+	);
 	if (pendingPickup) {
 		return {
 			...pendingPickup,
@@ -414,12 +437,14 @@ const getDeliveryColorAndIcon = (
 		case "PENDING_PICKUP":
 		default:
 			return {
-				color: info.colorType === "warning" ? theme.palette.warning.main : accentColor,
+				color:
+					info.colorType === "warning"
+						? theme.palette.warning.main
+						: accentColor,
 				icon: <AccessTime sx={{ fontSize: 15 }} />,
 			};
 	}
 };
-
 
 // --- OPTIMIZED FLIGHT PROGRESS BAR ---
 const OptimizedFlightProgressBar = React.memo(
@@ -713,7 +738,9 @@ const PackageCard = ({
 					bgcolor: expanded
 						? alpha(accentColor, 0.12)
 						: alpha(theme.palette.background.default, 0.3),
-					borderBottom: expanded ? `1px solid ${alpha(cardBorder, 0.2)}` : "none",
+					borderBottom: expanded
+						? `1px solid ${alpha(cardBorder, 0.2)}`
+						: "none",
 					textAlign: "left",
 				}}
 			>
@@ -723,7 +750,10 @@ const PackageCard = ({
 							width: 30,
 							height: 30,
 							borderRadius: 1,
-							bgcolor: alpha(isDeliveryDone ? theme.palette.success.main : accentColor, 0.15),
+							bgcolor: alpha(
+								isDeliveryDone ? theme.palette.success.main : accentColor,
+								0.15,
+							),
 							border: `1px solid ${alpha(isDeliveryDone ? theme.palette.success.main : accentColor, 0.35)}`,
 							display: "flex",
 							alignItems: "center",
@@ -777,24 +807,30 @@ const PackageCard = ({
 						}}
 					/>
 					<Stack direction="row" spacing={0.5}>
-						{[isProvisionDone, isPickupDone, isDeliveryDone].map((done, idx) => (
-							<Box
-								key={idx}
-								sx={{
-									width: 6,
-									height: 6,
-									borderRadius: "50%",
-									bgcolor: done
-										? theme.palette.success.main
-										: alpha(theme.palette.text.disabled, 0.3),
-								}}
-							/>
-						))}
+						{[isProvisionDone, isPickupDone, isDeliveryDone].map(
+							(done, idx) => (
+								<Box
+									key={idx}
+									sx={{
+										width: 6,
+										height: 6,
+										borderRadius: "50%",
+										bgcolor: done
+											? theme.palette.success.main
+											: alpha(theme.palette.text.disabled, 0.3),
+									}}
+								/>
+							),
+						)}
 					</Stack>
 					{expanded ? (
-						<ExpandLess sx={{ fontSize: 18, color: theme.palette.text.secondary }} />
+						<ExpandLess
+							sx={{ fontSize: 18, color: theme.palette.text.secondary }}
+						/>
 					) : (
-						<ExpandMore sx={{ fontSize: 18, color: theme.palette.text.secondary }} />
+						<ExpandMore
+							sx={{ fontSize: 18, color: theme.palette.text.secondary }}
+						/>
 					)}
 				</Stack>
 			</ButtonBase>
@@ -820,7 +856,11 @@ const PackageCard = ({
 					<FlowStep
 						icon={ExitToApp}
 						label="PICKUP"
-						subLabel={provisionStep ? provisionStep.origin_label : (item.origin_label || "Origin")}
+						subLabel={
+							provisionStep
+								? provisionStep.origin_label
+								: item.origin_label || "Origin"
+						}
 						isDone={isPickupDone}
 						accentColor={accentColor}
 					/>
@@ -851,7 +891,11 @@ const PackageCard = ({
 										>
 											<Typography
 												variant="caption"
-												sx={{ fontWeight: 800, color: accentColor, fontSize: "0.75rem" }}
+												sx={{
+													fontWeight: 800,
+													color: accentColor,
+													fontSize: "0.75rem",
+												}}
 											>
 												{assignedShip.name}
 											</Typography>
@@ -859,7 +903,11 @@ const PackageCard = ({
 												<IconButton
 													size="small"
 													onClick={() =>
-														onFocusLocation({ type: "SHIP", id: assignedShip.id, nonce: Date.now() })
+														onFocusLocation({
+															type: "SHIP",
+															id: assignedShip.id,
+															nonce: Date.now(),
+														})
 													}
 													sx={{
 														p: 0.3,
@@ -883,13 +931,25 @@ const PackageCard = ({
 														fontWeight: 600,
 													}}
 												>
-													<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+													<Box
+														sx={{
+															display: "flex",
+															alignItems: "center",
+															gap: 0.4,
+														}}
+													>
 														<FlightTakeoff sx={{ fontSize: 12 }} />
 														{assignedShip.flight.originplanetid ||
 															assignedShip.flight.originstationid ||
 															assignedShip.flight.originsystemid}
 													</Box>
-													<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+													<Box
+														sx={{
+															display: "flex",
+															alignItems: "center",
+															gap: 0.4,
+														}}
+													>
 														{assignedShip.flight.destinationplanetid ||
 															assignedShip.flight.destinationstationid ||
 															assignedShip.flight.destinationsystemid}
@@ -941,7 +1001,8 @@ const PackageCard = ({
 															? theme.palette.warning.main
 															: theme.palette.text.secondary,
 													fontSize: "0.7rem",
-													fontWeight: packageDelivery.state === "SOON" ? 700 : 400,
+													fontWeight:
+														packageDelivery.state === "SOON" ? 700 : 400,
 												}}
 											>
 												{packageDelivery.state === "SOON"
@@ -966,9 +1027,14 @@ const PackageCard = ({
 												alignItems: "center",
 											}}
 										>
-											<Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+											<Box
+												sx={{ display: "flex", alignItems: "center", gap: 0.6 }}
+											>
 												<Warehouse
-													sx={{ fontSize: 14, color: theme.palette.warning.main }}
+													sx={{
+														fontSize: 14,
+														color: theme.palette.warning.main,
+													}}
 												/>
 												<Typography
 													variant="caption"
@@ -978,21 +1044,32 @@ const PackageCard = ({
 														color: theme.palette.warning.main,
 													}}
 												>
-													Stored in {item.location_name || item.location_type || "Warehouse"}
-													{packageDelivery.state === "SOON" ? " (At Destination - Soon)" : ""}
+													Stored in{" "}
+													{item.location_name ||
+														item.location_type ||
+														"Warehouse"}
+													{packageDelivery.state === "SOON"
+														? " (At Destination - Soon)"
+														: ""}
 												</Typography>
 											</Box>
 											<Tooltip title="Locate on map">
 												<IconButton
 													size="small"
 													onClick={() => {
-														if (item.location_type === "STATION" && item.location_name) {
+														if (
+															item.location_type === "STATION" &&
+															item.location_name
+														) {
 															onFocusLocation({
 																type: "STATION",
 																id: item.location_name,
 																systemId: item.systemid || undefined,
 															});
-														} else if (item.planetid || item.location_type === "SITE") {
+														} else if (
+															item.planetid ||
+															item.location_type === "SITE"
+														) {
 															onFocusLocation({
 																type: "PLANET",
 																id: item.planetid || item.location_name,
@@ -1008,7 +1085,9 @@ const PackageCard = ({
 													sx={{
 														p: 0.3,
 														bgcolor: alpha(theme.palette.warning.main, 0.15),
-														"&:hover": { bgcolor: alpha(theme.palette.warning.main, 0.3) },
+														"&:hover": {
+															bgcolor: alpha(theme.palette.warning.main, 0.3),
+														},
 													}}
 												>
 													<GpsFixed
@@ -1087,7 +1166,6 @@ const PackageCard = ({
 						isLast={true}
 						accentColor={accentColor}
 					/>
-
 				</Box>
 			</Collapse>
 		</Box>
@@ -1105,7 +1183,9 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 }) => {
 	const theme = useTheme();
 
-	const isCarrier = (contract as any).party === "CARRIER" || (contract as any).role === "CARRIER";
+	const isCarrier =
+		(contract as any).party === "CARRIER" ||
+		(contract as any).role === "CARRIER";
 	const accentColor = isCarrier
 		? theme.palette.primary.main
 		: theme.palette.secondary.main;
@@ -1170,7 +1250,6 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-
 	return (
 		<Paper
 			elevation={isMobile ? 12 : 6}
@@ -1199,11 +1278,15 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 				borderRadius: 2,
 				zIndex: 25,
 				overflow: "hidden",
-				boxShadow: isMobile ? "0 -8px 32px rgba(0,0,0,0.6)" : "0 8px 32px rgba(0,0,0,0.5)",
+				boxShadow: isMobile
+					? "0 -8px 32px rgba(0,0,0,0.6)"
+					: "0 8px 32px rgba(0,0,0,0.5)",
 			}}
 		>
 			{/* Top Accent Strip */}
-			<Box sx={{ height: 3, bgcolor: accentColor, width: "100%", flexShrink: 0 }} />
+			<Box
+				sx={{ height: 3, bgcolor: accentColor, width: "100%", flexShrink: 0 }}
+			/>
 
 			{/* HEADER */}
 			<Box
@@ -1248,7 +1331,9 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 									<Refresh
 										fontSize="small"
 										sx={{
-											animation: isRefreshing ? "spin 1s linear infinite" : "none",
+											animation: isRefreshing
+												? "spin 1s linear infinite"
+												: "none",
 											"@keyframes spin": {
 												"0%": { transform: "rotate(0deg)" },
 												"100%": { transform: "rotate(360deg)" },
@@ -1305,7 +1390,9 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 
 					{deadlineText && (
 						<Stack direction="row" spacing={0.4} alignItems="center">
-							<AccessTime sx={{ fontSize: 13, color: theme.palette.text.secondary }} />
+							<AccessTime
+								sx={{ fontSize: 13, color: theme.palette.text.secondary }}
+							/>
 							<Typography
 								variant="caption"
 								sx={{
@@ -1329,7 +1416,9 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 							mt: 0.8,
 						}}
 					>
-						<Handshake sx={{ fontSize: 14, color: theme.palette.text.disabled }} />
+						<Handshake
+							sx={{ fontSize: 14, color: theme.palette.text.disabled }}
+						/>
 						<Typography
 							variant="body2"
 							sx={{
@@ -1451,7 +1540,8 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 						variant="caption"
 						sx={{ color: theme.palette.text.secondary, fontSize: "0.68rem" }}
 					>
-						{deliveryItems.length} PACKAGE{deliveryItems.length !== 1 ? "S" : ""}
+						{deliveryItems.length} PACKAGE
+						{deliveryItems.length !== 1 ? "S" : ""}
 					</Typography>
 				</Box>
 
@@ -1473,7 +1563,6 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 							contract={contract}
 						/>
 					))
-
 				) : (
 					<Box
 						sx={{

@@ -105,7 +105,8 @@ export const useShipArrivalNotifier = (
 					payload.destination_name ||
 					payload.location ||
 					"destination";
-				const shipId = payload.shipid || payload.ship_id || payload.id || "ship";
+				const shipId =
+					payload.shipid || payload.ship_id || payload.id || "ship";
 				const key = `ws_${shipId}_${Date.now()}`;
 
 				if (!checkedArrivalsRef.current.has(key)) {

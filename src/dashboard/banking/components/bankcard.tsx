@@ -50,21 +50,26 @@ export const BankCard: React.FC<BankCardProps> = ({
 	const theme = useTheme();
 
 	const rate = bank.default_interest_rate ?? 5;
-	const rateText = bank.max_interest_rate && bank.max_interest_rate > (bank.default_interest_rate ?? 0)
-		? `${bank.default_interest_rate}% - ${bank.max_interest_rate}% / interval`
-		: `${rate}% / interval`;
+	const rateText =
+		bank.max_interest_rate &&
+		bank.max_interest_rate > (bank.default_interest_rate ?? 0)
+			? `${bank.default_interest_rate}% - ${bank.max_interest_rate}% / interval`
+			: `${rate}% / interval`;
 	const rateColor =
 		rate <= 5
 			? theme.palette.success.main
 			: rate <= 10
-			? theme.palette.primary.main
-			: theme.palette.warning.main;
+				? theme.palette.primary.main
+				: theme.palette.warning.main;
 
 	const isDemo = bank.id < 0;
 	const currentMoney = bank.liquidity || 0;
 	const lentCount = bank.total_loans_count ?? bank.active_loans_count ?? 0;
 	const introText = getCleanBankIntro(bank);
-	const ownerActivity = getOwnerActiveStatus(bank.owner_last_active, bank.owner_is_synchronized !== false);
+	const ownerActivity = getOwnerActiveStatus(
+		bank.owner_last_active,
+		bank.owner_is_synchronized !== false,
+	);
 
 	const handleClick = () => {
 		if (onClick) {
@@ -111,8 +116,22 @@ export const BankCard: React.FC<BankCardProps> = ({
 				}}
 			>
 				{/* Top Row: Bank Name / Ticker & Badges */}
-				<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "flex-start",
+						gap: 1,
+					}}
+				>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 1.25,
+							minWidth: 0,
+						}}
+					>
 						<Box
 							sx={{
 								width: 40,
@@ -154,14 +173,32 @@ export const BankCard: React.FC<BankCardProps> = ({
 									/>
 								)}
 							</Box>
-							<Box sx={{ display: "flex", alignItems: "center", gap: 0.6, mt: 0.25, flexWrap: "wrap" }}>
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 0.6,
+									mt: 0.25,
+									flexWrap: "wrap",
+								}}
+							>
 								<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
 									<PersonIcon sx={{ fontSize: 13, color: "text.secondary" }} />
-									<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.72rem" }} noWrap>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "text.secondary",
+											fontWeight: 600,
+											fontSize: "0.72rem",
+										}}
+										noWrap
+									>
 										{bank.owner_username}
 									</Typography>
 								</Box>
-								<Tooltip title={`Banker Status: ${ownerActivity.label} (Synced: ${bank.owner_is_synchronized !== false ? "Yes" : "No"})`}>
+								<Tooltip
+									title={`Banker Status: ${ownerActivity.label} (Synced: ${bank.owner_is_synchronized !== false ? "Yes" : "No"})`}
+								>
 									<Box
 										sx={{
 											display: "inline-flex",
@@ -174,7 +211,9 @@ export const BankCard: React.FC<BankCardProps> = ({
 											border: `1px solid ${alpha(ownerActivity.dotColor, 0.25)}`,
 										}}
 									>
-										<CircleIcon sx={{ fontSize: 6, color: ownerActivity.dotColor }} />
+										<CircleIcon
+											sx={{ fontSize: 6, color: ownerActivity.dotColor }}
+										/>
 										<Typography
 											variant="caption"
 											sx={{
@@ -193,7 +232,16 @@ export const BankCard: React.FC<BankCardProps> = ({
 					</Box>
 
 					{/* Badges on right: MY BANK, Deposit Status, Currency, Rate */}
-					<Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 0.75,
+							flexShrink: 0,
+							flexWrap: "wrap",
+							justifyContent: "flex-end",
+						}}
+					>
 						{isMyBank && (
 							<Chip
 								label="MY BANK"
@@ -277,21 +325,23 @@ export const BankCard: React.FC<BankCardProps> = ({
 							p: 1.25,
 							borderRadius: 1.5,
 							bgcolor:
-								!loanComparison.withinMinMax || !loanComparison.hasSufficientLiquidity
+								!loanComparison.withinMinMax ||
+								!loanComparison.hasSufficientLiquidity
 									? alpha("#ef4444", 0.08)
 									: loanComparison.statusTier === "COMFORTABLE"
-									? alpha("#10b981", 0.08)
-									: loanComparison.statusTier === "TIGHT"
-									? alpha("#f59e0b", 0.08)
-									: alpha("#ef4444", 0.08),
+										? alpha("#10b981", 0.08)
+										: loanComparison.statusTier === "TIGHT"
+											? alpha("#f59e0b", 0.08)
+											: alpha("#ef4444", 0.08),
 							border: `1px solid ${
-								!loanComparison.withinMinMax || !loanComparison.hasSufficientLiquidity
+								!loanComparison.withinMinMax ||
+								!loanComparison.hasSufficientLiquidity
 									? alpha("#ef4444", 0.3)
 									: loanComparison.statusTier === "COMFORTABLE"
-									? alpha("#10b981", 0.3)
-									: loanComparison.statusTier === "TIGHT"
-									? alpha("#f59e0b", 0.3)
-									: alpha("#ef4444", 0.3)
+										? alpha("#10b981", 0.3)
+										: loanComparison.statusTier === "TIGHT"
+											? alpha("#f59e0b", 0.3)
+											: alpha("#ef4444", 0.3)
 							}`,
 							display: "flex",
 							flexDirection: "column",
@@ -299,7 +349,13 @@ export const BankCard: React.FC<BankCardProps> = ({
 						}}
 					>
 						{/* Fit Status Header */}
-						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+							}}
+						>
 							<Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
 								{loanComparison.isProfitMatch && loanComparison.withinMinMax ? (
 									<CheckCircleIcon sx={{ fontSize: 15, color: "#34d399" }} />
@@ -307,7 +363,10 @@ export const BankCard: React.FC<BankCardProps> = ({
 									<WarningAmberIcon
 										sx={{
 											fontSize: 15,
-											color: loanComparison.statusTier === "TIGHT" ? "#fbbf24" : "#f87171",
+											color:
+												loanComparison.statusTier === "TIGHT"
+													? "#fbbf24"
+													: "#f87171",
 										}}
 									/>
 								)}
@@ -317,25 +376,26 @@ export const BankCard: React.FC<BankCardProps> = ({
 										fontWeight: 800,
 										fontSize: "0.7rem",
 										color:
-											!loanComparison.withinMinMax || !loanComparison.hasSufficientLiquidity
+											!loanComparison.withinMinMax ||
+											!loanComparison.hasSufficientLiquidity
 												? "#f87171"
 												: loanComparison.statusTier === "COMFORTABLE"
-												? "#34d399"
-												: loanComparison.statusTier === "TIGHT"
-												? "#fbbf24"
-												: "#f87171",
+													? "#34d399"
+													: loanComparison.statusTier === "TIGHT"
+														? "#fbbf24"
+														: "#f87171",
 										letterSpacing: 0.3,
 									}}
 								>
 									{!loanComparison.withinMinMax
 										? "OUT OF RANGE"
 										: !loanComparison.hasSufficientLiquidity
-										? "LOW LIQUIDITY"
-										: loanComparison.statusTier === "COMFORTABLE"
-										? "COMFORTABLE"
-										: loanComparison.statusTier === "TIGHT"
-										? "HEAVY LOAD"
-										: "EXCEEDS PROFIT"}
+											? "LOW LIQUIDITY"
+											: loanComparison.statusTier === "COMFORTABLE"
+												? "COMFORTABLE"
+												: loanComparison.statusTier === "TIGHT"
+													? "HEAVY LOAD"
+													: "EXCEEDS PROFIT"}
 								</Typography>
 							</Box>
 
@@ -351,14 +411,14 @@ export const BankCard: React.FC<BankCardProps> = ({
 											loanComparison.statusTier === "COMFORTABLE"
 												? alpha("#10b981", 0.15)
 												: loanComparison.statusTier === "TIGHT"
-												? alpha("#f59e0b", 0.15)
-												: alpha("#ef4444", 0.15),
+													? alpha("#f59e0b", 0.15)
+													: alpha("#ef4444", 0.15),
 										color:
 											loanComparison.statusTier === "COMFORTABLE"
 												? "#34d399"
 												: loanComparison.statusTier === "TIGHT"
-												? "#fbbf24"
-												: "#f87171",
+													? "#fbbf24"
+													: "#f87171",
 									}}
 								/>
 							)}
@@ -376,49 +436,132 @@ export const BankCard: React.FC<BankCardProps> = ({
 							}}
 						>
 							<Box>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem", display: "block", fontWeight: 700 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.58rem",
+										display: "block",
+										fontWeight: 700,
+									}}
+								>
 									PAYOFF TERM
 								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.72rem", color: loanComparison.statusTier === "COMFORTABLE" ? "#34d399" : "#fbbf24" }}>
-									{loanComparison.optimalLengthWeeks}W ({loanComparison.optimalLengthDays}d)
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 800,
+										fontSize: "0.72rem",
+										color:
+											loanComparison.statusTier === "COMFORTABLE"
+												? "#34d399"
+												: "#fbbf24",
+									}}
+								>
+									{loanComparison.optimalLengthWeeks}W (
+									{loanComparison.optimalLengthDays}d)
 								</Typography>
 							</Box>
 
 							<Box>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem", display: "block", fontWeight: 700 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.58rem",
+										display: "block",
+										fontWeight: 700,
+									}}
+								>
 									PAYMENT
 								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.72rem", color: "text.primary" }}>
-									{formatAmount(loanComparison.installmentPerInterval)} <span style={{ fontSize: "0.58rem", color: theme.palette.text.secondary }}>/ 1W</span>
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 800,
+										fontSize: "0.72rem",
+										color: "text.primary",
+									}}
+								>
+									{formatAmount(loanComparison.installmentPerInterval)}{" "}
+									<span
+										style={{
+											fontSize: "0.58rem",
+											color: theme.palette.text.secondary,
+										}}
+									>
+										/ 1W
+									</span>
 								</Typography>
 							</Box>
 
 							<Box>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem", display: "block", fontWeight: 700 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.58rem",
+										display: "block",
+										fontWeight: 700,
+									}}
+								>
 									INTEREST
 								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.72rem", color: "primary.main" }}>
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 800,
+										fontSize: "0.72rem",
+										color: "primary.main",
+									}}
+								>
 									+{formatAmount(loanComparison.totalInterest)}
 								</Typography>
 							</Box>
 						</Box>
 
-						{loanComparison.retainedDailyProfit !== undefined && loanComparison.retainedDailyProfit > 0 && (
-							<Typography variant="caption" sx={{ color: "#34d399", fontSize: "0.62rem", fontWeight: 700, px: 0.5 }}>
-								✓ Keeps ~{formatAmount(loanComparison.retainedDailyProfit)}/d ({loanComparison.retainedPercent}%) for rest
-							</Typography>
-						)}
+						{loanComparison.retainedDailyProfit !== undefined &&
+							loanComparison.retainedDailyProfit > 0 && (
+								<Typography
+									variant="caption"
+									sx={{
+										color: "#34d399",
+										fontSize: "0.62rem",
+										fontWeight: 700,
+										px: 0.5,
+									}}
+								>
+									✓ Keeps ~{formatAmount(loanComparison.retainedDailyProfit)}/d
+									({loanComparison.retainedPercent}%) for rest
+								</Typography>
+							)}
 
 						{/* Compact 1-line warnings if applicable */}
-						{(!loanComparison.withinMinMax || !loanComparison.hasSufficientLiquidity) && (
+						{(!loanComparison.withinMinMax ||
+							!loanComparison.hasSufficientLiquidity) && (
 							<Box sx={{ display: "flex", flexDirection: "column", gap: 0.3 }}>
 								{!loanComparison.withinMinMax && (
-									<Typography variant="caption" sx={{ color: "#ef4444", fontSize: "0.62rem", fontWeight: 700 }}>
-										⚠️ Limit: {formatAmount(bank.min_loan_amount || 0)} - {formatAmount(bank.max_loan_amount || 0)} ICA
+									<Typography
+										variant="caption"
+										sx={{
+											color: "#ef4444",
+											fontSize: "0.62rem",
+											fontWeight: 700,
+										}}
+									>
+										⚠️ Limit: {formatAmount(bank.min_loan_amount || 0)} -{" "}
+										{formatAmount(bank.max_loan_amount || 0)} ICA
 									</Typography>
 								)}
 								{!loanComparison.hasSufficientLiquidity && (
-									<Typography variant="caption" sx={{ color: "#f97316", fontSize: "0.62rem", fontWeight: 700 }}>
+									<Typography
+										variant="caption"
+										sx={{
+											color: "#f97316",
+											fontSize: "0.62rem",
+											fontWeight: 700,
+										}}
+									>
 										⚠️ Exceeds vault: {formatAmount(bank.liquidity)} ICA
 									</Typography>
 								)}
@@ -453,13 +596,24 @@ export const BankCard: React.FC<BankCardProps> = ({
 						}}
 					>
 						{/* Fit Status Header */}
-						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+							}}
+						>
 							<Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
 								{depositComparison.canAcceptDeposit ? (
 									<SavingsOutlinedIcon
 										sx={{
 											fontSize: 16,
-											color: depositComparison.riskTier === "LOW" ? "#34d399" : depositComparison.riskTier === "MODERATE" ? "#fbbf24" : "#f87171",
+											color:
+												depositComparison.riskTier === "LOW"
+													? "#34d399"
+													: depositComparison.riskTier === "MODERATE"
+														? "#fbbf24"
+														: "#f87171",
 										}}
 									/>
 								) : (
@@ -480,12 +634,18 @@ export const BankCard: React.FC<BankCardProps> = ({
 										letterSpacing: 0.3,
 									}}
 								>
-									{!depositComparison.canAcceptDeposit ? "DEPOSITS PAUSED" : depositComparison.riskLabel.toUpperCase()}
+									{!depositComparison.canAcceptDeposit
+										? "DEPOSITS PAUSED"
+										: depositComparison.riskLabel.toUpperCase()}
 								</Typography>
 							</Box>
 
 							<Chip
-								label={depositComparison.maxMonthlyYieldRate ? `${depositComparison.monthlyYieldRate}% - ${depositComparison.maxMonthlyYieldRate}%/mo` : `${depositComparison.monthlyYieldRate}%/mo`}
+								label={
+									depositComparison.maxMonthlyYieldRate
+										? `${depositComparison.monthlyYieldRate}% - ${depositComparison.maxMonthlyYieldRate}%/mo`
+										: `${depositComparison.monthlyYieldRate}%/mo`
+								}
 								size="small"
 								sx={{
 									height: 18,
@@ -509,25 +669,65 @@ export const BankCard: React.FC<BankCardProps> = ({
 							}}
 						>
 							<Box>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem", display: "block", fontWeight: 700 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.58rem",
+										display: "block",
+										fontWeight: 700,
+									}}
+								>
 									WEEKLY ACCOUNTED
 								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.74rem", color: "#34d399" }}>
-									+{formatAmount(depositComparison.weeklyPayout)} {bank.currency || "ICA"}
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 800,
+										fontSize: "0.74rem",
+										color: "#34d399",
+									}}
+								>
+									+{formatAmount(depositComparison.weeklyPayout)}{" "}
+									{bank.currency || "ICA"}
 								</Typography>
 							</Box>
 
 							<Box>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem", display: "block", fontWeight: 700 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.58rem",
+										display: "block",
+										fontWeight: 700,
+									}}
+								>
 									1-MONTH RETURN
 								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.74rem", color: "text.primary" }}>
-									+{formatAmount(depositComparison.monthlyPayout)} {bank.currency || "ICA"}
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 800,
+										fontSize: "0.74rem",
+										color: "text.primary",
+									}}
+								>
+									+{formatAmount(depositComparison.monthlyPayout)}{" "}
+									{bank.currency || "ICA"}
 								</Typography>
 							</Box>
 
 							<Box>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem", display: "block", fontWeight: 700 }}>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.58rem",
+										display: "block",
+										fontWeight: 700,
+									}}
+								>
 									RISK
 								</Typography>
 								<Typography
@@ -535,7 +735,12 @@ export const BankCard: React.FC<BankCardProps> = ({
 									sx={{
 										fontWeight: 800,
 										fontSize: "0.72rem",
-										color: depositComparison.riskTier === "LOW" ? "#34d399" : depositComparison.riskTier === "MODERATE" ? "#fbbf24" : "#f87171",
+										color:
+											depositComparison.riskTier === "LOW"
+												? "#34d399"
+												: depositComparison.riskTier === "MODERATE"
+													? "#fbbf24"
+													: "#f87171",
 									}}
 								>
 									{depositComparison.riskTier}
@@ -543,8 +748,12 @@ export const BankCard: React.FC<BankCardProps> = ({
 							</Box>
 						</Box>
 
-						<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.62rem", px: 0.5 }}>
-							{depositComparison.rejectionReason || depositComparison.riskExplanation}
+						<Typography
+							variant="caption"
+							sx={{ color: "text.secondary", fontSize: "0.62rem", px: 0.5 }}
+						>
+							{depositComparison.rejectionReason ||
+								depositComparison.riskExplanation}
 						</Typography>
 					</Box>
 				) : (
@@ -561,54 +770,160 @@ export const BankCard: React.FC<BankCardProps> = ({
 						}}
 					>
 						<Box>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontWeight: 700, display: "block" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "text.secondary",
+									fontSize: "0.65rem",
+									fontWeight: 700,
+									display: "block",
+								}}
+							>
 								VAULT LIQUIDITY
 							</Typography>
-							<Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.78rem", color: theme.palette.success.main }}>
-								{formatAmount(currentMoney)} <span style={{ fontSize: "0.62rem", color: theme.palette.text.secondary }}>{bank.currency || "ICA"}</span>
-							</Typography>
-						</Box>
-
-						<Box>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontWeight: 700, display: "block" }}>
-								INTEREST &bull; YIELD
-							</Typography>
-							<Typography variant="body2" sx={{ fontWeight: 800, fontSize: "0.75rem", color: rateColor }}>
-								{rateText}{" "}
-								<span style={{ fontSize: "0.62rem", color: theme.palette.text.secondary }}>
-									({bank.max_weekly_yield_rate ? `${bank.weekly_yield_rate || 1.0}-${bank.max_weekly_yield_rate}%/mo` : `${bank.weekly_yield_rate || 1.0}%/mo`})
+							<Typography
+								variant="body2"
+								sx={{
+									fontWeight: 800,
+									fontSize: "0.78rem",
+									color: theme.palette.success.main,
+								}}
+							>
+								{formatAmount(currentMoney)}{" "}
+								<span
+									style={{
+										fontSize: "0.62rem",
+										color: theme.palette.text.secondary,
+									}}
+								>
+									{bank.currency || "ICA"}
 								</span>
 							</Typography>
 						</Box>
 
 						<Box>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontWeight: 700, display: "block" }}>
-								LOAN RANGE
+							<Typography
+								variant="caption"
+								sx={{
+									color: "text.secondary",
+									fontSize: "0.65rem",
+									fontWeight: 700,
+									display: "block",
+								}}
+							>
+								INTEREST &bull; YIELD
 							</Typography>
-							<Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary", fontSize: "0.72rem", display: "block" }}>
-								{bank.min_loan_amount ? formatAmount(bank.min_loan_amount) : "0"} -{" "}
-								{bank.max_loan_amount ? formatAmount(bank.max_loan_amount) : "No Max"}
+							<Typography
+								variant="body2"
+								sx={{ fontWeight: 800, fontSize: "0.75rem", color: rateColor }}
+							>
+								{rateText}{" "}
+								<span
+									style={{
+										fontSize: "0.62rem",
+										color: theme.palette.text.secondary,
+									}}
+								>
+									(
+									{bank.max_weekly_yield_rate
+										? `${bank.weekly_yield_rate || 1.0}-${bank.max_weekly_yield_rate}%/mo`
+										: `${bank.weekly_yield_rate || 1.0}%/mo`}
+									)
+								</span>
 							</Typography>
 						</Box>
 
 						<Box>
-							<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontWeight: 700, display: "block" }}>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "text.secondary",
+									fontSize: "0.65rem",
+									fontWeight: 700,
+									display: "block",
+								}}
+							>
+								LOAN RANGE
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{
+									fontWeight: 700,
+									color: "text.primary",
+									fontSize: "0.72rem",
+									display: "block",
+								}}
+							>
+								{bank.min_loan_amount
+									? formatAmount(bank.min_loan_amount)
+									: "0"}{" "}
+								-{" "}
+								{bank.max_loan_amount
+									? formatAmount(bank.max_loan_amount)
+									: "No Max"}
+							</Typography>
+						</Box>
+
+						<Box>
+							<Typography
+								variant="caption"
+								sx={{
+									color: "text.secondary",
+									fontSize: "0.65rem",
+									fontWeight: 700,
+									display: "block",
+								}}
+							>
 								DEFAULT TERM
 							</Typography>
-							<Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary", fontSize: "0.72rem", display: "block" }}>
-								{formatTermWeeks(bank.default_repay_days || 14)} ({formatPaymentIntervalShort(bank.default_interval)})
+							<Typography
+								variant="caption"
+								sx={{
+									fontWeight: 700,
+									color: "text.primary",
+									fontSize: "0.72rem",
+									display: "block",
+								}}
+							>
+								{formatTermWeeks(bank.default_repay_days || 14)} (
+								{formatPaymentIntervalShort(bank.default_interval)})
 							</Typography>
 						</Box>
 					</Box>
 				)}
 
 				{/* Footer Link Prompt */}
-				<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pt: 0.5, mt: "auto" }}>
-					<Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: "0.7rem" }}>
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						pt: 0.5,
+						mt: "auto",
+					}}
+				>
+					<Typography
+						variant="caption"
+						sx={{
+							color: "text.secondary",
+							fontWeight: 600,
+							fontSize: "0.7rem",
+						}}
+					>
 						{lentCount} loan{lentCount === 1 ? "" : "s"} issued
 					</Typography>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: theme.palette.primary.main }}>
-						<Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.72rem" }}>
+					<Box
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							gap: 0.5,
+							color: theme.palette.primary.main,
+						}}
+					>
+						<Typography
+							variant="caption"
+							sx={{ fontWeight: 700, fontSize: "0.72rem" }}
+						>
 							{isMyBank ? "Manage Bank" : "Inspect Terms & Ledger"}
 						</Typography>
 						<ArrowForwardIosIcon sx={{ fontSize: 9 }} />

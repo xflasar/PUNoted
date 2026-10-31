@@ -550,11 +550,21 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 	}
 
 	// Stored Package Cargo Indicators (Warehouse / Storage) in System View - Always rendered ON TOP
-	if (mode === "shipping" && packageCargoNodes && packageCargoNodes.length > 0) {
+	if (
+		mode === "shipping" &&
+		packageCargoNodes &&
+		packageCargoNodes.length > 0
+	) {
 		const currentZoom = typeof zoom === "number" ? zoom : 1;
 		const nodeZoomFactor = Math.max(0, Math.min(1, (currentZoom - 0.5) / 1.5));
-		const nodeIconOffset: [number, number] = [0, -Math.round(20 * nodeZoomFactor)];
-		const nodeBadgeOffset: [number, number] = [0, -Math.round(20 * nodeZoomFactor) - 18];
+		const nodeIconOffset: [number, number] = [
+			0,
+			-Math.round(20 * nodeZoomFactor),
+		];
+		const nodeBadgeOffset: [number, number] = [
+			0,
+			-Math.round(20 * nodeZoomFactor) - 18,
+		];
 
 		dLayers.push(
 			new IconLayer({

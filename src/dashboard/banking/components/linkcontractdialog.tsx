@@ -59,12 +59,15 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 }) => {
 	const theme = useTheme();
 	const [localId, setLocalId] = useState("");
-	const [transactionType, setTransactionType] = useState<"LOAN" | "DEPOSIT" | "WITHDRAWAL">("LOAN");
+	const [transactionType, setTransactionType] = useState<
+		"LOAN" | "DEPOSIT" | "WITHDRAWAL"
+	>("LOAN");
 
 	const [recentContracts, setRecentContracts] = useState<ContractSummary[]>([]);
 	const [loadingRecent, setLoadingRecent] = useState(false);
 	const [searchingContract, setSearchingContract] = useState(false);
-	const [selectedPreview, setSelectedPreview] = useState<ContractSummary | null>(null);
+	const [selectedPreview, setSelectedPreview] =
+		useState<ContractSummary | null>(null);
 
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -129,11 +132,13 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 					if (res.ok) {
 						const data = await res.json();
 						const items: ContractSummary[] = data.items || [];
-						const matched = items.find(
-							(c) =>
-								(c.localid && c.localid.toLowerCase() === trimmed.toLowerCase()) ||
-								(c.id && c.id.toLowerCase() === trimmed.toLowerCase()),
-						) || items[0];
+						const matched =
+							items.find(
+								(c) =>
+									(c.localid &&
+										c.localid.toLowerCase() === trimmed.toLowerCase()) ||
+									(c.id && c.id.toLowerCase() === trimmed.toLowerCase()),
+							) || items[0];
 
 						if (matched) {
 							setSelectedPreview(matched);
@@ -199,8 +204,16 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 	const isDeposit = transactionType === "DEPOSIT";
 	const isWithdrawal = transactionType === "WITHDRAWAL";
 	const isLoan = transactionType === "LOAN";
-	const mainColor = isDeposit ? theme.palette.success.main : isWithdrawal ? theme.palette.error.main : theme.palette.primary.main;
-	const mainBtnColor: "success" | "error" | "primary" = isDeposit ? "success" : isWithdrawal ? "error" : "primary";
+	const mainColor = isDeposit
+		? theme.palette.success.main
+		: isWithdrawal
+			? theme.palette.error.main
+			: theme.palette.primary.main;
+	const mainBtnColor: "success" | "error" | "primary" = isDeposit
+		? "success"
+		: isWithdrawal
+			? "error"
+			: "primary";
 
 	return (
 		<Dialog
@@ -233,7 +246,10 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 			>
 				<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 					<AddLinkIcon sx={{ color: mainColor, fontSize: 20 }} />
-					<Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: 0.5 }}>
+					<Typography
+						variant="subtitle1"
+						sx={{ fontWeight: 800, letterSpacing: 0.5 }}
+					>
 						{isDeposit
 							? "Link Verified Deposit Contract"
 							: isWithdrawal
@@ -241,14 +257,36 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 								: "Link In-Game Loan Contract"}
 					</Typography>
 				</Box>
-				<IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+				<IconButton
+					size="small"
+					onClick={onClose}
+					sx={{ color: "text.secondary" }}
+				>
 					<CloseIcon sx={{ fontSize: 18 }} />
 				</IconButton>
 			</DialogTitle>
 
-			<DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, px: 2.5, pt: "8px !important", pb: 1.5 }}>
+			<DialogContent
+				sx={{
+					display: "flex",
+					flexDirection: "column",
+					gap: 1.5,
+					px: 2.5,
+					pt: "8px !important",
+					pb: 1.5,
+				}}
+			>
 				{/* Transaction Type 3-Way Segmented Toggle */}
-				<Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", p: 0.5, bgcolor: alpha(theme.palette.background.paper, 0.4), borderRadius: 1.5, gap: 0.5 }}>
+				<Box
+					sx={{
+						display: "grid",
+						gridTemplateColumns: "1fr 1fr 1fr",
+						p: 0.5,
+						bgcolor: alpha(theme.palette.background.paper, 0.4),
+						borderRadius: 1.5,
+						gap: 0.5,
+					}}
+				>
 					<Button
 						size="small"
 						variant={isLoan ? "contained" : "text"}
@@ -296,21 +334,36 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 					</Button>
 				</Box>
 
-				<Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.4 }}>
-					{isDeposit && "Link an incoming in-game contract where a user deposits capital into the bank. If the payment condition is pending in-game, the transaction remains PENDING and will not inflate vault liquidity or depositor balance until fulfilled."}
-					{isWithdrawal && "Link an outgoing in-game contract where the bank pays capital back to a client. It will remain PENDING until the payment condition is fulfilled in-game, after which it will be deducted from vault liquidity and depositor balance."}
-					{isLoan && "Link an in-game trade or loan contract. Enter its Local ID (e.g. X4CNYDJ) or select from recent contracts. All parameters (amount, interest, and term) will be extracted automatically."}
+				<Typography
+					variant="caption"
+					sx={{ color: "text.secondary", lineHeight: 1.4 }}
+				>
+					{isDeposit &&
+						"Link an incoming in-game contract where a user deposits capital into the bank. If the payment condition is pending in-game, the transaction remains PENDING and will not inflate vault liquidity or depositor balance until fulfilled."}
+					{isWithdrawal &&
+						"Link an outgoing in-game contract where the bank pays capital back to a client. It will remain PENDING until the payment condition is fulfilled in-game, after which it will be deducted from vault liquidity and depositor balance."}
+					{isLoan &&
+						"Link an in-game trade or loan contract. Enter its Local ID (e.g. X4CNYDJ) or select from recent contracts. All parameters (amount, interest, and term) will be extracted automatically."}
 				</Typography>
 
 				{error && (
-					<Alert severity="error" sx={{ py: 0.5, borderRadius: 1.5, fontSize: "0.8rem" }}>
+					<Alert
+						severity="error"
+						sx={{ py: 0.5, borderRadius: 1.5, fontSize: "0.8rem" }}
+					>
 						{error}
 					</Alert>
 				)}
 
 				{/* 1. Direct Text Input for Contract Local ID */}
 				<TextField
-					label={isDeposit ? "Deposit Contract Local ID" : isWithdrawal ? "Withdrawal Contract Local ID" : "Contract Local ID"}
+					label={
+						isDeposit
+							? "Deposit Contract Local ID"
+							: isWithdrawal
+								? "Withdrawal Contract Local ID"
+								: "Contract Local ID"
+					}
 					size="small"
 					placeholder="e.g. W1CNYD9"
 					value={localId}
@@ -322,9 +375,15 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 							endAdornment: (
 								<InputAdornment position="end">
 									{searchingContract ? (
-										<CircularProgress size={16} color="inherit" sx={{ mr: 0.5 }} />
+										<CircularProgress
+											size={16}
+											color="inherit"
+											sx={{ mr: 0.5 }}
+										/>
 									) : (
-										<SearchIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+										<SearchIcon
+											sx={{ fontSize: 18, color: "text.secondary" }}
+										/>
 									)}
 								</InputAdornment>
 							),
@@ -340,8 +399,19 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 				{/* Quick pick from recent contracts */}
 				{recentContracts.length > 0 && (
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-						<FormControl size="small" fullWidth sx={{ "& .MuiOutlinedInput-root": { bgcolor: alpha(theme.palette.background.paper, 0.3) } }}>
-							<InputLabel id="recent-contract-select" sx={{ fontSize: "0.78rem" }}>
+						<FormControl
+							size="small"
+							fullWidth
+							sx={{
+								"& .MuiOutlinedInput-root": {
+									bgcolor: alpha(theme.palette.background.paper, 0.3),
+								},
+							}}
+						>
+							<InputLabel
+								id="recent-contract-select"
+								sx={{ fontSize: "0.78rem" }}
+							>
 								Or pick from recent contracts...
 							</InputLabel>
 							<Select
@@ -353,8 +423,18 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 								sx={{ fontSize: "0.78rem" }}
 							>
 								{recentContracts.map((c) => (
-									<MenuItem key={c.id} value={c.localid || c.id} sx={{ fontSize: "0.78rem" }}>
-										<strong style={{ marginRight: 6 }}>{c.localid || c.id}</strong> — {c.partnercode ? `[${c.partnercode}] ` : ""}{c.partnername || "Unknown"} ({(c.total_amount || 0).toLocaleString()} {c.currency || "ICA"})
+									<MenuItem
+										key={c.id}
+										value={c.localid || c.id}
+										sx={{ fontSize: "0.78rem" }}
+									>
+										<strong style={{ marginRight: 6 }}>
+											{c.localid || c.id}
+										</strong>{" "}
+										— {c.partnercode ? `[${c.partnercode}] ` : ""}
+										{c.partnername || "Unknown"} (
+										{(c.total_amount || 0).toLocaleString()}{" "}
+										{c.currency || "ICA"})
 									</MenuItem>
 								))}
 							</Select>
@@ -376,48 +456,155 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 							gap: 1.2,
 						}}
 					>
-						<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+							}}
+						>
 							<Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
 								<HandshakeIcon sx={{ color: mainColor, fontSize: 18 }} />
 								<Typography variant="body2" sx={{ fontWeight: 800 }}>
-									{selectedPreview.partnercode ? `[${selectedPreview.partnercode}] ` : ""}
+									{selectedPreview.partnercode
+										? `[${selectedPreview.partnercode}] `
+										: ""}
 									{selectedPreview.partnername || "Unknown Partner"}
 								</Typography>
 							</Box>
 							<Chip
-								label={selectedPreview.status === "FULFILLED" || selectedPreview.status === "CLOSED" ? (isDeposit ? "VERIFIED DEPOSIT" : isWithdrawal ? "SETTLED PAYOUT" : "REPAID") : selectedPreview.status || "OPEN"}
+								label={
+									selectedPreview.status === "FULFILLED" ||
+									selectedPreview.status === "CLOSED"
+										? isDeposit
+											? "VERIFIED DEPOSIT"
+											: isWithdrawal
+												? "SETTLED PAYOUT"
+												: "REPAID"
+										: selectedPreview.status || "OPEN"
+								}
 								size="small"
-								color={selectedPreview.status === "FULFILLED" || selectedPreview.status === "CLOSED" ? "success" : "info"}
+								color={
+									selectedPreview.status === "FULFILLED" ||
+									selectedPreview.status === "CLOSED"
+										? "success"
+										: "info"
+								}
 								sx={{ fontSize: "0.65rem", fontWeight: 800, height: 20 }}
 							/>
 						</Box>
 
 						<Divider sx={{ borderColor: alpha(theme.palette.divider, 0.12) }} />
 
-						<Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1 }}>
-							<Box sx={{ bgcolor: alpha(theme.palette.background.paper, 0.4), p: 1, borderRadius: 1.5 }}>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }}>
-									{isDeposit ? "Deposit Amount" : isWithdrawal ? "Withdrawal Amount" : "Principal Amount"}
+						<Box
+							sx={{
+								display: "grid",
+								gridTemplateColumns: "repeat(3, 1fr)",
+								gap: 1,
+							}}
+						>
+							<Box
+								sx={{
+									bgcolor: alpha(theme.palette.background.paper, 0.4),
+									p: 1,
+									borderRadius: 1.5,
+								}}
+							>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.68rem",
+										display: "block",
+									}}
+								>
+									{isDeposit
+										? "Deposit Amount"
+										: isWithdrawal
+											? "Withdrawal Amount"
+											: "Principal Amount"}
 								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 800, color: mainColor, fontSize: "0.82rem" }}>
-									{(selectedPreview.total_amount || 0).toLocaleString()} {selectedPreview.currency || "ICA"}
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 800,
+										color: mainColor,
+										fontSize: "0.82rem",
+									}}
+								>
+									{(selectedPreview.total_amount || 0).toLocaleString()}{" "}
+									{selectedPreview.currency || "ICA"}
 								</Typography>
 							</Box>
 
-							<Box sx={{ bgcolor: alpha(theme.palette.background.paper, 0.4), p: 1, borderRadius: 1.5 }}>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }}>
+							<Box
+								sx={{
+									bgcolor: alpha(theme.palette.background.paper, 0.4),
+									p: 1,
+									borderRadius: 1.5,
+								}}
+							>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.68rem",
+										display: "block",
+									}}
+								>
 									{isDeposit || isWithdrawal ? "Type" : "Interest Rate"}
 								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 800, color: "text.primary", fontSize: "0.82rem" }}>
-									{isDeposit ? "Deposit / Inflow" : isWithdrawal ? "Withdrawal / Outflow" : selectedPreview.interest_rate != null ? `${selectedPreview.interest_rate}%` : "From Contract"}
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 800,
+										color: "text.primary",
+										fontSize: "0.82rem",
+									}}
+								>
+									{isDeposit
+										? "Deposit / Inflow"
+										: isWithdrawal
+											? "Withdrawal / Outflow"
+											: selectedPreview.interest_rate != null
+												? `${selectedPreview.interest_rate}%`
+												: "From Contract"}
 								</Typography>
 							</Box>
 
-							<Box sx={{ bgcolor: alpha(theme.palette.background.paper, 0.4), p: 1, borderRadius: 1.5 }}>
-								<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }}>
-									{isDeposit ? "Vault Inflow" : isWithdrawal ? "Vault Outflow" : "Term Duration"}
+							<Box
+								sx={{
+									bgcolor: alpha(theme.palette.background.paper, 0.4),
+									p: 1,
+									borderRadius: 1.5,
+								}}
+							>
+								<Typography
+									variant="caption"
+									sx={{
+										color: "text.secondary",
+										fontSize: "0.68rem",
+										display: "block",
+									}}
+								>
+									{isDeposit
+										? "Vault Inflow"
+										: isWithdrawal
+											? "Vault Outflow"
+											: "Term Duration"}
 								</Typography>
-								<Typography variant="body2" sx={{ fontWeight: 800, color: isDeposit ? "success.main" : isWithdrawal ? "warning.main" : "text.primary", fontSize: "0.82rem" }}>
+								<Typography
+									variant="body2"
+									sx={{
+										fontWeight: 800,
+										color: isDeposit
+											? "success.main"
+											: isWithdrawal
+												? "warning.main"
+												: "text.primary",
+										fontSize: "0.82rem",
+									}}
+								>
 									{isDeposit
 										? `+${(selectedPreview.total_amount || 0).toLocaleString()} ${selectedPreview.currency || "ICA"}`
 										: isWithdrawal
@@ -429,7 +616,16 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 							</Box>
 						</Box>
 
-						<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem", fontStyle: "italic", textAlign: "center", pt: 0.2 }}>
+						<Typography
+							variant="caption"
+							sx={{
+								color: "text.secondary",
+								fontSize: "0.7rem",
+								fontStyle: "italic",
+								textAlign: "center",
+								pt: 0.2,
+							}}
+						>
 							{isDeposit
 								? "If the payment condition is pending in-game, the transaction will remain PENDING until fulfilled before crediting vault liquidity."
 								: isWithdrawal
@@ -438,9 +634,25 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 						</Typography>
 					</Paper>
 				) : localId.trim() && !searchingContract ? (
-					<Box sx={{ p: 1.2, borderRadius: 1.5, bgcolor: alpha(theme.palette.info.main, 0.08), border: `1px solid ${alpha(theme.palette.info.main, 0.2)}` }}>
-						<Typography variant="caption" sx={{ color: "info.light", fontSize: "0.75rem", display: "block" }}>
-							Contract <strong>{localId.trim()}</strong> will be verified against the ledger. {isDeposit
+					<Box
+						sx={{
+							p: 1.2,
+							borderRadius: 1.5,
+							bgcolor: alpha(theme.palette.info.main, 0.08),
+							border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+						}}
+					>
+						<Typography
+							variant="caption"
+							sx={{
+								color: "info.light",
+								fontSize: "0.75rem",
+								display: "block",
+							}}
+						>
+							Contract <strong>{localId.trim()}</strong> will be verified
+							against the ledger.{" "}
+							{isDeposit
 								? "If payment condition is still pending in-game, status remains PENDING and vault liquidity will only be credited once fulfilled."
 								: isWithdrawal
 									? "If payout condition is still pending in-game, status remains PENDING and vault liquidity will only be deducted once fulfilled."
@@ -451,7 +663,13 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 			</DialogContent>
 
 			<DialogActions sx={{ px: 2.5, py: 1.5, pt: 0.5 }}>
-				<Button onClick={onClose} size="small" color="inherit" disabled={submitting} sx={{ textTransform: "none" }}>
+				<Button
+					onClick={onClose}
+					size="small"
+					color="inherit"
+					disabled={submitting}
+					sx={{ textTransform: "none" }}
+				>
 					Cancel
 				</Button>
 				<Button
@@ -460,7 +678,13 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 					color={mainBtnColor}
 					size="small"
 					disabled={submitting || !localId.trim()}
-					startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : <CheckCircleOutlineOutlined sx={{ fontSize: 16 }} />}
+					startIcon={
+						submitting ? (
+							<CircularProgress size={14} color="inherit" />
+						) : (
+							<CheckCircleOutlineOutlined sx={{ fontSize: 16 }} />
+						)
+					}
 					sx={{
 						fontWeight: 800,
 						textTransform: "none",
@@ -468,7 +692,13 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 						borderRadius: 1.5,
 					}}
 				>
-					{submitting ? "Linking..." : isDeposit ? "Link Verified Deposit" : isWithdrawal ? "Link Verified Withdrawal" : "Link Contract Loan"}
+					{submitting
+						? "Linking..."
+						: isDeposit
+							? "Link Verified Deposit"
+							: isWithdrawal
+								? "Link Verified Withdrawal"
+								: "Link Contract Loan"}
 				</Button>
 			</DialogActions>
 		</Dialog>

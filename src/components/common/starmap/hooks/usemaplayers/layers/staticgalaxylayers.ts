@@ -21,7 +21,13 @@ interface BuildStaticGalaxyLayersProps {
 	shippingModeHighlights?: {
 		systemIds: Set<string>;
 	};
-	packageCargoSystems?: { id: string; x: number; y: number; name: string; count: number }[];
+	packageCargoSystems?: {
+		id: string;
+		x: number;
+		y: number;
+		name: string;
+		count: number;
+	}[];
 	isGalaxyView: boolean;
 	systemConnections: { sourcePosition: number[]; targetPosition: number[] }[];
 	gatewayConnections: {
@@ -343,12 +349,20 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 	}
 
 	// Stored Package Cargo Indicators (Warehouse / Storage) in Galaxy View - Always rendered ON TOP
-	if (isGalaxyView && mode === "shipping" && packageCargoSystems && packageCargoSystems.length > 0) {
+	if (
+		isGalaxyView &&
+		mode === "shipping" &&
+		packageCargoSystems &&
+		packageCargoSystems.length > 0
+	) {
 		// When zoomed out (zoom <= 0.6), offset converges to 0 so the package icon sits directly on the system.
 		// When zoomed in (zoom >= 1.8), offset is slightly above (-18px).
 		const zoomFactor = Math.max(0, Math.min(1, (zoom - 0.6) / 1.2));
 		const iconOffset: [number, number] = [0, -Math.round(18 * zoomFactor)];
-		const badgeOffset: [number, number] = [0, -Math.round(18 * zoomFactor) - 18];
+		const badgeOffset: [number, number] = [
+			0,
+			-Math.round(18 * zoomFactor) - 18,
+		];
 
 		layers.push(
 			new IconLayer({
@@ -375,7 +389,9 @@ export function buildStaticGalaxyLayers(props: BuildStaticGalaxyLayersProps) {
 				onClick: (info: any) => {
 					if (info.object) {
 						const sys = systemsPoints.find(
-							(s) => s.originalSystemId === info.object.id || s.id === info.object.id,
+							(s) =>
+								s.originalSystemId === info.object.id ||
+								s.id === info.object.id,
 						);
 						if (sys) handleSystemClick(sys);
 					}

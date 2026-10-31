@@ -273,7 +273,10 @@ function App() {
 
 						<Route path="/cx" element={<CX />} />
 						<Route path="/planner/:planId" element={<BasePlanner />} />
-						<Route path="/shipment/:trackingId" element={<PublicShipmentPage />} />
+						<Route
+							path="/shipment/:trackingId"
+							element={<PublicShipmentPage />}
+						/>
 						<Route path="/banks" element={<PublicBanking />} />
 						<Route path="/banking" element={<PublicBanking />} />
 
@@ -309,10 +312,7 @@ function App() {
 									path="/dashboard/contracts"
 									element={<ContractsPage />}
 								/>
-								<Route
-									path="/dashboard/banking"
-									element={<BankingPage />}
-								/>
+								<Route path="/dashboard/banking" element={<BankingPage />} />
 								<Route path="/dashboard/shipments" element={<ShipmentPage />} />
 								<Route path="/dashboard/storage" element={<StoragePage />} />
 								<Route

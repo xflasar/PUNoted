@@ -90,7 +90,15 @@ export const PublicLoanLedger: React.FC<PublicLoanLedgerProps> = ({
 			)}
 
 			{loading ? (
-				<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, py: 4 }}>
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "center",
+						alignItems: "center",
+						flex: 1,
+						py: 4,
+					}}
+				>
 					<CircularProgress size={24} />
 				</Box>
 			) : ledgerData?.public_show_loans === false ? (
@@ -110,11 +118,15 @@ export const PublicLoanLedger: React.FC<PublicLoanLedgerProps> = ({
 						gap: 1,
 					}}
 				>
-					<Typography variant="body2" sx={{ fontWeight: 700, color: "text.secondary" }}>
+					<Typography
+						variant="body2"
+						sx={{ fontWeight: 700, color: "text.secondary" }}
+					>
 						Loan Ledger Private
 					</Typography>
 					<Typography variant="caption" sx={{ color: "text.secondary" }}>
-						The bank owner has configured loan history to be private for public viewers.
+						The bank owner has configured loan history to be private for public
+						viewers.
 					</Typography>
 				</Paper>
 			) : loanRecords.length === 0 ? (
@@ -160,37 +172,113 @@ export const PublicLoanLedger: React.FC<PublicLoanLedgerProps> = ({
 					<Table size="small" stickyHeader sx={{ minWidth: 460 }}>
 						<TableHead>
 							<TableRow>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>DATE</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>BORROWER</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>AMOUNT</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>RATE</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>TERM</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}>STATUS</TableCell>
-								<TableCell sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }} align="right">VERIFIED</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									DATE
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									BORROWER
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									AMOUNT
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									RATE
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									TERM
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+								>
+									STATUS
+								</TableCell>
+								<TableCell
+									sx={{ fontSize: "0.68rem", fontWeight: 800, py: 0.75, px: 1 }}
+									align="right"
+								>
+									VERIFIED
+								</TableCell>
 							</TableRow>
 						</TableHead>
 						<TableBody>
 							{loanRecords.map((tx) => {
 								const isRepaid = tx.status === "REPAID";
 								const isApproved = tx.status === "APPROVED";
-								const statusColor = isRepaid ? theme.palette.success.main : isApproved ? theme.palette.primary.main : theme.palette.warning.main;
-								const isAnonymous = !tx.requester_username || tx.requester_username === "Anonymous";
+								const statusColor = isRepaid
+									? theme.palette.success.main
+									: isApproved
+										? theme.palette.primary.main
+										: theme.palette.warning.main;
+								const isAnonymous =
+									!tx.requester_username ||
+									tx.requester_username === "Anonymous";
 
 								return (
 									<TableRow key={tx.id} hover>
-										<TableCell sx={{ fontSize: "0.7rem", color: "text.secondary", py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												color: "text.secondary",
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{new Date(tx.created_at).toLocaleDateString()}
 										</TableCell>
-										<TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: isAnonymous ? "text.secondary" : "text.primary", py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												fontWeight: 700,
+												color: isAnonymous ? "text.secondary" : "text.primary",
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{tx.requester_username || "Anonymous"}
 										</TableCell>
-										<TableCell sx={{ fontSize: "0.7rem", fontWeight: 800, py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												fontWeight: 800,
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{formatAmount(tx.amount)} {tx.currency}
 										</TableCell>
-										<TableCell sx={{ fontSize: "0.7rem", color: "text.secondary", py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												color: "text.secondary",
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{tx.interest_rate}%
 										</TableCell>
-										<TableCell sx={{ fontSize: "0.7rem", color: "text.secondary", py: 0.75, px: 1, whiteSpace: "nowrap" }}>
+										<TableCell
+											sx={{
+												fontSize: "0.7rem",
+												color: "text.secondary",
+												py: 0.75,
+												px: 1,
+												whiteSpace: "nowrap",
+											}}
+										>
 											{formatTermWeeks(tx.term_days)}
 										</TableCell>
 										<TableCell sx={{ py: 0.75, px: 1 }}>
@@ -210,15 +298,26 @@ export const PublicLoanLedger: React.FC<PublicLoanLedgerProps> = ({
 										<TableCell align="right" sx={{ py: 0.75, px: 1 }}>
 											{tx.is_verified ? (
 												<Chip
-													icon={<CheckCircleIcon sx={{ fontSize: "11px !important" }} />}
+													icon={
+														<CheckCircleIcon
+															sx={{ fontSize: "11px !important" }}
+														/>
+													}
 													label="Contract"
 													size="small"
 													color="success"
 													variant="outlined"
-													sx={{ fontSize: "0.62rem", height: 18, fontWeight: 700 }}
+													sx={{
+														fontSize: "0.62rem",
+														height: 18,
+														fontWeight: 700,
+													}}
 												/>
 											) : (
-												<Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.62rem" }}>
+												<Typography
+													variant="caption"
+													sx={{ color: "text.secondary", fontSize: "0.62rem" }}
+												>
 													Manual
 												</Typography>
 											)}
