@@ -240,8 +240,9 @@ export const getPackageExpectedDelivery = (
 	}
 
 	// Shipment is picked up (or waiting): Show remaining due date of contract
-	if (contract.deadline) {
-		const deadlineDate = new Date(contract.deadline);
+	const rawDeadline = contract.extension_deadline || contract.deadline;
+	if (rawDeadline) {
+		const deadlineDate = new Date(rawDeadline);
 		const isLate = isBefore(deadlineDate, new Date());
 		const distanceStr = formatDistanceToNowStrict(deadlineDate, {
 			addSuffix: true,
@@ -298,8 +299,9 @@ export const getContractExpectedDelivery = (
 		if (contract.status === "FULFILLED") {
 			return { label: "Fulfilled", state: "DELIVERED", colorType: "success" };
 		}
-		if (contract.deadline) {
-			const d = new Date(contract.deadline);
+		const rawDeadline = contract.extension_deadline || contract.deadline;
+		if (rawDeadline) {
+			const d = new Date(rawDeadline);
 			const isLate = isBefore(d, new Date());
 			const text = formatDistanceToNowStrict(d, { addSuffix: true });
 			return {
@@ -1224,12 +1226,13 @@ export const ShipmentDetailWidget: React.FC<Props> = ({
 	}, [paymentItems, contract]);
 
 	const deadlineText = useMemo(() => {
-		if (!contract.deadline) return null;
-		const d = new Date(contract.deadline);
+		const rawDeadline = contract.extension_deadline || contract.deadline;
+		if (!rawDeadline) return null;
+		const d = new Date(rawDeadline);
 		const isLate = isBefore(d, new Date());
 		const text = formatDistanceToNowStrict(d, { addSuffix: true });
 		return isLate ? `Overdue ${text}` : text;
-	}, [contract.deadline]);
+	}, [contract.deadline, contract.extension_deadline]);
 
 	// Periodic timer so ETA and live flight countdowns refresh
 	const [, setTick] = useState(0);

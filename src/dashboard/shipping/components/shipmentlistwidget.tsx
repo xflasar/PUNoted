@@ -51,8 +51,9 @@ interface Props {
 
 // --- HELPER: Deadline Logic ---
 const getDeadlineInfo = (contract: ShipmentContract) => {
-	const deadline = contract.deadline
-		? new Date(contract.deadline)
+	const rawDeadline = contract.extension_deadline || contract.deadline;
+	const deadline = rawDeadline
+		? new Date(rawDeadline)
 		: addDays(new Date(contract.created_at), 7);
 	const now = new Date();
 	const isLate = isBefore(deadline, now);

@@ -675,6 +675,7 @@ export default function FinancialOverview() {
 						>
 							<FinancialCategoryStats
 								transactions={currentData?.Transactions}
+								cashFlows={currentData?.CashFlows}
 								currency={currentData?.Currency || ""}
 								timeRange={timeRange}
 								customStartDate={customStartDate}

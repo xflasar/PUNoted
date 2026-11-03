@@ -16,6 +16,7 @@ import { Skeleton } from "@mui/material";
 
 interface FinancialCategoryStatsProps {
 	transactions?: Transaction[];
+	cashFlows?: CashFlowCategory[];
 	currency: string;
 	timeRange?: string;
 	customStartDate?: string;
@@ -25,6 +26,7 @@ interface FinancialCategoryStatsProps {
 
 export const FinancialCategoryStats: React.FC<FinancialCategoryStatsProps> = ({
 	transactions = [],
+	cashFlows = [],
 	currency,
 	timeRange = "ALL",
 	customStartDate = "",
@@ -33,25 +35,8 @@ export const FinancialCategoryStats: React.FC<FinancialCategoryStatsProps> = ({
 }) => {
 	const { loansData } = useGlobalData();
 
-	// Categorize and aggregate net velocity dynamically from transactions and loansData
+	// Categorize and aggregate net velocity dynamically from server CashFlows or transactions
 	const categoryMetrics = useMemo(() => {
-		const now = Date.now();
-		let cutoff = 0;
-
-		if (timeRange === "24H") cutoff = now - 24 * 60 * 60 * 1000;
-		else if (timeRange === "7D") cutoff = now - 7 * 24 * 60 * 60 * 1000;
-		else if (timeRange === "30D") cutoff = now - 30 * 24 * 60 * 60 * 1000;
-		else if (timeRange === "1Y") cutoff = now - 365 * 24 * 60 * 60 * 1000;
-
-		const startMs =
-			timeRange === "CUSTOM" && customStartDate
-				? new Date(customStartDate).getTime()
-				: 0;
-		const endMs =
-			timeRange === "CUSTOM" && customEndDate
-				? new Date(customEndDate).getTime() + 86400000
-				: Infinity;
-
 		const map = new Map<
 			string,
 			{ category: string; income: number; expense: number; net: number }
@@ -68,6 +53,60 @@ export const FinancialCategoryStats: React.FC<FinancialCategoryStatsProps> = ({
 		categories.forEach((cat) =>
 			map.set(cat, { category: cat, income: 0, expense: 0, net: 0 }),
 		);
+
+		// If server-side CashFlows are available and timeRange is a preset, use the 100% accurate database totals
+		if (cashFlows && cashFlows.length > 0 && timeRange !== "CUSTOM") {
+			const tfKey =
+				timeRange === "24H"
+					? "24H"
+					: timeRange === "7D"
+						? "7D"
+						: timeRange === "30D"
+							? "30D"
+							: timeRange === "1Y"
+								? "1Y"
+								: "AllTime";
+
+			cashFlows.forEach((flow) => {
+				const metrics = flow[tfKey as keyof CashFlowCategory] as
+					| { Income: number; Expense: number; Net: number }
+					| undefined;
+				if (!metrics) return;
+
+				let cat = flow.Category;
+				if (cat === "CORP_CX") cat = "CORP CX";
+				else if (cat === "CORP_CONTRACT") cat = "CORP CONTRACT";
+
+				const item = map.get(cat) || {
+					category: cat,
+					income: 0,
+					expense: 0,
+					net: 0,
+				};
+				item.income += metrics.Income || 0;
+				item.expense += metrics.Expense || 0;
+				item.net += metrics.Net || metrics.Income - metrics.Expense;
+				map.set(cat, item);
+			});
+			return Array.from(map.values());
+		}
+
+		const now = Date.now();
+		let cutoff = 0;
+
+		if (timeRange === "24H") cutoff = now - 24 * 60 * 60 * 1000;
+		else if (timeRange === "7D") cutoff = now - 7 * 24 * 60 * 60 * 1000;
+		else if (timeRange === "30D") cutoff = now - 30 * 24 * 60 * 60 * 1000;
+		else if (timeRange === "1Y") cutoff = now - 365 * 24 * 60 * 60 * 1000;
+
+		const startMs =
+			timeRange === "CUSTOM" && customStartDate
+				? new Date(customStartDate).getTime()
+				: 0;
+		const endMs =
+			timeRange === "CUSTOM" && customEndDate
+				? new Date(customEndDate).getTime() + 86400000
+				: Infinity;
 
 		transactions.forEach((tx) => {
 			const txTime = new Date(tx.Timestamp).getTime();

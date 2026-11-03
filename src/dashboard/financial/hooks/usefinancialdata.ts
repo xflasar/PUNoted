@@ -153,6 +153,14 @@ export const useFinancialData = () => {
 			.sort((a, b) => b.value - a.value) || [];
 
 	const topPartners = useMemo(() => {
+		if (
+			timeRange === "ALL" &&
+			currentData?.TopPartners &&
+			currentData.TopPartners.length > 0
+		) {
+			return currentData.TopPartners;
+		}
+
 		if (!filteredTransactions) return [];
 		const partnerMap = new Map<
 			string,
@@ -179,17 +187,21 @@ export const useFinancialData = () => {
 			}
 			existing.net += tx.Amount;
 
-			if (new Date(tx.Timestamp) > new Date(existing.lastTimestamp)) {
+			if (new Date(tx.Timestamp) > new Date(existing.lastTimestamp || 0)) {
 				existing.lastTimestamp = tx.Timestamp;
 			}
 			partnerMap.set(tx.PartnerCode, existing);
 		});
 
 		return Array.from(partnerMap.values());
-	}, [filteredTransactions]);
+	}, [filteredTransactions, timeRange, currentData?.TopPartners]);
 
 	// ponytail: CX vs Contract volume split from filtered transaction types
 	const volumeBreakdown = useMemo(() => {
+		if (timeRange === "ALL" && currentData?.VolumeBreakdown) {
+			return currentData.VolumeBreakdown;
+		}
+
 		if (!filteredTransactions) return { cx: 0, contract: 0, corp: 0 };
 		let cx = 0,
 			contract = 0,
@@ -201,7 +213,7 @@ export const useFinancialData = () => {
 			else if (tx.Type.includes("CONTRACT")) contract += abs;
 		});
 		return { cx, contract, corp };
-	}, [filteredTransactions]);
+	}, [filteredTransactions, timeRange, currentData?.VolumeBreakdown]);
 
 	return {
 		data,

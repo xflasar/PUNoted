@@ -75,6 +75,8 @@ export interface ShipmentContract {
 	role: "CLIENT" | "CARRIER";
 	created_at: string;
 	deadline: string;
+	extension_deadline?: string | null;
+	can_extend?: boolean;
 	status?: string;
 	items: ShipmentItem[];
 }

@@ -11,15 +11,25 @@ export interface CashFlowMetrics {
 
 export interface CashFlowCategory {
 	Category: string;
+	"24H"?: CashFlowMetrics;
 	"7D": CashFlowMetrics;
 	"30D": CashFlowMetrics;
+	"1Y"?: CashFlowMetrics;
 	AllTime: CashFlowMetrics;
+}
+
+export interface VolumeBreakdown {
+	cx: number;
+	contract: number;
+	corp: number;
 }
 
 export interface PartnerMetrics {
 	code: string;
 	name: string;
 	volume: number;
+	income?: number;
+	expense?: number;
 	net: number;
 	lastTimestamp?: string;
 }
@@ -49,6 +59,8 @@ export interface CurrencyData {
 	PendingPayable: number;
 	TotalAssets: number;
 	CashFlows: CashFlowCategory[];
+	TopPartners?: PartnerMetrics[];
+	VolumeBreakdown?: VolumeBreakdown;
 	History: HistoryPoint[];
 	Transactions: Transaction[];
 }
