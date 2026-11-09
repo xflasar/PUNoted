@@ -18,7 +18,7 @@ export interface FormattedNumberInputProps {
 }
 
 /**
- * Reusable debounced numeric text input with comma formatting (e.g. 125,345.5 ICA)
+ * Debounced numeric text input with comma formatting (e.g. 125,345.5 ICA)
  */
 export const FormattedNumberInput: React.FC<FormattedNumberInputProps> = ({
 	label,

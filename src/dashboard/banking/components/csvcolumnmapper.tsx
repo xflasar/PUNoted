@@ -127,6 +127,25 @@ export const BANK_LEDGER_SYSTEM_FIELDS: SystemField[] = [
 		],
 	},
 	{
+		key: "loan_structure",
+		label: "Loan Structure / Model",
+		required: false,
+		description: "INTEREST_ONLY or AMORTIZING_STABLE / STANDARD",
+		aliases: [
+			"loan_structure",
+			"structure",
+			"loan_type",
+			"loantype",
+			"model",
+			"type_of_loan",
+			"repay_type",
+			"repayment_type",
+			"installment_type",
+			"stable",
+			"interest_only",
+		],
+	},
+	{
 		key: "status",
 		label: "Status",
 		required: false,
@@ -156,7 +175,7 @@ export interface ParsedCsvData {
 }
 
 /**
- * Robust CSV parser that parses text into headers and data rows,
+ * CSV parser that parses text into headers and data rows,
  * handling comma/semicolon delimiters, escaped quotes, and multiline values.
  */
 export function parseCsv(text: string): ParsedCsvData {

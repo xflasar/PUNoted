@@ -109,7 +109,10 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 	}, [loadLoans, loadMetrics]);
 
 	// Compute metrics
-	const currentMoney = bank.liquidity || 0;
+	const currentMoney =
+		bank.available_liquidity !== undefined
+			? bank.available_liquidity
+			: bank.liquidity || 0;
 	const loanItems = loans.filter(
 		(l) => (l.transaction_type || "LOAN") === "LOAN",
 	);
@@ -183,18 +186,22 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 					justifyContent: "space-between",
 					alignItems: "center",
 					flexWrap: "wrap",
-					gap: 1,
+					gap: 0.8,
 				}}
 			>
-				<Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+				<Box sx={{ display: "flex", gap: 0.8, alignItems: "center" }}>
 					<Button
-						startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
+						startIcon={<ArrowBackIcon sx={{ fontSize: 15 }} />}
 						onClick={onBack}
 						variant="outlined"
 						size="small"
 						sx={{
 							textTransform: "none",
 							fontWeight: 700,
+							fontSize: { xs: "0.72rem", sm: "0.78rem" },
+							py: 0.4,
+							px: 1.2,
+							minWidth: 0,
 							borderColor: alpha(theme.palette.divider, 0.3),
 							color: "text.primary",
 							"&:hover": { borderColor: theme.palette.primary.main },
@@ -202,30 +209,13 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 					>
 						Back to Banks
 					</Button>
-
-					{isMyBank && (
-						<Button
-							startIcon={<TrendingUpIcon sx={{ fontSize: 16 }} />}
-							onClick={() => setViewTab(viewTab === "PNL" ? "LEDGER" : "PNL")}
-							variant={viewTab === "PNL" ? "contained" : "outlined"}
-							color="success"
-							size="small"
-							sx={{
-								textTransform: "none",
-								fontWeight: 800,
-								fontSize: "0.75rem",
-							}}
-						>
-							Profit &amp; Solvency
-						</Button>
-					)}
 				</Box>
 
 				{isMyBank && (
 					<Box
 						sx={{
 							display: "flex",
-							gap: 1,
+							gap: 0.6,
 							alignItems: "center",
 							flexWrap: "wrap",
 						}}
@@ -234,57 +224,69 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 							size="small"
 							variant="outlined"
 							color="info"
-							startIcon={<UploadFileIcon sx={{ fontSize: 15 }} />}
+							startIcon={<UploadFileIcon sx={{ fontSize: 14 }} />}
 							onClick={() => setImportDialogOpen(true)}
 							sx={{
 								textTransform: "none",
 								fontWeight: 700,
-								fontSize: "0.75rem",
+								fontSize: { xs: "0.68rem", sm: "0.75rem" },
+								py: 0.4,
+								px: { xs: 0.8, sm: 1.2 },
+								minWidth: 0,
 							}}
 						>
-							Import CSV Ledger
+							Import CSV
 						</Button>
 						<Button
 							size="small"
 							variant="outlined"
 							color="primary"
-							startIcon={<EditIcon sx={{ fontSize: 15 }} />}
+							startIcon={<EditIcon sx={{ fontSize: 14 }} />}
 							onClick={() => setEditVaultOpen(true)}
 							sx={{
 								textTransform: "none",
 								fontWeight: 700,
-								fontSize: "0.75rem",
+								fontSize: { xs: "0.68rem", sm: "0.75rem" },
+								py: 0.4,
+								px: { xs: 0.8, sm: 1.2 },
+								minWidth: 0,
 							}}
 						>
-							Configure Vault
+							Vault
 						</Button>
 						<Button
 							size="small"
 							variant="outlined"
 							color="primary"
-							startIcon={<SavingsOutlinedIcon sx={{ fontSize: 15 }} />}
+							startIcon={<SavingsOutlinedIcon sx={{ fontSize: 14 }} />}
 							onClick={() => setManualDepositOpen(true)}
 							sx={{
 								textTransform: "none",
 								fontWeight: 700,
-								fontSize: "0.75rem",
+								fontSize: { xs: "0.68rem", sm: "0.75rem" },
+								py: 0.4,
+								px: { xs: 0.8, sm: 1.2 },
+								minWidth: 0,
 							}}
 						>
-							Manual Deposit
+							Deposit
 						</Button>
 						<Button
 							size="small"
 							variant="contained"
 							color="primary"
-							startIcon={<AddLinkIcon sx={{ fontSize: 15 }} />}
+							startIcon={<AddLinkIcon sx={{ fontSize: 14 }} />}
 							onClick={() => setLinkDialogOpen(true)}
 							sx={{
 								textTransform: "none",
 								fontWeight: 800,
-								fontSize: "0.75rem",
+								fontSize: { xs: "0.68rem", sm: "0.75rem" },
+								py: 0.4,
+								px: { xs: 0.8, sm: 1.2 },
+								minWidth: 0,
 							}}
 						>
-							Link Contract
+							Link
 						</Button>
 					</Box>
 				)}
@@ -325,10 +327,11 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 							variant="h4"
 							sx={{
 								fontWeight: 900,
-								letterSpacing: 1.5,
+								letterSpacing: { xs: 0.8, sm: 1.5 },
 								color: theme.palette.text.primary,
 								textTransform: "uppercase",
 								lineHeight: 1.2,
+								fontSize: { xs: "1.35rem", sm: "1.75rem", md: "2.125rem" },
 							}}
 						>
 							{bank.name}
@@ -421,94 +424,12 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 				<BankDetailMetrics
 					bank={bank}
 					currentMoney={currentMoney}
+					pledgedLiquidity={bank.liquidity}
+					activeOutstandingCapital={bank.active_outstanding_capital}
 					lentCount={lentCount}
 					totalLentAmount={totalLentAmount}
 					netCustomerDeposits={netCustomerDeposits}
 				/>
-
-				{/* Executive Profit & Solvency Summary Strip (Owner Only) */}
-				{isMyBank && (
-					<Box
-						sx={{
-							py: 1.25,
-							px: 2.5,
-							borderBottom: `1.5px solid ${alpha(theme.palette.divider, 0.15)}`,
-							bgcolor:
-								netWeeklySpread >= 0
-									? alpha("#10b981", 0.06)
-									: alpha("#ef4444", 0.06),
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "space-between",
-							flexWrap: "wrap",
-							gap: 1.5,
-						}}
-					>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-							{netWeeklySpread >= 0 ? (
-								<TrendingUpIcon sx={{ fontSize: 28, color: "#34d399" }} />
-							) : (
-								<TrendingDownIcon sx={{ fontSize: 28, color: "#f87171" }} />
-							)}
-							<Box>
-								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-									<Typography
-										variant="subtitle2"
-										sx={{ fontWeight: 900, fontSize: "0.88rem" }}
-									>
-										Net Spread: {netWeeklySpread >= 0 ? "+" : ""}
-										{formatAmount(netWeeklySpread)} {bank.currency || "ICA"} /
-										wk
-									</Typography>
-									<Chip
-										label={
-											netWeeklySpread >= 0
-												? "PROFITABLE SPREAD"
-												: "NET CASH DEFICIT"
-										}
-										size="small"
-										sx={{
-											fontWeight: 800,
-											fontSize: "0.62rem",
-											height: 18,
-											bgcolor:
-												netWeeklySpread >= 0
-													? alpha("#10b981", 0.2)
-													: alpha("#ef4444", 0.2),
-											color: netWeeklySpread >= 0 ? "#34d399" : "#f87171",
-										}}
-									/>
-								</Box>
-								<Typography
-									variant="caption"
-									sx={{ color: "text.secondary", fontSize: "0.72rem" }}
-								>
-									+{formatAmount(collectedInterest)} {bank.currency || "ICA"}{" "}
-									collected profit &bull; -{formatAmount(weeklyClientYieldCost)}{" "}
-									{bank.currency || "ICA"}/wk depositor yield cost
-								</Typography>
-							</Box>
-						</Box>
-
-						<Button
-							size="small"
-							variant={viewTab === "PNL" ? "contained" : "outlined"}
-							color={viewTab === "PNL" ? "primary" : "inherit"}
-							startIcon={<CalculateIcon sx={{ fontSize: 15 }} />}
-							onClick={() => setViewTab("PNL")}
-							sx={{
-								textTransform: "none",
-								fontWeight: 800,
-								fontSize: "0.72rem",
-								borderColor: alpha(theme.palette.divider, 0.3),
-							}}
-						>
-							{viewTab === "PNL"
-								? "Viewing Full P&L & Simulator"
-								: "Open Full P&L & Simulator"}
-						</Button>
-					</Box>
-				)}
 
 				{/* View Navigation Tabs: Ledger vs Depositors vs Profit & Solvency */}
 				<Box
@@ -569,6 +490,11 @@ export const BankDetailView: React.FC<BankDetailViewProps> = ({
 						currency={bank.currency}
 						isOwner={isMyBank}
 						defaultInterestRate={bank.default_interest_rate ?? 1.5}
+						onRefresh={() => {
+							loadLoans();
+							loadMetrics();
+							onBankUpdated();
+						}}
 					/>
 				)}
 			</Paper>

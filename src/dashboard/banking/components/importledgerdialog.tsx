@@ -40,11 +40,11 @@ interface ImportLedgerDialogProps {
 	onSuccess: () => void;
 }
 
-const SAMPLE_CSV = `type,user,amount,interest_rate,term_days,contract_localid,status,date
-LOAN,StarTrader,50000,5.0,14,PRUN-10492,REPAID,2026-08-01
-DEPOSIT,MiningGuild,200000,2.0,30,PRUN-10510,ACTIVE,2026-08-10
-WITHDRAWAL,MiningGuild,50000,,,PRUN-10650,APPROVED,2026-09-01
-LOAN,NovaCorp,75000,6.0,21,,ACTIVE,2026-09-15`;
+const SAMPLE_CSV = `type,user,amount,interest_rate,term_days,loan_structure,contract_localid,status,date
+LOAN,StarTrader,50000,5.0,14,AMORTIZING_STABLE,PRUN-10492,REPAID,2026-08-01
+DEPOSIT,MiningGuild,200000,2.0,30,,,ACTIVE,2026-08-10
+WITHDRAWAL,MiningGuild,50000,,,,APPROVED,2026-09-01
+LOAN,NovaCorp,75000,6.0,21,INTEREST_ONLY,,ACTIVE,2026-09-15`;
 
 export const ImportLedgerDialog: React.FC<ImportLedgerDialogProps> = ({
 	open,

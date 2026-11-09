@@ -148,6 +148,8 @@ export const getOwnerActiveStatus = (
 export interface VaultMetrics {
 	activeLoans: BankLoanRecord[];
 	activeCapitalOut: number;
+	activeRepaidCapital: number;
+	activeOutstandingCapital: number;
 	repaidLoans: BankLoanRecord[];
 	totalRepaidCapital: number;
 	totalDeposits: number;
@@ -160,6 +162,8 @@ export interface VaultMetrics {
 
 /**
  * Computes live banking vault metrics based on the bank's liquidity, linked loans, and customer deposits.
+ * For active loans, only the outstanding capital (amount - repaid_amount) is deducted from the available vault.
+ * Each fulfilled installment returns capital back to the vault.
  */
 export const calculateVaultMetrics = (
 	bank: Bank | null,
@@ -173,6 +177,15 @@ export const calculateVaultMetrics = (
 		(sum, l) => sum + (l.amount || 0),
 		0,
 	);
+	const activeRepaidCapital = activeLoans.reduce(
+		(sum, l) => sum + (l.repaid_amount || 0),
+		0,
+	);
+	const activeOutstandingCapital = Math.max(
+		0,
+		activeCapitalOut - activeRepaidCapital,
+	);
+
 	const repaidLoans = loanTransactions.filter((l) => l.status === "REPAID");
 	const totalRepaidCapital = repaidLoans.reduce(
 		(sum, l) => sum + (l.amount || 0),
@@ -199,14 +212,17 @@ export const calculateVaultMetrics = (
 	);
 	const netDeposits = Math.max(0, totalDeposits - totalWithdrawals);
 
+	// Available lending capacity = pledged vault + customer deposits - outstanding un-repaid capital
 	const availableLendingCapacity = Math.max(
 		0,
-		(bank?.liquidity || 0) + netDeposits - activeCapitalOut,
+		(bank?.liquidity || 0) + netDeposits - activeOutstandingCapital,
 	);
 
 	return {
 		activeLoans,
 		activeCapitalOut,
+		activeRepaidCapital,
+		activeOutstandingCapital,
 		repaidLoans,
 		totalRepaidCapital,
 		totalDeposits,
@@ -248,6 +264,8 @@ export const getLoanStatusChipProps = (
 			if (t === "DEPOSIT") return { label: "SETTLED", color: "success" };
 			if (t === "WITHDRAWAL") return { label: "DISBURSED", color: "error" };
 			return { label: "ACTIVE", color: "primary" };
+		case "ACCEPTED":
+			return { label: "ACCEPTED", color: "info" };
 		case "PENDING":
 			if (t === "DEPOSIT")
 				return { label: "PENDING PAYMENT", color: "warning" };
@@ -405,7 +423,11 @@ export const calculateBankLoanComparison = (
 		(!bank.min_loan_amount || loanAmount >= bank.min_loan_amount) &&
 		(!bank.max_loan_amount || loanAmount <= bank.max_loan_amount);
 
-	const hasSufficientLiquidity = (bank.liquidity || 0) >= loanAmount;
+	const effectiveLiquidity =
+		bank.available_liquidity !== undefined
+			? bank.available_liquidity
+			: bank.liquidity || 0;
+	const hasSufficientLiquidity = effectiveLiquidity >= loanAmount;
 
 	let statusTier: "COMFORTABLE" | "TIGHT" | "INSUFFICIENT" = "COMFORTABLE";
 	let statusExplanation = "";
@@ -415,7 +437,7 @@ export const calculateBankLoanComparison = (
 		statusExplanation = `Loan amount (${formatAmount(loanAmount)} ICA) is outside this bank's limits (${formatAmount(bank.min_loan_amount || 0)} - ${formatAmount(bank.max_loan_amount || 0)} ICA).`;
 	} else if (!hasSufficientLiquidity) {
 		statusTier = "INSUFFICIENT";
-		statusExplanation = `Loan amount exceeds available vault liquidity (${formatAmount(bank.liquidity || 0)} ICA).`;
+		statusExplanation = `Loan amount exceeds available vault liquidity (${formatAmount(effectiveLiquidity)} ICA).`;
 	} else if (dailyProfit <= 0) {
 		statusTier = "TIGHT";
 		statusExplanation = `Optimal profit is ~${formatAmount(optimalDailyProfit)} ICA/day to pay off in 4W at ${maxAllocationPercent}% repay budget.`;
@@ -437,6 +459,13 @@ export const calculateBankLoanComparison = (
 			? Math.round((dailyProfit / optimalDailyProfit) * 100)
 			: 0;
 	const profitSurplus = dailyProfit - optimalDailyProfit;
+	const totalIntervals = Math.max(
+		1,
+		Math.round(optimalLengthDays / intervalDays),
+	);
+	const stableInstallment = Math.round(totalRepayment / totalIntervals);
+	const interestOnlyPerInterval = Math.round(totalInterest / totalIntervals);
+	const balloonFinalPayment = Math.round(loanAmount + interestOnlyPerInterval);
 
 	return {
 		bank,
@@ -457,8 +486,12 @@ export const calculateBankLoanComparison = (
 		optimalLengthDays,
 		optimalIntervalWeeks,
 		optimalIntervalDays,
+		totalIntervals,
 		withinMinMax,
 		hasSufficientLiquidity,
+		stableInstallment,
+		interestOnlyPerInterval,
+		balloonFinalPayment,
 	};
 };
 
@@ -472,6 +505,8 @@ export interface OverallLoanSummary {
 	optimalPayoffDays: number;
 	optimalIntervalWeeks: number;
 	safeWeeklyInstallment: number;
+	stableInstallment: number;
+	interestOnlyInstallment: number;
 	retainedDailyProfit: number;
 	retainedPercent: number;
 	qualifyingBanksCount: number;
@@ -591,6 +626,13 @@ export const calculateOverallLoanStats = (
 	const isUserProfitMatch =
 		dailyProfit > 0 ? optimalLengthWeeks <= 26 && qualifying.length > 0 : false;
 
+	const totalIntervals = Math.max(
+		1,
+		Math.round(optimalLengthDays / intervalDays),
+	);
+	const stableInstallment = Math.round(totalRepayment / totalIntervals);
+	const interestOnlyInstallment = Math.round(totalInterest / totalIntervals);
+
 	return {
 		minRequiredDailyProfit,
 		minOptimalDailyProfit,
@@ -601,6 +643,8 @@ export const calculateOverallLoanStats = (
 		optimalPayoffDays,
 		optimalIntervalWeeks,
 		safeWeeklyInstallment,
+		stableInstallment,
+		interestOnlyInstallment,
 		retainedDailyProfit,
 		retainedPercent,
 		qualifyingBanksCount: qualifying.length,

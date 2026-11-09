@@ -62,6 +62,9 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 	const [transactionType, setTransactionType] = useState<
 		"LOAN" | "DEPOSIT" | "WITHDRAWAL"
 	>("LOAN");
+	const [loanStructure, setLoanStructure] = useState<
+		"AUTO" | "INTEREST_ONLY" | "AMORTIZING_STABLE" | "STANDARD"
+	>("AUTO");
 
 	const [recentContracts, setRecentContracts] = useState<ContractSummary[]>([]);
 	const [loadingRecent, setLoadingRecent] = useState(false);
@@ -80,6 +83,7 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 			setLocalId("");
 			setSelectedPreview(null);
 			setTransactionType("LOAN");
+			setLoanStructure("AUTO");
 
 			setLoadingRecent(true);
 			fetchClient("/internal/contracts/list", {
@@ -183,6 +187,10 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 					bank_id: bank.id,
 					contract_localid: trimmedId,
 					transaction_type: transactionType,
+					loan_structure:
+						transactionType === "LOAN" && loanStructure !== "AUTO"
+							? loanStructure
+							: undefined,
 				}),
 			});
 
@@ -397,6 +405,7 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 				/>
 
 				{/* Quick pick from recent contracts */}
+				{/* Quick pick from recent contracts */}
 				{recentContracts.length > 0 && (
 					<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
 						<FormControl
@@ -439,6 +448,102 @@ export const LinkContractDialog: React.FC<LinkContractDialogProps> = ({
 								))}
 							</Select>
 						</FormControl>
+					</Box>
+				)}
+
+				{/* Loan Structure Selector (When LOAN) */}
+				{isLoan && (
+					<Box
+						sx={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 0.6,
+							p: 1.2,
+							bgcolor: alpha(theme.palette.primary.main, 0.04),
+							borderRadius: 1.5,
+							border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
+						}}
+					>
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+							}}
+						>
+							<Typography
+								variant="caption"
+								sx={{ fontWeight: 700, color: "text.primary" }}
+							>
+								Loan Structure / Type
+							</Typography>
+							<Typography
+								variant="caption"
+								sx={{ color: "text.secondary", fontSize: "0.68rem" }}
+							>
+								{loanStructure === "AUTO"
+									? "Auto-detected from contract conditions"
+									: loanStructure === "INTEREST_ONLY"
+										? "Interest-only periodic payments + final principal balloon"
+										: "Even periodic principal + interest amortization"}
+							</Typography>
+						</Box>
+						<Box
+							sx={{
+								display: "grid",
+								gridTemplateColumns: "repeat(3, 1fr)",
+								gap: 1,
+							}}
+						>
+							<Button
+								size="small"
+								variant={loanStructure === "AUTO" ? "contained" : "outlined"}
+								color="primary"
+								onClick={() => setLoanStructure("AUTO")}
+								sx={{
+									textTransform: "none",
+									fontSize: "0.72rem",
+									py: 0.4,
+									fontWeight: 700,
+								}}
+							>
+								Auto (Detect)
+							</Button>
+							<Button
+								size="small"
+								variant={
+									loanStructure === "INTEREST_ONLY" ? "contained" : "outlined"
+								}
+								color="info"
+								onClick={() => setLoanStructure("INTEREST_ONLY")}
+								sx={{
+									textTransform: "none",
+									fontSize: "0.72rem",
+									py: 0.4,
+									fontWeight: 700,
+								}}
+							>
+								Interest-Only
+							</Button>
+							<Button
+								size="small"
+								variant={
+									loanStructure === "AMORTIZING_STABLE"
+										? "contained"
+										: "outlined"
+								}
+								color="success"
+								onClick={() => setLoanStructure("AMORTIZING_STABLE")}
+								sx={{
+									textTransform: "none",
+									fontSize: "0.72rem",
+									py: 0.4,
+									fontWeight: 700,
+								}}
+							>
+								Stable (Amortized)
+							</Button>
+						</Box>
 					</Box>
 				)}
 

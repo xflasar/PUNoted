@@ -443,7 +443,12 @@ const BankingPage: React.FC = () => {
 					/* Bank Detail View (Sketch 2) */
 					<BankDetailView
 						bank={selectedBank}
-						isMyBank={myBank?.id === selectedBank.id}
+						isMyBank={
+							myBank?.id === selectedBank.id ||
+							(Boolean(initialDisplayName) &&
+								selectedBank.owner_username?.toLowerCase() ===
+									initialDisplayName.toLowerCase())
+						}
 						onBack={() => setSelectedBankId(null)}
 						onBankUpdated={loadBankingData}
 					/>
@@ -606,7 +611,12 @@ const BankingPage: React.FC = () => {
 									<BankCard
 										key={bank.id}
 										bank={bank}
-										isMyBank={myBank?.id === bank.id}
+										isMyBank={
+											myBank?.id === bank.id ||
+											(Boolean(initialDisplayName) &&
+												bank.owner_username?.toLowerCase() ===
+													initialDisplayName.toLowerCase())
+										}
 										loanComparison={
 											calculatorMode === "BORROW"
 												? bankComparisonsMap.get(bank.id)

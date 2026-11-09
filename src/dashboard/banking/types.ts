@@ -11,6 +11,9 @@ export interface Bank {
 	total_loans_count?: number;
 	total_lent_amount?: number;
 	active_lent_amount?: number;
+	active_repaid_amount?: number;
+	active_outstanding_capital?: number;
+	available_liquidity?: number;
 	currency?: string;
 	default_repay_days?: number;
 	default_interval?: string;
@@ -40,7 +43,7 @@ export interface BankLoanRecord {
 	amount: number;
 	interest_rate: number;
 	term_days: number;
-	status: "PENDING" | "APPROVED" | "REPAID" | "REJECTED";
+	status: "PENDING" | "ACCEPTED" | "APPROVED" | "REPAID" | "REJECTED";
 	contract_id?: string;
 	created_at: string;
 	updated_at: string;
@@ -52,6 +55,13 @@ export interface BankLoanRecord {
 	currency?: string;
 	transaction_type?: "LOAN" | "DEPOSIT" | "WITHDRAWAL";
 	is_verified?: boolean;
+	payout_fulfilled?: boolean;
+	total_installments?: number;
+	fulfilled_installments?: number;
+	repaid_amount?: number;
+	loan_structure?: "INTEREST_ONLY" | "AMORTIZING_STABLE" | "STANDARD";
+	total_interest_amount?: number;
+	final_balloon_amount?: number;
 }
 
 export interface LinkContractPayload {
@@ -157,8 +167,14 @@ export interface BankLoanComparison {
 	optimalLengthDays: number;
 	optimalIntervalWeeks: number;
 	optimalIntervalDays: number;
+	totalIntervals: number;
 	withinMinMax: boolean;
 	hasSufficientLiquidity: boolean;
+	// 1. Stable Loan (Equal periodic installments of principal + interest)
+	stableInstallment: number;
+	// 2. Interest-Only Loan (Interest fee per interval, balloon principal + last fee at end)
+	interestOnlyPerInterval: number;
+	balloonFinalPayment: number;
 }
 
 export interface BankDepositComparison {

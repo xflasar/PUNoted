@@ -433,16 +433,42 @@ export const PublicBankModal: React.FC<PublicBankModalProps> = ({
 											color: "text.secondary",
 											fontWeight: 700,
 											fontSize: "0.7rem",
+											letterSpacing: 0.2,
 										}}
 									>
-										VAULT LIQUIDITY
+										AVAILABLE AMOUNT
 									</Typography>
 									<Typography
 										variant="body1"
 										sx={{ fontWeight: 900, color: "#10B981" }}
 									>
-										{formatAmount(inspectingBank.liquidity || 0)} {currency}
+										{formatAmount(
+											inspectingBank.available_liquidity !== undefined
+												? inspectingBank.available_liquidity
+												: inspectingBank.liquidity || 0,
+										)}{" "}
+										{currency}
 									</Typography>
+									{inspectingBank.liquidity !== undefined &&
+										inspectingBank.available_liquidity !== undefined &&
+										inspectingBank.liquidity !==
+											inspectingBank.available_liquidity && (
+											<Typography
+												variant="caption"
+												sx={{
+													color: "text.secondary",
+													fontSize: "0.6rem",
+													fontWeight: 600,
+													display: "block",
+													mt: 0.2,
+												}}
+											>
+												Total: {formatAmount(inspectingBank.liquidity)}
+												{inspectingBank.active_outstanding_capital
+													? ` • ${formatAmount(inspectingBank.active_outstanding_capital)} lent`
+													: ""}
+											</Typography>
+										)}
 								</Box>
 								<Box>
 									<Typography
