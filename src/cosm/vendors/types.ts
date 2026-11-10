@@ -28,8 +28,8 @@ export interface Location {
 	storage_amount: number;
 	/** Server-provided available quantity for this location */
 	available?: number;
-	/** Quantity reserved by active player contracts */
-	contract_reserved_amount?: number;
+	/** Quantity reserved by active player contracts (null for buy orders) */
+	contract_reserved_amount?: number | null;
 }
 
 /**
@@ -80,8 +80,8 @@ export interface OrderItem {
 	reserved: number;
 	/** Server-provided available quantity for display */
 	available?: number;
-	/** Quantity reserved by active player contracts */
-	contract_reserved_amount?: number;
+	/** Quantity reserved by active player contracts (null for buy orders) */
+	contract_reserved_amount?: number | null;
 	/** Amount of material currently in store */
 	instore: number;
 }

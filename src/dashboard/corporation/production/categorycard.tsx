@@ -16,9 +16,6 @@ import {
 	Stack,
 } from "@mui/material";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import CloseIcon from "@mui/icons-material/Close";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import HelpIcon from "@mui/icons-material/Help";
 import type {
 	ProductionSummaryItem,
 	CorpMember,
@@ -29,6 +26,7 @@ import {
 	formatSmartNumber,
 	isUserStale,
 	extractRecipeMaterials,
+	getBuildingTicker,
 } from "../utils";
 
 import MaterialBadge from "../../../cosm/components/materialbadge";
@@ -59,6 +57,11 @@ export const CategoryCard = React.memo(
 		const [drillSortDir, setDrillSortDir] = React.useState<"desc" | "asc">(
 			"desc",
 		);
+		const [drillDefaultExpanded, setDrillDefaultExpanded] =
+			React.useState<boolean>(
+				() =>
+					localStorage.getItem("corp_drilldown_default_expanded") === "true",
+			);
 		const [drillExpandedUsers, setDrillExpandedUsers] = React.useState<
 			Record<string, boolean>
 		>({});
@@ -206,110 +209,168 @@ export const CategoryCard = React.memo(
 				<Paper
 					elevation={0}
 					sx={{
-						bgcolor: "#06060e",
-						backdropFilter: "blur(16px)",
-						WebkitBackdropFilter: "blur(16px)",
-						border: "1px solid rgba(123, 104, 238, 0.25)",
-						p: 1.25,
-						borderRadius: 2,
+						bgcolor: "rgba(10, 12, 20, 0.95)",
+						border: "1px solid rgba(255, 255, 255, 0.08)",
+						p: 1,
+						borderRadius: 1.5,
 						height: "100%",
 						display: "flex",
 						flexDirection: "column",
 						width: "100%",
 						boxSizing: "border-box",
-						"& ::-webkit-scrollbar": {
-							width: "4px",
-						},
-						"& ::-webkit-scrollbar-track": {
-							background: "rgba(0, 0, 0, 0.2)",
-						},
-						"& ::-webkit-scrollbar-thumb": {
-							background: "rgba(123, 104, 238, 0.4)",
-							borderRadius: "4px",
-							"&:hover": {
-								background: "rgba(123, 104, 238, 0.7)",
-							},
+						"& .mat": {
+							fontSize: "0.72rem",
+							minWidth: "2.4em",
+							lineHeight: "1.3em",
+							px: "3px",
+							borderRadius: "2px",
 						},
 					}}
 				>
+					{/* Header */}
 					<Box
 						sx={{
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "space-between",
-							mb: 1,
-							pb: 0.6,
+							pb: 0.75,
+							mb: 0.75,
 							borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+							gap: 1,
 						}}
 					>
-						<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 0.75,
+								minWidth: 0,
+							}}
+						>
 							<MaterialBadge ticker={materialTicker} />
 							<Typography
-								variant="subtitle2"
-								noWrap
+								variant="caption"
 								sx={{
-									fontWeight: 800,
-									fontSize: "0.85rem",
+									fontSize: "0.75rem",
 									color: accentColor,
 									textTransform: "uppercase",
-									letterSpacing: "0.06em",
+									letterSpacing: "0.05em",
+									fontWeight: 500,
 								}}
 							>
-								{drillType === "prod" ? "PRODUCERS" : "CONSUMERS"}
+								{drillType === "prod" ? "Producers" : "Consumers"}
 							</Typography>
-							<Chip
-								label={userGroups.length}
-								size="small"
+							<Typography
+								variant="caption"
 								sx={{
-									height: 18,
 									fontSize: "0.7rem",
-									bgcolor: alpha(theme.palette[color].main, 0.15),
-									color: accentColor,
-									fontWeight: "bold",
-									border: `1px solid ${alpha(theme.palette[color].main, 0.3)}`,
-									flexShrink: 0,
+									color: "text.secondary",
+									px: 0.6,
+									py: 0.1,
+									borderRadius: 1,
+									bgcolor: "rgba(255, 255, 255, 0.05)",
 								}}
-							/>
+							>
+								{userGroups.length}
+							</Typography>
 						</Box>
 
-						<Stack direction="row" spacing={0.5} alignItems="center">
-							<Chip
-								size="small"
-								label={
-									drillSortDir === "desc"
-										? "Sort: High ➔ Low"
-										: "Sort: Low ➔ High"
-								}
+						{/* Action Buttons */}
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 0.5,
+								flexShrink: 0,
+							}}
+						>
+							<Box
+								component="button"
+								onClick={() => {
+									const anyExpanded = userGroups.some(
+										(g) => drillExpandedUsers[g.player] ?? drillDefaultExpanded,
+									);
+									const nextState = !anyExpanded;
+									const updated: Record<string, boolean> = {};
+									userGroups.forEach((g) => {
+										updated[g.player] = nextState;
+									});
+									setDrillExpandedUsers(updated);
+								}}
+								sx={{
+									background: "none",
+									border: "1px solid rgba(255, 255, 255, 0.1)",
+									borderRadius: 1,
+									color: "text.secondary",
+									fontSize: "0.65rem",
+									px: 0.6,
+									py: 0.2,
+									cursor: "pointer",
+									"&:hover": {
+										color: "text.primary",
+										bgcolor: "rgba(255,255,255,0.05)",
+									},
+								}}
+							>
+								{userGroups.some(
+									(g) => drillExpandedUsers[g.player] ?? drillDefaultExpanded,
+								)
+									? "Collapse all"
+									: "Expand all"}
+							</Box>
+
+							<Box
+								component="button"
 								onClick={() =>
 									setDrillSortDir((prev) => (prev === "desc" ? "asc" : "desc"))
 								}
 								sx={{
-									height: 20,
-									fontSize: "0.6rem",
-									fontWeight: 700,
-									bgcolor: "rgba(255,255,255,0.06)",
-									color: "rgba(255,255,255,0.8)",
+									background: "none",
+									border: "1px solid rgba(255, 255, 255, 0.1)",
+									borderRadius: 1,
+									color: "text.secondary",
+									fontSize: "0.65rem",
+									px: 0.6,
+									py: 0.2,
 									cursor: "pointer",
-									border: "1px solid rgba(255,255,255,0.12)",
-									"&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
+									"&:hover": {
+										color: "text.primary",
+										bgcolor: "rgba(255,255,255,0.05)",
+									},
 								}}
-							/>
-							<Tooltip title="Close Card">
-								<IconButton
-									size="small"
-									onClick={() => onHide(category)}
-									sx={{ color: "text.secondary", p: 0.5, flexShrink: 0 }}
-								>
-									<CloseIcon fontSize="small" />
-								</IconButton>
-							</Tooltip>
-						</Stack>
+							>
+								{drillSortDir === "desc" ? "Highest" : "Lowest"}
+							</Box>
+
+							<Box
+								component="button"
+								onClick={() => onHide(category)}
+								sx={{
+									background: "none",
+									border: "1px solid rgba(255, 255, 255, 0.1)",
+									borderRadius: 1,
+									color: "text.secondary",
+									fontSize: "0.7rem",
+									px: 0.6,
+									py: 0.15,
+									cursor: "pointer",
+									lineHeight: 1,
+									"&:hover": {
+										color: "error.main",
+										borderColor: "rgba(255, 100, 100, 0.3)",
+									},
+								}}
+								title="Close"
+							>
+								✕
+							</Box>
+						</Box>
 					</Box>
 
-					{/* Expandable Categories per User */}
+					{/* Users List */}
 					<Stack
-						spacing={0.75}
-						sx={{ overflowY: "auto", flexGrow: 1, pr: 0.5 }}
+						spacing={0.4}
+						sx={{ overflowY: "auto", flexGrow: 1, pr: 0.25 }}
 					>
 						{userGroups.length > 0 ? (
 							userGroups.map((uGroup) => {
@@ -321,33 +382,35 @@ export const CategoryCard = React.memo(
 								const stale = memberInfo
 									? isUserStale(memberInfo.lastActive)
 									: false;
-								const isExpanded = drillExpandedUsers[uGroup.player] !== false;
+								const isExpanded =
+									drillExpandedUsers[uGroup.player] ?? drillDefaultExpanded;
 
 								return (
 									<Box
 										key={uGroup.player}
 										sx={{
-											borderRadius: 1.5,
-											bgcolor: "rgba(20, 20, 36, 0.6)",
-											border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+											borderRadius: 1,
+											bgcolor: "rgba(255, 255, 255, 0.02)",
+											border: "1px solid rgba(255, 255, 255, 0.05)",
 											overflow: "hidden",
 										}}
 									>
-										{/* User Category Header */}
+										{/* User Accordion Header */}
 										<Box
 											onClick={() =>
 												setDrillExpandedUsers((prev) => ({
 													...prev,
-													[uGroup.player]:
-														prev[uGroup.player] !== undefined
-															? !prev[uGroup.player]
-															: false,
+													[uGroup.player]: !(
+														prev[uGroup.player] ?? drillDefaultExpanded
+													),
 												}))
 											}
 											sx={{
-												p: 0.75,
-												px: 1,
-												bgcolor: "rgba(255, 255, 255, 0.03)",
+												py: 0.4,
+												px: 0.75,
+												bgcolor: isExpanded
+													? "rgba(255, 255, 255, 0.04)"
+													: "transparent",
 												cursor: "pointer",
 												display: "flex",
 												alignItems: "center",
@@ -356,67 +419,64 @@ export const CategoryCard = React.memo(
 												"&:hover": { bgcolor: "rgba(255, 255, 255, 0.06)" },
 											}}
 										>
-											<Stack
-												direction="row"
-												spacing={1}
-												alignItems="center"
-												sx={{ minWidth: 0 }}
+											<Box
+												sx={{
+													display: "flex",
+													alignItems: "center",
+													gap: 0.75,
+													minWidth: 0,
+												}}
 											>
-												{uGroup.isAccurate ? (
-													<CheckCircleIcon
-														sx={{ fontSize: 13, color: "success.main" }}
-													/>
-												) : (
-													<HelpIcon
-														sx={{ fontSize: 13, color: "text.disabled" }}
-													/>
-												)}
 												<Typography
 													variant="caption"
 													noWrap
 													sx={{
 														color: stale ? "warning.main" : "text.primary",
-														fontWeight: 800,
-														fontSize: "0.78rem",
+														fontSize: "0.75rem",
+														fontWeight: 500,
 													}}
 												>
 													{uGroup.player}
 												</Typography>
-												<Chip
-													size="small"
-													label={`${uGroup.planets.length} site${uGroup.planets.length > 1 ? "s" : ""}`}
+												<Typography
+													variant="caption"
 													sx={{
-														height: 16,
-														fontSize: "0.58rem",
-														fontWeight: 700,
-														bgcolor: "rgba(255,255,255,0.08)",
+														fontSize: "0.65rem",
 														color: "text.secondary",
 													}}
-												/>
-											</Stack>
+												>
+													{uGroup.planets.length} site
+													{uGroup.planets.length > 1 ? "s" : ""}
+												</Typography>
+											</Box>
 
-											<Stack direction="row" spacing={0.75} alignItems="center">
+											<Box
+												sx={{
+													display: "flex",
+													alignItems: "center",
+													gap: 0.75,
+												}}
+											>
 												{(uGroup.batchActive > 0 || uGroup.batchQueued > 0) && (
-													<Chip
-														size="small"
-														label={`+${Math.round(uGroup.batchActive)}${uGroup.batchQueued > 0 ? ` (${Math.round(uGroup.batchQueued)})` : ""}`}
+													<Typography
+														variant="caption"
 														sx={{
-															height: 16,
-															fontSize: "0.58rem",
-															fontWeight: 800,
-															bgcolor: alpha("#FFB74D", 0.15),
+															fontSize: "0.65rem",
 															color: "#FFB74D",
-															border: "1px solid rgba(255, 183, 77, 0.3)",
-															px: 0.2,
 														}}
-													/>
+													>
+														+{Math.round(uGroup.batchActive)}
+														{uGroup.batchQueued > 0
+															? ` (${Math.round(uGroup.batchQueued)})`
+															: ""}
+													</Typography>
 												)}
 												<Typography
 													variant="caption"
 													sx={{
 														color: accentColor,
-														fontWeight: 800,
-														fontSize: "0.8rem",
+														fontSize: "0.75rem",
+														fontWeight: 500,
 													}}
 												>
 													{formatSmartNumber(uGroup.totalAmount)}
@@ -425,23 +485,24 @@ export const CategoryCard = React.memo(
 													variant="caption"
 													sx={{
 														color: "text.secondary",
-														fontSize: "0.7rem",
-														ml: 0.25,
+														fontSize: "0.6rem",
+														width: 10,
+														textAlign: "center",
 													}}
 												>
 													{isExpanded ? "▲" : "▼"}
 												</Typography>
-											</Stack>
+											</Box>
 										</Box>
 
-										{/* Collapsible Sites List */}
+										{/* Sites Details */}
 										{isExpanded && (
 											<Stack
-												spacing={0.5}
+												spacing={0.3}
 												sx={{
-													p: 0.75,
-													pt: 0.5,
-													borderTop: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
+													p: 0.5,
+													pt: 0.3,
+													borderTop: "1px solid rgba(255, 255, 255, 0.04)",
 												}}
 											>
 												{uGroup.planets.map(
@@ -457,10 +518,10 @@ export const CategoryCard = React.memo(
 															<Box
 																key={pIdx}
 																sx={{
-																	p: 0.6,
-																	borderRadius: 1,
-																	bgcolor: "rgba(13, 13, 25, 0.4)",
-																	border: "1px solid rgba(255, 255, 255, 0.03)",
+																	p: 0.4,
+																	px: 0.6,
+																	borderRadius: 0.75,
+																	bgcolor: "rgba(0, 0, 0, 0.25)",
 																}}
 															>
 																<Box
@@ -473,55 +534,53 @@ export const CategoryCard = React.memo(
 																	<Typography
 																		variant="caption"
 																		sx={{
-																			fontWeight: 700,
-																			color: "primary.light",
-																			fontSize: "0.68rem",
+																			color: "text.secondary",
+																			fontSize: "0.7rem",
 																		}}
 																	>
-																		📍 {pItem.loc}
+																		{pItem.loc}
 																	</Typography>
-																	<Stack
-																		direction="row"
-																		spacing={0.5}
-																		alignItems="center"
+																	<Box
+																		sx={{
+																			display: "flex",
+																			alignItems: "center",
+																			gap: 0.5,
+																		}}
 																	>
 																		{(bActive > 0 || bQueued > 0) && (
-																			<Chip
-																				size="small"
-																				label={`+${Math.round(bActive)}${bQueued > 0 ? ` (${Math.round(bQueued)})` : ""}`}
+																			<Typography
+																				variant="caption"
 																				sx={{
-																					height: 14,
-																					fontSize: "0.55rem",
-																					fontWeight: 800,
-																					bgcolor: alpha("#FFB74D", 0.12),
+																					fontSize: "0.62rem",
 																					color: "#FFB74D",
-																					border:
-																						"1px solid rgba(255, 183, 77, 0.25)",
-																					px: 0.15,
 																				}}
-																			/>
+																			>
+																				+{Math.round(bActive)}
+																				{bQueued > 0
+																					? ` (${Math.round(bQueued)})`
+																					: ""}
+																			</Typography>
 																		)}
 																		<Typography
 																			variant="caption"
 																			sx={{
-																				fontWeight: 800,
 																				color: accentColor,
-																				fontSize: "0.74rem",
+																				fontSize: "0.72rem",
 																			}}
 																		>
 																			{formatSmartNumber(pItem.amount)}
 																		</Typography>
-																	</Stack>
+																	</Box>
 																</Box>
 
 																{recipes.length > 0 && (
 																	<Stack
 																		spacing={0.2}
 																		sx={{
-																			mt: 0.35,
-																			pt: 0.3,
+																			mt: 0.25,
+																			pt: 0.25,
 																			borderTop:
-																				"1px dashed rgba(255,255,255,0.06)",
+																				"1px solid rgba(255, 255, 255, 0.03)",
 																		}}
 																	>
 																		{recipes.map((rec, rIdx) => {
@@ -537,24 +596,19 @@ export const CategoryCard = React.memo(
 																				<Box
 																					key={rIdx}
 																					sx={{
-																						py: 0.2,
-																						px: 0.5,
-																						borderRadius: 0.5,
-																						bgcolor:
-																							"rgba(186, 104, 200, 0.05)",
 																						display: "flex",
 																						alignItems: "center",
 																						justifyContent: "space-between",
 																						gap: 0.5,
-																						flexWrap: "wrap",
+																						py: 0.15,
 																					}}
 																				>
-																					{/* Left side: Building label + Formula */}
+																					{/* Building + Formula */}
 																					<Box
 																						sx={{
 																							display: "flex",
 																							alignItems: "center",
-																							gap: 0.4,
+																							gap: 0.35,
 																							flexWrap: "wrap",
 																							minWidth: 0,
 																						}}
@@ -563,148 +617,126 @@ export const CategoryCard = React.memo(
 																							<Typography
 																								variant="caption"
 																								sx={{
-																									fontWeight: 800,
-																									color: "#BA68C8",
-																									fontSize: "0.58rem",
-																									mr: 0.25,
+																									color: "text.secondary",
+																									fontSize: "0.62rem",
+																									fontWeight: 500,
+																									letterSpacing: "0.04em",
 																								}}
 																							>
-																								{rec.building}:
+																								{getBuildingTicker(
+																									rec.building,
+																								)}
+																								:
 																							</Typography>
 																						)}
 
-																						<Box
-																							sx={{
-																								display: "flex",
-																								alignItems: "center",
-																								gap: 0.2,
-																								flexWrap: "wrap",
-																								transform: "scale(0.88)",
-																								transformOrigin: "left center",
-																							}}
-																						>
-																							{inputMaterials.map(
-																								(inp, idx) => (
-																									<Box
-																										key={inp.ticker}
+																						{inputMaterials.map((inp, idx) => (
+																							<Box
+																								key={inp.ticker}
+																								sx={{
+																									display: "inline-flex",
+																									alignItems: "center",
+																									gap: 0.2,
+																								}}
+																							>
+																								{idx > 0 && (
+																									<Typography
+																										variant="caption"
 																										sx={{
-																											display: "inline-flex",
-																											alignItems: "center",
-																											gap: 0.15,
+																											color: "text.disabled",
+																											fontSize: "0.6rem",
 																										}}
 																									>
-																										{idx > 0 && (
+																										+
+																									</Typography>
+																								)}
+																								<MaterialBadge
+																									ticker={inp.ticker}
+																								/>
+																								<Typography
+																									variant="caption"
+																									sx={{
+																										color: "text.secondary",
+																										fontSize: "0.62rem",
+																									}}
+																								>
+																									{inp.factor < 1
+																										? inp.factor.toFixed(1)
+																										: Math.round(inp.factor)}
+																									/d
+																								</Typography>
+																							</Box>
+																						))}
+
+																						{outputMaterials.length > 0 && (
+																							<>
+																								<Typography
+																									variant="caption"
+																									sx={{
+																										color: "text.disabled",
+																										fontSize: "0.6rem",
+																										px: 0.1,
+																									}}
+																								>
+																									➔
+																								</Typography>
+																								{outputMaterials.map(
+																									(out, idx) => (
+																										<Box
+																											key={out.ticker}
+																											sx={{
+																												display: "inline-flex",
+																												alignItems: "center",
+																												gap: 0.2,
+																											}}
+																										>
+																											{idx > 0 && (
+																												<Typography
+																													variant="caption"
+																													sx={{
+																														color:
+																															"text.disabled",
+																														fontSize: "0.6rem",
+																													}}
+																												>
+																													+
+																												</Typography>
+																											)}
+																											<MaterialBadge
+																												ticker={out.ticker}
+																											/>
 																											<Typography
 																												variant="caption"
 																												sx={{
 																													color:
-																														"rgba(186, 104, 200, 0.7)",
-																													fontWeight: 800,
-																													fontSize: "0.55rem",
-																													px: 0.05,
+																														"text.secondary",
+																													fontSize: "0.62rem",
 																												}}
 																											>
-																												+
+																												{out.factor < 1
+																													? out.factor.toFixed(
+																															1,
+																														)
+																													: Math.round(
+																															out.factor,
+																														)}
+																												/d
 																											</Typography>
-																										)}
-																										<MaterialBadge
-																											ticker={inp.ticker}
-																										/>
-																										<Typography
-																											variant="caption"
-																											sx={{
-																												color:
-																													"rgba(255,255,255,0.65)",
-																												fontSize: "0.55rem",
-																												fontWeight: 700,
-																											}}
-																										>
-																											{inp.factor < 1
-																												? inp.factor.toFixed(1)
-																												: Math.round(
-																														inp.factor,
-																													)}
-																											/d
-																										</Typography>
-																									</Box>
-																								),
-																							)}
-
-																							{outputMaterials.length > 0 && (
-																								<>
-																									<Typography
-																										variant="caption"
-																										sx={{
-																											color: "#BA68C8",
-																											fontWeight: 800,
-																											fontSize: "0.55rem",
-																											px: 0.15,
-																										}}
-																									>
-																										➔
-																									</Typography>
-																									{outputMaterials.map(
-																										(out, idx) => (
-																											<Box
-																												key={out.ticker}
-																												sx={{
-																													display:
-																														"inline-flex",
-																													alignItems: "center",
-																													gap: 0.15,
-																												}}
-																											>
-																												{idx > 0 && (
-																													<Typography
-																														variant="caption"
-																														sx={{
-																															color:
-																																"rgba(186, 104, 200, 0.7)",
-																															fontWeight: 800,
-																															fontSize:
-																																"0.55rem",
-																															px: 0.05,
-																														}}
-																													>
-																														+
-																													</Typography>
-																												)}
-																												<MaterialBadge
-																													ticker={out.ticker}
-																												/>
-																												<Typography
-																													variant="caption"
-																													sx={{
-																														color: "#64FFDA",
-																														fontSize: "0.55rem",
-																														fontWeight: 700,
-																													}}
-																												>
-																													{out.factor < 1
-																														? out.factor.toFixed(
-																																1,
-																															)
-																														: Math.round(
-																																out.factor,
-																															)}
-																													/d
-																												</Typography>
-																											</Box>
-																										),
-																									)}
-																								</>
-																							)}
-																						</Box>
+																										</Box>
+																									),
+																								)}
+																							</>
+																						)}
 																					</Box>
 
-																					{/* Right side: Cycles & output info */}
+																					{/* Daily Output / Cycles */}
 																					<Typography
 																						variant="caption"
 																						sx={{
-																							color: "rgba(255,255,255,0.5)",
-																							fontSize: "0.55rem",
-																							ml: "auto",
+																							color: "text.disabled",
+																							fontSize: "0.6rem",
 																							whiteSpace: "nowrap",
+																							ml: "auto",
 																						}}
 																					>
 																						{formatSmartNumber(rec.dailyOutput)}
@@ -731,8 +763,7 @@ export const CategoryCard = React.memo(
 							<Typography
 								variant="caption"
 								sx={{
-									fontStyle: "italic",
-									color: "text.disabled",
+									color: "text.secondary",
 									textAlign: "center",
 									py: 2,
 								}}

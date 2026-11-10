@@ -369,13 +369,21 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 				const json = await res.json();
 				if (json.success && json.profile) {
 					const p = json.profile;
+					if (p.corpname) {
+						localStorage.setItem("corpName", p.corpname);
+						localStorage.setItem("corporationName", p.corpname);
+					}
+					if (p.companyname) localStorage.setItem("companyName", p.companyname);
+					if (p.companycode) localStorage.setItem("companyCode", p.companycode);
+					if (p.displayname) localStorage.setItem("displayName", p.displayname);
+
 					setUserMetadata((prev) => ({
 						...prev,
 						username: p.displayname || prev.username,
 						displayName: p.displayname || prev.displayName,
 						companyCode: p.companycode || prev.companyCode,
 						companyName: p.companyname || prev.companyName,
-						corpName: p.corpname || prev.corpName,
+						corpName: p.corpname !== undefined ? p.corpname : prev.corpName,
 						corpCode: p.corpcode ?? null,
 						activeDaysPerWeek: p.activedaysperweek ?? null,
 						highestTier: p.highesttier ?? null,
@@ -599,10 +607,11 @@ export const GlobalDataProvider: React.FC<{ children: ReactNode }> = ({
 
 				json.ships.forEach((s: ShipData) => {
 					if (s.is_corp || s.iscorp) {
-						if (!corpGrouped[s.company_code]) {
-							corpGrouped[s.company_code] = [];
+						const code = s.company_code || s.companycode || "UNKNOWN"; // fix this later
+						if (!corpGrouped[code]) {
+							corpGrouped[code] = [];
 						}
-						corpGrouped[s.company_code].push(s);
+						corpGrouped[code].push(s);
 					}
 				});
 

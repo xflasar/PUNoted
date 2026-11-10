@@ -77,3 +77,8 @@ export const extractRecipeMaterials = (
 		outputMaterial: outputMaterials[0] || null,
 	};
 };
+
+export const getBuildingTicker = (building?: string): string => {
+	if (!building) return "";
+	return building.trim();
+};

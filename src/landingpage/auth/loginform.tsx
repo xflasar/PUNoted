@@ -54,8 +54,10 @@ export const LoginForm: React.FC<Props> = ({
 					localStorage.setItem("companyName", data.companyName);
 				if (data.companyCode)
 					localStorage.setItem("companyCode", data.companyCode);
-				if (data.corpName)
+				if (data.corpName) {
+					localStorage.setItem("corpName", data.corpName);
 					localStorage.setItem("corporationName", data.corpName);
+				}
 				if (data.currentUserId)
 					localStorage.setItem("currentUserId", data.currentUserId);
 				if (data.isSynchronized)

@@ -360,32 +360,34 @@ export const DataSection: React.FC<DataSectionProps> = ({ onShowMsg }) => {
 										</Typography>
 									</Box>
 
-									<Button
-										size="small"
-										variant="outlined"
-										color="error"
-										disabled={cat.count === 0}
-										startIcon={<Delete sx={{ fontSize: "0.9rem" }} />}
-										onClick={() =>
-											setConfirmModal({
-												open: true,
-												categoryId: cat.id,
-												categoryLabel: cat.label,
-											})
-										}
-										sx={{
-											borderRadius: 1.5,
-											textTransform: "none",
-											fontSize: "0.75rem",
-											fontWeight: 700,
-											py: 0.25,
-											px: 1.25,
-											whiteSpace: "nowrap",
-											minWidth: "max-content",
-										}}
-									>
-										Delete
-									</Button>
+									{cat.id !== "account_identity" && (
+										<Button
+											size="small"
+											variant="outlined"
+											color="error"
+											disabled={cat.count === 0}
+											startIcon={<Delete sx={{ fontSize: "0.9rem" }} />}
+											onClick={() =>
+												setConfirmModal({
+													open: true,
+													categoryId: cat.id,
+													categoryLabel: cat.label,
+												})
+											}
+											sx={{
+												borderRadius: 1.5,
+												textTransform: "none",
+												fontSize: "0.75rem",
+												fontWeight: 700,
+												py: 0.25,
+												px: 1.25,
+												whiteSpace: "nowrap",
+												minWidth: "max-content",
+											}}
+										>
+											Delete
+										</Button>
+									)}
 								</Box>
 
 								{/* Compact Sub-table Chips */}

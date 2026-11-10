@@ -192,6 +192,7 @@ function App() {
 						localStorage.setItem("displayName", data.displayname || "");
 						localStorage.setItem("companyName", data.companyname || "");
 						localStorage.setItem("companyCode", data.companycode || "");
+						localStorage.setItem("corpName", data.corpname || "");
 						localStorage.setItem("corporationName", data.corpname || "");
 
 						localStorage.setItem("isSynchronized", "true");
@@ -235,6 +236,7 @@ function App() {
 		localStorage.removeItem("companyCode");
 		localStorage.removeItem("currentUserId");
 		localStorage.removeItem("corpName");
+		localStorage.removeItem("corporationName");
 		localStorage.removeItem("isSynchronized");
 		localStorage.removeItem("hasSession");
 		setIsLoggedIn(false);
