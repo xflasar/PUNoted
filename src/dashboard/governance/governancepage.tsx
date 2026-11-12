@@ -1548,7 +1548,7 @@ const Governance = () => {
 												{isPlanetsLoading ? (
 													<CircularProgress color="inherit" size={16} />
 												) : null}
-												{params.InputProps.endAdornment}
+												{params.InputProps?.endAdornment}
 											</React.Fragment>
 										),
 									}}

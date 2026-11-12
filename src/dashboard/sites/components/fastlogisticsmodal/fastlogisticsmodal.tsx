@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
 	Dialog,
 	DialogTitle,
@@ -33,6 +33,7 @@ import MaterialBadge from "../../../../cosm/components/materialbadge";
 import {
 	getMatProps,
 	CARGO_BAYS,
+	copyToClipboard,
 } from "../../../production/utils/materialprops";
 import {
 	generateSupplyXit,
@@ -71,6 +72,10 @@ export const FastLogisticsModal: React.FC<FastLogisticsModalProps> = ({
 	// Common Ship Selection State
 	const [selectedShipId, setSelectedShipId] = useState<string>("LCB");
 	const [shipSearchTerm, setShipSearchTerm] = useState<string>("");
+
+	// Pricing / Valuation Mode
+	const [showPrices, setShowPrices] = useState<boolean>(true);
+	const [selectedExchange, setSelectedExchange] = useState<string>("IC1");
 
 	// Active Fleet Ships sourced exclusively from Global Data Context (WebSocket updated)
 	const fleetShips = useMemo(() => {
@@ -302,6 +307,73 @@ export const FastLogisticsModal: React.FC<FastLogisticsModalProps> = ({
 		globalGetMatProps,
 	]);
 
+	const getCurrencyLabel = (ex: string) => {
+		if (ex.startsWith("IC")) return "ICA";
+		if (ex.startsWith("NC")) return "NCC";
+		if (ex.startsWith("AI")) return "AIC";
+		if (ex.startsWith("CI")) return "CIS";
+		return "ICA";
+	};
+
+	const getMatPrice = useCallback(
+		(mat: string) => {
+			let marketObj: any = null;
+			if (Array.isArray(globalData?.marketData)) {
+				marketObj = globalData.marketData.find(
+					(item: any) =>
+						(item.Ticker || item.ticker || "").toUpperCase() ===
+						mat.toUpperCase(),
+				);
+			} else if (
+				globalData?.marketData &&
+				typeof globalData.marketData === "object"
+			) {
+				marketObj = (globalData.marketData as Record<string, any>)[mat];
+			}
+
+			if (!marketObj) return 0;
+
+			if (selectedExchange === "CORP") {
+				return (
+					marketObj.corp_price ||
+					marketObj.price ||
+					marketObj["IC1-Average"] ||
+					0
+				);
+			}
+
+			const askKey = `${selectedExchange}-AskPrice`;
+			const avgKey = `${selectedExchange}-Average`;
+			const bidKey = `${selectedExchange}-BidPrice`;
+
+			return (
+				marketObj[askKey] ||
+				marketObj[avgKey] ||
+				marketObj[bidKey] ||
+				marketObj.price ||
+				0
+			);
+		},
+		[globalData?.marketData, selectedExchange],
+	);
+
+	const totalResupplyCost = useMemo(() => {
+		let total = 0;
+		resupplyCandidates.forEach((c) => {
+			if (resupplySelectedMap[c.ticker]) {
+				const qty = resupplyCustomQtys[c.ticker] || 0;
+				const price = getMatPrice(c.ticker);
+				total += qty * price;
+			}
+		});
+		return total;
+	}, [
+		resupplyCandidates,
+		resupplySelectedMap,
+		resupplyCustomQtys,
+		getMatPrice,
+	]);
+
 	const handleCopyResupplyXit = () => {
 		const mats: Record<string, number> = {};
 		resupplyCandidates.forEach((c) => {
@@ -321,7 +393,9 @@ export const FastLogisticsModal: React.FC<FastLogisticsModalProps> = ({
 		const xit = generateSupplyXit({
 			siteName,
 			materials: mats,
-			shipReg: selectedShip.reg,
+			exchange: selectedExchange === "CORP" ? "IC1" : selectedExchange,
+			includeTransport: true,
+			useCXInv: true,
 		});
 
 		copyToClipboard(xit);
@@ -1037,9 +1111,18 @@ export const FastLogisticsModal: React.FC<FastLogisticsModalProps> = ({
 								display: "flex",
 								justifyContent: "space-between",
 								alignItems: "center",
+								flexWrap: "wrap",
+								gap: 1,
 							}}
 						>
-							<Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+							<Box
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 1.5,
+									flexWrap: "wrap",
+								}}
+							>
 								<ToggleButtonGroup
 									size="small"
 									value={resupplyMode}
@@ -1068,33 +1151,127 @@ export const FastLogisticsModal: React.FC<FastLogisticsModalProps> = ({
 									<ToggleButton value="production">Inputs Only</ToggleButton>
 									<ToggleButton value="all">All Consumption</ToggleButton>
 								</ToggleButtonGroup>
+
+								<Box
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										gap: 0.75,
+										bgcolor: "rgba(0,0,0,0.4)",
+										px: 1,
+										py: 0.25,
+										borderRadius: "6px",
+										border: "1px solid rgba(255,255,255,0.08)",
+									}}
+								>
+									<FormControlLabel
+										control={
+											<Switch
+												size="small"
+												checked={showPrices}
+												onChange={(e) => setShowPrices(e.target.checked)}
+												sx={{
+													mr: -0.5,
+													"& .MuiSwitch-switchBase.Mui-checked": {
+														color: theme.palette.primary.main,
+													},
+													"& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+														{
+															bgcolor: theme.palette.primary.main,
+														},
+												}}
+											/>
+										}
+										label={
+											<Typography
+												variant="caption"
+												sx={{
+													fontSize: "0.68rem",
+													fontWeight: 700,
+													color: "rgba(255,255,255,0.85)",
+												}}
+											>
+												CX/CORP Price
+											</Typography>
+										}
+										sx={{ m: 0 }}
+									/>
+
+									{showPrices && (
+										<Select
+											size="small"
+											value={selectedExchange}
+											onChange={(e) => setSelectedExchange(e.target.value)}
+											sx={{
+												height: 22,
+												fontSize: "0.68rem",
+												fontWeight: 800,
+												color: theme.palette.primary.main,
+												bgcolor: "rgba(255,255,255,0.05)",
+												"& .MuiSelect-select": { py: 0, px: 0.75 },
+												"& .MuiOutlinedInput-notchedOutline": {
+													borderColor: "rgba(255,255,255,0.15)",
+												},
+											}}
+										>
+											{["IC1", "NC1", "AI1", "CI1", "CORP"].map((ex) => (
+												<MenuItem
+													key={ex}
+													value={ex}
+													sx={{ fontSize: "0.72rem", py: 0.5 }}
+												>
+													{ex}
+												</MenuItem>
+											))}
+										</Select>
+									)}
+								</Box>
 							</Box>
 
-							<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-								<Typography
-									variant="caption"
-									sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.7)" }}
-								>
-									Target Days:
-								</Typography>
-								<TextField
-									size="small"
-									type="number"
-									value={supplyDays}
-									onChange={(e) =>
-										setSupplyDays(Math.max(1, parseInt(e.target.value) || 1))
-									}
-									sx={{
-										width: 70,
-										"& .MuiOutlinedInput-input": {
-											py: 0.25,
-											px: 0.75,
+							<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+								{showPrices && totalResupplyCost > 0 && (
+									<Typography
+										variant="caption"
+										sx={{
 											fontSize: "0.75rem",
 											fontWeight: 700,
-											textAlign: "center",
-										},
-									}}
-								/>
+											color: theme.palette.success.main,
+										}}
+									>
+										Est. Cost:{" "}
+										<strong style={{ fontFamily: "monospace" }}>
+											{Math.round(totalResupplyCost).toLocaleString()}{" "}
+											{getCurrencyLabel(selectedExchange)}
+										</strong>
+									</Typography>
+								)}
+
+								<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+									<Typography
+										variant="caption"
+										sx={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.7)" }}
+									>
+										Target Days:
+									</Typography>
+									<TextField
+										size="small"
+										type="number"
+										value={supplyDays}
+										onChange={(e) =>
+											setSupplyDays(Math.max(1, parseInt(e.target.value) || 1))
+										}
+										sx={{
+											width: 70,
+											"& .MuiOutlinedInput-input": {
+												py: 0.25,
+												px: 0.75,
+												fontSize: "0.75rem",
+												fontWeight: 700,
+												textAlign: "center",
+											},
+										}}
+									/>
+								</Box>
 							</Box>
 						</Box>
 
@@ -1156,6 +1333,32 @@ export const FastLogisticsModal: React.FC<FastLogisticsModalProps> = ({
 									>
 										Resupply Qty
 									</TableCell>
+									{showPrices && (
+										<>
+											<TableCell
+												align="right"
+												sx={{
+													color: theme.palette.primary.main,
+													fontWeight: 800,
+													py: 0.5,
+													width: 85,
+												}}
+											>
+												Price ({getCurrencyLabel(selectedExchange)})
+											</TableCell>
+											<TableCell
+												align="right"
+												sx={{
+													color: theme.palette.primary.main,
+													fontWeight: 800,
+													py: 0.5,
+													width: 100,
+												}}
+											>
+												Total Cost
+											</TableCell>
+										</>
+									)}
 								</TableRow>
 							</TableHead>
 							<TableBody>
@@ -1163,6 +1366,8 @@ export const FastLogisticsModal: React.FC<FastLogisticsModalProps> = ({
 									const isSel = !!resupplySelectedMap[c.ticker];
 									const qty = resupplyCustomQtys[c.ticker] ?? 0;
 									const burn = Math.abs(c.flow);
+									const unitPrice = getMatPrice(c.ticker);
+									const itemTotal = qty * unitPrice;
 
 									return (
 										<TableRow
@@ -1241,6 +1446,38 @@ export const FastLogisticsModal: React.FC<FastLogisticsModalProps> = ({
 													}}
 												/>
 											</TableCell>
+											{showPrices && (
+												<>
+													<TableCell
+														align="right"
+														sx={{
+															py: 0.3,
+															fontFamily: "monospace",
+															fontSize: "0.75rem",
+															color: "rgba(255,255,255,0.85)",
+														}}
+													>
+														{unitPrice > 0 ? unitPrice.toFixed(2) : "-"}
+													</TableCell>
+													<TableCell
+														align="right"
+														sx={{
+															py: 0.3,
+															fontFamily: "monospace",
+															fontSize: "0.75rem",
+															fontWeight: 700,
+															color:
+																itemTotal > 0
+																	? theme.palette.success.main
+																	: "rgba(255,255,255,0.4)",
+														}}
+													>
+														{itemTotal > 0
+															? Math.round(itemTotal).toLocaleString()
+															: "-"}
+													</TableCell>
+												</>
+											)}
 										</TableRow>
 									);
 								})}

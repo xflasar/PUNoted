@@ -27,6 +27,7 @@ import { buildStaticGalaxyLayers } from "./layers/staticgalaxylayers";
 import { buildDynamicLayers } from "./layers/dynamiclayers";
 import { calculateTransferPath } from "../../utils/gettransferelipse";
 import { getFlightArrivalMs } from "../../utils/timestamputils";
+import { createShippingRouteLayer } from "../../layers/routelineslayer";
 
 /**
  * Custom React hook that orchestrates star atlas image textures, DeckGL layer generation,
@@ -722,6 +723,54 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 		activeStations,
 	]);
 
+	// Shipping route lines layer (Galaxy & System views)
+	const shippingRouteLayer = useMemo(() => {
+		if (
+			mode !== "shipping" ||
+			!props.shipRoutes ||
+			props.shipRoutes.length === 0
+		) {
+			return null;
+		}
+
+		// Build system coordinates map from systemsPoints
+		const sysCoordsMap = new Map<string, [number, number]>();
+		systemsPoints.forEach((sys) => {
+			const id = sys.originalSystemId || sys.systemId || sys.id;
+			if (id && sys.x != null && sys.y != null) {
+				sysCoordsMap.set(String(id), [sys.x, sys.y]);
+			}
+		});
+
+		const curSysId = currentSystem
+			? String(currentSystem.originalSystemId || currentSystem.id || "")
+			: null;
+
+		return createShippingRouteLayer({
+			routes: props.shipRoutes,
+			selectedRouteId: props.selectedRouteId ?? null,
+			showAll: Boolean(props.showAllRoutes),
+			isSystemMode: !isGalaxyView && Boolean(currentSystem),
+			currentSystemId: curSysId,
+			systemCoordinatesMap: sysCoordsMap,
+			allPlanetsData: activePlanets || [],
+			allStationsData: activeStations || [],
+			rawConnections: props.rawConnections || [],
+			systemsPoints: systemsPoints || [],
+		});
+	}, [
+		mode,
+		props.shipRoutes,
+		props.selectedRouteId,
+		props.showAllRoutes,
+		systemsPoints,
+		isGalaxyView,
+		currentSystem,
+		activePlanets,
+		activeStations,
+		props.rawConnections,
+	]);
+
 	const sectorLayer = useMemo(() => {
 		return buildSectorLayers(isGalaxyView, sectors, safeGetColor);
 	}, [isGalaxyView, sectors, safeGetColor]);
@@ -761,8 +810,35 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			});
 		}
 
+		// 3. Collect from shipping routes (waypoints)
+		if (props.shipRoutes && props.shipRoutes.length > 0) {
+			props.shipRoutes.forEach((route: any) => {
+				if (!props.showAllRoutes && route.routeid !== props.selectedRouteId)
+					return;
+				route.waypoints?.forEach((wp: any) => {
+					if (wp.system_id) systemIds.add(wp.system_id);
+					if (wp.location_id) {
+						if (wp.location_type === "PLANET") planetIds.add(wp.location_id);
+						else if (wp.location_type === "STATION")
+							stationIds.add(wp.location_id);
+					}
+					if (wp.location_name) {
+						stationIds.add(wp.location_name);
+						stationIds.add(wp.location_name.toLowerCase());
+					}
+				});
+			});
+		}
+
 		return { systemIds, planetIds, stationIds };
-	}, [mode, props.shipmentState, props.animatedShipData]);
+	}, [
+		mode,
+		props.shipmentState,
+		props.animatedShipData,
+		props.shipRoutes,
+		props.selectedRouteId,
+		props.showAllRoutes,
+	]);
 
 	// Extract stored packages (in warehouse, station or planet storage, not loaded in ship)
 	const { packageCargoSystems, packageCargoNodes } = useMemo(() => {
@@ -1037,12 +1113,18 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			...sectorLayer,
 			...staticGalaxyLayers,
 			...flightPathLayers,
+			...(shippingRouteLayer
+				? Array.isArray(shippingRouteLayer)
+					? shippingRouteLayer
+					: [shippingRouteLayer]
+				: []),
 			...dynamicLayers,
 		];
 	}, [
 		staticGalaxyLayers,
 		sectorLayer,
 		flightPathLayers,
+		shippingRouteLayer,
 		dynamicLayers,
 		props.viewportInstance,
 	]);

@@ -5,6 +5,7 @@ import {
 	calcBuildingCondition,
 	calcRepairAmount,
 	BUILDING_CONSTRUCTION_MATERIALS,
+	isRepairableBuilding,
 } from "./utils";
 import type { PlatformBreakdownItem } from "./types";
 
@@ -25,6 +26,8 @@ interface SitePlatformCondition {
 	condition?: number;
 	area?: number;
 	build_materials?: { ticker: string; amount: number }[];
+	repair_materials?: { ticker: string; amount: number }[];
+	reclaimable_materials?: { ticker: string; amount: number }[];
 }
 
 interface UseFastRepairOptions {
@@ -182,19 +185,14 @@ export function useFastRepair({
 		[planetProps],
 	);
 
-	// Filter out Non-Production Platforms
+	// Filter out Non-Production Platforms (Workforce, Storage, Core, Infrastructure do not degrade or get repaired)
 	const repairablePlatforms = useMemo(() => {
 		if (!sitePlatformConditions || sitePlatformConditions.length === 0)
 			return [];
 
-		return sitePlatformConditions.filter((p) => {
-			const buildingType = (p.building_type || "").toUpperCase();
-			return (
-				buildingType !== "CORE" &&
-				buildingType !== "HABITATION" &&
-				buildingType !== "STORAGE"
-			);
-		});
+		return sitePlatformConditions.filter((p) =>
+			isRepairableBuilding(p.building_type),
+		);
 	}, [sitePlatformConditions]);
 
 	// Normalize Platform Entries & Compute Full Construction Requirements (Base + Env)
@@ -224,12 +222,39 @@ export function useFastRepair({
 
 			const fullMaterials: Record<string, number> = {};
 
-			// 1. Base Materials
-			if (Array.isArray(p.build_materials) && p.build_materials.length > 0) {
+			// If platform has live repair_materials + reclaimable_materials directly from game:
+			// Full construction materials = repair_materials + reclaimable_materials!
+			const hasLiveMaterials =
+				(Array.isArray(p.repair_materials) && p.repair_materials.length > 0) ||
+				(Array.isArray(p.reclaimable_materials) &&
+					p.reclaimable_materials.length > 0);
+
+			if (hasLiveMaterials) {
+				(p.repair_materials || []).forEach((rm) => {
+					if (rm.ticker && rm.amount) {
+						fullMaterials[rm.ticker] =
+							(fullMaterials[rm.ticker] || 0) + rm.amount;
+					}
+				});
+				(p.reclaimable_materials || []).forEach((rm) => {
+					if (rm.ticker && rm.amount) {
+						fullMaterials[rm.ticker] =
+							(fullMaterials[rm.ticker] || 0) + rm.amount;
+					}
+				});
+			} else if (
+				Array.isArray(p.build_materials) &&
+				p.build_materials.length > 0
+			) {
 				p.build_materials.forEach((bm) => {
 					if (bm.ticker && bm.amount) {
 						fullMaterials[bm.ticker] = bm.amount;
 					}
+				});
+				// Add Environmental Material Modifiers
+				const envMaterials = getEnvironmentalMaterials(p.area || 0);
+				Object.entries(envMaterials).forEach(([mat, qty]) => {
+					fullMaterials[mat] = (fullMaterials[mat] || 0) + qty;
 				});
 			} else {
 				const baseDefaults =
@@ -239,13 +264,23 @@ export function useFastRepair({
 				Object.entries(baseDefaults).forEach(([mat, qty]) => {
 					fullMaterials[mat] = qty;
 				});
+				// Add Environmental Material Modifiers
+				const envMaterials = getEnvironmentalMaterials(p.area || 0);
+				Object.entries(envMaterials).forEach(([mat, qty]) => {
+					fullMaterials[mat] = (fullMaterials[mat] || 0) + qty;
+				});
 			}
 
-			// 2. Environmental Material Modifiers
-			const envMaterials = getEnvironmentalMaterials(p.area || 0);
-			Object.entries(envMaterials).forEach(([mat, qty]) => {
-				fullMaterials[mat] = (fullMaterials[mat] || 0) + qty;
-			});
+			// Current direct repair requirements from game (for timeOffset === 0)
+			const liveRepairRequirements: Record<string, number> = {};
+			if (Array.isArray(p.repair_materials) && p.repair_materials.length > 0) {
+				p.repair_materials.forEach((rm) => {
+					if (rm.ticker && rm.amount) {
+						liveRepairRequirements[rm.ticker] =
+							(liveRepairRequirements[rm.ticker] || 0) + rm.amount;
+					}
+				});
+			}
 
 			return {
 				id: p.platform_id || `platform_${idx}`,
@@ -253,6 +288,7 @@ export function useFastRepair({
 				currentAgeDays,
 				currentConditionPct,
 				fullMaterials,
+				liveRepairRequirements,
 			};
 		});
 	}, [repairablePlatforms, currentCondition, getEnvironmentalMaterials]);
@@ -309,13 +345,30 @@ export function useFastRepair({
 			const itemNeeds: Record<string, number> = {};
 			let bCost = 0;
 
-			Object.entries(entry.fullMaterials).forEach(([mat, fullQty]) => {
-				const needed = calcRepairAmount(fullQty, plannedAge);
-				if (needed > 0) {
-					itemNeeds[mat] = needed;
-					bCost += needed * getMatPrice(mat);
-				}
-			});
+			// If slider is at 0 and we have live game repair materials, use them directly!
+			const hasLiveRepair =
+				timeOffset === 0 &&
+				entry.liveRepairRequirements &&
+				Object.keys(entry.liveRepairRequirements).length > 0;
+
+			if (hasLiveRepair) {
+				Object.entries(entry.liveRepairRequirements).forEach(
+					([mat, needed]) => {
+						if (needed > 0) {
+							itemNeeds[mat] = needed;
+							bCost += needed * getMatPrice(mat);
+						}
+					},
+				);
+			} else {
+				Object.entries(entry.fullMaterials).forEach(([mat, fullQty]) => {
+					const needed = calcRepairAmount(fullQty, plannedAge);
+					if (needed > 0) {
+						itemNeeds[mat] = needed;
+						bCost += needed * getMatPrice(mat);
+					}
+				});
+			}
 
 			return {
 				id: entry.id,
@@ -333,21 +386,11 @@ export function useFastRepair({
 		useMemo(() => {
 			const matTotals: Record<string, number> = {};
 
-			if (Object.keys(fullPlanetaryMaterials).length > 0) {
-				const plannedAvgAge = Math.min(180, avgAge + timeOffset);
-				Object.entries(fullPlanetaryMaterials).forEach(([mat, fullAmount]) => {
-					const needed = calcRepairAmount(fullAmount, plannedAvgAge);
-					if (needed > 0) {
-						matTotals[mat] = needed;
-					}
+			platformBreakdown.forEach((pb) => {
+				Object.entries(pb.materials).forEach(([mat, qty]) => {
+					matTotals[mat] = (matTotals[mat] || 0) + qty;
 				});
-			} else {
-				platformBreakdown.forEach((pb) => {
-					Object.entries(pb.materials).forEach(([mat, qty]) => {
-						matTotals[mat] = (matTotals[mat] || 0) + qty;
-					});
-				});
-			}
+			});
 
 			let cost = 0;
 			let vol = 0;
@@ -367,14 +410,7 @@ export function useFastRepair({
 				totalVolume: vol,
 				totalWeight: weight,
 			};
-		}, [
-			fullPlanetaryMaterials,
-			platformBreakdown,
-			avgAge,
-			timeOffset,
-			getMatPrice,
-			globalGetMatProps,
-		]);
+		}, [platformBreakdown, getMatPrice, globalGetMatProps]);
 
 	// Calculate base profit at 100% building condition (efficiency 1.0)
 	const baseDailyProfit = useMemo(() => {

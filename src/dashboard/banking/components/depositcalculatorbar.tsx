@@ -11,9 +11,7 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import SavingsOutlinedIcon from "@mui/icons-material/SavingsOutlined";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ClearIcon from "@mui/icons-material/Clear";
-import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import { FormattedNumberInput } from "./formattednumberinput";
 import { formatAmount } from "../helpers";
 import type { Bank, BankDepositComparison } from "../types";
@@ -45,10 +43,6 @@ export const DepositCalculatorBar: React.FC<DepositCalculatorBarProps> = ({
 			? Math.max(
 					...accepting.map((c) => c.monthlyYieldRate ?? c.weeklyYieldRate * 4),
 				)
-			: 0;
-	const bestWeeklyRate =
-		accepting.length > 0
-			? Math.max(...accepting.map((c) => c.weeklyYieldRate))
 			: 0;
 	const bestMonthlyPayout =
 		accepting.length > 0

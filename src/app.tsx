@@ -29,6 +29,7 @@ import { API_BASE_URL } from "./config/api";
 import { BasePlanner } from "./dashboard/planner/baseplanner";
 import ContractsPage from "./dashboard/contracts/contracts";
 import BankingPage from "./dashboard/banking/banking";
+import ShippingRoutesPage from "./dashboard/ship_routes/shippingroutespage";
 import { GlobalWsProvider } from "./dashboard/websocket/globalwscontext";
 import { GlobalDataProvider } from "./context/globaldatacontext";
 
@@ -316,6 +317,10 @@ function App() {
 								/>
 								<Route path="/dashboard/banking" element={<BankingPage />} />
 								<Route path="/dashboard/shipments" element={<ShipmentPage />} />
+								<Route
+									path="/dashboard/shipping-routes"
+									element={<ShippingRoutesPage />}
+								/>
 								<Route path="/dashboard/storage" element={<StoragePage />} />
 								<Route
 									path="/dashboard/settings"

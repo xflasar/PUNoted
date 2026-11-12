@@ -68,4 +68,7 @@ export interface UseMapLayersProps {
 	searchQuery?: string;
 	rawConnections?: any[];
 	microAsteroids?: any[];
+	shipRoutes?: any[];
+	selectedRouteId?: string | null;
+	showAllRoutes?: boolean;
 }

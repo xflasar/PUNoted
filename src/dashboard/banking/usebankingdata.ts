@@ -147,7 +147,7 @@ export const useBankingData = (): UseBankingDataResult => {
 		loadBankingData();
 	}, [loadBankingData]);
 
-	const handleCreateBank = async (e?: React.FormEvent): Promise<boolean> => {
+	const handleCreateBank = async (e?: any): Promise<boolean> => {
 		if (e) e.preventDefault();
 		if (!form.name.trim()) {
 			setCreateError("Bank name is required.");

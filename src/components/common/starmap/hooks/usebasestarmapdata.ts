@@ -61,6 +61,10 @@ interface UseBaseStarMapDataProps {
 	overrideShips?: Record<string, any>;
 	focusTarget?: LocationFocusTarget | null;
 	contracts?: ShipmentContract[];
+	customLayers?: any[];
+	shipRoutes?: any[];
+	selectedRouteId?: string | null;
+	showAllRoutes?: boolean;
 }
 
 export function useBaseStarMapData({
@@ -68,6 +72,10 @@ export function useBaseStarMapData({
 	overrideShips: rawOverrideShips,
 	focusTarget,
 	contracts: rawContracts,
+	customLayers,
+	shipRoutes,
+	selectedRouteId,
+	showAllRoutes,
 }: UseBaseStarMapDataProps) {
 	const overrideShipsKey = useMemo(
 		() => JSON.stringify(rawOverrideShips || {}),
@@ -1131,6 +1139,9 @@ export function useBaseStarMapData({
 			filter,
 			searchQuery,
 			rawConnections,
+			shipRoutes,
+			selectedRouteId,
+			showAllRoutes,
 		}),
 		[
 			galaxyViewState,
@@ -1159,10 +1170,18 @@ export function useBaseStarMapData({
 			filter,
 			searchQuery,
 			rawConnections,
+			shipRoutes,
+			selectedRouteId,
+			showAllRoutes,
 		],
 	);
 
 	const { layers, updatedShips, isLayersReady } = useMapLayers(layersOptions);
+
+	const allLayers = useMemo(() => {
+		if (!customLayers || customLayers.length === 0) return layers;
+		return [...layers, ...customLayers.filter(Boolean)];
+	}, [layers, customLayers]);
 
 	const [isDeckGlRendered, setIsDeckGlRendered] = useState(false);
 	const isDeckGlRenderedRef = useRef(false);
@@ -1764,7 +1783,7 @@ export function useBaseStarMapData({
 		DECK_DEVICE_PROPS,
 		activeViewState,
 		controller,
-		layers,
+		layers: allLayers,
 		isLoading,
 		isLayersReady: isLayersReady && isDeckGlRendered,
 		handleDeckAfterRender,

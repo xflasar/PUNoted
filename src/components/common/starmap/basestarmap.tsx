@@ -76,6 +76,10 @@ interface BaseStarMapProps {
 	overrideShips?: Record<string, any>;
 	focusTarget?: LocationFocusTarget | null;
 	contracts?: ShipmentContract[];
+	customLayers?: any[];
+	shipRoutes?: any[];
+	selectedRouteId?: string | null;
+	showAllRoutes?: boolean;
 }
 
 const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
@@ -83,6 +87,10 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 	overrideShips,
 	focusTarget,
 	contracts,
+	customLayers,
+	shipRoutes,
+	selectedRouteId,
+	showAllRoutes,
 }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -92,6 +100,10 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		overrideShips,
 		focusTarget,
 		contracts,
+		customLayers,
+		shipRoutes,
+		selectedRouteId,
+		showAllRoutes,
 	});
 
 	const handleZoomIn = React.useCallback(() => {
@@ -142,7 +154,7 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					onHover={mapState.handleDeckHover}
 					onClick={mapState.handleDeckClick}
 					controller={mapState.controller as any}
-					layers={mapState.layers}
+					layers={[...mapState.layers, ...(customLayers || []).filter(Boolean)]}
 					pickingRadius={5}
 					_animate={false}
 					onAfterRender={mapState.handleDeckAfterRender}
