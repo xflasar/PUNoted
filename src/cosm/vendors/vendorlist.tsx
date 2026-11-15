@@ -51,6 +51,7 @@ import {
 	useLocationFormatVersion,
 } from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
+import VendorLastActiveIndicator from "./components/vendorlastactiveindicator";
 import LocationFilter, {
 	ALL_LOCATIONS_ID,
 	HORTUS_LOCATION_CODE,
@@ -463,41 +464,16 @@ const VendorCard = React.memo(
 								{vendor.gamename}
 							</Typography>
 
-							<Typography
-								variant="caption"
+							<Box
 								sx={{
 									display: "flex",
 									alignItems: "center",
-									gap: 0.5,
 									color: theme.palette.text.secondary,
-									bgcolor: alpha(theme.palette.background.default, 0.6),
 									px: 1,
-									py: 0.25,
-									borderRadius: "8px",
-									fontWeight: 500,
-									lineHeight: 1.2,
 								}}
 							>
-								<Box
-									component="span"
-									sx={{
-										width: 6,
-										height: 6,
-										borderRadius: "50%",
-										bgcolor: theme.palette.success.main,
-										boxShadow: `0 0 4px ${alpha(theme.palette.success.main, 0.6)}`,
-									}}
-								/>
-								{(() => {
-									const act = String(
-										(vendor as typeof vendor & { activity?: unknown })
-											.activity || "-",
-									).trim();
-									if (act === "0 m" || act === "0m") return "Active Recently";
-									if (act === "-") return "Unknown";
-									return `Active ${act} ago`;
-								})()}
-							</Typography>
+								<VendorLastActiveIndicator vendor={vendor} />
+							</Box>
 						</Box>
 					</Box>
 
@@ -1154,9 +1130,6 @@ const VendorsList = ({
 			.flatMap((preparedVendor) => {
 				const { vendorStore, buyOrders, sellOrders } = preparedVendor;
 				const vendor = vendorStore.vendor;
-				const updated = String(
-					(vendor as typeof vendor & { activity?: unknown }).activity || "-",
-				);
 				const user = `${vendor.gamename} [${vendor.companycode}] ${vendor.companyname}`;
 
 				const buildRows = (
@@ -1190,7 +1163,6 @@ const VendorsList = ({
 							quantity: locationQuantity,
 							cxStats: preparedOrder.cxStats,
 							corpStats: preparedOrder.corpStats,
-							updated,
 							locCode: location?.location_code,
 							locName: location?.location_name,
 							rawVendor: vendor,
@@ -1388,21 +1360,9 @@ const VendorsList = ({
 				flex: 1,
 				headerAlign: "left",
 				align: "left",
-				renderCell: ({ value }) => {
-					const act = String(value).trim();
-					if (act === "0 m" || act === "0m") {
-						return (
-							<Typography variant="caption" sx={{ opacity: 0.8 }}>
-								Recently
-							</Typography>
-						);
-					}
-					return (
-						<Typography variant="caption" sx={{ opacity: 0.8 }}>
-							{act === "-" ? "Unknown" : `${act} ago`}
-						</Typography>
-					);
-				},
+				renderCell: ({ row }) => (
+					<VendorLastActiveIndicator vendor={row.rawVendor} />
+				),
 			},
 		],
 		[theme],

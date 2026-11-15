@@ -104,6 +104,8 @@ export interface VendorStore {
 		gamename: string;
 		/** Indicates if the vendor is currently active */
 		isactive: boolean;
+		/** Relative time since the vendor was last active, supplied by the API. */
+		activity?: string;
 		/** The default Commodity Exchange (CX) for the vendor */
 		cx: string;
 	};
