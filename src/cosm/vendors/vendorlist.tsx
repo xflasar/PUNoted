@@ -29,8 +29,6 @@ import {
 import {
 	Search,
 	MapPin,
-	Warehouse,
-	Globe,
 	Minus,
 	Square,
 	SquareCheck,
@@ -52,6 +50,7 @@ import {
 } from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
 import VendorLastActiveIndicator from "./components/vendorlastactiveindicator";
+import LocationIcon from "./components/locationicon";
 import LocationFilter, {
 	ALL_LOCATIONS_ID,
 	HORTUS_LOCATION_CODE,
@@ -634,17 +633,7 @@ const VendorCard = React.memo(
 																		gap: 0.5,
 																	}}
 																>
-																	{l.location_code === "HRT" ? (
-																		<Warehouse
-																			className="inline-icon"
-																			color={theme.palette.success.light}
-																		/>
-																	) : (
-																		<Globe
-																			className="inline-icon"
-																			color={theme.palette.warning.main}
-																		/>
-																	)}
+													<LocationIcon locationCode={l.location_code} />
 																	<Typography
 																		variant="caption"
 																		sx={{
@@ -1291,17 +1280,7 @@ const VendorsList = ({
 				align: "left",
 				renderCell: ({ row }) => (
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-						{row.locCode === "HRT" ? (
-							<Warehouse
-								className="inline-icon"
-								color={theme.palette.success.light}
-							/>
-						) : (
-							<Globe
-								className="inline-icon"
-								color={theme.palette.warning.main}
-							/>
-						)}
+						<LocationIcon locationCode={row.locCode} />
 						<Typography variant="body2">
 							<Box component="span" sx={{ display: { lg: "none" } }}>
 								{row.locCode === HORTUS_LOCATION_CODE

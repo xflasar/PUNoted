@@ -35,8 +35,6 @@ import {
 	ArrowUp,
 	ArrowDown,
 	Store,
-	Warehouse,
-	Globe,
 	FileUp,
 } from "lucide-react";
 import { ContentCopy } from "@mui/icons-material";
@@ -58,6 +56,7 @@ import LocationFilter, {
 import InlineConfirmButton from "../components/inlineconfirmbutton";
 import { Modal } from "./modal";
 import VendorLastActiveIndicator from "./components/vendorlastactiveindicator";
+import LocationIcon from "./components/locationicon";
 import { useGlobalData } from "../../context/globaldatacontext";
 import {
 	formatLocation as formatLocationLabel,
@@ -388,17 +387,7 @@ const VendorPrioritySelector: React.FC<{
 								<Typography variant="caption" color="text.secondary">
 									{location ? (
 										<>
-											{location.location_code === "HRT" ? (
-												<Warehouse
-													className="inline-icon"
-													color={theme.palette.success.light}
-												/>
-											) : (
-												<Globe
-													className="inline-icon"
-													color={theme.palette.warning.main}
-												/>
-											)}{" "}
+											<LocationIcon locationCode={location.location_code} />{" "}
 											{formatLocationLabel(
 												location.location_name ||
 													location.location_code ||
@@ -730,17 +719,9 @@ const CompactListItem: React.FC<{
 													key={location.label}
 													sx={{ whiteSpace: "nowrap" }}
 												>
-													{location.isHortus ? (
-														<Warehouse
-															className="inline-icon"
-															color={theme.palette.success.light}
-														/>
-													) : (
-														<Globe
-															className="inline-icon"
-															color={theme.palette.warning.main}
-														/>
-													)}{" "}
+													<LocationIcon
+														locationCode={location.isHortus ? "HRT" : undefined}
+													/>{" "}
 													{location.label}
 												</Box>,
 												" ",
@@ -1059,17 +1040,7 @@ const OrderSummaryPanel: React.FC<{
 										mb: 0.75,
 									}}
 								>
-									{location?.location_code === "HRT" ? (
-										<Warehouse
-											className="inline-icon"
-											color={theme.palette.success.light}
-										/>
-									) : (
-										<Globe
-											className="inline-icon"
-											color={theme.palette.warning.main}
-										/>
-									)}
+									<LocationIcon locationCode={location?.location_code} />
 									<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
 										{formatLocationLabel(locationName, locationCode)}
 									</Typography>
