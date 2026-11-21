@@ -1597,20 +1597,20 @@ const VendorsList = ({
 										}}
 									>
 										<ToggleButton
-											value="grid"
-											size="small"
-											aria-label="Grid view"
-											sx={{ px: 1.5, textTransform: "none" }}
-										>
-											Grid
-										</ToggleButton>
-										<ToggleButton
 											value="table"
 											size="small"
 											aria-label="Table view"
 											sx={{ px: 1.5, textTransform: "none" }}
 										>
 											Table
+										</ToggleButton>
+										<ToggleButton
+											value="grid"
+											size="small"
+											aria-label="Grid view"
+											sx={{ px: 1.5, textTransform: "none" }}
+										>
+											Grid
 										</ToggleButton>
 									</ToggleButtonGroup>
 								</Box>
@@ -1649,16 +1649,6 @@ const VendorsList = ({
 											},
 										}}
 									>
-										<Tooltip title="Asks and Bids together">
-											<ToggleButton
-												value="BOTH"
-												size="small"
-												aria-label="Show both ask and bid"
-												sx={{ px: 1.5, textTransform: "none" }}
-											>
-												All
-											</ToggleButton>
-										</Tooltip>
 										<Tooltip title="You buy from the vendor">
 											<ToggleButton
 												value="ASK"
@@ -1677,6 +1667,16 @@ const VendorsList = ({
 												sx={{ px: 1.5, textTransform: "none" }}
 											>
 												Bid
+											</ToggleButton>
+										</Tooltip>
+										<Tooltip title="Asks and Bids together">
+											<ToggleButton
+												value="BOTH"
+												size="small"
+												aria-label="Show both ask and bid"
+												sx={{ px: 1.5, textTransform: "none" }}
+											>
+												All
 											</ToggleButton>
 										</Tooltip>
 									</ToggleButtonGroup>
