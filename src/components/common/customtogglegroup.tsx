@@ -19,11 +19,7 @@ const CustomToggleGroup = ({
 	sx,
 	...props
 }: ToggleButtonGroupProps) => (
-	<ToggleButtonGroup
-		{...props}
-		size={size}
-		sx={[customToggleGroupSx, sx]}
-	/>
+	<ToggleButtonGroup {...props} size={size} sx={[customToggleGroupSx, sx]} />
 );
 
 export default CustomToggleGroup;

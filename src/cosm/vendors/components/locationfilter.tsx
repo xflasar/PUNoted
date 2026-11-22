@@ -120,7 +120,10 @@ const LocationFilter = ({
 						{...optionProps}
 						sx={
 							option.id === ALL_LOCATIONS_ID
-								? { borderBottom: `1px solid ${theme.palette.divider}`, mb: 0.5 }
+								? {
+										borderBottom: `1px solid ${theme.palette.divider}`,
+										mb: 0.5,
+									}
 								: undefined
 						}
 					>

@@ -5,15 +5,9 @@ const LocationIcon = ({ locationCode }: { locationCode?: string }) => {
 	const theme = useTheme();
 
 	return locationCode === "HRT" ? (
-		<Warehouse
-			className="inline-icon"
-			color={theme.palette.success.light}
-		/>
+		<Warehouse className="inline-icon" color={theme.palette.success.light} />
 	) : (
-		<Globe
-			className="inline-icon"
-			color={theme.palette.error.light}
-		/>
+		<Globe className="inline-icon" color={theme.palette.error.light} />
 	);
 };
 

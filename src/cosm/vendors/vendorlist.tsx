@@ -26,13 +26,7 @@ import {
 	Button,
 	alpha,
 } from "@mui/material";
-import {
-	Search,
-	MapPin,
-	Minus,
-	Target,
-	X,
-} from "lucide-react";
+import { Search, MapPin, Minus, Target, X } from "lucide-react";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import VendorCreationModal from "./createvendorstoremodal";
 import EditVendorStoreModal from "./editvendorstoremodal";
@@ -633,7 +627,9 @@ const VendorCard = React.memo(
 																		gap: 0.5,
 																	}}
 																>
-													<LocationIcon locationCode={l.location_code} />
+																	<LocationIcon
+																		locationCode={l.location_code}
+																	/>
 																	<Typography
 																		variant="caption"
 																		sx={{
