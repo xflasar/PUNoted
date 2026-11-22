@@ -276,15 +276,15 @@ const PriceComparisonBadge = ({
 
 const ChipSmall = ({
 	text,
-	colour,
+	color,
 	tooltip,
 }: {
 	text: string;
-	colour?: string;
+	color?: string;
 	tooltip?: React.ReactNode;
 }) => {
 	const theme = useTheme();
-	const badgeColour = colour ?? theme.palette.primary.light;
+	const badgeColor = color ?? theme.palette.primary.light;
 
 	const badge = (
 		<Chip
@@ -293,9 +293,9 @@ const ChipSmall = ({
 			sx={{
 				fontSize: "0.7rem",
 				fontWeight: "bold",
-				color: badgeColour,
-				bgcolor: alpha(badgeColour, 0.1),
-				border: `1px solid ${alpha(badgeColour, 0.3)}`,
+				color: badgeColor,
+				bgcolor: alpha(badgeColor, 0.1),
+				border: `1px solid ${alpha(badgeColor, 0.3)}`,
 				cursor: tooltip ? "help" : "default",
 				textDecoration: tooltip ? "underline dotted" : "none",
 			}}
@@ -332,7 +332,7 @@ const ChipAsk = () => {
 	return (
 		<ChipSmall
 			text="ASK"
-			colour={theme.palette.warning.light}
+			color={theme.palette.warning.light}
 			tooltip="You buy from the vendor"
 		/>
 	);
@@ -343,7 +343,7 @@ const ChipBid = () => {
 	return (
 		<ChipSmall
 			text="BID"
-			colour={theme.palette.info.light}
+			color={theme.palette.info.light}
 			tooltip="You sell to the vendor"
 		/>
 	);
