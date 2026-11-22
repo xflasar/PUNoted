@@ -526,6 +526,12 @@ const VendorCard = React.memo(
 										className={isUnavailable ? "unavailable-order" : undefined}
 										sx={{
 											p: 0,
+											backgroundColor: alpha(
+												isBuying
+													? theme.palette.info.light
+													: theme.palette.warning.light,
+												0.06,
+											),
 											borderBottom:
 												index === sortedList.length - 1
 													? "none"
@@ -535,10 +541,6 @@ const VendorCard = React.memo(
 											display: "flex",
 											flexDirection: "column",
 											gap: 0.5,
-											cursor: "default",
-											"&:hover": {
-												backgroundColor: alpha(theme.palette.primary.main, 0.2),
-											},
 										}}
 									>
 										{/* Main Row: Ticker, Price */}
@@ -1375,17 +1377,22 @@ const VendorsList = ({
 			disableRowSelectionOnClick
 			localeText={{ noRowsLabel: "No results" }}
 			getRowClassName={({ row }) =>
-				row.quantity === 0 ? "unavailable-order" : ""
+				`${row.orderType === "sell" ? "ask-order" : "bid-order"}${
+					row.quantity === 0 ? " unavailable-order" : ""
+				}`
 			}
 			sx={{
 				border: "none",
 				"& .MuiDataGrid-row": {
 					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-					"&:hover": {
-						backgroundColor: alpha(theme.palette.primary.main, 0.2),
-					},
 					display: "flex",
 					alignItems: "center",
+				},
+				"& .MuiDataGrid-row.ask-order": {
+					backgroundColor: alpha(theme.palette.warning.light, 0.05),
+				},
+				"& .MuiDataGrid-row.bid-order": {
+					backgroundColor: alpha(theme.palette.info.light, 0.05),
 				},
 				"& .MuiDataGrid-cell": {
 					borderBottom: "none",
