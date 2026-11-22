@@ -6,6 +6,8 @@ import React, {
 	useCallback,
 } from "react";
 import { API_BASE_URL } from "../../config/api";
+import CustomToggleGroup from "../../components/common/customtogglegroup";
+import CustomToggleButton from "../../components/common/customtogglebutton";
 import { Masonry } from "@mui/lab";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
@@ -15,7 +17,6 @@ import {
 	TextField,
 	InputAdornment,
 	ToggleButton,
-	ToggleButtonGroup,
 	Card,
 	CardContent,
 	Divider,
@@ -30,8 +31,6 @@ import {
 	Search,
 	MapPin,
 	Minus,
-	Square,
-	SquareCheck,
 	Target,
 	X,
 } from "lucide-react";
@@ -1541,7 +1540,7 @@ const VendorsList = ({
 										display: "flex",
 									}}
 								>
-									<ToggleButtonGroup
+									<CustomToggleGroup
 										value={vendorViewMode}
 										exclusive
 										onChange={(_event, newValue: "grid" | "table" | null) => {
@@ -1549,52 +1548,24 @@ const VendorsList = ({
 												handleViewModeChange(newValue);
 											}
 										}}
-										size="small"
 										aria-label="Vendor view mode"
-										sx={{
-											height: 40,
-											borderRadius: "12px",
-											"& .MuiToggleButtonGroup-grouped": {
-												"&:hover": {
-													background: alpha(theme.palette.primary.main, 0.5),
-												},
-												"&.Mui-selected": {
-													background: alpha(
-														theme.palette.background.default,
-														0.8,
-													),
-													color: theme.palette.primary.light,
-													pointerEvents: "none",
-													"&:hover": {
-														background: alpha(
-															theme.palette.background.default,
-															0.9,
-														),
-													},
-												},
-											},
-										}}
 									>
 										<ToggleButton
 											value="table"
-											size="small"
 											aria-label="Table view"
-											sx={{ px: 1.5, textTransform: "none" }}
 										>
 											Table
 										</ToggleButton>
 										<ToggleButton
 											value="grid"
-											size="small"
 											aria-label="Grid view"
-											sx={{ px: 1.5, textTransform: "none" }}
 										>
 											Grid
 										</ToggleButton>
-									</ToggleButtonGroup>
+									</CustomToggleGroup>
 								</Box>
 								<Box sx={{ display: "flex" }}>
-									<ToggleButtonGroup
+									<CustomToggleGroup
 										value={orderTypeFilter}
 										exclusive
 										onChange={(
@@ -1603,37 +1574,12 @@ const VendorsList = ({
 										) => {
 											if (newValue) setOrderTypeFilter(newValue);
 										}}
-										size="small"
 										aria-label="Order type filter"
-										sx={{
-											height: 40,
-											borderRadius: "12px",
-											"& .MuiToggleButtonGroup-grouped": {
-												"&:hover": {
-													background: alpha(theme.palette.primary.main, 0.5),
-												},
-												"&.Mui-selected": {
-													background: alpha(
-														theme.palette.background.default,
-														0.8,
-													),
-													color: theme.palette.primary.light,
-													"&:hover": {
-														background: alpha(
-															theme.palette.background.default,
-															1,
-														),
-													},
-												},
-											},
-										}}
 									>
 										<Tooltip title="You buy from the vendor">
 											<ToggleButton
 												value="ASK"
-												size="small"
 												aria-label="Show only ask"
-												sx={{ px: 1.5, textTransform: "none" }}
 											>
 												Ask
 											</ToggleButton>
@@ -1641,9 +1587,7 @@ const VendorsList = ({
 										<Tooltip title="You sell to the vendor">
 											<ToggleButton
 												value="BID"
-												size="small"
 												aria-label="Show only bid"
-												sx={{ px: 1.5, textTransform: "none" }}
 											>
 												Bid
 											</ToggleButton>
@@ -1651,14 +1595,12 @@ const VendorsList = ({
 										<Tooltip title="Asks and Bids together">
 											<ToggleButton
 												value="BOTH"
-												size="small"
 												aria-label="Show both ask and bid"
-												sx={{ px: 1.5, textTransform: "none" }}
 											>
 												All
 											</ToggleButton>
 										</Tooltip>
-									</ToggleButtonGroup>
+									</CustomToggleGroup>
 								</Box>
 								<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
 									<LocationFilter
@@ -1766,31 +1708,14 @@ const VendorsList = ({
 								</Box>
 								<Box>
 									<Tooltip title="Hide materials if vendor has/wants 0">
-										<ToggleButton
+										<CustomToggleButton
 											value="hide-unavailable"
 											selected={hideUnavailable}
 											onChange={() => setHideUnavailable((prev) => !prev)}
 											aria-label="Hide Unavailable"
-											sx={{
-												height: 40,
-												px: 1.5,
-												textTransform: "none",
-												gap: 0.5,
-												whiteSpace: "nowrap",
-												"&.Mui-selected": {
-													color: theme.palette.primary.light,
-													backgroundColor: "transparent",
-													"&:hover": { backgroundColor: "transparent" },
-												},
-											}}
 										>
-											{hideUnavailable ? (
-												<SquareCheck className="inline-icon" />
-											) : (
-												<Square className="inline-icon" />
-											)}
 											Hide Unavailable
-										</ToggleButton>
+										</CustomToggleButton>
 									</Tooltip>
 								</Box>
 							</Box>
