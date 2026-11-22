@@ -11,14 +11,6 @@ const customToggleGroupSx: SxProps<Theme> = (theme) => ({
 	"& .MuiToggleButtonGroup-grouped": {
 		px: 2,
 		textTransform: "none",
-		backgroundColor: "transparent",
-		color: theme.palette.common.white,
-		"&.Mui-selected": {
-			backgroundColor: alpha(theme.palette.primary.main, 0.5),
-		},
-		"&:hover": {
-			backgroundColor: alpha(theme.palette.common.white, 0.25),
-		},
 	},
 });
 
@@ -27,7 +19,11 @@ const CustomToggleGroup = ({
 	sx,
 	...props
 }: ToggleButtonGroupProps) => (
-	<ToggleButtonGroup {...props} size={size} sx={[customToggleGroupSx, sx]} />
+	<ToggleButtonGroup
+		{...props}
+		size={size}
+		sx={[customToggleGroupSx, sx]}
+	/>
 );
 
 export default CustomToggleGroup;

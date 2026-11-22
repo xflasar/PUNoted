@@ -1,37 +1,60 @@
-import { alpha, ToggleButton, type ToggleButtonProps } from "@mui/material";
+import { alpha, ToggleButton, Tooltip, type ToggleButtonProps } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { Square, SquareCheckBig } from "lucide-react";
+import type { ReactNode } from "react";
 
-const customToggleButtonSx: SxProps<Theme> = (theme) => ({
+type CustomToggleButtonProps = ToggleButtonProps & {
+	activeColor?: string;
+	showIcon?: boolean;
+	tooltip?: ReactNode;
+};
+
+const customToggleButtonSx = (activeColor?: string): SxProps<Theme> => (theme) => ({
 	height: 40,
 	px: 2,
 	textTransform: "none",
 	gap: 0.5,
 	whiteSpace: "nowrap",
 	backgroundColor: "transparent",
-	color: theme.palette.common.white,
-	"&.Mui-selected": {
-		backgroundColor: alpha(theme.palette.primary.main, 0.5),
+	"& [data-toggle-icon='checked']": {
+		display: "none",
 	},
-	"&:hover": {
-		backgroundColor: alpha(theme.palette.common.white, 0.25),
+	"&.Mui-selected [data-toggle-icon='checked']": {
+		display: "inline-flex",
+	},
+	"&.Mui-selected [data-toggle-icon='unchecked']": {
+		display: "none",
+	},
+	"&&.Mui-selected": {
+		backgroundColor: alpha(activeColor ?? theme.palette.primary.main, 0.5),
 	},
 });
 
 const CustomToggleButton = ({
 	children,
-	selected = false,
+	activeColor,
+	showIcon = true,
 	sx,
+	tooltip,
 	...props
-}: ToggleButtonProps) => (
-	<ToggleButton {...props} selected={selected} sx={[customToggleButtonSx, sx]}>
-		{selected ? (
-			<SquareCheckBig className="inline-icon" />
-		) : (
-			<Square className="inline-icon" />
-		)}
-		{children}
-	</ToggleButton>
-);
+}: CustomToggleButtonProps) => {
+	const button = (
+		<ToggleButton {...props} sx={[customToggleButtonSx(activeColor), sx]}>
+			{showIcon && (
+				<>
+					<span aria-hidden="true" data-toggle-icon="unchecked">
+						<Square className="inline-icon" />
+					</span>
+					<span aria-hidden="true" data-toggle-icon="checked">
+						<SquareCheckBig className="inline-icon" />
+					</span>
+				</>
+			)}
+			{children}
+		</ToggleButton>
+	);
+
+	return tooltip ? <Tooltip title={tooltip}>{button}</Tooltip> : button;
+};
 
 export default CustomToggleButton;

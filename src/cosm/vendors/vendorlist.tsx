@@ -16,7 +16,6 @@ import {
 	Chip,
 	TextField,
 	InputAdornment,
-	ToggleButton,
 	Card,
 	CardContent,
 	Divider,
@@ -1550,18 +1549,20 @@ const VendorsList = ({
 										}}
 										aria-label="Vendor view mode"
 									>
-										<ToggleButton
+										<CustomToggleButton
 											value="table"
+											showIcon={false}
 											aria-label="Table view"
 										>
 											Table
-										</ToggleButton>
-										<ToggleButton
+										</CustomToggleButton>
+										<CustomToggleButton
 											value="grid"
+											showIcon={false}
 											aria-label="Grid view"
 										>
 											Grid
-										</ToggleButton>
+										</CustomToggleButton>
 									</CustomToggleGroup>
 								</Box>
 								<Box sx={{ display: "flex" }}>
@@ -1576,30 +1577,32 @@ const VendorsList = ({
 										}}
 										aria-label="Order type filter"
 									>
-										<Tooltip title="You buy from the vendor">
-											<ToggleButton
-												value="ASK"
-												aria-label="Show only ask"
-											>
-												Ask
-											</ToggleButton>
-										</Tooltip>
-										<Tooltip title="You sell to the vendor">
-											<ToggleButton
-												value="BID"
-												aria-label="Show only bid"
-											>
-												Bid
-											</ToggleButton>
-										</Tooltip>
-										<Tooltip title="Asks and Bids together">
-											<ToggleButton
-												value="BOTH"
-												aria-label="Show both ask and bid"
-											>
-												All
-											</ToggleButton>
-										</Tooltip>
+										<CustomToggleButton
+											value="ASK"
+											showIcon={false}
+											tooltip="You buy from the vendor"
+											aria-label="Show only ask"
+											activeColor={theme.palette.warning.main}
+										>
+											Ask
+										</CustomToggleButton>
+										<CustomToggleButton
+											value="BID"
+											showIcon={false}
+											tooltip="You sell to the vendor"
+											aria-label="Show only bid"
+											activeColor={theme.palette.secondary.main}
+										>
+											Bid
+										</CustomToggleButton>
+										<CustomToggleButton
+											value="BOTH"
+											showIcon={false}
+											tooltip="Asks and Bids together"
+											aria-label="Show both ask and bid"
+										>
+											All
+										</CustomToggleButton>
 									</CustomToggleGroup>
 								</Box>
 								<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
@@ -1707,16 +1710,15 @@ const VendorsList = ({
 									/>
 								</Box>
 								<Box>
-									<Tooltip title="Hide materials if vendor has/wants 0">
-										<CustomToggleButton
-											value="hide-unavailable"
-											selected={hideUnavailable}
-											onChange={() => setHideUnavailable((prev) => !prev)}
-											aria-label="Hide Unavailable"
-										>
-											Hide Unavailable
-										</CustomToggleButton>
-									</Tooltip>
+									<CustomToggleButton
+										value="hide-unavailable"
+										selected={hideUnavailable}
+										onChange={() => setHideUnavailable((prev) => !prev)}
+										tooltip="Hide materials if vendor has/wants 0"
+										aria-label="Hide Unavailable"
+									>
+										Hide Unavailable
+									</CustomToggleButton>
 								</Box>
 							</Box>
 						</Box>
