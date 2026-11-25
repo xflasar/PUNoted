@@ -385,17 +385,35 @@ export function useBaseStarMapData({
 
 	const handleSelectSystem = useCallback(
 		(sys: MapPoint) => {
+			ignoreOnViewStateChangeRef.current = true;
 			setCenteredSystem(sys);
+			setSelectedPlanetId(null);
+			setSelectedPlanet(null);
+			setSelectedStationId(null);
+			setIsSystemPanelOpen(true);
+			setIsSearchResultsOpen(false);
 			setCurrentViewMode("galaxy");
 			setGalaxyViewState((prev: any) => ({
 				...prev,
 				target: [sys.x, sys.y],
 				zoom: 1.5,
-				transitionDuration: 500,
+				transitionDuration: 600,
 				transitionInterpolator: new CartesianInterpolator(),
 			}));
+			setTimeout(() => {
+				ignoreOnViewStateChangeRef.current = false;
+			}, 650);
 		},
-		[setCenteredSystem, setCurrentViewMode, setGalaxyViewState],
+		[
+			setCenteredSystem,
+			setSelectedPlanetId,
+			setSelectedPlanet,
+			setSelectedStationId,
+			setIsSystemPanelOpen,
+			setIsSearchResultsOpen,
+			setCurrentViewMode,
+			setGalaxyViewState,
+		],
 	);
 
 	const handleExitSystemView = useCallback(() => {
@@ -419,6 +437,11 @@ export function useBaseStarMapData({
 		setGalaxyViewState,
 	]);
 
+	const handleEnterSystemView = useCallback(() => {
+		if (!centeredSystem) return;
+		setCurrentViewMode("system");
+	}, [centeredSystem, setCurrentViewMode]);
+
 	const handleSelectPlanet = useCallback(
 		(planetId: string, sys: MapPoint) => {
 			suppressSystemCenterRef.current = true;
@@ -428,8 +451,28 @@ export function useBaseStarMapData({
 			setCurrentViewMode("system");
 			setSelectedPlanetId(planetId);
 			setSelectedStationId(null);
-			const planets = allPlanetsData[sys.originalSystemId || sys.id] || [];
-			const planet = planets.find((p) => p.planetid === planetId);
+			setIsSystemPanelOpen(true);
+			setIsSearchResultsOpen(false);
+
+			const rawSid = sys.originalSystemId || sys.id || "";
+			const cleanSid = String(rawSid).toLowerCase().replace(/^sys-/, "");
+			let planets =
+				allPlanetsData[cleanSid] ||
+				allPlanetsData[rawSid] ||
+				allPlanetsData[`sys-${cleanSid}`] ||
+				[];
+			if (planets.length === 0 && cleanSid) {
+				for (const [k, v] of Object.entries(allPlanetsData || {})) {
+					if (k.toLowerCase().replace(/^sys-/, "") === cleanSid) {
+						planets = v;
+						break;
+					}
+				}
+			}
+
+			const planet = planets.find(
+				(p) => p.planetid === planetId || (p as any).id === planetId,
+			);
 			let targetX = sys.x;
 			let targetY = sys.y;
 			if (planet) {
@@ -438,28 +481,34 @@ export function useBaseStarMapData({
 					typeof (planet as any).y === "number"
 						? planet
 						: calculateMovingPlanetPosition(sys, planet, Date.now());
-				targetX = computed.x;
-				targetY = computed.y;
+				if (Number.isFinite(computed?.x) && Number.isFinite(computed?.y)) {
+					targetX = computed.x;
+					targetY = computed.y;
+				}
+				setSelectedPlanet(computed as any);
 			}
 
 			setSystemViewState((prev: any) => ({
 				...prev,
 				target: [targetX, targetY],
 				zoom: 4,
-				transitionDuration: 500,
+				transitionDuration: 600,
 				transitionInterpolator: new CartesianInterpolator(),
 			}));
 			setTimeout(() => {
 				ignoreOnViewStateChangeRef.current = false;
 				isTransitioningRef.current = false;
-			}, 550);
+			}, 650);
 		},
 		[
 			allPlanetsData,
 			setCenteredSystem,
 			setCurrentViewMode,
 			setSelectedPlanetId,
+			setSelectedPlanet,
 			setSelectedStationId,
+			setIsSystemPanelOpen,
+			setIsSearchResultsOpen,
 			setSystemViewState,
 		],
 	);
@@ -794,7 +843,7 @@ export function useBaseStarMapData({
 		}
 
 		if (mode === "public") {
-			setVisiblePathShipIds(new Set());
+			setVisiblePathShipIds((prev) => (prev.size === 0 ? prev : new Set()));
 			return;
 		}
 
@@ -804,6 +853,8 @@ export function useBaseStarMapData({
 				setVisiblePathShipIds(targetIds);
 				hasInitializedPaths.current = true;
 			}
+		} else {
+			setVisiblePathShipIds((prev) => (prev.size === 0 ? prev : new Set()));
 		}
 	}, [ownShips, mode]);
 
@@ -1007,17 +1058,22 @@ export function useBaseStarMapData({
 	const viewportInstance = useMemo(() => {
 		if (!mapRef.current) return null;
 		const { w, h } = mapSize;
+		const targetX = Number.isFinite(activeViewState.target?.[0])
+			? activeViewState.target[0]
+			: 0;
+		const targetY = Number.isFinite(activeViewState.target?.[1])
+			? activeViewState.target[1]
+			: 0;
+		const zoom = Number.isFinite(activeViewState.zoom)
+			? activeViewState.zoom
+			: 0;
 		return new OrthographicViewport({
 			x: 0,
 			y: 0,
 			width: Math.max(1, w),
 			height: Math.max(1, h),
-			target: [
-				activeViewState.target?.[0] ?? 0,
-				activeViewState.target?.[1] ?? 0,
-				0,
-			],
-			zoom: activeViewState.zoom ?? 0,
+			target: [targetX, targetY, 0],
+			zoom,
 		});
 	}, [mapSize, activeViewState]);
 
@@ -1190,36 +1246,17 @@ export function useBaseStarMapData({
 		setIsDeckGlRendered(false);
 	}, [centeredSystem?.originalSystemId, currentViewMode]);
 
-	const handleDeckAfterRender = useCallback(() => {
-		if (isLayersReady && !isDeckGlRenderedRef.current) {
-			isDeckGlRenderedRef.current = true;
-			setIsDeckGlRendered(true);
-			console.log(
-				"[StarMap Debug][useBaseStarMapData] handleDeckAfterRender called and isLayersReady=true -> setting isDeckGlRendered = true",
-			);
-		}
+	const isLayersReadyRef = useRef(isLayersReady);
+	useEffect(() => {
+		isLayersReadyRef.current = isLayersReady;
 	}, [isLayersReady]);
 
-	// Debug effect to log the exact state keeping the overlay visible
-	useEffect(() => {
-		const effectiveIsLayersReady = isLayersReady && isDeckGlRendered;
-		const isOverlayVisible = isLoading || !effectiveIsLayersReady;
-		console.log("[StarMap Debug][useBaseStarMapData] Overlay status:", {
-			isOverlayVisible,
-			isLoadingMapData: isLoading,
-			isLayersReady,
-			isDeckGlRendered,
-			effectiveIsLayersReady,
-			reasonsKeepingOverlayVisible: [
-				isLoading && "isLoading is true (fetching/processing data)",
-				!isLayersReady &&
-					"isLayersReady is false (waiting for viewport, atlases, or ship updates)",
-				isLayersReady &&
-					!isDeckGlRendered &&
-					"isDeckGlRendered is false (waiting for onAfterRender from DeckGL)",
-			].filter(Boolean),
-		});
-	}, [isLoading, isLayersReady, isDeckGlRendered]);
+	const handleDeckAfterRender = useCallback(() => {
+		if (isLayersReadyRef.current && !isDeckGlRenderedRef.current) {
+			isDeckGlRenderedRef.current = true;
+			setIsDeckGlRendered(true);
+		}
+	}, []);
 
 	const updatedShipsRef = useRef<any[]>([]);
 	useEffect(() => {
@@ -1736,8 +1773,7 @@ export function useBaseStarMapData({
 						s.id === option.id,
 				);
 				if (sys) {
-					setCenteredSystem(sys);
-					setCurrentViewMode("galaxy");
+					handleSelectSystem(sys);
 				}
 			} else if (option.type === "planet") {
 				const parentSysId = option.systemId;
@@ -1748,14 +1784,12 @@ export function useBaseStarMapData({
 							s.id === parentSysId,
 					);
 					if (sys) {
-						setCenteredSystem(sys);
-						setCurrentViewMode("system");
-						setSelectedPlanetId(option.id);
+						handleSelectPlanet(option.id, sys);
 					}
 				}
 			}
 		},
-		[systemsPoints, setCenteredSystem, setCurrentViewMode, setSelectedPlanetId],
+		[systemsPoints, handleSelectSystem, handleSelectPlanet],
 	);
 
 	const isSystemMode = currentViewMode === "system";
@@ -1840,6 +1874,7 @@ export function useBaseStarMapData({
 		matchedSystems,
 		handleSelectSystem,
 		handleExitSystemView,
+		handleEnterSystemView,
 		sliderMin,
 		sliderMax,
 		sliderMarks,

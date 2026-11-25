@@ -15,21 +15,51 @@ import PublicIcon from "@mui/icons-material/Public";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useTheme } from "@mui/material/styles";
 import FilterPanel from "../filter/filterpanel";
-
-interface SearchOption {
-	label: string;
-	id: string;
-	type: "system" | "planet";
-	systemId?: string;
-	x?: number;
-	y?: number;
-}
+import type { SearchOption } from "../../hooks/usemapsearchoptions";
 
 interface SearchBarProps {
 	options: SearchOption[];
 	onSelect: (option: SearchOption | null) => void;
 	onSearchQueryChange?: (query: string) => void;
 }
+
+const CustomAutocompletePaper = React.forwardRef<HTMLDivElement, any>(
+	(props, ref) => (
+		<Paper
+			{...props}
+			ref={ref}
+			elevation={12}
+			sx={{
+				background:
+					"linear-gradient(135deg, rgba(15, 18, 28, 0.95) 0%, rgba(8, 10, 15, 0.98) 100%)",
+				backdropFilter: "blur(24px)",
+				border: "1px solid rgba(255, 255, 255, 0.08)",
+				boxShadow: "0 10px 40px rgba(0, 0, 0, 0.6)",
+				color: "white",
+				"& .MuiAutocomplete-groupLabel": {
+					background: "rgba(0, 0, 0, 0.4)",
+					color: "#00e5ff",
+					fontSize: "0.65rem",
+					fontWeight: 800,
+					textTransform: "uppercase",
+					letterSpacing: "0.1em",
+					py: 0.5,
+				},
+				"& .MuiAutocomplete-option": {
+					fontSize: "0.8rem",
+					color: "rgba(255, 255, 255, 0.8)",
+					'&[aria-selected="true"]': {
+						backgroundColor: "rgba(0, 229, 255, 0.15)",
+						color: "#00e5ff",
+					},
+					"&.Mui-focused": {
+						backgroundColor: "rgba(255, 255, 255, 0.06)",
+					},
+				},
+			}}
+		/>
+	),
+);
 
 const SearchBar: React.FC<SearchBarProps> = ({
 	options,
@@ -71,28 +101,45 @@ const SearchBar: React.FC<SearchBarProps> = ({
 			const naturalIdMatch = (opt as any).naturalId
 				?.toLowerCase()
 				.includes(query);
+			const systemNameMatch = opt.systemName?.toLowerCase().includes(query);
 
-			if (labelMatch || idMatch || naturalIdMatch) {
+			if (labelMatch || idMatch || naturalIdMatch || systemNameMatch) {
 				matches.push(opt);
-				if (matches.length >= 50) break; // Hard limit for performance
 			}
 		}
-		return matches;
+
+		// Sort: startsWith query first, then systems, then alphabetical
+		matches.sort((a, b) => {
+			const aStarts = a.label.toLowerCase().startsWith(query);
+			const bStarts = b.label.toLowerCase().startsWith(query);
+			if (aStarts && !bStarts) return -1;
+			if (!aStarts && bStarts) return 1;
+
+			if (a.type !== b.type) {
+				return a.type === "system" ? -1 : 1;
+			}
+			return a.label.localeCompare(b.label);
+		});
+
+		return matches.slice(0, 50);
 	}, [options, inputValue]);
 
 	const handleSearch = () => {
 		if (selectedValue) {
 			onSelect(selectedValue);
 		} else if (inputValue.trim()) {
-			const query = inputValue.toLowerCase();
-			const match = options.find((opt) => {
-				const labelMatch = opt.label.toLowerCase().includes(query);
-				const idMatch = opt.id.toLowerCase().includes(query);
-				const naturalIdMatch = (opt as any).naturalId
-					?.toLowerCase()
-					.includes(query);
-				return labelMatch || idMatch || naturalIdMatch;
-			});
+			const query = inputValue.trim().toLowerCase();
+			const match =
+				filteredOptions[0] ||
+				options.find((opt) => {
+					const labelMatch = opt.label.toLowerCase().includes(query);
+					const idMatch = opt.id.toLowerCase().includes(query);
+					const naturalIdMatch = (opt as any).naturalId
+						?.toLowerCase()
+						.includes(query);
+					const systemNameMatch = opt.systemName?.toLowerCase().includes(query);
+					return labelMatch || idMatch || naturalIdMatch || systemNameMatch;
+				});
 			if (match) {
 				onSelect(match);
 				setSelectedValue(match);
@@ -153,11 +200,25 @@ const SearchBar: React.FC<SearchBarProps> = ({
 					isOptionEqualToValue={(option, value) => option.id === value.id}
 					value={selectedValue}
 					onChange={(_, newValue) => {
-						if (newValue !== selectedValue) {
-							setSelectedValue(newValue as SearchOption);
-							if (newValue) {
-								onSelect(newValue);
-							}
+						if (!newValue) {
+							setSelectedValue(null);
+							return;
+						}
+						let selectedOpt: SearchOption | null = null;
+						if (typeof newValue === "string") {
+							const q = (newValue as string).trim().toLowerCase();
+							selectedOpt =
+								options.find(
+									(opt) =>
+										opt.label.toLowerCase() === q || opt.id.toLowerCase() === q,
+								) || null;
+						} else {
+							selectedOpt = newValue as SearchOption;
+						}
+
+						if (selectedOpt) {
+							setSelectedValue(selectedOpt);
+							onSelect(selectedOpt);
 						}
 					}}
 					onInputChange={(_, newInputValue, reason) => {
@@ -167,58 +228,58 @@ const SearchBar: React.FC<SearchBarProps> = ({
 						}
 					}}
 					onKeyDown={handleKeyDown}
-					// Custom styling for dropdown menu container
-					PaperComponent={(props) => (
-						<Paper
-							{...props}
-							elevation={12}
-							sx={{
-								background:
-									"linear-gradient(135deg, rgba(15, 18, 28, 0.95) 0%, rgba(8, 10, 15, 0.98) 100%)",
-								backdropFilter: "blur(24px)",
-								border: "1px solid rgba(255, 255, 255, 0.08)",
-								boxShadow: "0 10px 40px rgba(0, 0, 0, 0.6)",
-								color: "white",
-								"& .MuiAutocomplete-groupLabel": {
-									background: "rgba(0, 0, 0, 0.4)",
-									color: "#00e5ff",
-									fontSize: "0.65rem",
-									fontWeight: 800,
-									textTransform: "uppercase",
-									letterSpacing: "0.1em",
-									py: 0.5,
-								},
-								"& .MuiAutocomplete-option": {
-									fontSize: "0.8rem",
-									color: "rgba(255, 255, 255, 0.8)",
-									'&[aria-selected="true"]': {
-										backgroundColor: "rgba(0, 229, 255, 0.15)",
-										color: "#00e5ff",
-									},
-									"&.Mui-focused": {
-										backgroundColor: "rgba(255, 255, 255, 0.06)",
-									},
-								},
-							}}
-						/>
-					)}
+					PaperComponent={CustomAutocompletePaper}
 					renderOption={(props, option) => {
 						const { key, ...otherProps } = props as any;
 						return (
 							<Box
-								key={option.id || key}
+								key={key || option.id}
 								component="li"
 								{...otherProps}
-								sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1 }}
+								sx={{
+									display: "flex",
+									alignItems: "center",
+									gap: 1.5,
+									py: 0.75,
+								}}
 							>
 								{option.type === "system" ? (
-									<AutoAwesomeIcon sx={{ fontSize: 16, color: "#00e5ff" }} />
+									<AutoAwesomeIcon sx={{ fontSize: 18, color: "#00e5ff" }} />
 								) : (
-									<PublicIcon sx={{ fontSize: 16, color: "#00ff88" }} />
+									<PublicIcon sx={{ fontSize: 18, color: "#00ff88" }} />
 								)}
-								<Typography sx={{ fontSize: "0.8rem", fontWeight: 500 }}>
-									{option.label}
-								</Typography>
+								<Box
+									sx={{
+										display: "flex",
+										flexDirection: "column",
+										minWidth: 0,
+										flexGrow: 1,
+									}}
+								>
+									<Typography
+										sx={{
+											fontSize: "0.85rem",
+											fontWeight: 600,
+											color: "#ffffff",
+											lineHeight: 1.2,
+										}}
+									>
+										{option.label}
+									</Typography>
+									{option.type === "planet" && option.systemName && (
+										<Typography
+											variant="caption"
+											sx={{
+												fontSize: "0.7rem",
+												color: "rgba(255, 255, 255, 0.45)",
+												lineHeight: 1.1,
+												mt: 0.2,
+											}}
+										>
+											System: {option.systemName}
+										</Typography>
+									)}
+								</Box>
 							</Box>
 						);
 					}}

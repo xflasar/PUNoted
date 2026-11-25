@@ -261,7 +261,7 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 							onClose={() => {
 								mapState.setIsSystemPanelOpen(false);
 							}}
-							onEnterSystemView={() => mapState.setCurrentViewMode("system")}
+							onEnterSystemView={mapState.handleEnterSystemView}
 							isGalaxyView={mapState.currentViewMode === "galaxy"}
 							selectedPlanetId={mapState.selectedPlanetId}
 							onSelectPlanet={mapState.setSelectedPlanetId}

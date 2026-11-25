@@ -1156,40 +1156,10 @@ export const useMapLayers = (props: UseMapLayersProps) => {
 			hasShipAtlas &&
 			shipsUpdatedOk;
 
-		const blockers = [
-			!hasViewport && "missing viewportInstance (canvas/map size not ready)",
-			layersCount === 0 && "layers array is empty",
-			!hasStarAtlas && "starAtlas not loaded yet",
-			!hasShipAtlas && "shipAtlas not loaded yet",
-			!shipsUpdatedOk &&
-				`animatedShipData has ${props.animatedShipData?.length} ships, but updatedShips is empty (worker hasn't synced ships yet)`,
-		].filter(Boolean);
-
-		console.log("[StarMap Debug][useMapLayers] isLayersReady check:", {
-			ready,
-			mode,
-			shouldWaitForShips,
-			hasViewport,
-			layersCount,
-			hasStarAtlas,
-			hasShipAtlas,
-			hasShipsToRender,
-			animatedShipDataCount: props.animatedShipData?.length ?? 0,
-			updatedShipsCount: updatedShips.length,
-			blockers,
-		});
-
-		if (!ready) {
-			console.warn(
-				"[StarMap Debug][BLOCKER keeping map in loading state]:",
-				blockers.join(" | "),
-			);
-		}
-
 		return ready;
 	}, [
 		props.viewportInstance,
-		layers,
+		layers?.length ?? 0,
 		starAtlas,
 		shipAtlas,
 		props.animatedShipData,

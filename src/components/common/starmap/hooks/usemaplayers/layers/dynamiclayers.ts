@@ -121,7 +121,7 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 	if (!starAtlas || !shipAtlas) return [];
 	const dLayers: any[] = [];
 
-	if (!isGalaxyView && isPlanetModeActive && planetAtlas && stationsAtlas) {
+	if (!isGalaxyView && isPlanetModeActive && (planetAtlas || stationsAtlas)) {
 		const dockedShipsMap = new Map<string, any[]>();
 		const allSystemShips = animatedShipData || [];
 		allSystemShips.forEach((s: any) => {
@@ -197,136 +197,144 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 			);
 		}
 
-		dLayers.push(
-			new IconLayer<PlanetPosition>({
-				id: `planets-dynamic-${currentSystem?.originalSystemId || "none"}`,
-				data: activePlanets,
-				iconAtlas: planetAtlas,
-				iconMapping: planetMapping,
-				getIcon: getPlanetIcon,
-				getPosition: getPlanetPosition,
-				getSize: (d: any) => (d.scaledPlanetRadius ?? 1.0) * 2.0,
-				sizeUnits: "meters",
-				sizeMinPixels: 35,
-				sizeMaxPixels: 400,
-				pickable: true,
-				onClick: handlePlanetClick,
-				onHover: handleHoverTooltip,
-				getColor: (d: any) => {
-					const isFilterActive =
-						(filter?.resources && filter.resources.size > 0) ||
-						(filter?.filterRadius && filter.filterRadius > 0) ||
-						(filter?.planetType && filter.planetType !== "all") ||
-						filter?.fertileOnly ||
-						(filter?.gravity && filter.gravity !== "all") ||
-						(filter?.temperature && filter.temperature !== "all") ||
-						(filter?.pressure && filter.pressure !== "all") ||
-						filter?.cogcEnabled;
-					const hasSearch = !!searchQuery;
-					if (!isFilterActive && !hasSearch) {
-						return [255, 255, 255, 255];
-					}
+		if (planetAtlas) {
+			dLayers.push(
+				new IconLayer<PlanetPosition>({
+					id: `planets-dynamic-${currentSystem?.originalSystemId || currentSystem?.id || "none"}`,
+					data: activePlanets,
+					iconAtlas: planetAtlas,
+					iconMapping: planetMapping,
+					getIcon: getPlanetIcon,
+					getPosition: getPlanetPosition,
+					getSize: (d: any) => (d.scaledPlanetRadius ?? 1.0) * 2.0,
+					sizeUnits: "meters",
+					sizeMinPixels: 35,
+					sizeMaxPixels: 400,
+					pickable: true,
+					onClick: handlePlanetClick,
+					onHover: handleHoverTooltip,
+					getColor: (d: any) => {
+						const isFilterActive =
+							(filter?.resources && filter.resources.size > 0) ||
+							(filter?.filterRadius && filter.filterRadius > 0) ||
+							(filter?.planetType && filter.planetType !== "all") ||
+							filter?.fertileOnly ||
+							(filter?.gravity && filter.gravity !== "all") ||
+							(filter?.temperature && filter.temperature !== "all") ||
+							(filter?.pressure && filter.pressure !== "all") ||
+							filter?.cogcEnabled;
+						const hasSearch = !!searchQuery;
+						if (!isFilterActive && !hasSearch) {
+							return [255, 255, 255, 255];
+						}
 
-					let matches = true;
-					const query = searchQuery?.trim().toLowerCase() || "";
-					if (query) {
-						const planetName = (d.name || d.planetname || "").toLowerCase();
-						matches = planetName.includes(query);
-					}
+						let matches = true;
+						const query = searchQuery?.trim().toLowerCase() || "";
+						if (query) {
+							const planetName = (d.name || d.planetname || "").toLowerCase();
+							matches = planetName.includes(query);
+						}
 
-					if (matches && filter) {
-						const pop = d.planetPopulation || 0;
-						matches =
-							pop >= filter.populationRange[0] &&
-							pop <= filter.populationRange[1];
-					}
+						if (matches && filter) {
+							const pop = d.planetPopulation || 0;
+							matches =
+								pop >= filter.populationRange[0] &&
+								pop <= filter.populationRange[1];
+						}
 
-					if (
-						matches &&
-						filter?.filterRadius &&
-						filter.filterRadius > 0 &&
-						filter.originSystemId
-					) {
-						const systemId = d.parentSystemId;
-						if (systemId) {
-							if (shortestPathData.distances[systemId] !== undefined) {
-								matches =
-									shortestPathData.distances[systemId] <= filter.filterRadius;
-							} else {
-								const originSys = systemsPoints.find(
-									(s) =>
-										s.originalSystemId === filter.originSystemId ||
-										s.id === filter.originSystemId,
-								);
-								if (originSys) {
-									const dx = d.x - originSys.x;
-									const dy = d.y - originSys.y;
-									const dist = Math.sqrt(dx * dx + dy * dy) / 3;
-									matches = dist <= filter.filterRadius;
+						if (
+							matches &&
+							filter?.filterRadius &&
+							filter.filterRadius > 0 &&
+							filter.originSystemId
+						) {
+							const systemId = d.parentSystemId;
+							if (systemId) {
+								if (shortestPathData.distances[systemId] !== undefined) {
+									matches =
+										shortestPathData.distances[systemId] <= filter.filterRadius;
+								} else {
+									const originSys = systemsPoints.find(
+										(s) =>
+											s.originalSystemId === filter.originSystemId ||
+											s.id === filter.originSystemId,
+									);
+									if (originSys) {
+										const dx = d.x - originSys.x;
+										const dy = d.y - originSys.y;
+										const dist = Math.sqrt(dx * dx + dy * dy) / 3;
+										matches = dist <= filter.filterRadius;
+									}
 								}
 							}
 						}
-					}
 
-					if (matches && filter?.planetType && filter.planetType !== "all") {
-						const typeStr = (d.type || "").toUpperCase();
-						const isRocky =
-							typeStr.includes("EARTH") || typeStr.includes("ROCKY");
-						const isGas = typeStr.includes("GAS");
-						if (filter.planetType === "rocky" && !isRocky) matches = false;
-						if (filter.planetType === "gaseous" && !isGas) matches = false;
-					}
-
-					if (matches && filter?.fertileOnly) {
-						if (!d.fertility || d.fertility <= 0) matches = false;
-					}
-
-					if (matches && filter?.gravity && filter.gravity !== "all") {
-						const grav = d.gravity || 0;
-						if (filter.gravity === "low" && grav > 1.0) matches = false;
-						if (filter.gravity === "high" && grav <= 1.0) matches = false;
-					}
-
-					if (matches && filter?.temperature && filter.temperature !== "all") {
-						const temp = d.temperature || 0;
-						if (filter.temperature === "low" && temp >= 273.15) matches = false;
-						if (filter.temperature === "high" && temp < 273.15) matches = false;
-					}
-
-					if (matches && filter?.pressure && filter.pressure !== "all") {
-						const press = d.pressure || 0;
-						if (filter.pressure === "low" && press > 1.0) matches = false;
-						if (filter.pressure === "high" && press <= 1.0) matches = false;
-					}
-
-					if (matches && filter?.cogcEnabled) {
-						const prog = (d.cogc || "").toUpperCase();
-						const selectedProg = filter.cogcProgram.toUpperCase();
-						const hasActiveProgram = prog && prog !== "NONE";
-						if (selectedProg === "ALL") {
-							if (!hasActiveProgram) matches = false;
-						} else if (selectedProg === "NONE") {
-							if (hasActiveProgram) matches = false;
-						} else {
-							if (!prog.includes(selectedProg)) matches = false;
+						if (matches && filter?.planetType && filter.planetType !== "all") {
+							const typeStr = (d.type || "").toUpperCase();
+							const isRocky =
+								typeStr.includes("EARTH") || typeStr.includes("ROCKY");
+							const isGas = typeStr.includes("GAS");
+							if (filter.planetType === "rocky" && !isRocky) matches = false;
+							if (filter.planetType === "gaseous" && !isGas) matches = false;
 						}
-					}
 
-					if (matches && filter?.resources && filter.resources.size > 0) {
-						const hasMatch = d.resources?.some((r: any) => {
-							const ticker = (r.material || r.name || "").toUpperCase();
-							return ticker && filter.resources.has(ticker);
-						});
-						if (!hasMatch) matches = false;
-					}
+						if (matches && filter?.fertileOnly) {
+							if (!d.fertility || d.fertility <= 0) matches = false;
+						}
 
-					return matches ? [255, 120, 0, 255] : [255, 255, 255, 45];
-				},
-				updateTriggers: {
-					getColor: [filter, searchQuery, shortestPathData],
-				},
-			}),
-		);
+						if (matches && filter?.gravity && filter.gravity !== "all") {
+							const grav = d.gravity || 0;
+							if (filter.gravity === "low" && grav > 1.0) matches = false;
+							if (filter.gravity === "high" && grav <= 1.0) matches = false;
+						}
+
+						if (
+							matches &&
+							filter?.temperature &&
+							filter.temperature !== "all"
+						) {
+							const temp = d.temperature || 0;
+							if (filter.temperature === "low" && temp >= 273.15)
+								matches = false;
+							if (filter.temperature === "high" && temp < 273.15)
+								matches = false;
+						}
+
+						if (matches && filter?.pressure && filter.pressure !== "all") {
+							const press = d.pressure || 0;
+							if (filter.pressure === "low" && press > 1.0) matches = false;
+							if (filter.pressure === "high" && press <= 1.0) matches = false;
+						}
+
+						if (matches && filter?.cogcEnabled) {
+							const prog = (d.cogc || "").toUpperCase();
+							const selectedProg = filter.cogcProgram.toUpperCase();
+							const hasActiveProgram = prog && prog !== "NONE";
+							if (selectedProg === "ALL") {
+								if (!hasActiveProgram) matches = false;
+							} else if (selectedProg === "NONE") {
+								if (hasActiveProgram) matches = false;
+							} else {
+								if (!prog.includes(selectedProg)) matches = false;
+							}
+						}
+
+						if (matches && filter?.resources && filter.resources.size > 0) {
+							const hasMatch = d.resources?.some((r: any) => {
+								const ticker = (r.material || r.name || "").toUpperCase();
+								return ticker && filter.resources.has(ticker);
+							});
+							if (!hasMatch) matches = false;
+						}
+
+						return matches ? [255, 120, 0, 255] : [255, 255, 255, 45];
+					},
+					updateTriggers: {
+						getColor: [filter, searchQuery, shortestPathData],
+					},
+				}),
+			);
+		}
 
 		if (currentSystem) {
 			// Central Star Icon (Identical texture & properties as Galaxy Mode)
@@ -409,23 +417,25 @@ export function buildDynamicLayers(props: BuildDynamicLayersProps) {
 			}
 		}
 
-		dLayers.push(
-			new IconLayer({
-				id: `stations-dynamic-${currentSystem?.originalSystemId || "none"}`,
-				data: activeStations,
-				iconAtlas: stationsAtlas,
-				iconMapping: stationsMapping,
-				getIcon: getStationIcon,
-				getPosition: getStationPosition,
-				getSize: (d: any) => (d.scaledStationRadius ?? 1.0) * 2.0,
-				sizeUnits: "meters",
-				sizeMinPixels: 35,
-				sizeMaxPixels: 400,
-				pickable: true,
-				onClick: handleStationClick,
-				onHover: handleHoverTooltip,
-			}),
-		);
+		if (stationsAtlas) {
+			dLayers.push(
+				new IconLayer({
+					id: `stations-dynamic-${currentSystem?.originalSystemId || currentSystem?.id || "none"}`,
+					data: activeStations,
+					iconAtlas: stationsAtlas,
+					iconMapping: stationsMapping,
+					getIcon: getStationIcon,
+					getPosition: getStationPosition,
+					getSize: (d: any) => (d.scaledStationRadius ?? 1.0) * 2.0,
+					sizeUnits: "meters",
+					sizeMinPixels: 35,
+					sizeMaxPixels: 400,
+					pickable: true,
+					onClick: handleStationClick,
+					onHover: handleHoverTooltip,
+				}),
+			);
+		}
 
 		// --- SMART SPOKE LABEL PLACEMENT (DE-COLLISION) ---
 		const labelItems: any[] = [];

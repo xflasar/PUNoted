@@ -105,7 +105,11 @@ export function calculateMovingPlanetPosition(
 	const worldTime = _calculateWorldTime(currentTimeSeconds / 1000, true);
 	const t0 = 0,
 		M0 = 0;
-	const a = planetData.scaledOrbitalRadius ?? 100,
+	const a =
+			Number.isFinite(planetData.semimajoraxis) &&
+			Number(planetData.semimajoraxis) > 0
+				? Number(planetData.semimajoraxis)
+				: 1e10,
 		e = planetData.eccentricity ?? 0,
 		i = planetData.inclination ?? 0,
 		Ω = planetData.rightascension ?? 0,
@@ -278,15 +282,16 @@ export const useSystemViewSetup = (
 		const BOUNDING_BOX_OFFSET = 50;
 		const MAX_ASTEROID_COUNT = 5;
 
-		const maxA = Math.max(
-			...planets.map((p) => Math.max(1, p.semimajoraxis * 1e10)),
-			1,
-		);
-		const minA =
-			planets.length > 0 ? Math.max(1, planets[0].semimajoraxis * 1e10) : 1;
-		const logMinA = Math.log10(minA);
-		const logMaxA = Math.log10(maxA);
-		const logRange = logMaxA - logMinA;
+		const safePlanetA = (p: any) => {
+			const a = Number(p?.semimajoraxis);
+			return Number.isFinite(a) && a > 0 ? a * 1e10 : 50_000_000_000;
+		};
+
+		const maxA = Math.max(...planets.map(safePlanetA), 1);
+		const minA = planets.length > 0 ? safePlanetA(planets[0]) : 1;
+		const logMinA = Math.log10(Math.max(1, minA));
+		const logMaxA = Math.log10(Math.max(1, maxA));
+		const logRange = Math.max(0, logMaxA - logMinA);
 		const visualRange = VISUAL_MAX_RADIUS - VISUAL_MIN_RADIUS;
 		let lastOrbit = 0;
 
@@ -304,8 +309,8 @@ export const useSystemViewSetup = (
 		);
 
 		const scaled = planets.map((p) => {
-			const aReal = Math.max(1, p.semimajoraxis * 1e10);
-			const logA = Math.log10(aReal);
+			const aReal = safePlanetA(p);
+			const logA = Math.log10(Math.max(1, aReal));
 			let normalizedDistance = 0;
 			if (logRange > 1e-6) normalizedDistance = (logA - logMinA) / logRange;
 			else normalizedDistance = 0.5;
@@ -354,9 +359,25 @@ export const useSystemViewSetup = (
 		setOrbitLines(ol);
 
 		if (initialPositions.length > 0) {
-			const lastPlanet = planets[planets.length - 1];
-			const outerOrbitRadius = lastPlanet.semimajoraxis / 5000000000;
-			const totalRadius = outerOrbitRadius + BOUNDING_BOX_OFFSET;
+			const outerOrbitRadius = Math.max(
+				...planets.map((p) =>
+					Number.isFinite(p.semimajoraxis)
+						? (p.semimajoraxis as number) / SCALE_FACTOR
+						: -Infinity,
+				),
+				...stations.map((s) =>
+					Number.isFinite(s.semimajoraxis)
+						? (s.semimajoraxis as number) / SCALE_FACTOR_STATIONS
+						: -Infinity,
+				),
+				...scaled.map((s) =>
+					Number.isFinite(s.scaledOrbitalRadius)
+						? s.scaledOrbitalRadius
+						: -Infinity,
+				),
+				80,
+			);
+			const totalRadius = Math.max(80, outerOrbitRadius + BOUNDING_BOX_OFFSET);
 			const asteroidCount = centeredSystem.microasteroidCount ?? 0;
 			const colorFactor = Math.min(
 				1,
@@ -428,9 +449,6 @@ export const useSystemViewSetup = (
 			);
 			setSystemBoundingBox([{ polygon: polygon, color: finalColor }]);
 
-			console.log(centeredSystem);
-			console.log(systemBoundsRef);
-
 			systemBoundsRef.current = {
 				minX: centeredSystem.x - totalRadius,
 				maxX: centeredSystem.x + totalRadius,
@@ -439,10 +457,14 @@ export const useSystemViewSetup = (
 			};
 
 			// Calculate dynamic zoom
-			const systemWidth =
-				systemBoundsRef.current.maxX - systemBoundsRef.current.minX;
-			const systemHeight =
-				systemBoundsRef.current.maxY - systemBoundsRef.current.minY;
+			const systemWidth = Math.max(
+				20,
+				systemBoundsRef.current.maxX - systemBoundsRef.current.minX,
+			);
+			const systemHeight = Math.max(
+				20,
+				systemBoundsRef.current.maxY - systemBoundsRef.current.minY,
+			);
 
 			// Ensure mapWidth and mapHeight are not zero to avoid division by zero
 			const effectiveMapWidth = Math.max(1, mapWidth);
@@ -452,11 +474,15 @@ export const useSystemViewSetup = (
 			const zoomX = Math.log2(effectiveMapWidth / systemWidth);
 			const zoomY = Math.log2(effectiveMapHeight / systemHeight);
 			let dynamicZoom = Math.min(zoomX, zoomY);
+			if (!Number.isFinite(dynamicZoom)) dynamicZoom = 2.0;
 
 			// Add some padding to the zoom level so the system isn't right at the edge
 			dynamicZoom -= 0.5; // Adjust this value as needed for desired padding
 			const ZOOM_EXIT_BUFFER = 1.5;
 			systemExitZoomRef.current = dynamicZoom - ZOOM_EXIT_BUFFER;
+			if (!Number.isFinite(systemExitZoomRef.current)) {
+				systemExitZoomRef.current = 0.5;
+			}
 
 			const shouldSetCamera =
 				!isTransitioningRef?.current &&

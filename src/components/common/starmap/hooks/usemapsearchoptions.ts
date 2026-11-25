@@ -6,6 +6,7 @@ export interface SearchOption {
 	id: string;
 	type: "system" | "planet";
 	systemId?: string;
+	systemName?: string;
 	x?: number;
 	y?: number;
 	naturalId?: string;
@@ -43,15 +44,29 @@ export function useMapSearchOptions({
 		}
 
 		if (allPlanetsData) {
+			const systemNameMap = new Map<string, string>();
+			if (systemsPoints) {
+				systemsPoints.forEach((s: any) => {
+					const sId = s.originalSystemId || s.id;
+					const sName = s.name || s.systemName || s.label || sId;
+					if (sId) systemNameMap.set(sId, sName);
+					if (s.id) systemNameMap.set(s.id, sName);
+				});
+			}
+
 			Object.entries(allPlanetsData).forEach(([sysId, planets]) => {
+				const parentSysName = systemNameMap.get(sysId) || sysId;
+
 				planets.forEach((p: any) => {
-					const name = p.name || p.planetName;
+					const name =
+						p.planetname || p.name || p.planetName || p.planetid || p.id;
 					if (name) {
 						options.push({
 							label: name,
 							id: p.planetid || p.id,
 							type: "planet",
 							systemId: sysId,
+							systemName: parentSysName,
 							naturalId: p.planetid || p.id,
 						});
 					}
@@ -62,7 +77,7 @@ export function useMapSearchOptions({
 		// Deduplicate option labels
 		const seen = new Set<string>();
 		return options.filter((opt) => {
-			const key = `${opt.type}-${opt.label}`;
+			const key = `${opt.type}-${opt.id}`;
 			if (seen.has(key)) return false;
 			seen.add(key);
 			return true;

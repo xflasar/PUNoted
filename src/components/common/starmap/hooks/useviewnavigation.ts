@@ -151,10 +151,15 @@ export const useViewNavigation = ({
 		next: any,
 		isUserInteracting = false,
 	) => {
-		const exitZoom = systemExitZoomRef.current ?? 2.0;
+		if (!next || !next.target || !Array.isArray(next.target)) return null;
+		const rawExitZoom = systemExitZoomRef.current;
+		const exitZoom = Number.isFinite(rawExitZoom)
+			? (rawExitZoom as number)
+			: 0.5;
+		const nextZoom = Number.isFinite(next.zoom) ? next.zoom : 2.5;
 
 		// 1. Check Exit Threshold (Zoom Out below dynamic exitZoom boundary)
-		if (isUserInteracting && next.zoom < exitZoom) {
+		if (isUserInteracting && nextZoom < exitZoom) {
 			if (currentViewMode === "system") {
 				transitionToGalaxyView();
 			}
@@ -162,11 +167,17 @@ export const useViewNavigation = ({
 		}
 
 		const bounds = systemBoundsRef.current;
-		const clampedZoom = Math.max(exitZoom, Math.min(8.0, next.zoom));
+		const clampedZoom = Math.max(exitZoom, Math.min(8.0, nextZoom));
 
-		if (isUserInteracting && bounds) {
+		if (
+			isUserInteracting &&
+			bounds &&
+			Number.isFinite(bounds.minX) &&
+			Number.isFinite(bounds.maxX)
+		) {
 			// 2. Pan Clamping (Stay within system bounds) - only during manual user interaction
-			const [tx, ty] = next.target;
+			const tx = Number.isFinite(next.target[0]) ? next.target[0] : 0;
+			const ty = Number.isFinite(next.target[1]) ? next.target[1] : 0;
 			const minX = bounds.minX - SYSTEM_PAN_OFFSET;
 			const maxX = bounds.maxX + SYSTEM_PAN_OFFSET;
 			const minY = bounds.minY - SYSTEM_PAN_OFFSET;
@@ -185,13 +196,20 @@ export const useViewNavigation = ({
 			// 3. User interaction before bounds or empty system - allow normal pan & zoom
 			return {
 				...next,
-				target: next.target,
+				target: [
+					Number.isFinite(next.target[0]) ? next.target[0] : 0,
+					Number.isFinite(next.target[1]) ? next.target[1] : 0,
+				],
 				zoom: clampedZoom,
 			};
 		}
 
 		return {
 			...next,
+			target: [
+				Number.isFinite(next.target[0]) ? next.target[0] : 0,
+				Number.isFinite(next.target[1]) ? next.target[1] : 0,
+			],
 			zoom: clampedZoom,
 		};
 	};
@@ -255,7 +273,9 @@ export const useViewNavigation = ({
 			}
 			// Priority 3: Galaxy View Logic
 			else {
-				const clampedZoom = Math.max(-3.0, Math.min(2.0, next.zoom));
+				if (!next || !next.target || !Array.isArray(next.target)) return;
+				const rawZoom = Number.isFinite(next.zoom) ? next.zoom : 0;
+				const clampedZoom = Math.max(-3.0, Math.min(2.0, rawZoom));
 				const old = viewStateRef.current || {};
 				const changed =
 					!approxEqual(old.target?.[0] ?? 0, next.target[0]) ||

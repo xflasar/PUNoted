@@ -55,7 +55,8 @@ export const useAnimation = (
 
 	// Track system changes to clear ship pool instantly
 	const lastSystemIdRef = useRef<string | null>(null);
-	const currentSysId = centeredSystem?.originalSystemId || null;
+	const currentSysId =
+		centeredSystem?.originalSystemId || centeredSystem?.id || null;
 	const systemChanged = lastSystemIdRef.current !== currentSysId;
 
 	// Prevent stale closures in the RAF loop
@@ -110,10 +111,36 @@ export const useAnimation = (
 	useEffect(() => {
 		if (!centeredSystem || !isPlanetModeActive) return;
 
-		const rawPlanets =
-			allPlanetsData[centeredSystem.originalSystemId || ""] || [];
-		const rawStations =
-			allStationsData[centeredSystem.originalSystemId || ""] || [];
+		const rawSid = centeredSystem.originalSystemId || centeredSystem.id || "";
+		const cleanSid = String(rawSid).toLowerCase().replace(/^sys-/, "");
+		let rawPlanets =
+			allPlanetsData[cleanSid] ||
+			allPlanetsData[rawSid] ||
+			allPlanetsData[`sys-${cleanSid}`] ||
+			[];
+		if (rawPlanets.length === 0 && cleanSid) {
+			for (const [k, v] of Object.entries(allPlanetsData || {})) {
+				if (k.toLowerCase().replace(/^sys-/, "") === cleanSid) {
+					rawPlanets = v;
+					break;
+				}
+			}
+		}
+
+		let rawStations =
+			allStationsData[cleanSid] ||
+			allStationsData[rawSid] ||
+			allStationsData[`sys-${cleanSid}`] ||
+			[];
+		if (rawStations.length === 0 && cleanSid) {
+			for (const [k, v] of Object.entries(allStationsData || {})) {
+				if (k.toLowerCase().replace(/^sys-/, "") === cleanSid) {
+					rawStations = v;
+					break;
+				}
+			}
+		}
+
 		const now = Date.now();
 
 		poolRef.current.planets = rawPlanets.map((p) => {
@@ -131,7 +158,7 @@ export const useAnimation = (
 		if (!animationEnabled || !animationWorker) {
 			const SCALE_FACTOR = 5000000000;
 			const trails = rawPlanets.map((p) => {
-				const a = p.semimajoraxis ?? 1e10;
+				const a = Number(p.semimajoraxis) || 1e10;
 				const semiMajor = a / SCALE_FACTOR;
 				const points: [number, number][] = [];
 				const numSegments = 128;

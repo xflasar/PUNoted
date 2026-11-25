@@ -13,7 +13,6 @@ import CloseIcon from "@mui/icons-material/Close";
 import SortIcon from "@mui/icons-material/Sort";
 import type { MapPoint, PlanetData } from "../../types/maptypes";
 import { useTheme } from "@mui/material/styles";
-import { Virtuoso } from "react-virtuoso";
 import { SystemRow } from "./components/systemrow";
 
 interface SearchResultsPanelProps {
@@ -410,7 +409,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 			</Box>
 
 			{/* Results List */}
-			<Box sx={{ flexGrow: 1, p: 1 }}>
+			<Box sx={{ flexGrow: 1, p: 1, overflowY: "auto", minHeight: 0 }}>
 				{sortedSystems.length === 0 ? (
 					<Box
 						sx={{ py: 8, textAlign: "center", color: "rgba(255,255,255,0.3)" }}
@@ -421,27 +420,24 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 						</Typography>
 					</Box>
 				) : (
-					<Virtuoso
-						style={{ height: "100%" }}
-						data={sortedSystems}
-						itemContent={(_index, sys) => {
-							const sysId = sys.originalSystemId || sys.id;
-							const isExpanded = !!expandedSystems[sysId];
-							const planets = systemPlanetMatches[sysId] || [];
+					sortedSystems.slice(0, 100).map((sys) => {
+						const sysId = sys.originalSystemId || sys.id;
+						const isExpanded = !!expandedSystems[sysId];
+						const planets = systemPlanetMatches[sysId] || [];
 
-							return (
-								<SystemRow
-									sys={sys}
-									planets={planets}
-									isExpanded={isExpanded}
-									filterResourcesArray={filterResourcesArray}
-									onToggle={toggleSystem}
-									onSelectSystem={onSelectSystem}
-									onSelectPlanet={onSelectPlanet}
-								/>
-							);
-						}}
-					/>
+						return (
+							<SystemRow
+								key={sysId}
+								sys={sys}
+								planets={planets}
+								isExpanded={isExpanded}
+								filterResourcesArray={filterResourcesArray}
+								onToggle={toggleSystem}
+								onSelectSystem={onSelectSystem}
+								onSelectPlanet={onSelectPlanet}
+							/>
+						);
+					})
 				)}
 			</Box>
 		</Paper>
