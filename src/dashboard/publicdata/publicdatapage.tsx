@@ -337,8 +337,8 @@ const PublicDataPage: React.FC = () => {
 						overflow: "hidden",
 						display:
 							activeTab === "vendors" ||
-								activeTab === "cart" ||
-								activeTab === "store"
+							activeTab === "cart" ||
+							activeTab === "store"
 								? "flex"
 								: "none",
 						flexDirection: "column",
@@ -347,18 +347,18 @@ const PublicDataPage: React.FC = () => {
 					{(visitedTabs.has("vendors") ||
 						visitedTabs.has("cart") ||
 						visitedTabs.has("store")) && (
-							<VendorsList
-								loggedIn={true}
-								activeTab={
-									activeTab === "vendors" ||
-										activeTab === "cart" ||
-										activeTab === "store"
-										? activeTab
-										: "vendors"
-								}
-								onLoginRequest={() => { }}
-							/>
-						)}
+						<VendorsList
+							loggedIn={true}
+							activeTab={
+								activeTab === "vendors" ||
+								activeTab === "cart" ||
+								activeTab === "store"
+									? activeTab
+									: "vendors"
+							}
+							onLoginRequest={() => {}}
+						/>
+					)}
 				</Box>
 
 				{/* COSM Price List Tab */}
