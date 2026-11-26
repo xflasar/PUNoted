@@ -331,7 +331,6 @@ function calculateShipPositionGalaxy(
 			});
 
 			if (activeSegment) {
-				console.log(activeSegment);
 				const origSys =
 					activeSegment.origin_system_id ||
 					(activeSegment as any).origin_system;

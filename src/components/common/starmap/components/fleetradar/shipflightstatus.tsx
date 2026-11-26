@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, useTheme, alpha } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useGlobalData } from "../../../../../context/globaldatacontext";
@@ -30,13 +30,35 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 
 	const start = getFlightDepartureMs(activeFlight);
 	const end = getFlightArrivalMs(activeFlight);
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		const current = Date.now();
+		setNow(current);
+		if (!start || !end || current >= end) return;
+
+		const intervalMs = end - current < 120000 ? 5000 : 10000;
+		const id = window.setInterval(() => {
+			if (document.hidden) return;
+			const nextNow = Date.now();
+			setNow(nextNow);
+			if (nextNow >= end) {
+				window.clearInterval(id);
+			}
+		}, intervalMs);
+		return () => window.clearInterval(id);
+	}, [start, end]);
 
 	if (!start || !end) return null;
 
-	const now = Date.now();
 	const totalDuration = end - start;
 	const elapsed = now - start;
 	const isArrived = now >= end;
+	const progress = isArrived
+		? 1
+		: totalDuration > 0
+			? Math.min(1, Math.max(0, elapsed / totalDuration))
+			: 1;
 
 	const getLabel = getOriginDestinationLabel(
 		systemsPoints,
@@ -51,24 +73,12 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 		? "Arrived"
 		: formatDistanceToNowStrict(end, { addSuffix: true });
 
-	// CSS GPU Animation Config
-	const barStyle = isArrived
-		? {
-				transform: "scaleX(1)",
-				backgroundColor: isMine
-					? theme.palette.primary.main
-					: theme.palette.secondary.main,
-			}
-		: {
-				animationName: "growProgress",
-				animationDuration: `${totalDuration}ms`,
-				animationTimingFunction: "linear",
-				animationFillMode: "forwards",
-				animationDelay: `-${elapsed}ms`,
-				backgroundColor: isMine
-					? theme.palette.primary.main
-					: theme.palette.secondary.main,
-			};
+	const barStyle = {
+		transform: `scaleX(${progress})`,
+		backgroundColor: isMine
+			? theme.palette.primary.main
+			: theme.palette.secondary.main,
+	};
 
 	return (
 		<Box
@@ -109,7 +119,6 @@ const ShipFlightStatus: React.FC<ShipFlightStatusProps> = ({
 						height: "100%",
 						width: "100%",
 						transformOrigin: "left center",
-						willChange: "transform",
 						...barStyle,
 					}}
 				/>

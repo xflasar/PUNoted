@@ -207,24 +207,30 @@ export function useBaseStarMapData({
 	const [isSystemPanelOpen, setIsSystemPanelOpen] = useState(false);
 
 	const animationWorkerRef = useRef<Worker | null>(null);
+	const [animationWorker, setAnimationWorker] = useState<Worker | null>(null);
 	useEffect(() => {
 		if (typeof window === "undefined") return;
+		let worker: Worker | null = null;
 		try {
-			animationWorkerRef.current = new Worker(
+			worker = new Worker(
 				new URL("../workers/orbitworker.ts", import.meta.url),
 				{ type: "module" },
 			);
+			animationWorkerRef.current = worker;
+			setAnimationWorker(worker);
 		} catch (err) {
 			console.warn("Could not create animation worker:", err);
 			animationWorkerRef.current = null;
+			setAnimationWorker(null);
 		}
 		return () => {
 			try {
-				animationWorkerRef.current?.terminate();
+				worker?.terminate();
 			} catch {
 				/* ignore */
 			}
 			animationWorkerRef.current = null;
+			setAnimationWorker(null);
 			try {
 				if (deckRef.current?.deck) {
 					deckRef.current.deck.finalize();
@@ -247,6 +253,31 @@ export function useBaseStarMapData({
 			}
 		}
 	}, [isInteracting]);
+
+	useEffect(() => {
+		if (typeof document === "undefined") return;
+		const handleVisibilityChange = () => {
+			if (!animationWorkerRef.current) return;
+			try {
+				if (document.hidden) {
+					animationWorkerRef.current.postMessage({
+						type: "stop-orbit-interval",
+					});
+				} else {
+					animationWorkerRef.current.postMessage({
+						type: "resume-orbit-interval",
+					});
+				}
+			} catch (err) {
+				console.warn("worker visibility change postMessage failed", err);
+			}
+		};
+
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		return () => {
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+		};
+	}, []);
 
 	const {
 		isLoading,
@@ -1123,8 +1154,10 @@ export function useBaseStarMapData({
 			const hasWebGL2 = !!(canvas.getContext && canvas.getContext("webgl2"));
 			if (!hasWebGL2) return undefined;
 			return {
-				glOptions: { webgl2: true },
-				useDevicePixels: false,
+				glOptions: {
+					webgl2: true,
+					powerPreference: "low-power",
+				},
 			};
 		} catch {
 			return undefined;
@@ -1188,7 +1221,7 @@ export function useBaseStarMapData({
 			currentSystemId: centeredSystem?.originalSystemId ?? null,
 			currentSystem: centeredSystem || null,
 			deckRef,
-			animationWorker: animationWorkerRef.current,
+			animationWorker,
 			isInteracting,
 			productionData: mode === "public" ? null : productionData,
 			shipmentState: effectiveShipmentState,
@@ -1218,6 +1251,7 @@ export function useBaseStarMapData({
 			systemToSectorMap,
 			visibleAnimatedShipData,
 			effectiveFlightPlans,
+			animationWorker,
 			isInteracting,
 			handleSystemClickWrapped,
 			handleSystemDoubleClick,

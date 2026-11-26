@@ -51,39 +51,12 @@ export const useAnimation = (
 	// REFS
 	// -----------------------------
 	const lastWorkerPostTime = useRef(0);
-	const animationFrameId = useRef<number | null>(null);
 
 	// Track system changes to clear ship pool instantly
 	const lastSystemIdRef = useRef<string | null>(null);
 	const currentSysId =
 		centeredSystem?.originalSystemId || centeredSystem?.id || null;
 	const systemChanged = lastSystemIdRef.current !== currentSysId;
-
-	// Prevent stale closures in the RAF loop
-	const isInteractingRef = useRef(isInteracting);
-	useEffect(() => {
-		isInteractingRef.current = isInteracting;
-	}, [isInteracting]);
-
-	const latestDataRef = useRef<{
-		rawBuffers: {
-			planetPos?: ArrayBuffer | null;
-			stationPos?: ArrayBuffer | null;
-			shipPos?: ArrayBuffer | null;
-		} | null;
-		pCount: number;
-		sCount: number;
-		shipCount: number;
-		trails: any[] | null;
-		stats: any | null;
-	}>({
-		rawBuffers: null,
-		pCount: 0,
-		sCount: 0,
-		shipCount: 0,
-		trails: null,
-		stats: null,
-	});
 
 	const shipPoolMapRef = useRef<Map<string, UpdateShipData>>(new Map());
 	const workerShipIdsRef = useRef<string[]>([]);
@@ -98,12 +71,104 @@ export const useAnimation = (
 		lastSystemIdRef.current = currentSysId;
 	}
 
-	const systemsSentRef = useRef<number | null>(null);
 	const scheduledPostRef = useRef<number | null>(null);
 	const lastShipSignatureRef = useRef<string | null>(null);
-	const lastShipStateUpdateRef = useRef<number>(0);
 
 	const UPDATE_INTERVAL = 5000;
+
+	// ============================================================
+	// 1. WORKER LISTENER (ATTACHED BEFORE ANY WORKER POSTS)
+	// ============================================================
+	useEffect(() => {
+		if (!animationEnabled || !animationWorker) return;
+
+		const onMessage = (e: MessageEvent<any>) => {
+			const {
+				type,
+				planetPos,
+				stationPos,
+				shipPos,
+				planetCount,
+				stationCount,
+				shipCount,
+				trails,
+				stats,
+				workerPlans,
+			} = e.data || {};
+
+			if (type === "tick-update") {
+				const pool = poolRef.current;
+				if (planetPos && planetCount) {
+					const view = new Float32Array(planetPos);
+					const count = Math.min(pool.planets.length, planetCount);
+					for (let i = 0; i < count; i++) {
+						pool.planets[i].x = view[i * 2];
+						pool.planets[i].y = view[i * 2 + 1];
+					}
+					setActivePlanets([...pool.planets]);
+				}
+				if (stationPos && stationCount) {
+					const view = new Float32Array(stationPos);
+					const count = Math.min(pool.stations.length, stationCount);
+					for (let i = 0; i < count; i++) {
+						pool.stations[i].x = view[i * 2];
+						pool.stations[i].y = view[i * 2 + 1];
+					}
+					setActiveStations([...pool.stations]);
+				}
+				if (shipPos && shipCount && workerShipIdsRef.current.length > 0) {
+					const view = new Float32Array(shipPos);
+					const count = Math.min(workerShipIdsRef.current.length, shipCount);
+					let hasChanges = false;
+
+					for (let i = 0; i < count; i++) {
+						const id = workerShipIdsRef.current[i];
+						const ship = shipPoolMapRef.current.get(id);
+
+						if (ship) {
+							const o = i * 4;
+							const newX = view[o];
+							const newY = view[o + 1];
+							const newBearing = view[o + 2];
+							const newVis = view[o + 3] > 0.5;
+
+							if (
+								ship.position[0] !== newX ||
+								ship.position[1] !== newY ||
+								ship.bearing !== newBearing ||
+								ship.visible !== newVis
+							) {
+								ship.position = [newX, newY];
+								ship.bearing = newBearing;
+								ship.visible = newVis;
+								hasChanges = true;
+							}
+						}
+					}
+
+					if (hasChanges) {
+						setUpdatedShips(Array.from(shipPoolMapRef.current.values()));
+					}
+				}
+				if (trails?.length) {
+					setOrbitTrails(trails);
+				}
+				if (stats) {
+					setWorkerStats(stats);
+				}
+				if (workerPlans?.length && typeof setActiveFlightPlans === "function") {
+					setActiveFlightPlans(workerPlans);
+				}
+			}
+
+			if (type === "worker-debug-snapshot") {
+				setWorkerStats(stats);
+			}
+		};
+
+		animationWorker.addEventListener("message", onMessage);
+		return () => animationWorker.removeEventListener("message", onMessage);
+	}, [animationEnabled, animationWorker, setActiveFlightPlans]);
 
 	// ============================================================
 	// 1. STATIC DATA INITIALIZATION
@@ -200,29 +265,7 @@ export const useAnimation = (
 	]);
 
 	// ============================================================
-	// 2. SEND SYSTEMS (ONCE)
-	// ============================================================
-	useEffect(() => {
-		if (!animationEnabled || !animationWorker || !systemsPoints.length) return;
-
-		if (systemsSentRef.current === systemsPoints.length) return;
-
-		try {
-			animationWorker.postMessage({
-				type: "update-ships",
-				payload: {
-					ships: [],
-					activeFlightPlans: [],
-					systemsPoints,
-					isGalaxyView,
-				},
-			});
-			systemsSentRef.current = systemsPoints.length;
-		} catch {}
-	}, [animationEnabled, animationWorker, systemsPoints, isGalaxyView]);
-
-	// ============================================================
-	// 3. DYNAMIC SHIP SYNC (THROTTLED)
+	// 3. DYNAMIC SHIP SYNC (IMMEDIATE ON CHANGE, THROTTLED OTHERWISE)
 	// ============================================================
 	useEffect(() => {
 		if (!animationEnabled || !animationWorker) return;
@@ -254,8 +297,28 @@ export const useAnimation = (
 					initPos = [res[0], res[1]];
 					initBearing = res[2];
 				}
+			} else if (isGalaxyView) {
+				// Docked/in-system ship rendered on its star system in galaxy view
+				const targetSysId = shipSysId || s.addresssystemid;
+				const cleanSysKey = String(targetSysId || "")
+					.toLowerCase()
+					.replace(/^sys-/, "");
+				const targetSys = targetSysId
+					? systemsPoints.find((p) => {
+							const pOrig = String(p.originalSystemId || "")
+								.toLowerCase()
+								.replace(/^sys-/, "");
+							const pId = String(p.id || "")
+								.toLowerCase()
+								.replace(/^sys-/, "");
+							return pOrig === cleanSysKey || pId === cleanSysKey;
+						})
+					: null;
+				if (targetSys) {
+					initPos = [targetSys.x, targetSys.y];
+				}
 			} else {
-				// Ship is in a system
+				// Ship is in a system (system view)
 				const targetSysId = shipSysId || centeredSystem?.originalSystemId;
 				const cleanSysKey = String(targetSysId || "")
 					.toLowerCase()
@@ -318,18 +381,23 @@ export const useAnimation = (
 			// Determine visibility for the current camera view
 			let isVisible = false;
 			if (isGalaxyView) {
-				isVisible = positionMode === "galaxy";
+				isVisible = initPos !== null;
 			} else if (centeredSystem) {
 				const curSys = String(
 					centeredSystem.originalSystemId || centeredSystem.id || "",
 				).toLowerCase();
 				const tgtSys = String(shipSysId || "").toLowerCase();
-				isVisible = positionMode === "system" && (!tgtSys || tgtSys === curSys);
+				isVisible =
+					positionMode === "system" &&
+					(!tgtSys || tgtSys === curSys) &&
+					initPos !== null;
 			}
 
 			const prev = shipPoolMapRef.current.get(shipId);
+			const hasValidPrevPos =
+				prev && (prev.position[0] !== 0 || prev.position[1] !== 0);
 			if (
-				prev &&
+				hasValidPrevPos &&
 				!systemChanged &&
 				prev.isGalaxyView === isGalaxyView &&
 				initPos !== null
@@ -362,34 +430,23 @@ export const useAnimation = (
 
 		shipPoolMapRef.current = newPool;
 
-		// Build signature using the identifier and current view mode/system
+		// Build signature using ship IDs, plans, system readiness, and view mode
 		const shipSignature = animatedShipData
-			.map((s) => s.shipid || s.id)
+			.map(
+				(s) =>
+					`${s.shipid || s.id}:${s.plan?.id || ""}:${s.addresssystemid || ""}`,
+			)
 			.join("|");
 		const currentSysKey =
 			centeredSystem?.originalSystemId || centeredSystem?.id || "none";
-		const signature = `${isGalaxyView ? "G" : "S"}_${currentSysKey}_${shipSignature}`;
-
-		console.log("Animated Data:", animatedShipData);
+		const hasSystems = systemsPoints.length > 0 ? 1 : 0;
+		const signature = `${isGalaxyView ? "G" : "S"}_${currentSysKey}_${hasSystems}_${activeFlightPlans.length}_${shipSignature}`;
 
 		const isInitialOrChanged =
 			lastShipSignatureRef.current !== signature || updatedShips.length === 0;
 
-		console.log("[StarMap Debug][useAnimation] Ship sync check:", {
-			animationEnabled,
-			hasAnimationWorker: !!animationWorker,
-			animatedShipDataCount: animatedShipData.length,
-			newPoolSize: newPool.size,
-			currentUpdatedShipsCount: updatedShips.length,
-			isInitialOrChanged,
-		});
-
 		if (isInitialOrChanged) {
 			lastShipSignatureRef.current = signature;
-			console.log(
-				"[StarMap Debug][useAnimation] Setting updatedShips immediately to newPool size:",
-				newPool.size,
-			);
 			setUpdatedShips(Array.from(newPool.values()));
 		}
 
@@ -448,145 +505,11 @@ export const useAnimation = (
 		activeFlightPlans,
 		isGalaxyView,
 		centeredSystem,
+		systemsPoints,
+		allPlanetsData,
+		allStationsData,
 		animationWorker,
 	]);
-
-	// ============================================================
-	// 4. WORKER LISTENER
-	// ============================================================
-	useEffect(() => {
-		if (!animationEnabled || !animationWorker) return;
-
-		const onMessage = (e: MessageEvent<any>) => {
-			const {
-				type,
-				planetPos,
-				stationPos,
-				shipPos,
-				planetCount,
-				stationCount,
-				shipCount,
-				trails,
-				stats,
-				workerPlans,
-			} = e.data || {};
-
-			if (type === "tick-update") {
-				latestDataRef.current = {
-					rawBuffers: { planetPos, stationPos, shipPos },
-					pCount: planetCount ?? 0,
-					sCount: stationCount ?? 0,
-					shipCount: shipCount ?? 0,
-					trails: trails?.length ? trails : null,
-					stats: stats ?? null,
-				};
-
-				const pool = poolRef.current;
-				if (planetPos && planetCount) {
-					const view = new Float32Array(planetPos);
-					const count = Math.min(pool.planets.length, planetCount);
-					for (let i = 0; i < count; i++) {
-						pool.planets[i].x = view[i * 2];
-						pool.planets[i].y = view[i * 2 + 1];
-					}
-					setActivePlanets([...pool.planets]);
-				}
-				if (stationPos && stationCount) {
-					const view = new Float32Array(stationPos);
-					const count = Math.min(pool.stations.length, stationCount);
-					for (let i = 0; i < count; i++) {
-						pool.stations[i].x = view[i * 2];
-						pool.stations[i].y = view[i * 2 + 1];
-					}
-					setActiveStations([...pool.stations]);
-				}
-
-				if (workerPlans?.length && typeof setActiveFlightPlans === "function") {
-					setActiveFlightPlans(workerPlans);
-				}
-			}
-
-			if (type === "worker-debug-snapshot") {
-				setWorkerStats(stats);
-			}
-		};
-
-		animationWorker.addEventListener("message", onMessage);
-		return () => animationWorker.removeEventListener("message", onMessage);
-	}, [animationEnabled, animationWorker, setActiveFlightPlans]);
-
-	// ============================================================
-	// 5. RAF RENDER LOOP (STRICTLY GATED)
-	// ============================================================
-	useEffect(() => {
-		if (!animationEnabled) return;
-
-		const tick = () => {
-			animationFrameId.current = requestAnimationFrame(tick);
-
-			// Skip heavy React state updates if the user is dragging the map
-			if (isInteractingRef.current) return;
-
-			const data = latestDataRef.current;
-			const pool = poolRef.current;
-
-			if (data.rawBuffers?.shipPos && workerShipIdsRef.current.length > 0) {
-				const view = new Float32Array(data.rawBuffers.shipPos);
-				const count = Math.min(workerShipIdsRef.current.length, data.shipCount);
-				let hasChanges = false;
-
-				for (let i = 0; i < count; i++) {
-					const id = workerShipIdsRef.current[i];
-					const ship = shipPoolMapRef.current.get(id);
-
-					if (ship) {
-						const o = i * 4;
-						const newX = view[o];
-						const newY = view[o + 1];
-						const newBearing = view[o + 2];
-						const newVis = view[o + 3] > 0.5;
-
-						if (
-							ship.position[0] !== newX ||
-							ship.position[1] !== newY ||
-							ship.bearing !== newBearing ||
-							ship.visible !== newVis
-						) {
-							// Mutate with a fresh array so Deck.GL detects the structural change
-							ship.position = [newX, newY];
-							ship.bearing = newBearing;
-							ship.visible = newVis;
-							hasChanges = true;
-						}
-					}
-				}
-
-				const now = Date.now();
-				if (hasChanges && now - lastShipStateUpdateRef.current > 75) {
-					setUpdatedShips(Array.from(shipPoolMapRef.current.values()));
-					lastShipStateUpdateRef.current = now;
-				}
-			}
-
-			if (data.trails) {
-				setOrbitTrails(data.trails);
-				data.trails = null;
-			}
-
-			if (data.stats) {
-				setWorkerStats(data.stats);
-				data.stats = null;
-			}
-		};
-
-		animationFrameId.current = requestAnimationFrame(tick);
-		return () => {
-			if (animationFrameId.current) {
-				cancelAnimationFrame(animationFrameId.current);
-				animationFrameId.current = null;
-			}
-		};
-	}, [animationEnabled]);
 
 	// ============================================================
 	// CONDITIONAL RETURN

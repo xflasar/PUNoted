@@ -26,6 +26,8 @@ import MapLegend from "./components/legend/maplegend";
 import MapZoomControls from "./components/controls/mapzoomcontrols";
 
 function deepCompareLayers(prevLayers: any[] = [], nextLayers: any[] = []) {
+	if (prevLayers === nextLayers) return true;
+	if (!prevLayers || !nextLayers) return false;
 	if (prevLayers.length !== nextLayers.length) return false;
 	for (let i = 0; i < nextLayers.length; i++) {
 		const prevLayer = prevLayers[i];
@@ -36,7 +38,33 @@ function deepCompareLayers(prevLayers: any[] = [], nextLayers: any[] = []) {
 		const nextProps = nextLayer.props || {};
 		const keys = Object.keys(nextProps);
 		for (const key of keys) {
-			if (prevProps[key] !== nextProps[key]) return false;
+			const prevVal = prevProps[key];
+			const nextVal = nextProps[key];
+			if (prevVal === nextVal) continue;
+			// Skip function references (accessors like getPosition, event handlers like onHover)
+			if (typeof prevVal === "function" && typeof nextVal === "function")
+				continue;
+			if (key === "data") {
+				if (Array.isArray(prevVal) && Array.isArray(nextVal)) {
+					if (prevVal.length !== nextVal.length) return false;
+					continue;
+				}
+			}
+			if (key === "updateTriggers") {
+				if (prevVal && nextVal) {
+					const tKeys = Object.keys(nextVal);
+					let triggerChanged = false;
+					for (const tk of tKeys) {
+						if (JSON.stringify(prevVal[tk]) !== JSON.stringify(nextVal[tk])) {
+							triggerChanged = true;
+							break;
+						}
+					}
+					if (triggerChanged) return false;
+					continue;
+				}
+			}
+			return false;
 		}
 	}
 	return true;
@@ -47,16 +75,18 @@ const MemoizedDeckGL = React.memo(
 	(props: any) => {
 		return (
 			<DeckGL
+				useDevicePixels={props.useDevicePixels ?? false}
 				deviceProps={props.deviceProps}
 				ref={props.deckRef}
 				views={props.views}
 				viewState={props.viewState}
 				onViewStateChange={props.onViewStateChange}
 				onHover={props.onHover}
+				onClick={props.onClick}
 				onDoubleClick={props.onDoubleClick}
 				controller={props.controller}
 				layers={props.layers}
-				pickingRadius={5}
+				pickingRadius={props.pickingRadius ?? 2}
 				_animate={false}
 				onAfterRender={props.onAfterRender}
 			/>
@@ -120,6 +150,11 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 		mapState.handleSliderChange(null as any, nextZoom);
 	}, [mapState]);
 
+	const deckLayers = React.useMemo(() => {
+		if (!customLayers || customLayers.length === 0) return mapState.layers;
+		return [...mapState.layers, ...customLayers.filter(Boolean)];
+	}, [mapState.layers, customLayers]);
+
 	return (
 		<Paper
 			sx={{ flexGrow: 1, position: "relative", width: "100%", height: "100%" }}
@@ -146,6 +181,7 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 				}}
 			>
 				<MemoizedDeckGL
+					useDevicePixels={false}
 					deviceProps={mapState.DECK_DEVICE_PROPS}
 					ref={mapState.deckRef}
 					views={DECK_VIEWS}
@@ -154,8 +190,8 @@ const BaseStarMapInner: React.FC<BaseStarMapProps> = ({
 					onHover={mapState.handleDeckHover}
 					onClick={mapState.handleDeckClick}
 					controller={mapState.controller as any}
-					layers={[...mapState.layers, ...(customLayers || []).filter(Boolean)]}
-					pickingRadius={5}
+					layers={deckLayers}
+					pickingRadius={2}
 					_animate={false}
 					onAfterRender={mapState.handleDeckAfterRender}
 				/>

@@ -11,7 +11,6 @@ import {
 	useMediaQuery,
 	Tabs,
 	Tab,
-	GlobalStyles,
 	ListItemButton,
 } from "@mui/material";
 import {
@@ -59,32 +58,6 @@ type CorpListItem =
 			shipIds: string[];
 	  }
 	| { type: "SHIP"; data: AnimatedShipData };
-
-// --- CSS KEYFRAMES FOR GPU ANIMATION ---
-const GlobalProgressKeyframes = () => (
-	<GlobalStyles
-		styles={{
-			"@keyframes growProgress": {
-				"0%": { transform: "scaleX(0)" },
-				"100%": { transform: "scaleX(1)" },
-			},
-			"@keyframes pulseRadar": {
-				"0%": {
-					boxShadow: "0 0 0 0 rgba(123, 104, 238, 0.45)",
-					transform: "scale(1)",
-				},
-				"70%": {
-					boxShadow: "0 0 0 10px rgba(123, 104, 238, 0)",
-					transform: "scale(1.05)",
-				},
-				"100%": {
-					boxShadow: "0 0 0 0 rgba(123, 104, 238, 0)",
-					transform: "scale(1)",
-				},
-			},
-		}}
-	/>
-);
 
 const FleetRadar: React.FC<ShipListComponentProps> = ({
 	ownShips,
@@ -452,7 +425,6 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "center",
-					animation: "pulseRadar 3s infinite",
 					cursor: "pointer",
 					transition: "all 0.3s ease",
 					boxShadow:
@@ -503,7 +475,6 @@ const FleetRadar: React.FC<ShipListComponentProps> = ({
 
 	return (
 		<>
-			<GlobalProgressKeyframes />
 			<Paper
 				elevation={8}
 				sx={{
