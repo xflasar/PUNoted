@@ -318,8 +318,7 @@ export const CorporationOverview: React.FC = () => {
 
 			fuelConfigs.forEach((cfg) => {
 				const activeFuelConsumers: ProducerConsumerItem[] = fuelData
-					.consumers!
-					.filter((c) => cfg.getMemberTotal(c) > 0)
+					.consumers!.filter((c) => cfg.getMemberTotal(c) > 0)
 					.map((c) => ({
 						player: c.player_name,
 						loc: "Fleet",
@@ -368,8 +367,7 @@ export const CorporationOverview: React.FC = () => {
 					0,
 				);
 				item.consumptionTotal = nonFleetCons + fleetCons;
-				item.consumptionAccurate =
-					(item.consumptionAccurate || 0) + fleetCons;
+				item.consumptionAccurate = (item.consumptionAccurate || 0) + fleetCons;
 				item.consumption = item.consumptionTotal;
 				item.net = (item.productionTotal || 0) - item.consumptionTotal;
 			});
