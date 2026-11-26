@@ -30,6 +30,7 @@ import MaterialBadge from "../components/materialbadge";
 import MaterialPickerHeader from "../components/materialpickerheader";
 import InlineConfirmButton from "../components/inlineconfirmbutton";
 import PriceComparisonBadge from "../vendors/components/pricecomparisonbadge";
+import { formatContd } from "../vendors/shoppinglistmodal";
 import { Toast } from "../vendors/toast";
 import { Modal } from "../vendors/modal";
 import { getDiffStats } from "../vendors/utils/pricecomparison";
@@ -713,12 +714,19 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 		[cart],
 	);
 	const handleCopy = useCallback(async () => {
-		const text = [...cart]
-			.sort((a, b) => a.ticker.localeCompare(b.ticker))
-			.map((item) => `${item.ticker}\t${item.quantity}`)
-			.join("\n");
 		try {
-			await navigator.clipboard.writeText(text);
+			await navigator.clipboard.writeText(
+				formatContd(
+					"HRT",
+					[...cart]
+						.sort((a, b) => a.ticker.localeCompare(b.ticker))
+						.map(({ quantity, ticker, price }) => ({
+							amount: quantity,
+							ticker,
+							price,
+						})),
+				),
+			);
 			setCopyToastOpen(true);
 		} catch (error) {
 			console.error("Failed to copy materials", error);
@@ -1084,7 +1092,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 			</Drawer>
 			<Toast
 				open={copyToastOpen}
-				message="Copied!"
+				message={`Copied CONTD for ${cart.length} material${cart.length === 1 ? "" : "s"}!`}
 				color="success"
 				onClose={() => setCopyToastOpen(false)}
 			/>

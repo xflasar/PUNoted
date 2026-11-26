@@ -1924,6 +1924,11 @@ const ShoppingListModal: React.FC<{
 	) => {
 		try {
 			await navigator.clipboard.writeText(formatContd(locationCode, items));
+			setToast({
+				open: true,
+				message: `Copied CONTD for ${items.length} material${items.length === 1 ? "" : "s"}!`,
+				color: "success",
+			});
 		} catch (e) {
 			console.error(e);
 		}
