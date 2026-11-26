@@ -15,6 +15,7 @@ import {
 	InputAdornment,
 	IconButton,
 	Button,
+	Link,
 	CircularProgress,
 	Drawer,
 	Tooltip,
@@ -30,7 +31,9 @@ import MaterialPickerHeader from "../components/materialpickerheader";
 import InlineConfirmButton from "../components/inlineconfirmbutton";
 import PriceComparisonBadge from "../vendors/components/pricecomparisonbadge";
 import { Toast } from "../vendors/toast";
+import { Modal } from "../vendors/modal";
 import { getDiffStats } from "../vendors/utils/pricecomparison";
+import { parseShoppingListImport } from "../vendors/utils/shoppinglistimport";
 import { useMaterialSearch } from "../hooks/usematerialsearch";
 
 const ROW_HEIGHT = 52;
@@ -547,6 +550,13 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 	const [materials, setMaterials] = useState<MaterialData[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [copyToastOpen, setCopyToastOpen] = useState(false);
+	const [showImport, setShowImport] = useState(false);
+	const [importText, setImportText] = useState("");
+	const [importToast, setImportToast] = useState<{
+		open: boolean;
+		message: string;
+		color: "success" | "error";
+	}>({ open: false, message: "", color: "success" });
 	const [showMaterials, setShowMaterials] = useState(false);
 	const isDrawerView = isCompact || showMaterials;
 	const deferredSearch = useDeferredValue(searchQuery);
@@ -663,6 +673,39 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 			)
 			.sort((a, b) => a.ticker.localeCompare(b.ticker));
 	}, [materials, deferredSearch, exactMatch]);
+	const validMaterialTickers = useMemo(
+		() => new Set(materials.map(({ ticker }) => ticker)),
+		[materials],
+	);
+	const handleImport = useCallback(() => {
+		try {
+			const importedMaterials = parseShoppingListImport(
+				importText,
+				validMaterialTickers,
+			);
+			setCart(
+				importedMaterials.map(({ materialticker, quantity }, index) => ({
+					...materials.find(({ ticker }) => ticker === materialticker)!,
+					quantity,
+					id: Date.now() + index,
+				})),
+			);
+			setShowImport(false);
+			setImportText("");
+			setShowMaterials(false);
+			setImportToast({
+				open: true,
+				message: `Imported ${importedMaterials.length} materials`,
+				color: "success",
+			});
+		} catch (error) {
+			setImportToast({
+				open: true,
+				message: error instanceof Error ? error.message : "Invalid input",
+				color: "error",
+			});
+		}
+	}, [importText, materials, validMaterialTickers]);
 
 	// Aggregates the cumulative total cost of all entries within the shopping cart.
 	const totalCost = useMemo(
@@ -735,7 +778,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 					<MaterialPickerHeader
 						title="PRICE LIST"
 						isMobile={isDrawerView}
-						onImport={() => {}}
+						onImport={() => setShowImport(true)}
 						onClose={() => setShowMaterials(false)}
 					/>
 					<Box sx={{ p: isDrawerView ? 0 : 2, pb: 1 }}>
@@ -1044,6 +1087,44 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 				message="Copied!"
 				color="success"
 				onClose={() => setCopyToastOpen(false)}
+			/>
+			<Modal
+				open={showImport}
+				onClose={() => {
+					setShowImport(false);
+					setImportText("");
+				}}
+				title="IMPORT MATERIALS"
+				actionLabel="IMPORT"
+				onAction={handleImport}
+			>
+				<TextField
+					autoFocus
+					fullWidth
+					multiline
+					minRows={8}
+					placeholder="Paste materials + quantities in CSV/TSV or XIT ACT JSON"
+					value={importText}
+					onChange={(event) => setImportText(event.target.value)}
+					sx={{ mt: 1 }}
+				/>
+				<Link
+					component="button"
+					type="button"
+					variant="body2"
+					onClick={() => setImportText("RAT,40\nOVE,4")}
+					sx={{ mt: 1 }}
+				>
+					Example
+				</Link>
+			</Modal>
+			<Toast
+				open={importToast.open}
+				message={importToast.message}
+				color={importToast.color}
+				onClose={() =>
+					setImportToast((current) => ({ ...current, open: false }))
+				}
 			/>
 		</Box>
 	);
