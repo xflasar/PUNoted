@@ -136,7 +136,7 @@ const CosmPage = ({
 			sx={{
 				width: "100vw",
 				minWidth: "100%",
-				height: "100vh",
+				height: "100dvh",
 				overflow: "hidden",
 				padding: 2,
 				boxSizing: "border-box",
