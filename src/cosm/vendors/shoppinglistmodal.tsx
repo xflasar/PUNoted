@@ -1516,7 +1516,7 @@ const ShoppingListModal: React.FC<{
 }> = ({ isLoading, vendors, cxPriceLookup }) => {
 	const theme = useTheme();
 	const locationFormatVersion = useLocationFormatVersion();
-	const { materialData, isMaterialDataLoaded } = useGlobalData();
+	const { materialData, isMaterialDataLoaded, corpPrices } = useGlobalData();
 	const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
 	const isCompact = useMediaQuery(theme.breakpoints.down("xl"));
 	const validMaterialTickers = useMemo(
@@ -1916,7 +1916,7 @@ const ShoppingListModal: React.FC<{
 				`location\t${loc}`,
 				"deadline\t5",
 				...shoppingList.map((item) => {
-					const price = inventoryMap[item.materialticker]?.[0]?.fixedprice || 0;
+					const price = corpPrices[item.materialticker.toUpperCase()] ?? 0;
 					return `${item.quantity}\t${item.materialticker}\t${price}`;
 				}),
 			];
