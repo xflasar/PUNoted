@@ -16,14 +16,17 @@ import {
 	IconButton,
 	Button,
 	CircularProgress,
+	Drawer,
 	Tooltip,
 	useTheme,
 	alpha,
+	useMediaQuery,
 } from "@mui/material";
 import { Search, Trash2, PlusCircle, Copy, X } from "lucide-react";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import { API_BASE_URL } from "../../config/api";
 import MaterialBadge from "../components/materialbadge";
+import MaterialPickerHeader from "../components/materialpickerheader";
 import InlineConfirmButton from "../components/inlineconfirmbutton";
 import PriceComparisonBadge from "../vendors/components/pricecomparisonbadge";
 import { Toast } from "../vendors/toast";
@@ -538,11 +541,14 @@ VirtualMaterialList.displayName = "VirtualMaterialList";
  */
 const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 	const theme = useTheme();
+	const isCompact = useMediaQuery(theme.breakpoints.down("md"));
 	const { searchQuery, exactMatch, setSearchQuery, toggleExactMatch } =
 		useMaterialSearch();
 	const [materials, setMaterials] = useState<MaterialData[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [copyToastOpen, setCopyToastOpen] = useState(false);
+	const [showMaterials, setShowMaterials] = useState(false);
+	const isDrawerView = isCompact || showMaterials;
 	const deferredSearch = useDeferredValue(searchQuery);
 
 	const [cart, setCart] = useState<CartItem[]>(() => {
@@ -695,77 +701,70 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 			</Box>
 		);
 
-	return (
+	const materialSelection = (
 		<Box
 			sx={{
-				flex: 1,
-				display: "flex",
-				flexDirection: { xs: "column", md: "row" },
-				p: { xs: 0, md: 1 },
-				gap: { xs: 0, md: 1 },
-				minHeight: 0,
+				flex: { xs: "1 1 auto", md: "0 0 50%" },
+				display: { xs: "none", md: "flex" },
+				flexDirection: "column",
 				height: "100%",
-				overflow: "hidden",
+				minHeight: 0,
 			}}
 		>
-			<style>{SCROLLBAR_STYLES}</style>
-
-			<Box
+			<Paper
 				sx={{
-					flex: { xs: "1 1 auto", md: "0 0 60%" },
+					...panelSx,
+					background: isDrawerView ? "transparent" : panelSx.background,
+					border: isDrawerView ? "none" : panelSx.border,
+					borderRadius: isDrawerView ? 0 : panelSx.borderRadius,
+					flex: 1,
+					overflow: "hidden",
 					display: "flex",
 					flexDirection: "column",
-					height: "100%",
 					minHeight: 0,
 				}}
 			>
-				<Paper
+				<Box
 					sx={{
-						...panelSx,
-						flex: 1,
-						overflow: "hidden",
 						display: "flex",
 						flexDirection: "column",
-						minHeight: 0,
+						height: "100%",
+						p: isDrawerView ? 2 : 0,
 					}}
 				>
-					<Box
-						sx={{
-							p: 1,
-							borderBottom: `1px solid ${theme.palette.divider}`,
-							bgcolor: "rgba(0,0,0,0.05)",
-							flexShrink: 0,
-						}}
-					>
+					<MaterialPickerHeader
+						title="PRICE LIST"
+						isMobile={isDrawerView}
+						onImport={() => {}}
+						onClose={() => setShowMaterials(false)}
+					/>
+					<Box sx={{ p: isDrawerView ? 0 : 2, pb: 1 }}>
 						<TextField
 							fullWidth
-							placeholder="Search…"
+							variant="outlined"
+							placeholder="Search Materials..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							size="small"
 							slotProps={{
 								input: {
 									startAdornment: (
-										<InputAdornment position="start">
-											<Search
-												className="inline-icon"
-												color={theme.palette.primary.main}
-											/>
-										</InputAdornment>
+										<Search
+											className="inline-icon"
+											style={{ marginRight: 8, opacity: 0.5 }}
+										/>
 									),
 									endAdornment: (
 										<InputAdornment position="end">
-											{searchQuery ? (
-												<Tooltip title="Clear Search">
-													<IconButton
-														size="small"
-														aria-label="Clear material search"
-														onClick={() => setSearchQuery("")}
-													>
-														<X className="inline-icon" />
-													</IconButton>
-												</Tooltip>
-											) : null}
+											{searchQuery && (
+												<IconButton
+													size="small"
+													aria-label="Clear material search"
+													onClick={() => setSearchQuery("")}
+												>
+													<X className="inline-icon" />
+												</IconButton>
+											)}
 											<Tooltip
 												title={
 													exactMatch ? "Exact Match: ON" : "Exact Match: OFF"
@@ -792,31 +791,40 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 							}}
 							sx={{
 								"& .MuiOutlinedInput-root": {
-									height: 40,
-									bgcolor: alpha(theme.palette.background.default, 0.5),
-									backdropFilter: "blur(5px)",
+									bgcolor: "rgba(0,0,0,0.15)",
 									borderRadius: "12px",
-									"& fieldset": {
-										borderColor: alpha(theme.palette.common.white, 0.1),
-									},
-									"&:hover fieldset": {
-										borderColor: theme.palette.primary.main,
-									},
-									"&.Mui-focused fieldset": {
-										borderColor: theme.palette.primary.main,
-									},
-									color: theme.palette.text.primary,
 								},
 							}}
 						/>
 					</Box>
-					<VirtualMaterialList
-						materials={filteredMaterials}
-						marketPrices={marketPrices}
-						addToCart={addToCart}
-					/>
-				</Paper>
-			</Box>
+					<Box sx={{ flex: 1, minHeight: 0 }}>
+						<VirtualMaterialList
+							materials={filteredMaterials}
+							marketPrices={marketPrices}
+							addToCart={addToCart}
+						/>
+					</Box>
+				</Box>
+			</Paper>
+		</Box>
+	);
+
+	return (
+		<Box
+			sx={{
+				flex: 1,
+				display: "flex",
+				flexDirection: { xs: "column", md: "row" },
+				p: { xs: 0, md: 1 },
+				gap: { xs: 0, md: 1 },
+				minHeight: 0,
+				height: "100%",
+				overflow: "hidden",
+			}}
+		>
+			<style>{SCROLLBAR_STYLES}</style>
+
+			{materialSelection}
 
 			<Paper
 				sx={{
@@ -824,7 +832,7 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 					...panelSx,
 					display: "flex",
 					flexDirection: "column",
-					height: { xs: "40vh", md: "100%" },
+					height: "100%",
 					overflow: "hidden",
 				}}
 			>
@@ -839,19 +847,45 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 						flexShrink: 0,
 					}}
 				>
-					<Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+					<Typography
+						variant="subtitle2"
+						sx={{
+							color: "text.primary",
+							fontWeight: "bold",
+							fontSize: "1.05rem",
+						}}
+					>
 						YOUR MATERIALS
 					</Typography>
-					<Button
-						size="small"
-						variant="contained"
-						startIcon={<Copy className="inline-icon" />}
-						disabled={cart.length === 0}
-						onClick={handleCopy}
-					>
-						COPY
-					</Button>
+					{isCompact && (
+						<Button
+							size="small"
+							variant="contained"
+							startIcon={<PlusCircle className="inline-icon" />}
+							onClick={() => setShowMaterials(true)}
+						>
+							ADD
+						</Button>
+					)}
 					<Box sx={{ flexGrow: 1 }} />
+					<Tooltip
+						title={
+							cart.length === 0 ? "" : "Paste in Sheets/Excel field in CONTD"
+						}
+					>
+						<span>
+							<Button
+								size="small"
+								variant="contained"
+								startIcon={<Copy className="inline-icon" />}
+								disabled={cart.length === 0}
+								onClick={handleCopy}
+								sx={{ fontWeight: "bold" }}
+							>
+								COPY
+							</Button>
+						</span>
+					</Tooltip>
 					<InlineConfirmButton
 						buttonText="CLEAR"
 						icon={<Trash2 className="inline-icon" />}
@@ -980,6 +1014,31 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 					</Box>
 				</Box>
 			</Paper>
+			<Drawer
+				anchor="bottom"
+				open={showMaterials}
+				onClose={() => setShowMaterials(false)}
+				sx={{ zIndex: 9999 }}
+				slotProps={{
+					paper: {
+						sx: {
+							height: "100%",
+							backgroundImage: "none",
+							borderTopLeftRadius: 16,
+							borderTopRightRadius: 16,
+						},
+					},
+				}}
+			>
+				{React.cloneElement(materialSelection, {
+					sx: {
+						...materialSelection.props.sx,
+						display: "flex",
+						flex: 1,
+						height: "100%",
+					},
+				})}
+			</Drawer>
 			<Toast
 				open={copyToastOpen}
 				message="Copied!"
