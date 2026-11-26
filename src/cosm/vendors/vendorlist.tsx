@@ -6,6 +6,8 @@ import React, {
 	useCallback,
 } from "react";
 import { API_BASE_URL } from "../../config/api";
+import CustomToggleGroup from "../../components/common/customtogglegroup";
+import CustomToggleButton from "../../components/common/customtogglebutton";
 import { Masonry } from "@mui/lab";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import {
@@ -14,8 +16,6 @@ import {
 	Chip,
 	TextField,
 	InputAdornment,
-	ToggleButton,
-	ToggleButtonGroup,
 	Card,
 	CardContent,
 	Divider,
@@ -26,17 +26,7 @@ import {
 	Button,
 	alpha,
 } from "@mui/material";
-import {
-	Search,
-	MapPin,
-	Warehouse,
-	Globe,
-	Minus,
-	Square,
-	SquareCheck,
-	Target,
-	X,
-} from "lucide-react";
+import { Search, MapPin, Minus, Target, X } from "lucide-react";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import VendorCreationModal from "./createvendorstoremodal";
 import EditVendorStoreModal from "./editvendorstoremodal";
@@ -52,6 +42,7 @@ import {
 } from "./utils/formatlocation";
 import { pickPrice } from "./utils/pickprice";
 import VendorLastActiveIndicator from "./components/vendorlastactiveindicator";
+import LocationIcon from "./components/locationicon";
 import LocationFilter, {
 	ALL_LOCATIONS_ID,
 	HORTUS_LOCATION_CODE,
@@ -279,15 +270,15 @@ const PriceComparisonBadge = ({
 
 const ChipSmall = ({
 	text,
-	colour,
+	color,
 	tooltip,
 }: {
 	text: string;
-	colour?: string;
+	color?: string;
 	tooltip?: React.ReactNode;
 }) => {
 	const theme = useTheme();
-	const badgeColour = colour ?? theme.palette.primary.light;
+	const badgeColor = color ?? theme.palette.primary.light;
 
 	const badge = (
 		<Chip
@@ -296,9 +287,9 @@ const ChipSmall = ({
 			sx={{
 				fontSize: "0.7rem",
 				fontWeight: "bold",
-				color: badgeColour,
-				bgcolor: alpha(badgeColour, 0.1),
-				border: `1px solid ${alpha(badgeColour, 0.3)}`,
+				color: badgeColor,
+				bgcolor: alpha(badgeColor, 0.1),
+				border: `1px solid ${alpha(badgeColor, 0.3)}`,
 				cursor: tooltip ? "help" : "default",
 				textDecoration: tooltip ? "underline dotted" : "none",
 			}}
@@ -335,7 +326,7 @@ const ChipAsk = () => {
 	return (
 		<ChipSmall
 			text="ASK"
-			colour={theme.palette.warning.light}
+			color={theme.palette.warning.light}
 			tooltip="You buy from the vendor"
 		/>
 	);
@@ -346,7 +337,7 @@ const ChipBid = () => {
 	return (
 		<ChipSmall
 			text="BID"
-			colour={theme.palette.info.light}
+			color={theme.palette.info.light}
 			tooltip="You sell to the vendor"
 		/>
 	);
@@ -529,6 +520,12 @@ const VendorCard = React.memo(
 										className={isUnavailable ? "unavailable-order" : undefined}
 										sx={{
 											p: 0,
+											backgroundColor: alpha(
+												isBuying
+													? theme.palette.info.light
+													: theme.palette.warning.light,
+												0.06,
+											),
 											borderBottom:
 												index === sortedList.length - 1
 													? "none"
@@ -538,10 +535,6 @@ const VendorCard = React.memo(
 											display: "flex",
 											flexDirection: "column",
 											gap: 0.5,
-											cursor: "default",
-											"&:hover": {
-												backgroundColor: alpha(theme.palette.primary.main, 0.2),
-											},
 										}}
 									>
 										{/* Main Row: Ticker, Price */}
@@ -634,17 +627,9 @@ const VendorCard = React.memo(
 																		gap: 0.5,
 																	}}
 																>
-																	{l.location_code === "HRT" ? (
-																		<Warehouse
-																			className="inline-icon"
-																			color={theme.palette.success.light}
-																		/>
-																	) : (
-																		<Globe
-																			className="inline-icon"
-																			color={theme.palette.warning.main}
-																		/>
-																	)}
+																	<LocationIcon
+																		locationCode={l.location_code}
+																	/>
 																	<Typography
 																		variant="caption"
 																		sx={{
@@ -1291,17 +1276,7 @@ const VendorsList = ({
 				align: "left",
 				renderCell: ({ row }) => (
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-						{row.locCode === "HRT" ? (
-							<Warehouse
-								className="inline-icon"
-								color={theme.palette.success.light}
-							/>
-						) : (
-							<Globe
-								className="inline-icon"
-								color={theme.palette.warning.main}
-							/>
-						)}
+						<LocationIcon locationCode={row.locCode} />
 						<Typography variant="body2">
 							<Box component="span" sx={{ display: { lg: "none" } }}>
 								{row.locCode === HORTUS_LOCATION_CODE
@@ -1398,17 +1373,22 @@ const VendorsList = ({
 			disableRowSelectionOnClick
 			localeText={{ noRowsLabel: "No results" }}
 			getRowClassName={({ row }) =>
-				row.quantity === 0 ? "unavailable-order" : ""
+				`${row.orderType === "sell" ? "ask-order" : "bid-order"}${
+					row.quantity === 0 ? " unavailable-order" : ""
+				}`
 			}
 			sx={{
 				border: "none",
 				"& .MuiDataGrid-row": {
 					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.05)}`,
-					"&:hover": {
-						backgroundColor: alpha(theme.palette.primary.main, 0.2),
-					},
 					display: "flex",
 					alignItems: "center",
+				},
+				"& .MuiDataGrid-row.ask-order": {
+					backgroundColor: alpha(theme.palette.warning.light, 0.05),
+				},
+				"& .MuiDataGrid-row.bid-order": {
+					backgroundColor: alpha(theme.palette.info.light, 0.05),
 				},
 				"& .MuiDataGrid-cell": {
 					borderBottom: "none",
@@ -1562,7 +1542,7 @@ const VendorsList = ({
 										display: "flex",
 									}}
 								>
-									<ToggleButtonGroup
+									<CustomToggleGroup
 										value={vendorViewMode}
 										exclusive
 										onChange={(_event, newValue: "grid" | "table" | null) => {
@@ -1570,52 +1550,26 @@ const VendorsList = ({
 												handleViewModeChange(newValue);
 											}
 										}}
-										size="small"
 										aria-label="Vendor view mode"
-										sx={{
-											height: 40,
-											borderRadius: "12px",
-											"& .MuiToggleButtonGroup-grouped": {
-												"&:hover": {
-													background: alpha(theme.palette.primary.main, 0.5),
-												},
-												"&.Mui-selected": {
-													background: alpha(
-														theme.palette.background.default,
-														0.8,
-													),
-													color: theme.palette.primary.light,
-													pointerEvents: "none",
-													"&:hover": {
-														background: alpha(
-															theme.palette.background.default,
-															0.9,
-														),
-													},
-												},
-											},
-										}}
 									>
-										<ToggleButton
-											value="grid"
-											size="small"
-											aria-label="Grid view"
-											sx={{ px: 1.5, textTransform: "none" }}
-										>
-											Grid
-										</ToggleButton>
-										<ToggleButton
+										<CustomToggleButton
 											value="table"
-											size="small"
+											showIcon={false}
 											aria-label="Table view"
-											sx={{ px: 1.5, textTransform: "none" }}
 										>
 											Table
-										</ToggleButton>
-									</ToggleButtonGroup>
+										</CustomToggleButton>
+										<CustomToggleButton
+											value="grid"
+											showIcon={false}
+											aria-label="Grid view"
+										>
+											Grid
+										</CustomToggleButton>
+									</CustomToggleGroup>
 								</Box>
 								<Box sx={{ display: "flex" }}>
-									<ToggleButtonGroup
+									<CustomToggleGroup
 										value={orderTypeFilter}
 										exclusive
 										onChange={(
@@ -1624,62 +1578,35 @@ const VendorsList = ({
 										) => {
 											if (newValue) setOrderTypeFilter(newValue);
 										}}
-										size="small"
 										aria-label="Order type filter"
-										sx={{
-											height: 40,
-											borderRadius: "12px",
-											"& .MuiToggleButtonGroup-grouped": {
-												"&:hover": {
-													background: alpha(theme.palette.primary.main, 0.5),
-												},
-												"&.Mui-selected": {
-													background: alpha(
-														theme.palette.background.default,
-														0.8,
-													),
-													color: theme.palette.primary.light,
-													"&:hover": {
-														background: alpha(
-															theme.palette.background.default,
-															1,
-														),
-													},
-												},
-											},
-										}}
 									>
-										<Tooltip title="Asks and Bids together">
-											<ToggleButton
-												value="BOTH"
-												size="small"
-												aria-label="Show both ask and bid"
-												sx={{ px: 1.5, textTransform: "none" }}
-											>
-												All
-											</ToggleButton>
-										</Tooltip>
-										<Tooltip title="You buy from the vendor">
-											<ToggleButton
-												value="ASK"
-												size="small"
-												aria-label="Show only ask"
-												sx={{ px: 1.5, textTransform: "none" }}
-											>
-												Ask
-											</ToggleButton>
-										</Tooltip>
-										<Tooltip title="You sell to the vendor">
-											<ToggleButton
-												value="BID"
-												size="small"
-												aria-label="Show only bid"
-												sx={{ px: 1.5, textTransform: "none" }}
-											>
-												Bid
-											</ToggleButton>
-										</Tooltip>
-									</ToggleButtonGroup>
+										<CustomToggleButton
+											value="ASK"
+											showIcon={false}
+											tooltip="You buy from the vendor"
+											aria-label="Show only ask"
+											activeColor={theme.palette.warning.main}
+										>
+											Ask
+										</CustomToggleButton>
+										<CustomToggleButton
+											value="BID"
+											showIcon={false}
+											tooltip="You sell to the vendor"
+											aria-label="Show only bid"
+											activeColor={theme.palette.secondary.main}
+										>
+											Bid
+										</CustomToggleButton>
+										<CustomToggleButton
+											value="BOTH"
+											showIcon={false}
+											tooltip="Asks and Bids together"
+											aria-label="Show both ask and bid"
+										>
+											All
+										</CustomToggleButton>
+									</CustomToggleGroup>
 								</Box>
 								<Box sx={{ flex: "1 1 0", minWidth: 0 }}>
 									<LocationFilter
@@ -1786,33 +1713,15 @@ const VendorsList = ({
 									/>
 								</Box>
 								<Box>
-									<Tooltip title="Hide materials if vendor has/wants 0">
-										<ToggleButton
-											value="hide-unavailable"
-											selected={hideUnavailable}
-											onChange={() => setHideUnavailable((prev) => !prev)}
-											aria-label="Hide Unavailable"
-											sx={{
-												height: 40,
-												px: 1.5,
-												textTransform: "none",
-												gap: 0.5,
-												whiteSpace: "nowrap",
-												"&.Mui-selected": {
-													color: theme.palette.primary.light,
-													backgroundColor: "transparent",
-													"&:hover": { backgroundColor: "transparent" },
-												},
-											}}
-										>
-											{hideUnavailable ? (
-												<SquareCheck className="inline-icon" />
-											) : (
-												<Square className="inline-icon" />
-											)}
-											Hide Unavailable
-										</ToggleButton>
-									</Tooltip>
+									<CustomToggleButton
+										value="hide-unavailable"
+										selected={hideUnavailable}
+										onChange={() => setHideUnavailable((prev) => !prev)}
+										tooltip="Hide materials if vendor has/wants 0"
+										aria-label="Hide Unavailable"
+									>
+										Hide Unavailable
+									</CustomToggleButton>
 								</Box>
 							</Box>
 						</Box>
