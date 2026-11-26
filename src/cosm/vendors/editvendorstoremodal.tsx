@@ -281,7 +281,6 @@ const EditVendorStoreModal: React.FC<EditVendorStoreModalProps> = ({
 				<Box
 					sx={{
 						p: 0,
-						m: 1,
 						display: "flex",
 						flexDirection: "column",
 						flex: 1,

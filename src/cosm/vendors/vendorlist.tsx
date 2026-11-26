@@ -1537,7 +1537,7 @@ const VendorsList = ({
 			) : (
 				<>
 					{/* Search and Filter Bar */}
-					<Box sx={{ mb: 2, pt: 1 }}>
+					<Box sx={{ mb: 2 }}>
 						<Box
 							sx={{
 								width: "100%",
@@ -1821,7 +1821,7 @@ const VendorsList = ({
 					{/* Vendor List Area */}
 					<Box
 						id="vendors"
-						sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 0, pb: 2 }}
+						sx={{ flexGrow: 1, overflowY: "auto", minHeight: 0, px: 0 }}
 					>
 						{vendorViewMode === "table" ? (
 							<Box sx={{ height: "100%", width: "100%" }}>

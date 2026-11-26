@@ -108,12 +108,13 @@ const CosmPage = ({
 
 	return (
 		<Container
+			disableGutters
 			sx={{
 				width: "100vw",
 				minWidth: "100%",
 				height: "100vh",
 				overflow: "hidden",
-				padding: { xs: 0.5, sm: 2 },
+				padding: 2,
 				boxSizing: "border-box",
 				display: "flex",
 				flexDirection: "column",
@@ -202,7 +203,7 @@ const CosmPage = ({
 					boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
 					backdropFilter: "blur(5px)",
 					overflow: "hidden",
-					pt: 1,
+					pt: 2,
 					width: { xs: "100%", sm: "100%" },
 				}}
 			>

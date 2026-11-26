@@ -866,7 +866,6 @@ const CorpPricesTab: React.FC<CorpPricesTabProps> = ({ marketData }) => {
 				flex: 1,
 				display: "flex",
 				flexDirection: { xs: "column", md: "row" },
-				p: { xs: 0, md: 1 },
 				gap: { xs: 0, md: 1 },
 				minHeight: 0,
 				height: "100%",
