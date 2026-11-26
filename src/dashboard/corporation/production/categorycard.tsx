@@ -715,11 +715,11 @@ export const CategoryCard = React.memo(
 																											>
 																												{out.factor < 1
 																													? out.factor.toFixed(
-																														1,
-																													)
+																															1,
+																														)
 																													: Math.round(
-																														out.factor,
-																													)}
+																															out.factor,
+																														)}
 																												/d
 																											</Typography>
 																										</Box>

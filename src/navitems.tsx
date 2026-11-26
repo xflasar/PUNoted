@@ -104,7 +104,7 @@ export const navCategories: NavCategory[] = [
 				disabled: true,
 			},
 			{
-				text: "Public Data (WIP)",
+				text: "Public Data",
 				icon: <Public />,
 				href: "/dashboard/public-data",
 			},

@@ -21,6 +21,7 @@ import Governance from "./dashboard/governance/governancepage";
 import { CorporationOverview } from "./dashboard/corporation/corporationoverview";
 import ShipmentPage from "./dashboard/shipping/shipmentpage";
 import PublicShipmentPage from "./dashboard/shipping/publicshipmentpage";
+import PublicDataPage from "./dashboard/publicdata/publicdatapage";
 import { ProductionLeaderboard } from "./public/leaderboard";
 import { PublicBanking } from "./public/publicbanking";
 import { fetchClient } from "./utils/apiclient";
@@ -296,7 +297,7 @@ function App() {
 								/>
 								<Route
 									path="/dashboard/public-data"
-									element={<div>PUBLIC DATA (WIP)</div>}
+									element={<PublicDataPage />}
 								/>
 								<Route path="/dashboard/governance" element={<Governance />} />
 								<Route path="/dashboard/cx" element={<CXDashboard />} />
