@@ -1,11 +1,25 @@
 import React, { useState } from "react";
-import { Box, Paper, Tabs, Tab, Container, useMediaQuery } from "@mui/material";
+import {
+	Box,
+	Paper,
+	Tabs,
+	Tab,
+	Tooltip,
+	Container,
+	useMediaQuery,
+	type TabProps,
+} from "@mui/material";
 import { alpha, useTheme } from "@mui/system";
 import ProductionDashboard from "./shipproduction/productiondashboard";
-import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import VendorsList from "./vendors/vendorlist";
-import { DollarSign, Rocket, ShoppingBasket, Store } from "lucide-react";
+import {
+	DollarSign,
+	LogOut,
+	Rocket,
+	ShoppingBasket,
+	Store,
+} from "lucide-react";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import MainDashboard from "./pricelist/maindashboard";
 import ShippingMap from "./shipping/shippingmap";
@@ -64,6 +78,12 @@ const ShipProductionTab = ({ isMobile }: { isMobile: boolean }) => {
 	);
 };
 
+const NavTab = ({ tooltip, ...props }: TabProps & { tooltip: string }) => (
+	<Tooltip title={tooltip} arrow>
+		<Tab {...props} />
+	</Tooltip>
+);
+
 const CosmPage = ({
 	isLoggedIn = false,
 	onLoginSuccess,
@@ -75,6 +95,7 @@ const CosmPage = ({
 	const navigate = useNavigate();
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+	const isCompactNavbar = useMediaQuery(theme.breakpoints.down("md"));
 	const [showAuthentication, setShowAuthentication] = useState(false);
 
 	// Get the current tab value from the URL or default to Market.
@@ -104,6 +125,9 @@ const CosmPage = ({
 			backgroundColor: alpha(theme.palette.primary.main, 0.1),
 			color: "primary.main",
 		},
+		"&.Mui-selected": {
+			backgroundColor: alpha(theme.palette.primary.main, 0.1),
+		},
 	};
 
 	return (
@@ -126,7 +150,9 @@ const CosmPage = ({
 					bgcolor: alpha(theme.palette.common.white, 0.06),
 					border: "none",
 					boxShadow: "none",
-					borderRadius: "16px",
+					borderRadius: 0,
+					mt: -2,
+					mx: -2,
 				}}
 			>
 				<Tabs
@@ -134,64 +160,120 @@ const CosmPage = ({
 					onChange={handleTabChange}
 					textColor="primary"
 					indicatorColor="primary"
-					variant={isMobile ? "scrollable" : "fullWidth"}
-					scrollButtons
+					variant={isCompactNavbar ? "scrollable" : "fullWidth"}
+					scrollButtons="auto"
 					allowScrollButtonsMobile
 					aria-label="cosm page tabs"
 					sx={{
-						"& .MuiTabs-scrollButtons": {
-							color: "primary.main",
-							width: "auto",
+						position: "relative",
+						[theme.breakpoints.down("md")]: {
+							"& .MuiTabs-list": {
+								minWidth: "100%",
+							},
+							"& .MuiTab-root": {
+								flex: "1 0 100px",
+							},
+						},
+						"& > .MuiTabScrollButton-root": {
+							position: "absolute",
+							top: 0,
+							bottom: 0,
+							zIndex: 1,
+							background: theme.palette.background.surface,
+							opacity: 1,
+						},
+						"& > .MuiTabScrollButton-root:first-of-type": {
+							left: 0,
+							color: theme.palette.primary.dark,
+						},
+						"& > .MuiTabScrollButton-root:last-of-type": {
+							right: 0,
+							color: theme.palette.primary.dark,
+						},
+						"& .MuiTabScrollButton-root.Mui-disabled": {
+							display: "none",
 						},
 					}}
 				>
-					<Tab
-						label="Home"
-						icon={<FaArrowLeft />}
-						iconPosition="start"
-						value="homepage"
-						sx={{
-							...tabHoverStyles,
-							flexGrow: 0,
-							minWidth: 120,
-							px: { xs: 2, sm: 3 },
-						}}
-					/>
-					<Tab
+					<NavTab
+						tooltip="See what you can buy and sell on the PX"
 						label="Market"
-						icon={<Store />}
-						iconPosition="start"
+						icon={
+							<Store className="inline-icon" style={{ fontSize: "1.5rem" }} />
+						}
+						iconPosition={isCompactNavbar ? "top" : "start"}
 						value="vendors"
 						sx={tabHoverStyles}
 					/>
-					<Tab
+					<NavTab
+						tooltip="Get CONTDs for mixed vendors and materials"
 						label="Cart"
-						icon={<ShoppingBasket />}
-						iconPosition="start"
+						icon={
+							<ShoppingBasket
+								className="inline-icon"
+								style={{ fontSize: "1.5rem" }}
+							/>
+						}
+						iconPosition={isCompactNavbar ? "top" : "start"}
 						value="cart"
 						sx={tabHoverStyles}
 					/>
-					<Tab
+					<NavTab
+						tooltip="List materials on your own PX store"
 						label="Store"
-						icon={<StorefrontIcon />}
-						iconPosition="start"
+						icon={
+							<StorefrontIcon
+								className="inline-icon"
+								style={{ fontSize: "1.5rem" }}
+							/>
+						}
+						iconPosition={isCompactNavbar ? "top" : "start"}
 						value="store"
 						sx={tabHoverStyles}
 					/>
-					<Tab
+					<NavTab
+						tooltip="Lookup COSM prices and copy CONTDs"
 						label="Prices"
-						icon={<DollarSign />}
-						iconPosition="start"
+						icon={
+							<DollarSign
+								className="inline-icon"
+								style={{ fontSize: "1.5rem" }}
+							/>
+						}
+						iconPosition={isCompactNavbar ? "top" : "start"}
 						value="priceList"
 						sx={tabHoverStyles}
 					/>
 					{/* <Tab label="Shipping" icon={<Truck />} iconPosition="start" value="shipping" sx={tabHoverStyles} /> */}
-					<Tab
+					<NavTab
+						tooltip="COSM Shipbuilding operations and orders"
 						label="Ships"
-						icon={<Rocket />}
-						iconPosition="start"
+						icon={
+							<Rocket className="inline-icon" style={{ fontSize: "1.5rem" }} />
+						}
+						iconPosition={isCompactNavbar ? "top" : "start"}
 						value="production"
 						sx={tabHoverStyles}
+					/>
+					<NavTab
+						tooltip="Return to PUNoted landing page"
+						label="Exit"
+						icon={
+							<LogOut className="inline-icon" style={{ fontSize: "1.5rem" }} />
+						}
+						iconPosition={isCompactNavbar ? "top" : "start"}
+						value="homepage"
+						sx={{
+							...tabHoverStyles,
+							color: alpha(theme.palette.error.dark, 1),
+							backgroundColor: alpha(theme.palette.error.dark, 0.1),
+							flex: { md: "0 0 auto" },
+							minWidth: { md: 0 },
+							"&:hover": {
+								color: alpha(theme.palette.error.dark, 1),
+								backgroundColor: alpha(theme.palette.error.dark, 0.25),
+							},
+						}}
 					/>
 				</Tabs>
 			</Paper>

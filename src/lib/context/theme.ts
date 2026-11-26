@@ -2,7 +2,14 @@ import { createTheme, type PaletteMode } from "@mui/material";
 
 // 1. Extend the Mui theme type definitions to include 'tableCategory'
 declare module "@mui/material/styles" {
+	interface Palette {
+		tertiary: Palette["primary"];
+	}
+	interface PaletteOptions {
+		tertiary?: PaletteOptions["primary"];
+	}
 	interface TypeBackground {
+		surface: string;
 		tableCategory: string;
 	}
 	interface BreakpointOverrides {
@@ -54,6 +61,7 @@ export const getAppTheme = (mode: PaletteMode) =>
 			},
 			background: {
 				paper: "rgba(16, 16, 32, 0.5)",
+				surface: "rgb(16, 16, 32)",
 				tableCategory: "rgba(123, 104, 238, 0.2)",
 				default: "#0B0B1E",
 			},
